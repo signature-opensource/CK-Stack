@@ -148,16 +148,6 @@
       </Branch>
     </GitFolder>
 
-    <GitFolder Name="CKSetupRemoteStore" Url="https://gitlab.com/Signature-Code/CKSetupRemoteStore.git" >
-      <Branch Name="develop">
-        <SolutionSpec UseCKSetup="true" >
-          <NotPublishedProjects>
-            <add Folder="CKSetupRemoteStore" />
-          </NotPublishedProjects>
-        </SolutionSpec>
-      </Branch>
-    </GitFolder>
-
     <GitFolder Name="CK-SqlServer" Url="https://github.com/Invenietis/CK-SqlServer.git" >
       <Branch Name="develop">
         <SolutionSpec SqlServer="2016" />
@@ -290,6 +280,16 @@
             <add Name="CKSetup.Runner" />
             <add Name="CKSetup" />
           </CKSetupComponentProjects>
+        </SolutionSpec>
+      </Branch>
+    </GitFolder>
+
+    <GitFolder Name="CKSetupRemoteStore" Url="https://gitlab.com/Signature-Code/CKSetupRemoteStore.git" >
+      <Branch Name="develop">
+        <SolutionSpec UseCKSetup="true" >
+          <NotPublishedProjects>
+            <add Folder="CKSetupRemoteStore" />
+          </NotPublishedProjects>
         </SolutionSpec>
       </Branch>
     </GitFolder>
