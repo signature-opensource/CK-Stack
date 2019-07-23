@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<CK-Build>
+  <LoadLibrary Name="CK.Env.Plugin.Basics"/>
+  <LoadLibrary Name="CK.Env.Plugin.SolutionDriver" />
+  <LoadLibrary Name="CK.Env.Plugin.Appveyor" />
+  <LoadLibrary Name="CK.Env.Plugin.GitLab" />
+  <LoadLibrary Name="CK.Env.Plugin.NuGet" />
+  <SharedHttpClient />
+  <ArtifactCenter />
+  <LocalFeedProvider />
+  <NuGetClient />
+  <World IsPublic="True" />
+
+  <Artifacts>
+    <SourceFeeds>
+      <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/nuget/v3/index.json">
+        <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
+      </Feed>      
+    </SourceFeeds>
+    <TargetRepositories>
+      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="Default"
+              CheckName="NuGet:Azure:Signature-OpenSource-Default"
+              CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
+      <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
+              CheckName="NuGet:nuget.org"
+              QualityFilter="ReleaseCandidate-Release"
+              SecretKeyName="NUGET_ORG_PUSH_API_KEY" />     
+    </TargetRepositories>>
+  </Artifacts>
+
+  <SharedSolutionSpec>
+    <RemoveNuGetSourceNames>
+      <add Name="CKEnvTest" />
+      <add Name="CKEnvTest3" />
+      <add Name="Invenietis - Release" />
+      <add Name="Invenietis - Preview" />
+      <add Name="Invenietis - CI" />
+    </RemoveNuGetSourceNames>
+    <ArtifactSources>
+      <add Name="NuGet:Signature-OpenSource" />
+    </ArtifactSources>
+    <ArtifactTargets>
+      <add Name="NuGet:nuget.org" />
+      <add Name="NuGet:Azure:Signature-OpenSource-Default" />
+    </ArtifactTargets>
+  </SharedSolutionSpec>
+
+  <Folder Name="CK-Core-Projects">
+    <GitFolder Name="CK-Core" Url="https://github.com/Invenietis/CK-Core.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+    <GitFolder Name="CK-Text" Url="https://github.com/Invenietis/CK-Text.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+    <GitFolder Name="CK-MicroBenchmark" Url="https://github.com/Invenietis/CK-MicroBenchmark.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+  </Folder>
+  <Folder Name="SimpleGitVersion">
+    <GitFolder Name="CodeCake" Url="https://github.com/SimpleGitVersion/CodeCake.git">
+      <Branch Name="develop">
+        <SolutionSpec NoDotNetUnitTests="true" NoStrongNameSigning="true" />
+      </Branch>
+    </GitFolder>
+    <GitFolder Name="CSemVer-Net" Url="https://github.com/SimpleGitVersion/CSemVer-Net.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+    <GitFolder Name="SGV-Net" Url="https://github.com/SimpleGitVersion/SGV-Net.git">
+      <Branch Name="develop">
+        <SolutionSpec DisableSourceLink="true" />
+      </Branch>
+    </GitFolder>
+  </Folder>
+</CK-Build>
