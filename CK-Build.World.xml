@@ -5,6 +5,7 @@
   <LoadLibrary Name="CK.Env.Plugin.Appveyor" />
   <LoadLibrary Name="CK.Env.Plugin.GitLab" />
   <LoadLibrary Name="CK.Env.Plugin.NuGet" />
+  <LoadLibrary Name="CK.Env.Plugin.Dotnet" />
   <SharedHttpClient />
   <ArtifactCenter />
   <LocalFeedProvider />
