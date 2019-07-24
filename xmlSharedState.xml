@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<CK-Build.World.SharedState WorkStatus="Idle">
+  <CICDKeyVault>-- Version: 1
+-- Keys below can be removed if needed.
+APPVEYOR_ENCRYPTED_CODECAKEBUILDER_SECRET_KEY
+ &gt; dzb63SAiiIEhOQ5abTFWazKJ5F1KREC8XByKr+G4qY3sLTuLM1dzpqrXY9dqCCKdYqAUM0MduybsS1zmlegGfObo2o64e2v4y0cOxeqa+gmH/jgX4XwmgGOOvKQEZfxOQBmhe0MMBba+t3R9mJcNVg==
+</CICDKeyVault>
+</CK-Build.World.SharedState>
