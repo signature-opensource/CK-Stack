@@ -3,6 +3,7 @@
   <CICDKeyVault>-- Version: 1
 -- Keys below can be removed if needed.
 APPVEYOR_ENCRYPTED_CODECAKEBUILDER_SECRET_KEY
- &gt; dzb63SAiiIEhOQ5abTFWazKJ5F1KREC8XByKr+G4qY3sLTuLM1dzpqrXY9dqCCKdYqAUM0MduybsS1zmlegGfObo2o64e2v4y0cOxeqa+gmH/jgX4XwmgGOOvKQEZfxOQBmhe0MMBba+t3R9mJcNVg==
+NUGET_ORG_PUSH_API_KEY
+ &gt; 1yoRsS4cNCOON+pTdmmW9Bq6fvTkZFGzqifmPAKt98eTYiMW2GY3IvTdRTl/o4wmTf6EPJpntXx9gZVZTEnJGBp/jc7zKI58x+7o9Yuw9KnK6OXtj9jAWj2oGKIgfTchj5kSbq3ELtq9vRB4U+dPH9xsDoY5VeE1sgYSyY7wzT6sAZFRfqiWtIQ1CmbZiC1ccJKtn6mXTGOHOFk2smLIaI/lUOyNznSbMsqRotdJgos=
 </CICDKeyVault>
 </CK-Build.World.SharedState>
