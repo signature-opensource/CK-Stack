@@ -57,6 +57,7 @@
     </RemoveNuGetSourceNames>
     <ArtifactSources>
       <add Name="NuGet:Signature-OpenSource" />
+      <add Name="NPM:@signature" />
     </ArtifactSources>
     <ArtifactTargets>
       <add Name="NuGet:nuget.org" />
