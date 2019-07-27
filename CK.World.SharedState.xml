@@ -3,6 +3,7 @@
   <CICDKeyVault>-- Version: 1
 -- Keys below can be removed if needed.
 AZURE_FEED_SIGNATURE_OPENSOURCE_PAT
- &gt; Ud8CXV+a06tIVUfKYhxl2E5Amipzyare4HUfBeO3oJGlVY+bq6JIRy4CLv3zpNbR3ikxsgmSYJjeRdlFVPeOf0lyu6dXFpyuDzkaX18G8ioVkxm34eHfRPpBeWZ7nXVU
+NUGET_ORG_PUSH_API_KEY
+ &gt; E4RCuG53nurw5eKGLGL9tvt85NSxNkK79iTSjcDVB7MyRBeygeOln+UqYyimoNSZMnHnHHF+IlOu0qYloJrh0FgQM0CkZtHU5em7spciZogrbMFr1mcTbfYyJTanxeqKX4PhIIoKqJBe2xDXjbW4VBXjjOezWZ1doLhNLHh0y+HASXmsOpNqK8saS9miX/S3nFy4bQ77odmoWtUD6QzLtZ2eWNsCGcMz8TP+WyJLLyg=
 </CICDKeyVault>
 </CK.World.SharedState>
