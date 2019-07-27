@@ -18,57 +18,32 @@
   <World IsPublic="True" />
 
   <Artifacts>
-    <SourceFeeds>
-        <Feed
-          Type="NuGet"
-          Name="Signature-OpenSource"
-          Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/nuget/v3/index.json">
-          <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
-        </Feed>
-        <Feed
-          Type="NPM"
-          Scope="@signature"
-          Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/npm/registry/" >
-          <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
-        </Feed>
+    <SourceFeeds>     
+      <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/nuget/v3/index.json">
+        <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
+      </Feed>
+      <Feed Type="NPM" Scope="@signature" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/npm/registry/" >
+        <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
+      </Feed>
     </SourceFeeds>
+
     <TargetRepositories>
-      <Repository
-        Type="NuGetAzure"
-        Organization="Signature-OpenSource"
-        FeedName="Default"
-        CheckName="NuGet:Azure:Signature-OpenSource-Default"
-        CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
-
-      <Repository
-        Type="NPMAzure"
-        Organization="Signature-OpenSource"
-        FeedName="Default"
-        NPMScope="@signature"
-        CheckName="NPM:Azure:@signature->Signature-OpenSource-Default"
-        CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
-
-      <Repository
-        Type="NuGetStandard"
-        Name="nuget.org"
-        Url="https://api.nuget.org/v3/index.json"
-        CheckName="NuGet:nuget.org"
-        QualityFilter="ReleaseCandidate-Release"
-        SecretKeyName="NUGET_ORG_PUSH_API_KEY" />
-
-      <Repository
-        Type="NPMStandard"
-        Name="npmjs.org"
-        Url="https://registry.npmjs.org/"
-        QualityFilter="ReleaseCandidate-Release"
-        CheckName="NPM:npmjs.org"
-        SecretKeyName="NPMJS_ORG_PUSH_PAT" />
-
-      <Repository
-        Type="CKSetup"
-        CheckName="CKSetup:Public"
-        CheckSecretKeyName="CKSETUPREMOTESTORE_PUSH_API_KEY" />
-
+      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="Default"
+              CheckName="NuGet:Azure:Signature-OpenSource-Default"
+              CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />   
+      <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
+              CheckName="NuGet:nuget.org"
+              QualityFilter="ReleaseCandidate-Release"
+              SecretKeyName="NUGET_ORG_PUSH_API_KEY" />     
+      <Repository Type="NPMAzure" Organization="Signature-OpenSource" FeedName="Default" NPMScope="@signature"
+              CheckName="NPM:Azure:@signature->Signature-OpenSource-Default"
+              CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
+      <Repository Type="NPMStandard" Name="npmjs.org" Url="https://registry.npmjs.org/"
+              QualityFilter="ReleaseCandidate-Release"
+              CheckName="NPM:npmjs.org"
+              SecretKeyName="NPMJS_ORG_PUSH_PAT" />
+      <Repository Type="CKSetup" CheckName="CKSetup:Public"
+              CheckSecretKeyName="CKSETUPREMOTESTORE_PUSH_API_KEY" />
     </TargetRepositories>
   </Artifacts>
 
@@ -84,9 +59,9 @@
       <add Name="NuGet:Signature-OpenSource" />
     </ArtifactSources>
     <ArtifactTargets>
-      <add Name="NPM:Azure:@signature->Signature-OpenSource-Default" />
       <add Name="NuGet:nuget.org" />
       <add Name="NuGet:Azure:Signature-OpenSource-Default" />
+      <add Name="NPM:Azure:@signature->Signature-OpenSource-Default" />
       <add Name="NPM:npmjs.org" />
       <add Name="CKSetup:Public" />
     </ArtifactTargets>
