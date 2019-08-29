@@ -64,17 +64,17 @@
     </GitFolder>
   </Folder>
   <Folder Name="SimpleGitVersion">
-    <GitFolder Name="CodeCake" Url="https://github.com/SimpleGitVersion/CodeCake.git">
+    <GitFolder Name="CodeCake" Url="https://github.com/CK-Build/CodeCake.git">
       <Branch Name="develop">
         <SolutionSpec NoDotNetUnitTests="true" NoStrongNameSigning="true" />
       </Branch>
     </GitFolder>
-    <GitFolder Name="CSemVer-Net" Url="https://github.com/SimpleGitVersion/CSemVer-Net.git">
+    <GitFolder Name="CSemVer-Net" Url="https://github.com/CK-Build/CSemVer-Net.git">
       <Branch Name="develop">
         <SolutionSpec />
       </Branch>
     </GitFolder>
-    <GitFolder Name="SGV-Net" Url="https://github.com/SimpleGitVersion/SGV-Net.git">
+    <GitFolder Name="SGV-Net" Url="https://github.com/CK-Build/SGV-Net.git">
       <Branch Name="develop">
         <SolutionSpec DisableSourceLink="true" />
       </Branch>
