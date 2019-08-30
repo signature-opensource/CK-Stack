@@ -63,7 +63,7 @@
       </Branch>
     </GitFolder>
   </Folder>
-  <Folder Name="SimpleGitVersion">
+  <Folder Name="CK-Build">
     <GitFolder Name="CodeCake" Url="https://github.com/CK-Build/CodeCake.git">
       <Branch Name="develop">
         <SolutionSpec NoDotNetUnitTests="true" NoStrongNameSigning="true" />
