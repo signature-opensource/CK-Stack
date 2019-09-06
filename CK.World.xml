@@ -106,6 +106,24 @@
       </Branch>
     </GitFolder>
     
+    <GitFolder Name="CK-Text" Url="https://github.com/Invenietis/CK-Text.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+    
+    <GitFolder Name="CK-MicroBenchmark" Url="https://github.com/Invenietis/CK-MicroBenchmark.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
+    <GitFolder Name="CK-Core" Url="https://github.com/Invenietis/CK-Core.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-ActivityMonitor" Url="https://github.com/Invenietis/CK-ActivityMonitor.git" >
       <Branch Name="develop">
         <SolutionSpec />

@@ -46,23 +46,6 @@
     </ArtifactTargets>
   </SharedSolutionSpec>
 
-  <Folder Name="CK-Core-Projects">
-    <GitFolder Name="CK-Core" Url="https://github.com/Invenietis/CK-Core.git">
-      <Branch Name="develop">
-        <SolutionSpec />
-      </Branch>
-    </GitFolder>
-    <GitFolder Name="CK-Text" Url="https://github.com/Invenietis/CK-Text.git">
-      <Branch Name="develop">
-        <SolutionSpec />
-      </Branch>
-    </GitFolder>
-    <GitFolder Name="CK-MicroBenchmark" Url="https://github.com/Invenietis/CK-MicroBenchmark.git" >
-      <Branch Name="develop">
-        <SolutionSpec />
-      </Branch>
-    </GitFolder>
-  </Folder>
   <Folder Name="CK-Build">
     <GitFolder Name="CodeCake" Url="https://github.com/CK-Build/CodeCake.git">
       <Branch Name="develop">
