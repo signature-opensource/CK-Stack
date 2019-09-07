@@ -331,6 +331,12 @@
   
   <Folder Name="CK-Crs-Projects">
 
+    <GitFolder Name="CK-AmbientValues" Url="https://github.com/Invenietis/CK-AmbientValues.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-Crs" Url="https://github.com/Invenietis/crs.git">
       <Branch Name="develop">
         <SolutionSpec PublishProjectInDirectories="True">
