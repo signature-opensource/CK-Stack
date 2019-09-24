@@ -80,8 +80,11 @@
       <Branch Name="develop">
         <SolutionSpec SqlServer="2016" UseCKSetup="true">
           <NPMProjects>
-            <add Folder="Clients/webfrontauth" PackageName="@signature/webfrontauth" />
+            <add Folder="Clients/webfrontauth" PackageName="@signature/webfrontauth" OutputFolder="Clients/webfrontauth" />
           </NPMProjects>
+          <AngularWorkspaces>
+            <add Path="Clients/webfrontauth-ngx" PackageName="@signature/webfrontauth-ngx" OutputFolder="Clients/webfrontauth-ngx/dist"/>
+          </AngularWorkspaces>
         </SolutionSpec>
       </Branch>
     </GitFolder>
@@ -100,7 +103,7 @@
       <Branch Name="develop">
         <SolutionSpec NoSharedPropsFile="True" NoDotNetUnitTests="True" >
           <NPMProjects>
-            <add Folder="" PackageName="@signature/json-graph-serializer" />
+            <add Folder="" PackageName="@signature/json-graph-serializer" OutputFolder="" />
           </NPMProjects>
         </SolutionSpec>
       </Branch>
@@ -341,8 +344,8 @@
       <Branch Name="develop">
         <SolutionSpec PublishProjectInDirectories="True">
           <NPMProjects>
-            <add Folder="js/crs-client" PackageName="@signature/crs-client" />
-            <add Folder="js/crs-client-signalr" PackageName="@signature/crs-client-signalr" />
+            <add Folder="js/crs-client" PackageName="@signature/crs-client" OutputFolder="js/crs-client" />
+            <add Folder="js/crs-client-signalr" PackageName="@signature/crs-client-signalr" OutputFolder="js/crs-client-signalr"/>
           </NPMProjects>
         </SolutionSpec>
       </Branch>
