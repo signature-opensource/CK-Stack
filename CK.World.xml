@@ -78,7 +78,7 @@
 
     <GitFolder Name="CK-AspNet-Auth" Url="https://github.com/Invenietis/CK-AspNet-Auth.git">
       <Branch Name="develop">
-        <SolutionSpec SqlServer="2016" UseCKSetup="true">
+        <SolutionSpec SqlServer="2017" UseCKSetup="true">
           <NPMProjects>
             <add Folder="Clients/webfrontauth" PackageName="@signature/webfrontauth" OutputFolder="Clients/webfrontauth" />
           </NPMProjects>
@@ -147,13 +147,13 @@
 
     <GitFolder Name="CK-SqlServer" Url="https://github.com/Invenietis/CK-SqlServer.git" >
       <Branch Name="develop">
-        <SolutionSpec SqlServer="2016" />
+        <SolutionSpec SqlServer="2017" />
       </Branch>
     </GitFolder>
 
     <GitFolder Name="CK-SqlServer-Dapper" Url="https://github.com/Invenietis/CK-SqlServer-Dapper.git" >
       <Branch Name="develop">
-        <SolutionSpec SqlServer="2016"/>
+        <SolutionSpec SqlServer="2017"/>
       </Branch>
     </GitFolder>
     
@@ -171,7 +171,7 @@
 
     <GitFolder Name="CK-Testing" Url="https://github.com/Invenietis/CK-Testing.git" >
       <Branch Name="develop">
-        <SolutionSpec SqlServer="2016" />
+        <SolutionSpec SqlServer="2017" />
       </Branch>
     </GitFolder>
     
@@ -199,7 +199,7 @@
 
     <GitFolder Name="CK-Database" Url="https://gitlab.com/Signature-Code/CK-Database.git" >
       <Branch Name="develop">
-        <SolutionSpec SqlServer="2016" UseCKSetup="true" >
+        <SolutionSpec SqlServer="2017" UseCKSetup="true" >
           <CKSetupComponentProjects>
             <add Name="CK.StObj.Model" />
             <add Name="CK.StObj.Runtime" />
@@ -217,56 +217,56 @@
 
     <GitFolder Name="CK-DB" Url="https://github.com/Invenietis/CK-DB.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
     <GitFolder Name="CK-DB-GitHub" Url="https://github.com/Invenietis/CK-DB-GitHub.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
 
     <GitFolder Name="CK-DB-Actor-ActorEMail" Url="https://github.com/Invenietis/CK-DB-Actor-ActorEMail.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
     <GitFolder Name="CK-DB-SqlCKTrait" Url="https://github.com/Invenietis/CK-DB-SqlCKTrait.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
     <GitFolder Name="CK-DB-TokenStore" Url="https://github.com/Invenietis/CK-DB-TokenStore.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
     <GitFolder Name="CK-DB-GuestActor" Url="https://github.com/Invenietis/CK-DB-GuestActor.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
     
     <GitFolder Name="CK-DB-GuestActor-Acl" Url="https://github.com/Invenietis/CK-DB-GuestActor-Acl.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
     <GitFolder Name="CK-DB-User-SimpleInvitation" Url="https://github.com/Invenietis/CK-DB-User-SimpleInvitation.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True"  SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True"  SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
     <GitFolder Name="CK-DB-User-UserPassword" Url="https://github.com/Invenietis/CK-DB-User-UserPassword.git" >
       <Branch Name="develop">
-        <SolutionSpec TestProjectsArePublished="True" SqlServer="2016" UseCKSetup="true" />
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
