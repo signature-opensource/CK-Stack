@@ -14,13 +14,11 @@
 
   <Artifacts>
     <SourceFeeds>
-      <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/nuget/v3/index.json">
-        <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
-      </Feed>      
+      <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json"/> 
     </SourceFeeds>
     <TargetRepositories>
-      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="Default"
-              CheckName="NuGet:Azure:Signature-OpenSource-Default"
+      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="NetCore3"
+              CheckName="NuGet:Azure:Signature-OpenSource-NetCore3"
               CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
       <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
               CheckName="NuGet:nuget.org"
@@ -42,7 +40,7 @@
     </ArtifactSources>
     <ArtifactTargets>
       <add Name="NuGet:nuget.org" />
-      <add Name="NuGet:Azure:Signature-OpenSource-Default" />
+      <add Name="NuGet:Azure:Signature-OpenSource-NetCore3" />
     </ArtifactTargets>
   </SharedSolutionSpec>
 
