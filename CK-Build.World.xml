@@ -38,6 +38,7 @@
     </RemoveNuGetSourceNames>
     <ArtifactSources>
       <add Name="NuGet:Signature-OpenSource" />
+      <add Name="NuGet:nuget.org"/>
     </ArtifactSources>
     <ArtifactTargets>
       <add Name="NuGet:nuget.org" />
