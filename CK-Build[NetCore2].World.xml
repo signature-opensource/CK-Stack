@@ -22,7 +22,7 @@
       <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json" CheckName="NuGet:nuget.org" QualityFilter="ReleaseCandidate-Release" SecretKeyName="NUGET_ORG_PUSH_API_KEY" />
     </TargetRepositories>&gt;
   </Artifacts>
-  <SharedSolutionSpec>
+  <SharedSolutionSpec GlobalJsonSdkVersion="2.2.402">
     <RemoveNuGetSourceNames>
       <add Name="CKEnvTest" />
       <add Name="CKEnvTest3" />
