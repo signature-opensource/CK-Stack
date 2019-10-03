@@ -18,7 +18,11 @@
       <Feed Type="NuGet" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"/> 
     </SourceFeeds>
     <TargetRepositories>
-      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="NetCore3"
+      <Repository
+              Type="NuGetAzure"
+              Organization="Signature-OpenSource"
+              ProjectName="Feeds"
+              FeedName="NetCore3"
               CheckName="NuGet:Azure:Signature-OpenSource-NetCore3"
               CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
       <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
