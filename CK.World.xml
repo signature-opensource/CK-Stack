@@ -352,4 +352,12 @@
     </GitFolder>
 
   </Folder>
+
+  <Folder Name="IoT">
+    <GitFolder Name="CK-MQTTnet" Url="https://github.com/signature-opensource/MQTTnet.git">
+      <Branch Name="develop">
+        <SolutionSpec PublishProjectInDirectories="True" />
+      </Branch>
+    </GitFolder>
+  </Folder>
 </CK-World>
