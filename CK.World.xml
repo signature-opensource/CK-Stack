@@ -17,6 +17,10 @@
   <CKSetupClient />
   <World IsPublic="True" />
 
+  <WorldSecrets>
+    <add Name="SIGNATURE_OPENSOURCE_READ_PAT" Value="n3tndqhxuvdapmu5c3rxylmknxwucu6mjpyetqemremo2hpfl7ka" Description="Read only PAT. Used in apply settings (nuget.config/.npmrc) or to query the feeds. "/>
+  </WorldSecrets>
+
   <Artifacts>
     <SourceFeeds>     
       <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/nuget/v3/index.json">
@@ -49,8 +53,6 @@
 
   <SharedSolutionSpec>
     <RemoveNuGetSourceNames>
-      <add Name="CKEnvTest" />
-      <add Name="CKEnvTest3" />
       <add Name="Invenietis - Release" />
       <add Name="Invenietis - Preview" />
       <add Name="Invenietis - CI" />
@@ -354,10 +356,10 @@
   </Folder>
 
   <Folder Name="IoT">
-    <GitFolder Name="CK-MQTTnet" Url="https://github.com/signature-opensource/MQTTnet.git">
+    <!-- <GitFolder Name="CK-MQTTnet" Url="https://github.com/signature-opensource/MQTTnet.git">
       <Branch Name="develop">
         <SolutionSpec PublishProjectInDirectories="True" />
       </Branch>
-    </GitFolder>
+    </GitFolder> -->
   </Folder>
 </CK-World>
