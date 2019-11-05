@@ -26,7 +26,7 @@
       <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/nuget/v3/index.json">
         <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
       </Feed>
-      <Feed Type="NPM" Scope="@signature" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/npm/registry/" >
+      <Feed Type="NPM" Scope="@signature" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/npm/registry/" UsePassword="true">
         <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
       </Feed>
     </SourceFeeds>
