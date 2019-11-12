@@ -12,6 +12,10 @@
   <NuGetClient />
   <World IsPublic="True" />
 
+  <WorldSecrets>
+    <add Name="SIGNATURE_OPENSOURCE_READ_PAT" Value="n3tndqhxuvdapmu5c3rxylmknxwucu6mjpyetqemremo2hpfl7ka" Description="Read only PAT. Used in apply settings (nuget.config/.npmrc) or to query the feeds. "/>
+  </WorldSecrets>
+
   <Artifacts>
     <SourceFeeds>
       <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json"/> 
