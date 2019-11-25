@@ -272,6 +272,18 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-DB-Facebook" Url="https://github.com/signature-opensource/CK-DB-Facebook.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
+    <GitFolder Name="CK-DB-Twitter" Url="https://github.com/signature-opensource/CK-DB-Twitter.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-Setup" Url="https://gitlab.com/Signature-Code/CK-Setup.git" >
        <Branch Name="develop">
         <SolutionSpec UseCKSetup="true" >
