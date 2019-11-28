@@ -368,10 +368,10 @@
   </Folder>
 
   <Folder Name="IoT">
-    <!-- <GitFolder Name="CK-MQTTnet" Url="https://github.com/signature-opensource/MQTTnet.git">
+    <GitFolder Name="CK-MQTT" Url="https://github.com/signature-opensource/CK-MQTT.git">
       <Branch Name="develop">
-        <SolutionSpec PublishProjectInDirectories="True" />
+        <SolutionSpec />
       </Branch>
-    </GitFolder> -->
+    </GitFolder>
   </Folder>
 </CK-World>
