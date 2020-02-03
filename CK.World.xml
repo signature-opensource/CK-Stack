@@ -17,30 +17,23 @@
   <CKSetupClient />
   <World IsPublic="True" />
 
-  <WorldSecrets>
-    <add Name="SIGNATURE_OPENSOURCE_READ_PAT" Value="n3tndqhxuvdapmu5c3rxylmknxwucu6mjpyetqemremo2hpfl7ka" Description="Read only PAT. Used in apply settings (nuget.config/.npmrc) or to query the feeds. "/>
-  </WorldSecrets>
-
   <Artifacts>
     <SourceFeeds>     
-      <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/nuget/v3/index.json">
-        <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
-      </Feed>
-      <Feed Type="NPM" Scope="@signature" Url="https://pkgs.dev.azure.com/Signature-OpenSource/_packaging/Default/npm/registry/" UsePassword="true">
-        <Credentials UserName="SignatureOpenSource" PasswordSecretKeyName="SIGNATURE_OPENSOURCE_READ_PAT" />
-      </Feed>
+      <Feed Type="NuGet" Name="NuGet" Url="https://api.nuget.org/v3/index.json"/>
+      <Feed Type="NuGet" Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json"/>
+      <Feed Type="NPM" Scope="@signature" Url="https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json"/>
     </SourceFeeds>
 
     <TargetRepositories>
-      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="Default"
-              CheckName="NuGet:Azure:Signature-OpenSource-Default"
+      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="NetCore3"
+              CheckName="NuGet:Azure:Signature-OpenSource-NetCore3"
               CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />   
       <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
               CheckName="NuGet:nuget.org"
               QualityFilter="ReleaseCandidate-Release"
               SecretKeyName="NUGET_ORG_PUSH_API_KEY" />     
-      <Repository Type="NPMAzure" Organization="Signature-OpenSource" FeedName="Default" NPMScope="@signature"
-              CheckName="NPM:Azure:@signature->Signature-OpenSource-Default"
+      <Repository Type="NPMAzure" Organization="Signature-OpenSource" FeedName="NetCore3" NPMScope="@signature"
+              CheckName="NPM:Azure:@signature->Signature-OpenSource-NetCore3"
               CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
       <Repository Type="NPMStandard" Name="npmjs.org" Url="https://registry.npmjs.org/"
               QualityFilter="ReleaseCandidate-Release"
@@ -58,13 +51,14 @@
       <add Name="Invenietis - CI" />
     </RemoveNuGetSourceNames>
     <ArtifactSources>
+      <add Name="NuGet:NuGet" />
       <add Name="NuGet:Signature-OpenSource" />
       <add Name="NPM:@signature" />
     </ArtifactSources>
     <ArtifactTargets>
       <add Name="NuGet:nuget.org" />
-      <add Name="NuGet:Azure:Signature-OpenSource-Default" />
-      <add Name="NPM:Azure:@signature->Signature-OpenSource-Default" />
+      <add Name="NuGet:Azure:Signature-OpenSource-NetCore3" />
+      <add Name="NPM:Azure:@signature->Signature-OpenSource-NetCore3" />
       <add Name="NPM:npmjs.org" />
       <add Name="CKSetup:Public" />
     </ArtifactTargets>
