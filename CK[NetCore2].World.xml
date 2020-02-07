@@ -78,15 +78,6 @@
     </GitFolder>
   </Folder>
   <Folder Name="CK-Core-Projects">
-    <GitFolder Name="json-graph-serializer" Url="https://github.com/Invenietis/json-graph-serializer.git">
-      <Branch Name="develop-NetCore2">
-        <SolutionSpec NoSharedPropsFile="True" NoDotNetUnitTests="True">
-          <NPMProjects>
-            <add Folder="" PackageName="@signature/json-graph-serializer" OutputFolder="" />
-          </NPMProjects>
-        </SolutionSpec>
-      </Branch>
-    </GitFolder>
     <GitFolder Name="CK-Text" Url="https://github.com/Invenietis/CK-Text.git">
       <Branch Name="develop-NetCore2">
         <SolutionSpec />
@@ -140,11 +131,6 @@
     <GitFolder Name="CK-Testing" Url="https://github.com/Invenietis/CK-Testing.git">
       <Branch Name="develop-NetCore2">
         <SolutionSpec SqlServer="2017" />
-      </Branch>
-    </GitFolder>
-    <GitFolder Name="CK-UnitsOfMeasure" Url="https://github.com/Invenietis/CK-UnitsOfMeasure.git">
-      <Branch Name="develop-NetCore2">
-        <SolutionSpec />
       </Branch>
     </GitFolder>
     <GitFolder Name="CK-WeakAssemblyNameResolver" Url="https://github.com/Invenietis/CK-WeakAssemblyNameResolver.git">
