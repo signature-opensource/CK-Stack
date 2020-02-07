@@ -25,14 +25,14 @@
     </SourceFeeds>
 
     <TargetRepositories>
-      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="NetCore3"
+      <Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="NetCore3" ProjectName="Feeds"
               CheckName="NuGet:Azure:Signature-OpenSource-NetCore3"
               CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />   
       <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
               CheckName="NuGet:nuget.org"
               QualityFilter="ReleaseCandidate-Release"
               SecretKeyName="NUGET_ORG_PUSH_API_KEY" />     
-      <Repository Type="NPMAzure" Organization="Signature-OpenSource" FeedName="NetCore3" NPMScope="@signature"
+      <Repository Type="NPMAzure" Organization="Signature-OpenSource" FeedName="NetCore3" ProjectName="Feeds" NPMScope="@signature"
               CheckName="NPM:Azure:@signature->Signature-OpenSource-NetCore3"
               CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
       <Repository Type="NPMStandard" Name="npmjs.org" Url="https://registry.npmjs.org/"
