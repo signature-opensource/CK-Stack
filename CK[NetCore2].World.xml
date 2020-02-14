@@ -133,11 +133,6 @@
         <SolutionSpec SqlServer="2017" />
       </Branch>
     </GitFolder>
-    <GitFolder Name="CK-WeakAssemblyNameResolver" Url="https://github.com/Invenietis/CK-WeakAssemblyNameResolver.git">
-      <Branch Name="develop-NetCore2">
-        <SolutionSpec NoDotNetUnitTests="true" />
-      </Branch>
-    </GitFolder>
   </Folder>
   <Folder Name="CK-Database-Projects">
     <GitFolder Name="CK-CodeGen" Url="https://github.com/Invenietis/CK-CodeGen.git">
