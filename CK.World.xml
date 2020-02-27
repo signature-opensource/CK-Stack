@@ -193,13 +193,22 @@
       </Branch>
     </GitFolder>
 
-    <GitFolder Name="CK-Database" Url="https://gitlab.com/Signature-Code/CK-Database.git" >
+    <GitFolder Name="CK-StObj" Url="https://github.com/signature-opensource/CK-StObj.git" >
       <Branch Name="develop">
         <SolutionSpec SqlServer="2017" UseCKSetup="true" >
           <CKSetupComponentProjects>
             <add Name="CK.StObj.Model" />
             <add Name="CK.StObj.Runtime" />
             <add Name="CK.StObj.Engine" />
+          </CKSetupComponentProjects>
+        </SolutionSpec>
+      </Branch>
+    </GitFolder>
+
+    <GitFolder Name="CK-Database" Url="https://gitlab.com/Signature-Code/CK-Database.git" >
+      <Branch Name="develop">
+        <SolutionSpec SqlServer="2017" UseCKSetup="true" >
+          <CKSetupComponentProjects>
             <add Name="CK.Setupable.Model" />
             <add Name="CK.Setupable.Runtime" />
             <add Name="CK.Setupable.Engine" />
