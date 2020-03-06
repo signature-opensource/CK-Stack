@@ -212,25 +212,6 @@
         <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
-    <GitFolder Name="CK-Setup" Url="https://gitlab.com/Signature-Code/CK-Setup.git">
-      <Branch Name="develop-NetCore2">
-        <SolutionSpec UseCKSetup="true">
-          <CKSetupComponentProjects>
-            <add Name="CKSetup.Runner" />
-            <add Name="CKSetup" />
-          </CKSetupComponentProjects>
-        </SolutionSpec>
-      </Branch>
-    </GitFolder>
-    <GitFolder Name="CKSetupRemoteStore" Url="https://gitlab.com/Signature-Code/CKSetupRemoteStore.git">
-      <Branch Name="develop-NetCore2">
-        <SolutionSpec UseCKSetup="true">
-          <NotPublishedProjects>
-            <add Folder="CKSetupRemoteStore" />
-          </NotPublishedProjects>
-        </SolutionSpec>
-      </Branch>
-    </GitFolder>
     <GitFolder Name="CK-Setup-Dependency" Url="https://github.com/Invenietis/CK-Setup-Dependency.git">
       <Branch Name="develop-NetCore2">
         <SolutionSpec />
