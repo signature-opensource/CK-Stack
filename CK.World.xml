@@ -382,7 +382,7 @@
   </Folder>
 
 
-  <Folder Name="CK-Sample">
+  <!-- <Folder Name="CK-Sample">
 
     <GitFolder Name="CK-Sample-MultiBinPath" Url="https://github.com/signature-opensource/CK-Sample-MultiBinPath.git" >
       <Branch Name="develop">
@@ -390,7 +390,7 @@
       </Branch>
     </GitFolder>
 
-  </Folder>
+  </Folder> -->
 
   <!-- <Folder Name="IoT">
     <GitFolder Name="CK-MQTT" Url="https://github.com/signature-opensource/CK-MQTT.git">
