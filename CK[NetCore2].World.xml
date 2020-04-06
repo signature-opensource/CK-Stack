@@ -151,6 +151,13 @@
         <SolutionSpec />
       </Branch>
     </GitFolder>
+    
+    <GitFolder Name="CK-Setup" Url="https://gitlab.com/Signature-Code/CK-Setup.git">
+      <Branch Name="develop-NetCore2">
+        <SolutionSpec UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-Database" Url="https://gitlab.com/Signature-Code/CK-Database.git">
       <Branch Name="develop-NetCore2">
         <SolutionSpec SqlServer="2017" UseCKSetup="true">
