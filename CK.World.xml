@@ -243,6 +243,11 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-DB-Actor-ActorPhoneNumber" Url="https://github.com/Invenietis/CK-DB-Actor-ActorPhoneNumber.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
 
     <GitFolder Name="CK-DB-Actor-ActorEMail" Url="https://github.com/Invenietis/CK-DB-Actor-ActorEMail.git" >
       <Branch Name="develop">
