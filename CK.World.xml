@@ -367,12 +367,28 @@
   
   <Folder Name="CK-Crs-Projects">
 
+    <GitFolder Name="CK-Cris" Url="https://gitlab.com/signature-code/CK-Cris.git">
+      <Branch Name="develop">
+        <SolutionSpec UseCKSetup="true">
+          <CKSetupComponentProjects>
+            <add Name="CK.Cris" />
+            <add Name="CK.Cris.Engine" />
+            <add Name="CK.Cris.Executor" />
+            <add Name="CK.Cris.Executor.Engine" />
+            <add Name="CK.Cris.AspNet" />
+            <add Name="CK.Cris.AspNet.Engine" />
+          </CKSetupComponentProjects> 
+        </SolutionSpec>
+      </Branch>
+    </GitFolder>
+
+
     <GitFolder Name="CK-AmbientValues" Url="https://github.com/Invenietis/CK-AmbientValues.git">
       <Branch Name="develop">
         <SolutionSpec />
       </Branch>
     </GitFolder>
-
+    
     <GitFolder Name="CK-Crs" Url="https://github.com/Invenietis/crs.git">
       <Branch Name="develop">
         <SolutionSpec PublishProjectInDirectories="True">
