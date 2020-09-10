@@ -383,6 +383,18 @@
     </GitFolder>
 
 
+    <GitFolder Name="CK-StObj-TypeScript" Url="https://github.com/signature-opensource/CK-StObj-TypeScript.git">
+      <Branch Name="develop">
+        <SolutionSpec UseCKSetup="true">
+          <CKSetupComponentProjects>
+            <add Name="CK.StObj.TypeScript" />
+            <add Name="CK.StObj.TypeScript.Engine" />
+          </CKSetupComponentProjects> 
+        </SolutionSpec>
+      </Branch>
+    </GitFolder>
+
+
     <GitFolder Name="CK-AmbientValues" Url="https://github.com/Invenietis/CK-AmbientValues.git">
       <Branch Name="develop">
         <SolutionSpec />
