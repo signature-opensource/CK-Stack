@@ -243,6 +243,18 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-DB-GitLab" Url="https://github.com/signature-opensource/CK-DB-GitLab.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
+    <GitFolder Name="CK-DB-Workspace" Url="https://github.com/signature-opensource/CK-DB-Workspace.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-DB-Actor-ActorPhoneNumber" Url="https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber.git" >
       <Branch Name="develop">
         <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
