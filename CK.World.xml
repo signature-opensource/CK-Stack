@@ -431,7 +431,7 @@
 
     <GitFolder Name="CK-Sample-MultiBinPath" Url="https://github.com/signature-opensource/CK-Sample-MultiBinPath.git" >
       <Branch Name="develop">
-        <SolutionSpec />
+        <SolutionSpec  UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
