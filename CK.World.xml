@@ -435,6 +435,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-Sample-Monitoring" Url="https://github.com/signature-opensource/CK-Sample-Monitoring.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
   </Folder>
 
   <!-- <Folder Name="IoT">
