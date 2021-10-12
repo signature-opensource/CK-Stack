@@ -205,8 +205,6 @@
             <add Name="CK.StObj.Model" />
             <add Name="CK.StObj.Runtime" />
             <add Name="CK.StObj.Engine" />
-            <add Name="CK.StObj.Hosting" />
-            <add Name="CK.StObj.Hosting.Engine" />
           </CKSetupComponentProjects>
         </SolutionSpec>
       </Branch>
