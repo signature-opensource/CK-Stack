@@ -29,21 +29,11 @@
       <Repository Type="CKSetup" CheckName="CKSetup:Public" CheckSecretKeyName="CKSETUPREMOTESTORE_PUSH_API_KEY" />
     </TargetRepositories>
   </Artifacts>
-  <SharedSolutionSpec>
-    <RemoveNuGetSourceNames>
-      <add Name="Invenietis - Release" />
-      <add Name="Invenietis - Preview" />
-      <add Name="Invenietis - CI" />
-      <add Name="MyGet_Invenietis_Release" />
-      <add Name="MyGet_Invenietis_Preview" />
-      <add Name="MyGet_Invenietis_CI" />
-      <add Name="VSTS_Invenietis_Release" />
-      <add Name="VSTS_Invenietis_Preview" />
-      <add Name="VSTS_Invenietis_CI" />
-      <add Name="VSTS_Invenietis_Legacy" />
-      <add Name="VSTS_Invenietis_Signature" />
-      <add Name="VSTS_Invenietis_Signature_CI" />
-    </RemoveNuGetSourceNames>
+
+  <BuildProjectSpec TargetFramework="net6.0" >
+  </BuildProjectSpec>
+
+  <SharedSolutionSpec PrimaryTargetFramework="necoreapp3.1">
     <ArtifactSources>
       <add Name="NuGet:NuGet" />
       <add Name="NuGet:Signature-OpenSource" />
@@ -82,15 +72,6 @@
     </GitFolder>
   </Folder>
   <Folder Name="CK-Core-Projects">
-    <GitFolder Name="json-graph-serializer" Url="https://github.com/Invenietis/json-graph-serializer.git">
-      <Branch Name="develop-NetCore3">
-        <SolutionSpec NoSharedPropsFile="True" NoDotNetUnitTests="True">
-          <NPMProjects>
-            <add Folder="" PackageName="@signature/json-graph-serializer" OutputFolder="" />
-          </NPMProjects>
-        </SolutionSpec>
-      </Branch>
-    </GitFolder>
     <GitFolder Name="CK-Text" Url="https://github.com/Invenietis/CK-Text.git">
       <Branch Name="develop-NetCore3">
         <SolutionSpec />
@@ -131,24 +112,9 @@
         <SolutionSpec />
       </Branch>
     </GitFolder>
-    <GitFolder Name="CK-Reflection" Url="https://github.com/Invenietis/CK-Reflection.git">
-      <Branch Name="develop-NetCore3">
-        <SolutionSpec />
-      </Branch>
-    </GitFolder>
     <GitFolder Name="CK-Testing" Url="https://github.com/Invenietis/CK-Testing.git">
       <Branch Name="develop-NetCore3">
         <SolutionSpec SqlServer="2017" />
-      </Branch>
-    </GitFolder>
-    <GitFolder Name="CK-UnitsOfMeasure" Url="https://github.com/Invenietis/CK-UnitsOfMeasure.git">
-      <Branch Name="develop-NetCore3">
-        <SolutionSpec />
-      </Branch>
-    </GitFolder>
-    <GitFolder Name="CK-WeakAssemblyNameResolver" Url="https://github.com/Invenietis/CK-WeakAssemblyNameResolver.git">
-      <Branch Name="develop-NetCore3">
-        <SolutionSpec NoDotNetUnitTests="true" />
       </Branch>
     </GitFolder>
   </Folder>
@@ -253,25 +219,6 @@
         <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
     </GitFolder>
-    <GitFolder Name="CK-Setup" Url="https://gitlab.com/Signature-Code/CK-Setup.git">
-      <Branch Name="develop-NetCore3">
-        <SolutionSpec UseCKSetup="true">
-          <CKSetupComponentProjects>
-            <add Name="CKSetup.Runner" />
-            <add Name="CKSetup" />
-          </CKSetupComponentProjects>
-        </SolutionSpec>
-      </Branch>
-    </GitFolder>
-    <GitFolder Name="CKSetupRemoteStore" Url="https://gitlab.com/Signature-Code/CKSetupRemoteStore.git">
-      <Branch Name="develop-NetCore3">
-        <SolutionSpec UseCKSetup="true">
-          <NotPublishedProjects>
-            <add Folder="CKSetupRemoteStore" />
-          </NotPublishedProjects>
-        </SolutionSpec>
-      </Branch>
-    </GitFolder>
     <GitFolder Name="CK-Setup-Dependency" Url="https://github.com/Invenietis/CK-Setup-Dependency.git">
       <Branch Name="develop-NetCore3">
         <SolutionSpec />
@@ -298,13 +245,7 @@
       </Branch>
     </GitFolder>
   </Folder>
-  <Folder Name="Yodii-Projects">
-    <GitFolder Name="Yodii-Script" Url="https://github.com/Invenietis/yodii-script.git">
-      <Branch Name="develop-NetCore3">
-        <SolutionSpec />
-      </Branch>
-    </GitFolder>
-  </Folder>
+
   <Folder Name="CK-Crs-Projects">
     <GitFolder Name="CK-Cris" Url="https://gitlab.com/signature-code/CK-Cris.git">
       <Branch Name="develop-NetCore3">

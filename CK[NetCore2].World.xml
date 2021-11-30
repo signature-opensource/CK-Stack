@@ -35,7 +35,12 @@
       <Repository Type="CKSetup" CheckName="CKSetup:Public" CheckSecretKeyName="CKSETUPREMOTESTORE_PUSH_API_KEY" />
     </TargetRepositories>
   </Artifacts>
-  <SharedSolutionSpec>
+  
+  
+    <BuildProjectSpec TargetFramework="net6.0" >
+    </BuildProjectSpec>
+
+  <SharedSolutionSpec PrimaryTargetFramework="necoreapp2.1">
     <RemoveNuGetSourceNames>
       <add Name="Invenietis - Release" />
       <add Name="Invenietis - Preview" />
@@ -64,6 +69,7 @@
       <add Name="CKSetup:Public" />
     </ArtifactTargets>
   </SharedSolutionSpec>
+  
   <Folder Name="CK-AspNet-Projects">
     <GitFolder Name="CK-AspNet" Url="https://github.com/Invenietis/CK-AspNet.git">
       <Branch Name="develop-NetCore2">
