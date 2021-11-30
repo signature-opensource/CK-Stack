@@ -44,24 +44,11 @@
     </TargetRepositories>
   </Artifacts>
 
-  <SharedSolutionSpec>
-    <RemoveNuGetSourceNames>
-      <add Name="Invenietis - Release" />
-      <add Name="Invenietis - Preview" />
-      <add Name="Invenietis - CI" />
-
-      <add Name="MyGet_Invenietis_Release" />
-      <add Name="MyGet_Invenietis_Preview"  />
-      <add Name="MyGet_Invenietis_CI"  />
-      <add Name="VSTS_Invenietis_Release" />
-      <add Name="VSTS_Invenietis_Preview"  />
-      <add Name="VSTS_Invenietis_CI"  />
-      <add Name="VSTS_Invenietis_Legacy"  />
-      <add Name="VSTS_Invenietis_Signature" />
-      <add Name="VSTS_Invenietis_Signature_CI" />    
-
-    </RemoveNuGetSourceNames>
-    <ArtifactSources>
+  <BuildProjectSpec TargetFramework="net6.0" >
+  </BuildProjectSpec>
+	
+  <SharedSolutionSpec PrimaryTargetFramework="net6.0">
+	  <ArtifactSources>
       <add Name="NuGet:NuGet" />
       <add Name="NuGet:Signature-OpenSource" />
       <add Name="NPM:@signature" />
@@ -74,7 +61,7 @@
       <add Name="CKSetup:Public" />
     </ArtifactTargets>
   </SharedSolutionSpec>
-  
+	
   <Folder Name="CK-AspNet-Projects">
 
     <GitFolder Name="CK-AspNet" Url="https://github.com/Invenietis/CK-AspNet.git" >
