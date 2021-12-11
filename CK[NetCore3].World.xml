@@ -33,7 +33,7 @@
   <BuildProjectSpec TargetFramework="net6.0" >
   </BuildProjectSpec>
 
-  <SharedSolutionSpec PrimaryTargetFramework="necoreapp3.1">
+  <SharedSolutionSpec PrimaryTargetFramework="netcoreapp3.1">
     <ArtifactSources>
       <add Name="NuGet:NuGet" />
       <add Name="NuGet:Signature-OpenSource" />

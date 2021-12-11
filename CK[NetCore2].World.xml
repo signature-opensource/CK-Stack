@@ -40,7 +40,7 @@
     <BuildProjectSpec TargetFramework="net6.0" >
     </BuildProjectSpec>
 
-  <SharedSolutionSpec PrimaryTargetFramework="necoreapp2.1">
+  <SharedSolutionSpec PrimaryTargetFramework="netcoreapp2.1">
     <RemoveNuGetSourceNames>
       <add Name="Invenietis - Release" />
       <add Name="Invenietis - Preview" />
