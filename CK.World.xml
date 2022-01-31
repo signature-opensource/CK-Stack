@@ -417,6 +417,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-Sample-WebFrontAuth" Url="https://github.com/Woinkk/CK-Sample-WebFrontAuth.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
   </Folder>
 
   <!-- <Folder Name="IoT">
