@@ -425,12 +425,12 @@
 
   </Folder>
 
-  <!-- <Folder Name="IoT">
+  <Folder Name="IoT">
     <GitFolder Name="CK-MQTT" Url="https://github.com/signature-opensource/CK-MQTT.git">
       <Branch Name="develop">
         <SolutionSpec />
       </Branch>
     </GitFolder>
-  </Folder> -->
+  </Folder>
 
 </CK-World>
