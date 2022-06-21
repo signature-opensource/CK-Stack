@@ -426,11 +426,22 @@
   </Folder>
 
   <Folder Name="IoT">
+
+
+
     <GitFolder Name="CK-MQTT" Url="https://github.com/signature-opensource/CK-MQTT.git">
       <Branch Name="develop">
         <SolutionSpec />
       </Branch>
     </GitFolder>
+
+    <GitFolder Name="CK-Monitoring-MQTT" Url="https://github.com/Invenietis/CK-Monitoring-MQTT.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
+
   </Folder>
 
 </CK-World>
