@@ -115,6 +115,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-PerfectEvent" Url="https://github.com/signature-opensource/CK-PerfectEvent.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-Auth-Abstractions" Url="https://github.com/Invenietis/CK-Auth-Abstractions.git" >
       <Branch Name="develop">
         <SolutionSpec />
