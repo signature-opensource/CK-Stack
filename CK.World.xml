@@ -151,6 +151,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-Monitoring-MQTT" Url="https://github.com/Invenietis/CK-Monitoring-MQTT.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-Reflection" Url="https://github.com/Invenietis/CK-Reflection.git" >
       <Branch Name="develop">
         <SolutionSpec />
