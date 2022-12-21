@@ -192,6 +192,10 @@
             <add Name="CK.StObj.Model" />
             <add Name="CK.StObj.Runtime" />
             <add Name="CK.StObj.Engine" />
+            <add Name="CK.Poco.Exchange" />
+            <add Name="CK.Poco.Exchange.Engine" />
+            <add Name="CK.Poco.Exc.Json" />
+            <add Name="CK.Poco.Exc.Json.Engine" />
           </CKSetupComponentProjects>
         </SolutionSpec>
       </Branch>
