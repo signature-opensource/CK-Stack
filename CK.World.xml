@@ -433,6 +433,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-Templates" Url="https://github.com/signature-opensource/CK-Templates.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
   </Folder>
 
   <Folder Name="IoT">
