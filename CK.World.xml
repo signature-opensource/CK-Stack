@@ -294,6 +294,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-DB-WeakActor" Url="https://github.com/signature-opensource/CK-DB-WeakActor.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-DB-Twitter" Url="https://github.com/signature-opensource/CK-DB-Twitter.git" >
       <Branch Name="develop">
         <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
