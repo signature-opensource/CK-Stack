@@ -115,6 +115,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-Globalization" Url="https://github.com/signature-opensource/CK-Globalization.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-PerfectEvent" Url="https://github.com/signature-opensource/CK-PerfectEvent.git" >
       <Branch Name="develop">
         <SolutionSpec />
