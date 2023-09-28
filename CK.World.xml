@@ -246,7 +246,7 @@
       </Branch>
     </GitFolder>
 
-    <GitFolder Name="CK-DB-ResPath" Url="https://github.com/signature-opensource/CK-DB-ResPath.git" >
+    <GitFolder Name="CK-DB-Res-ResPath" Url="https://github.com/signature-opensource/CK-DB-Res-ResPath.git" >
       <Branch Name="develop">
         <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
