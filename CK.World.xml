@@ -109,6 +109,12 @@
       </Branch>
     </GitFolder>
 
+    <GitFolder Name="CK-AppIdentity" Url="https://github.com/signature-opensource/CK-AppIdentity.git">
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-ActivityMonitor" Url="https://github.com/Invenietis/CK-ActivityMonitor.git" >
       <Branch Name="develop">
         <SolutionSpec />
