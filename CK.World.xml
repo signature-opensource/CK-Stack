@@ -175,6 +175,11 @@
       </Branch>
     </GitFolder>
     
+    <GitFolder Name="CK-BinarySerialization" Url="https://github.com/signature-opensource/CK-BinarySerialization.git">
+        <Branch Name="develop">
+        </Branch>
+    </GitFolder>
+
     <GitFolder Name="CK-UnitsOfMeasure" Url="https://github.com/Invenietis/CK-UnitsOfMeasure.git" >
       <Branch Name="develop">
         <SolutionSpec />
@@ -188,6 +193,33 @@
     </GitFolder>
     
   </Folder>
+
+  <!-- <Folder Name="Observable-Domain">
+
+    <GitFolder Name="CK-Observable-Domain" Url="https://github.com/signature-opensource/CK-Observable-Domain.git">
+      <Branch Name="develop">
+        <SolutionSpec UseCKSetup="true" >
+          <NPMProjects>
+            <add Folder="Clients/ck-observable-domain" IsPublished="true" OutputFolder="Clients/ck-observable-domain" PackageName="@signature-code/ck-observable-domain" />
+            <add Folder="Clients/ck-observable-domain-mqtt" IsPublished="true" OutputFolder="Clients/ck-observable-domain-mqtt" PackageName="@signature-code/ck-observable-domain-mqtt" />
+            <add Folder="Clients/ck-observable-domain-signalr" IsPublished="true" OutputFolder="Clients/ck-observable-domain-signalr" PackageName="@signature-code/ck-observable-domain-signalr" />
+            <add Folder="Clients/ck-observable-domain-demo" IsPrivate="true" IsPublished="false" OutputFolder="Clients/ck-observable-domain-demo" />
+          </NPMProjects>
+        </SolutionSpec>
+      </Branch>
+    </GitFolder>
+
+  </Folder> -->
+
+  <Folder Name="Device-Model">
+    <GitFolder Name="CK-DeviceModel" Url="https://github.com/signature-opensource/CK-DeviceModel.git">
+      <Branch Name="develop">
+        <SolutionSpec></SolutionSpec>
+      </Branch>
+    </GitFolder>
+  </Folder>
+
+
 
   <Folder Name="CK-Database-Projects">
 
