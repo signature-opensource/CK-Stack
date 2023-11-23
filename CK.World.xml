@@ -448,7 +448,7 @@
       </Branch>
     </GitFolder>
 
-    <GitFolder Name="CK-Poco-Mixer" Url="https://github.com/signature-opensource/CK-Poco-Mixer.git">
+    <GitFolder Name="CK-Object-Mixer" Url="https://github.com/signature-opensource/CK-Object-Mixer.git">
       <Branch Name="develop">
         <SolutionSpec />
       </Branch>
