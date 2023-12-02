@@ -448,11 +448,11 @@
       </Branch>
     </GitFolder>
 
-    <GitFolder Name="CK-Object-Mixer" Url="https://github.com/signature-opensource/CK-Object-Mixer.git">
+    <!-- <GitFolder Name="CK-Object-Mixer" Url="https://github.com/signature-opensource/CK-Object-Mixer.git">
       <Branch Name="develop">
         <SolutionSpec />
       </Branch>
-    </GitFolder>
+    </GitFolder> -->
 
     <GitFolder Name="CK-StObj-TypeScript" Url="https://github.com/signature-opensource/CK-StObj-TypeScript.git">
       <Branch Name="develop">
