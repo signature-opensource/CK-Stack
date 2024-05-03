@@ -204,6 +204,12 @@
       </Branch>
     </GitFolder>
     
+    <GitFolder Name="CK-Ais-Net" Url="https://github.com/signature-opensource/CK-Ais-Net.git" >
+      <Branch Name="develop">
+        <SolutionSpec />
+      </Branch>
+    </GitFolder>
+    
   </Folder>
 
   <!-- <Folder Name="Observable-Domain">
@@ -230,8 +236,6 @@
       </Branch>
     </GitFolder>
   </Folder>
-
-
 
   <Folder Name="CK-Database-Projects">
 
@@ -291,6 +295,12 @@
     </GitFolder>
 
     <GitFolder Name="CK-DB-Workspace" Url="https://github.com/signature-opensource/CK-DB-Workspace.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
+    <GitFolder Name="CK-DB-Organization" Url="https://github.com/signature-opensource/CK-DB-Organization.git" >
       <Branch Name="develop">
         <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
@@ -363,6 +373,12 @@
     </GitFolder>
 
     <GitFolder Name="CK-DB-Twitter" Url="https://github.com/signature-opensource/CK-DB-Twitter.git" >
+      <Branch Name="develop">
+        <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
+      </Branch>
+    </GitFolder>
+
+    <GitFolder Name="CK-DB-WebPage" Url="https://github.com/signature-opensource/CK-DB-WebPage.git" >
       <Branch Name="develop">
         <SolutionSpec TestProjectsArePublished="True" SqlServer="2017" UseCKSetup="true" />
       </Branch>
