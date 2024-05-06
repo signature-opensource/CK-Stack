@@ -448,7 +448,7 @@
   
   <Folder Name="CK-Crs-Projects">
 
-<!--     <GitFolder Name="CK-Cris" Url="https://gitlab.com/signature-code/CK-Cris.git">
+     <GitFolder Name="CK-Cris" Url="https://gitlab.com/signature-code/CK-Cris.git">
       <Branch Name="develop">
         <SolutionSpec UseCKSetup="true">
           <CKSetupComponentProjects>
@@ -463,7 +463,7 @@
         </SolutionSpec>
       </Branch>
     </GitFolder>
- -->
+
     <GitFolder Name="CK-Object-Mixer" Url="https://github.com/signature-opensource/CK-Object-Mixer.git">
       <Branch Name="develop">
         <SolutionSpec />
@@ -530,11 +530,12 @@
 
   </Folder>
 
+
   <Folder Name="IoT">
 
     <GitFolder Name="CK-MQTT" Url="https://github.com/signature-opensource/CK-MQTT.git">
       <Branch Name="develop">
-        <SolutionSpec />
+        <SolutionSpec UseCKSetup="true" />
       </Branch>
     </GitFolder>
 
