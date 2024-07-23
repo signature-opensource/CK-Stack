@@ -358,7 +358,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Sample-WebFrontAuth" Url="https://github.com/Woinkk/CK-Sample-WebFrontAuth.git" >
+		<GitFolder Name="CK-Sample-AspNetAuth" Url="https://github.com/signature-opensource/CK-Sample-AspNetAuth.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
