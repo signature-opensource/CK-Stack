@@ -149,14 +149,14 @@
 
 	</Folder>
 
-	<!-- <Folder Name="Observable-Domain">
+	<Folder Name="Observable-Domain">
 
-    <GitFolder Name="CK-Observable-Domain" Url="https://github.com/signature-opensource/CK-Observable-Domain.git">
-      <Branch Name="develop">
-      </Branch>
-    </GitFolder>
+		<GitFolder Name="CK-Observable-Domain" Url="https://github.com/signature-opensource/CK-Observable-Domain.git">
+		<Branch Name="develop">
+		</Branch>
+		</GitFolder>
 
-  </Folder> -->
+  </Folder>
 
 	<Folder Name="Device-Model">
 		<GitFolder Name="CK-DeviceModel" Url="https://github.com/signature-opensource/CK-DeviceModel.git">
