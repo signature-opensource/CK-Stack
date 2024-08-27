@@ -3,7 +3,8 @@
   <CICDKeyVault>-- Version: 2
 -- Keys below can be removed if needed.
 NUGET_ORG_PUSH_API_KEY
- &gt; PjLzYATd2Qw2epP9medvu4PgXQfa/H3gCCq8gXTRR42h31a2k2Haxc6KEg9PGB1mS6d8GJE6v3XlwPP2oZ7hi1fRvBVvYrOUTHtOoGUxVzBfC4W5bvO9qptP6AOLoFuQ
+AZURE_FEED_SIGNATURE_OPENSOURCE_PAT
+ &gt; 5S3ecmPwl/c9VctnmLWjjvQHYwI/VKCZfWeIYJUdnFUNgXTvXkgODUD/JLFWzLFmTr20JFNZ69PBFnFQFzddU7HNmKJgH8/d5a+xiLCTloPQRhpR7l3ipO0EYeiMWAMSuurtruyxfj3+Di0uLAoGHurDTQ0f06OTpcPiupf6FOBf035Bi03jJZr1feYG/gC1DVo1VzQoPNGkbP1+LQy1CBxvOI+rW/NP+M1Xok6mE/Q=
 </CICDKeyVault>
   <ArtifactCache />
 </CK-Net6.World.SharedState>
