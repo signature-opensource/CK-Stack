@@ -138,6 +138,7 @@
 
 		<GitFolder Name="CK-BinarySerialization" Url="https://github.com/signature-opensource/CK-BinarySerialization.git">
 			<Branch Name="develop">
+				<SolutionSpec />
 			</Branch>
 		</GitFolder>
 
@@ -150,18 +151,17 @@
 	</Folder>
 
 	<Folder Name="Observable-Domain">
-
 		<GitFolder Name="CK-Observable-Domain" Url="https://github.com/signature-opensource/CK-Observable-Domain.git">
-		<Branch Name="develop">
-		</Branch>
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
 		</GitFolder>
-
-  </Folder>
+	</Folder>
 
 	<Folder Name="Device-Model">
 		<GitFolder Name="CK-DeviceModel" Url="https://github.com/signature-opensource/CK-DeviceModel.git">
 			<Branch Name="develop">
-				<SolutionSpec></SolutionSpec>
+				<SolutionSpec />
 			</Branch>
 		</GitFolder>
 	</Folder>
@@ -176,15 +176,13 @@
 
 		<GitFolder Name="CK-StObj" Url="https://github.com/signature-opensource/CK-StObj.git" >
 			<Branch Name="develop">
-				<SolutionSpec SqlServer="2017">
-				</SolutionSpec>
+				<SolutionSpec SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
 		<GitFolder Name="CK-Database" Url="https://gitlab.com/Signature-Code/CK-Database.git" >
 			<Branch Name="develop">
-				<SolutionSpec SqlServer="2017">
-				</SolutionSpec>
+				<SolutionSpec SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
