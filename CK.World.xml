@@ -27,7 +27,7 @@
 					CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
 			<Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
 					CheckName="NuGet:nuget.org"
-					QualityFilter="ReleaseCandidate-Release"
+					QualityFilter="ReleaseCandidate"
 					SecretKeyName="NUGET_ORG_PUSH_API_KEY" />
 		</TargetRepositories>
 	</Artifacts>
