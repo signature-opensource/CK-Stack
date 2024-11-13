@@ -165,11 +165,19 @@
 	</Folder>
 
 	<Folder Name="Device-Model">
+
 		<GitFolder Name="CK-DeviceModel" Url="https://github.com/signature-opensource/CK-DeviceModel.git">
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
 		</GitFolder>
+
+		<GitFolder Name="CK-DeviceModel-ByTopic" Url="https://github.com/signature-opensource/CK-DeviceModel-ByTopic.git">
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
+		
 	</Folder>
 
 	<Folder Name="CK-Database-Projects">
