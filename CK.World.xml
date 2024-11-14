@@ -348,7 +348,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-StObj-TypeScript" Url="https://github.com/signature-opensource/CK-StObj-TypeScript.git">
+		<GitFolder Name="CK-TypeScript" Url="https://github.com/signature-opensource/CK-TypeScript.git">
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
