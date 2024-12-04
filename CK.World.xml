@@ -25,10 +25,10 @@
 			<Repository Type="NuGetAzure" Organization="Signature-OpenSource" FeedName="NetCore3" ProjectName="Feeds"
 					CheckName="NuGet:Azure:Signature-OpenSource-NetCore3"
 					CheckSecretKeyName="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
-			<Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
+			<!-- <Repository Type="NuGetStandard" Name="nuget.org" Url="https://api.nuget.org/v3/index.json"
 					CheckName="NuGet:nuget.org"
 					QualityFilter="ReleaseCandidate"
-					SecretKeyName="NUGET_ORG_PUSH_API_KEY" />
+					SecretKeyName="NUGET_ORG_PUSH_API_KEY" /> -->
 		</TargetRepositories>
 	</Artifacts>
 
@@ -41,7 +41,7 @@
 			<add Name="NuGet:Signature-OpenSource" />
 		</ArtifactSources>
 		<ArtifactTargets>
-			<add Name="NuGet:nuget.org" />
+			<!-- <add Name="NuGet:nuget.org" /> -->
 			<add Name="NuGet:Azure:Signature-OpenSource-NetCore3" />
 		</ArtifactTargets>
 	</SharedSolutionSpec>
