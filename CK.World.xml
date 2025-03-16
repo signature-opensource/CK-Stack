@@ -166,6 +166,12 @@
 
 	<Folder Name="Device-Model">
 
+		<GitFolder Name="CK-CommChannel" Url="https://github.com/signature-opensource/CK-CommChannel.git">
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
+
 		<GitFolder Name="CK-DeviceModel" Url="https://github.com/signature-opensource/CK-DeviceModel.git">
 			<Branch Name="develop">
 				<SolutionSpec />
