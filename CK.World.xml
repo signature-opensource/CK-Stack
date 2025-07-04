@@ -359,7 +359,13 @@
 				<SolutionSpec />
 			</Branch>
 		</GitFolder>
-
+<!--
+		<GitFolder Name="CK-Ng-SiteMap" Url="https://github.com/signature-opensource/CK-Ng-SiteMap.git">
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
+-->
 	</Folder>
 
 	<Folder Name="CK-Sample">
