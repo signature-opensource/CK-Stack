@@ -224,6 +224,12 @@
 			</Branch>
 		</GitFolder>
 
+		<GitFolder Name="CK-DB-User-UserProfile" Url="https://github.com/signature-opensource/CK-DB-User-UserProfile.git" >
+			<Branch Name="develop">
+				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
+			</Branch>
+		</GitFolder>
+
 		<GitFolder Name="CK-DB-GitHub" Url="https://github.com/Invenietis/CK-DB-GitHub.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
