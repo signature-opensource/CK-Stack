@@ -48,13 +48,13 @@
 
 	<Folder Name="CK-AspNet-Projects">
 
-		<GitFolder Name="CK-AspNet" Url="https://github.com/Invenietis/CK-AspNet.git" >
+		<GitFolder Name="CK-AspNet" Url="https://github.com/signature-opensource/CK-AspNet.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-AspNet-Auth" Url="https://github.com/Invenietis/CK-AspNet-Auth.git">
+		<GitFolder Name="CK-AspNet-Auth" Url="https://github.com/signature-opensource/CK-AspNet-Auth.git">
 			<Branch Name="develop">
 				<SolutionSpec SqlServer="2017" />
 			</Branch>
@@ -64,7 +64,7 @@
 
 	<Folder Name="CK-Core-Projects">
 
-		<GitFolder Name="CK-Core" Url="https://github.com/Invenietis/CK-Core.git">
+		<GitFolder Name="CK-Core" Url="https://github.com/signature-opensource/CK-Core.git">
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
@@ -94,7 +94,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-ActivityMonitor" Url="https://github.com/Invenietis/CK-ActivityMonitor.git" >
+		<GitFolder Name="CK-ActivityMonitor" Url="https://github.com/signature-opensource/CK-ActivityMonitor.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
@@ -118,31 +118,31 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Auth-Abstractions" Url="https://github.com/Invenietis/CK-Auth-Abstractions.git" >
+		<GitFolder Name="CK-Auth-Abstractions" Url="https://github.com/signature-opensource/CK-Auth-Abstractions.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-SqlServer" Url="https://github.com/Invenietis/CK-SqlServer.git" >
+		<GitFolder Name="CK-SqlServer" Url="https://github.com/signature-opensource/CK-SqlServer.git" >
 			<Branch Name="develop">
 				<SolutionSpec SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-SqlServer-Dapper" Url="https://github.com/Invenietis/CK-SqlServer-Dapper.git" >
+		<GitFolder Name="CK-SqlServer-Dapper" Url="https://github.com/signature-opensource/CK-SqlServer-Dapper.git" >
 			<Branch Name="develop">
 				<SolutionSpec SqlServer="2017"/>
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Monitoring" Url="https://github.com/Invenietis/CK-Monitoring.git" >
+		<GitFolder Name="CK-Monitoring" Url="https://github.com/signature-opensource/CK-Monitoring.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Testing" Url="https://github.com/Invenietis/CK-Testing.git" >
+		<GitFolder Name="CK-Testing" Url="https://github.com/signature-opensource/CK-Testing.git" >
 			<Branch Name="develop">
 				<SolutionSpec SqlServer="2017" />
 			</Branch>
@@ -194,7 +194,7 @@
 
 	<Folder Name="CK-Database-Projects">
 
-		<GitFolder Name="CK-CodeGen" Url="https://github.com/Invenietis/CK-CodeGen.git" >
+		<GitFolder Name="CK-CodeGen" Url="https://github.com/signature-opensource/CK-CodeGen.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
@@ -212,7 +212,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB" Url="https://github.com/Invenietis/CK-DB.git" >
+		<GitFolder Name="CK-DB" Url="https://github.com/signature-opensource/CK-DB.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
@@ -230,7 +230,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-GitHub" Url="https://github.com/Invenietis/CK-DB-GitHub.git" >
+		<GitFolder Name="CK-DB-GitHub" Url="https://github.com/signature-opensource/CK-DB-GitHub.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
@@ -266,43 +266,43 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-Actor-ActorEMail" Url="https://github.com/Invenietis/CK-DB-Actor-ActorEMail.git" >
+		<GitFolder Name="CK-DB-Actor-ActorEMail" Url="https://github.com/signature-opensource/CK-DB-Actor-ActorEMail.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-SqlCKTrait" Url="https://github.com/Invenietis/CK-DB-SqlCKTrait.git" >
+		<GitFolder Name="CK-DB-SqlCKTrait" Url="https://github.com/signature-opensource/CK-DB-SqlCKTrait.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-TokenStore" Url="https://github.com/Invenietis/CK-DB-TokenStore.git" >
+		<GitFolder Name="CK-DB-TokenStore" Url="https://github.com/signature-opensource/CK-DB-TokenStore.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-GuestActor" Url="https://github.com/Invenietis/CK-DB-GuestActor.git" >
+		<GitFolder Name="CK-DB-GuestActor" Url="https://github.com/signature-opensource/CK-DB-GuestActor.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-GuestActor-Acl" Url="https://github.com/Invenietis/CK-DB-GuestActor-Acl.git" >
+		<GitFolder Name="CK-DB-GuestActor-Acl" Url="https://github.com/signature-opensource/CK-DB-GuestActor-Acl.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-User-SimpleInvitation" Url="https://github.com/Invenietis/CK-DB-User-SimpleInvitation.git" >
+		<GitFolder Name="CK-DB-User-SimpleInvitation" Url="https://github.com/signature-opensource/CK-DB-User-SimpleInvitation.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True"  SqlServer="2017" />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-User-UserPassword" Url="https://github.com/Invenietis/CK-DB-User-UserPassword.git" >
+		<GitFolder Name="CK-DB-User-UserPassword" Url="https://github.com/signature-opensource/CK-DB-User-UserPassword.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
@@ -332,13 +332,13 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Setup-Dependency" Url="https://github.com/Invenietis/CK-Setup-Dependency.git" >
+		<GitFolder Name="CK-Setup-Dependency" Url="https://github.com/signature-opensource/CK-Setup-Dependency.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Sqlite" Url="https://github.com/Invenietis/CK-Sqlite.git" >
+		<GitFolder Name="CK-Sqlite" Url="https://github.com/signature-opensource/CK-Sqlite.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
@@ -359,6 +359,12 @@
 	</Folder>
 
 	<Folder Name="CK-Crs-Projects">
+
+		<GitFolder Name="CK-Cris-Abstractions" Url="https://github.com/signature-opensource/CK-Cris-Abstractions.git">
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
 
 		<GitFolder Name="CK-Cris" Url="https://gitlab.com/signature-code/CK-Cris.git">
 			<Branch Name="develop">
