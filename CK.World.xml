@@ -206,7 +206,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Database" Url="https://gitlab.com/Signature-Code/CK-Database.git" >
+		<GitFolder Name="CK-Database" Url="https://github.com/signature-opensource/CK-Database.git" >
 			<Branch Name="develop">
 				<SolutionSpec SqlServer="2017" />
 			</Branch>
@@ -344,13 +344,13 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-SqlServer-Parser" Url="https://gitlab.com/Signature-Code/CK-SqlServer-Parser.git" >
+		<GitFolder Name="CK-SqlServer-Parser" Url="https://github.com/signature-opensource/CK-SqlServer-Parser.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-SqlServer-Parser-Model" Url="https://gitlab.com/Signature-Code/CK-SqlServer-Parser-Model.git" >
+		<GitFolder Name="CK-SqlServer-Parser-Model" Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
@@ -366,7 +366,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-Cris" Url="https://gitlab.com/signature-code/CK-Cris.git">
+		<GitFolder Name="CK-Cris" Url="https://github.com/signature-opensource/CK-Cris.git">
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
