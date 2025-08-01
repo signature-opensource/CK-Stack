@@ -224,7 +224,7 @@
 			</Branch>
 		</GitFolder>
 
-		<GitFolder Name="CK-DB-User-UserProfile" Url="https://github.com/signature-opensource/CK-DB-User-UserProfile.git" >
+		<GitFolder Name="CK-DB-User-PreferredCulture" Url="https://github.com/signature-opensource/CK-DB-User-PreferredCulture.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
 			</Branch>
