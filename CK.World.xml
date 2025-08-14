@@ -82,6 +82,12 @@
 			</Branch>
 		</GitFolder>
 
+		<GitFolder Name="CK-EmbeddedResources" Url="https://github.com/signature-opensource/CK-EmbeddedResources.git">
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
+
 		<GitFolder Name="CK-AppIdentity" Url="https://github.com/signature-opensource/CK-AppIdentity.git">
 			<Branch Name="develop">
 				<SolutionSpec />
@@ -391,6 +397,18 @@
 		</GitFolder>
 
 		<GitFolder Name="CK-Ng-SiteMap" Url="https://github.com/signature-opensource/CK-Ng-SiteMap.git">
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
+
+		<GitFolder Name="CK-Ng-Zorro-Contrib" Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib.git">
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
+
+		<GitFolder Name="CK-Ng-User-UserProfile" Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile.git">
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
