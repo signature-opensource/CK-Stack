@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<CK-World>
+<CK>
 	<Folder Path="CK-AspNet-Projects">
 		<Repository Url="https://github.com/signature-opensource/CK-AspNet.git" />
 		<Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth.git" />
@@ -156,4 +155,4 @@
 
 	</Folder>
 
-</CK-World>
+</CK>
