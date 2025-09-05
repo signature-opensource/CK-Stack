@@ -36,8 +36,6 @@
 
 		<Repository Url="https://github.com/signature-opensource/CK-Testing.git" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-BinarySerialization.git" />
-
 		<Repository Url="https://github.com/signature-opensource/CK-Ais-Net.git" />
 
 	</Folder>
