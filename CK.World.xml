@@ -308,6 +308,12 @@
 			</Branch>
 		</GitFolder>
 
+		<GitFolder Name="CK-DB-UserInvitation" Url="https://github.com/signature-opensource/CK-DB-UserInvitation.git" >
+			<Branch Name="develop">
+				<SolutionSpec TestProjectsArePublished="True"  SqlServer="2017" />
+			</Branch>
+		</GitFolder>
+
 		<GitFolder Name="CK-DB-User-UserPassword" Url="https://github.com/signature-opensource/CK-DB-User-UserPassword.git" >
 			<Branch Name="develop">
 				<SolutionSpec TestProjectsArePublished="True" SqlServer="2017" />
