@@ -106,11 +106,11 @@
 			</Branch>
 		</GitFolder>
 
-		<!-- <GitFolder Name="CK-Metrics" Url="https://github.com/signature-opensource/CK-Metrics.git" >
+		<GitFolder Name="CK-Metrics" Url="https://github.com/signature-opensource/CK-Metrics.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
 			</Branch>
-		</GitFolder> -->
+		</GitFolder>
 
 		<GitFolder Name="CK-Globalization" Url="https://github.com/signature-opensource/CK-Globalization.git" >
 			<Branch Name="develop">
