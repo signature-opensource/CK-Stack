@@ -1,155 +1,155 @@
 <CK>
-	<Folder Path="CK-AspNet-Projects">
-		<Repository Url="https://github.com/signature-opensource/CK-AspNet.git" />
-		<Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth.git" />
+	<Folder Name="CK-AspNet-Projects">
+		<Repository Url="https://github.com/signature-opensource/CK-AspNet" />
+		<Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth" />
 	</Folder>
 
-	<Folder Path="CK-Core-Projects">
+	<Folder Name="CK-Core-Projects">
 
-		<Repository Url="https://github.com/signature-opensource/CK-Core.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Core" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Configuration.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Configuration" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Abstractions.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Abstractions" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-EmbeddedResources.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-EmbeddedResources" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-AppIdentity.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-AppIdentity" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-BinarySerialization.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-BinarySerialization" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-ActivityMonitor.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-ActivityMonitor" />
 
-		<!-- <Repository Url="https://github.com/signature-opensource/CK-Metrics.git" /> -->
+		<!-- <Repository Url="https://github.com/signature-opensource/CK-Metrics" /> -->
 
-		<Repository Url="https://github.com/signature-opensource/CK-Globalization.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Globalization" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-PerfectEvent.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-PerfectEvent" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Auth-Abstractions.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Auth-Abstractions" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-SqlServer.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-SqlServer" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-SqlServer-Dapper.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-SqlServer-Dapper" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Monitoring.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Monitoring" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Testing.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Testing" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Ais-Net.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Ais-Net" />
 
 	</Folder>
 
-	<Folder Path="Observable-Domain">
+	<Folder Name="Observable-Domain">
 		
-		<Repository Url="https://github.com/signature-opensource/CK-Observable-Domain.git"/>
+		<Repository Url="https://github.com/signature-opensource/CK-Observable-Domain"/>
 
 	</Folder>
 
-	<Folder Path="Device-Model">
+	<Folder Name="Device-Model">
 
-		<Repository Url="https://github.com/signature-opensource/CK-CommChannel.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-CommChannel" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DeviceModel.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DeviceModel" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DeviceModel-ByTopic.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DeviceModel-ByTopic" />
 		
 	</Folder>
 
-	<Folder Path="CK-Database-Projects">
+	<Folder Name="CK-Database-Projects">
 
-		<Repository Url="https://github.com/signature-opensource/CK-CodeGen.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-CodeGen" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-StObj.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-StObj" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Database.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Database" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-User-NamedUser.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-User-NamedUser" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-User-PreferredCulture.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-User-PreferredCulture" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-GitHub.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-GitHub" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-GitLab.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-GitLab" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-Workspace.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-Workspace" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-Organization.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-Organization" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-Res-ResPath.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-Res-ResPath" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorEMail.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorEMail" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-SqlCKTrait.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-SqlCKTrait" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-TokenStore.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-TokenStore" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor-Acl.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor-Acl" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-User-SimpleInvitation.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-User-SimpleInvitation" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-User-UserPassword.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-User-UserPassword" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-Facebook.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-Facebook" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-Twitter.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-Twitter" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-DB-WebPage.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-DB-WebPage" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Setup-Dependency.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Setup-Dependency" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Sqlite.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Sqlite" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model.git" />
-
-	</Folder>
-
-	<Folder Path="CK-Crs-Projects">
-
-		<Repository Url="https://github.com/signature-opensource/CK-Cris-Abstractions.git"/>
-
-		<Repository Url="https://github.com/signature-opensource/CK-Cris.git" />
-
-		<Repository Url="https://github.com/signature-opensource/CK-Object-Mixer.git" />
-
-		<Repository Url="https://github.com/signature-opensource/CK-TypeScript.git" />
-
-		<Repository Url="https://github.com/signature-opensource/CK-Cris-TypeScript.git" />
-
-		<Repository Url="https://github.com/signature-opensource/CK-Ng-SiteMap.git" />
-
-		<Repository Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib.git" />
-
-		<Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model" />
 
 	</Folder>
 
-	<Folder Path="CK-Sample">
+	<Folder Name="CK-Crs-Projects">
 
-		<Repository Url="https://github.com/signature-opensource/CK-Sample-MultiBinPath.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Cris-Abstractions"/>
 
-		<Repository Url="https://github.com/signature-opensource/CK-Sample-Monitoring.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Cris" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Sample-AspNetAuth.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-Object-Mixer" />
 
-		<Repository Url="https://github.com/signature-opensource/CK-Templates.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-TypeScript" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Cris-TypeScript" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Ng-SiteMap" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile" />
+
+	</Folder>
+
+	<Folder Name="CK-Sample">
+
+		<Repository Url="https://github.com/signature-opensource/CK-Sample-MultiBinPath" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Sample-Monitoring" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Sample-AspNetAuth" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Templates" />
 
 	</Folder>
 
 
-	<Folder Path="IoT">
+	<Folder Name="IoT">
 
-		<Repository Url="https://github.com/signature-opensource/CK-MQTT.git" />
+		<Repository Url="https://github.com/signature-opensource/CK-MQTT" />
 
 	</Folder>
 
