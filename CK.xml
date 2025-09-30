@@ -20,7 +20,9 @@
 
 		<Repository Url="https://github.com/signature-opensource/CK-ActivityMonitor" />
 
-		<!-- <Repository Url="https://github.com/signature-opensource/CK-Metrics" /> -->
+		<Repository Url="https://github.com/signature-opensource/CK-Metrics" />
+
+		<Repository Url="https://github.com/signature-opensource/CK-Mailer.git" />
 
 		<Repository Url="https://github.com/signature-opensource/CK-Globalization" />
 
