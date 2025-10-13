@@ -112,6 +112,12 @@
 			</Branch>
 		</GitFolder>
 
+		<GitFolder Name="CK-TimeSpanUnit" Url="https://github.com/signature-opensource/CK-TimeSpanUnit.git" >
+			<Branch Name="develop">
+				<SolutionSpec />
+			</Branch>
+		</GitFolder>
+
 		<GitFolder Name="CK-Mailer" Url="https://github.com/signature-opensource/CK-Mailer.git" >
 			<Branch Name="develop">
 				<SolutionSpec />
