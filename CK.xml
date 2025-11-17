@@ -1,6 +1,7 @@
 <CK>
   <Plugins>
     <VSSolution />
+    <BranchModel />
   </Plugins>
   <Folder Name="CK-AspNet-Projects">
     <Repository Url="https://github.com/signature-opensource/CK-AspNet" />

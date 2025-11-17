@@ -6,6 +6,6 @@
 
   <ItemGroup>
     <PackageReference Include="CKli.Plugins.Core" />
-  <PackageReference Include="CKli.VSSolution.Plugin" /></ItemGroup>
+  <PackageReference Include="CKli.VSSolution.Plugin" /><ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" /></ItemGroup>
 
 </Project>

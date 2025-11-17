@@ -9,7 +9,8 @@ public static class Plugins
         return PluginCollector.Create( ctx ).BuildPluginFactory( [
             // <AutoSection>
             typeof( VSSolution.Plugin.VSSolutionPlugin ),
-             // </AutoSection>
+             typeof( BranchModel.Plugin.BranchModelPlugin ),
+              // </AutoSection>
         ] );
     }
 }

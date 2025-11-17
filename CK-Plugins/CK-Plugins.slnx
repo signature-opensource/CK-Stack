@@ -4,5 +4,6 @@
     <File Path="Directory.Packages.props" />
     <File Path="nuget.config" />
   </Folder>
+  <Project Path="CKli.BranchModel.Plugin/CKli.BranchModel.Plugin.csproj" />
   <Project Path="CKli.Plugins/CKli.Plugins.csproj" />
 </Solution>
