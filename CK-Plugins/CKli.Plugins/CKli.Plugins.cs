@@ -8,7 +8,8 @@ public static class Plugins
     {
         return PluginCollector.Create( ctx ).BuildPluginFactory( [
             // <AutoSection>
-            // </AutoSection>
+            typeof( VSSolution.Plugin.VSSolutionPlugin ),
+             // </AutoSection>
         ] );
     }
 }
