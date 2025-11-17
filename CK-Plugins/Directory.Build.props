@@ -1,0 +1,8 @@
+<Project>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../$Local/CK-Plugins</ArtifactsPath>
+    <ArtifactsPivots>run</ArtifactsPivots>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
