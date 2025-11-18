@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <ItemGroup>
-        <PackageReference Include="CKli.Plugins.Core" />
-    </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CKli.Plugins.Core" />
+    <PackageReference Include="CSemVer" />
+  </ItemGroup>
 </Project>

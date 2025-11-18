@@ -1,27 +1,46 @@
 using CK.Core;
 using CKli.Core;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 
 namespace CKli.BranchModel.Plugin;
 
-public sealed class BranchModelPlugin : PluginBase
+public sealed class BranchModelPlugin : RepoPlugin<BranchModelInfo>
 {
+    readonly BranchTree _branchTree;
+
     /// <summary>
     /// This is a primary plugin.
     /// </summary>
     public BranchModelPlugin( PrimaryPluginContext primaryContext )
-        : base( primaryContext )
+        : base( primaryContext.World )
     {
-        primaryContext.World.Events.PluginInfo += e =>
-        {
-            Throw.CheckState( PrimaryContext.PluginInfo.FullPluginName == "CKli.BranchModel.Plugin" );
-            Throw.CheckState( PrimaryContext.World == e.World );
-            e.AddMessage( PrimaryContext, e.ScreenType.Text( "Message from 'BranchModel' plugin." ) );
-            e.Monitor.Info( $"New 'BranchModel' in world '{e.World.Name}' plugin certainly requires some development." );
-            Console.WriteLine( $"Hello from 'BranchModel' plugin." );
-        };
+        _branchTree = new BranchTree();
+        World.Events.Issue += IssueRequested;
     }
+
+    void IssueRequested( IssueEvent e )
+    {
+        var monitor = e.Monitor;
+        foreach( var r in e.Repos )
+        {
+            Get( monitor, r ).CollectIssues( monitor, e.ScreenType, e.Add );
+        }
+    }
+
+    /// <summary>
+    /// Gets the branch model.
+    /// </summary>
+    public BranchTree BranchTree => _branchTree;
+
+    protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
+    {
+        var info = new BranchModelInfo( repo, _branchTree );
+        info.Initialize( monitor );
+        return info;
+    }
+
+
 }
