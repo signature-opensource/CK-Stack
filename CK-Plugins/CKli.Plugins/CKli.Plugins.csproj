@@ -6,6 +6,9 @@
 
   <ItemGroup>
     <PackageReference Include="CKli.Plugins.Core" />
-  <PackageReference Include="CKli.VSSolution.Plugin" /><ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" /></ItemGroup>
+    
+    <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
+    <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
+  <ProjectReference Include="..\CKli.Build.Plugin\CKli.Build.Plugin.csproj" /><ProjectReference Include="..\CKli.LocalNuGetFeed.Plugin\CKli.LocalNuGetFeed.Plugin.csproj" /></ItemGroup>
 
 </Project>

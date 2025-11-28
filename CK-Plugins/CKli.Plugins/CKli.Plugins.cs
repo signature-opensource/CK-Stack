@@ -8,10 +8,11 @@ public static class Plugins
     {
         return PluginCollector.Create( ctx ).BuildPluginFactory( [
             // <AutoSection>
-            typeof( VSSolution.Plugin.VSSolutionPlugin ),
-             typeof( BranchModel.Plugin.BranchModelPlugin ),
-              // </AutoSection>
+            typeof( BranchModel.Plugin.BranchModelPlugin ),
+            typeof( VersionTag.Plugin.VersionTagPlugin ),
+             typeof( Build.Plugin.BuildPlugin ),
+              typeof( LocalNuGetFeed.Plugin.LocalNuGetFeedPlugin ),
+               // </AutoSection>
         ] );
     }
-}
-                
+}                

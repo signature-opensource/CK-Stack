@@ -1,9 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
+
   <ItemGroup>
     <PackageReference Include="CKli.Plugins.Core" />
     <PackageReference Include="CSemVer" />
   </ItemGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
+    <ProjectReference Include="..\CKli.LocalNuGetFeed.Plugin\CKli.LocalNuGetFeed.Plugin.csproj" />
   </ItemGroup>
+
 </Project>

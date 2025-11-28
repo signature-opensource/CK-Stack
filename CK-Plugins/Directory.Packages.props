@@ -3,8 +3,8 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0003-dev" />
-    <PackageVersion Include="CKli.VSSolution.Plugin" Version="0.0.6" />
+    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0038-dev" />
+    
     <PackageVersion Include="CSemVer" Version="13.0.0" />
   </ItemGroup>
 </Project>

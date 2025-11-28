@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    <ItemGroup>
+        <PackageReference Include="CKli.Plugins.Core" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
+      <ProjectReference Include="..\CKli.LocalNuGetFeed.Plugin\CKli.LocalNuGetFeed.Plugin.csproj" />
+      <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
+    </ItemGroup>
+</Project>

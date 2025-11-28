@@ -1,26 +1,35 @@
 using CK.Core;
 using System.Collections.Generic;
 using CSemVer;
+using System.Diagnostics;
 
 namespace CKli.BranchModel.Plugin;
 
 /// <summary>
-/// "alpha", "beta", "delta", "epsilon", "gamma", "kappa", "preview", "rc", "stable".
+/// "alpha", "beta", "preview", "rc", "stable".
 /// </summary>
 public sealed class BranchTree
 {
     readonly BranchNode _root;
     readonly Dictionary<string, BranchNode> _branches;
 
-    internal BranchTree()
+    internal BranchTree( string? ltsName )
     {
-        _root = new BranchNode();
-        _branches = new Dictionary<string, BranchNode>( 8 ) { { _root.Name, _root } };
+        _root = new BranchNode( null, "stable" + ltsName );
+        _branches = new Dictionary<string, BranchNode>( 10 ) { { _root.Name, _root } };
         var b = _root;
-        for( int i = CSVersion.StandardPrereleaseNames.Count - 1; i >= 0; i-- )
+        b = Create( b, "rc" + ltsName );
+        b = Create( b, "pre" + ltsName );
+        b = Create( b, "beta" + ltsName );
+        b = Create( b, "alpha" + ltsName );
+
+        BranchNode Create( BranchNode b, string name )
         {
-            b = new BranchNode( b, CSVersion.StandardPrereleaseNames[i] );
+            b = new BranchNode( b, name );
+            Throw.DebugAssert( b.DevBranch != null );
             _branches.Add( b.Name, b );
+            _branches.Add( b.DevBranch.Name, b.DevBranch );
+            return b;
         }
     }
 
