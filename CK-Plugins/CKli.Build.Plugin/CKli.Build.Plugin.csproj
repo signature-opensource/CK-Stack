@@ -3,8 +3,8 @@
         <PackageReference Include="CKli.Plugins.Core" />
     </ItemGroup>
     <ItemGroup>
+      <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
       <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
-      <ProjectReference Include="..\CKli.LocalNuGetFeed.Plugin\CKli.LocalNuGetFeed.Plugin.csproj" />
       <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
     </ItemGroup>
 </Project>

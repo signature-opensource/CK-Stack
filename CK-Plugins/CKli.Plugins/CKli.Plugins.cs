@@ -11,8 +11,9 @@ public static class Plugins
             typeof( BranchModel.Plugin.BranchModelPlugin ),
             typeof( VersionTag.Plugin.VersionTagPlugin ),
              typeof( Build.Plugin.BuildPlugin ),
-              typeof( LocalNuGetFeed.Plugin.LocalNuGetFeedPlugin ),
-               // </AutoSection>
+               typeof( ReleaseDatabase.Plugin.ReleaseDatabasePlugin ),
+                typeof( ArtifactHandler.Plugin.ArtifactHandlerPlugin ),
+                 // </AutoSection>
         ] );
     }
 }                

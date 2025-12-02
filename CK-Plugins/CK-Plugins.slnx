@@ -5,9 +5,10 @@
     <File Path="Directory.Packages.props" />
     <File Path="nuget.config" />
   </Folder>
+  <Project Path="CKli.ArtifactHandler.Plugin/CKli.ArtifactHandler.Plugin.csproj" />
   <Project Path="CKli.BranchModel.Plugin/CKli.BranchModel.Plugin.csproj" />
   <Project Path="CKli.Build.Plugin/CKli.Build.Plugin.csproj" />
-  <Project Path="CKli.LocalNuGetFeed.Plugin/CKli.LocalNuGetFeed.Plugin.csproj" />
   <Project Path="CKli.Plugins/CKli.Plugins.csproj" />
+  <Project Path="CKli.ReleaseDatabase.Plugin/CKli.ReleaseDatabase.Plugin.csproj" />
   <Project Path="CKli.VersionTag.Plugin/CKli.VersionTag.Plugin.csproj" Id="390c3757-188d-4856-853f-1a3b85c6bf46" />
 </Solution>

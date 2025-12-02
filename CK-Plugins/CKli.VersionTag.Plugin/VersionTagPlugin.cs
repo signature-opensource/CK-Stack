@@ -1,6 +1,5 @@
 using CK.Core;
 using CKli.Core;
-using CKli.LocalNuGetFeed.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
@@ -10,13 +9,10 @@ namespace CKli.VersionTag.Plugin;
 
 public sealed class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
 {
-    readonly LocalNuGetFeedPlugin _localNuGetFeed;
-
-    public VersionTagPlugin( PrimaryPluginContext primaryContext, LocalNuGetFeedPlugin localNuGetFeed )
+    public VersionTagPlugin( PrimaryPluginContext primaryContext )
         : base( primaryContext )
     {
         World.Events.Issue += IssueRequested;
-        _localNuGetFeed = localNuGetFeed;
     }
 
     void IssueRequested( IssueEvent e )
@@ -31,7 +27,7 @@ public sealed class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     protected override VersionTagInfo Create( IActivityMonitor monitor, Repo repo )
     {
         List<Tag>? ignoredVersionTags = null;
-        List<(TagCommit,TagCommit)>? versionConflicts = null;
+        List<(TagCommit, TagCommit)>? versionConflicts = null;
         var lastStables = new List<TagCommit>();
         var v2c = new Dictionary<SVersion, TagCommit>();
         var r = repo.GitRepository.Repository;
@@ -68,6 +64,5 @@ public sealed class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         return new VersionTagInfo( repo, lastStables, v2c, ignoredVersionTags, versionConflicts );
 
     }
-
 
 }

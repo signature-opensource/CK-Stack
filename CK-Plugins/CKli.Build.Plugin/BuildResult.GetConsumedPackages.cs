@@ -1,6 +1,6 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
-using CKli.LocalNuGetFeed.Plugin;
 using CSemVer;
 using System;
 using System.Collections.Generic;
@@ -15,7 +15,12 @@ public partial class BuildResult
     /// Calls 'dotnet package list --format json --no-restore' and parses the result. The resulting
     /// packages are all the top level packages from all the projects for all the target frameworks
     /// (the same <see cref="NuGetPackageInstance.PackageId"/> may appear with different versions if
-    /// conditional package references exist).
+    /// conditional package references exist with restricted NuGet version ranges).
+    /// <para>
+    /// We could have captured the Requested (the version bound) in addition to the Resolved package version.
+    /// This would allow a better impact computation by early filtering out useless package upgrades. This
+    /// is doable but we almost never use NuGet version ranges. This would complexify the system for no real gain.
+    /// </para>
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The repository from which the currently checked out head will be analyzed.</param>
@@ -37,7 +42,7 @@ public partial class BuildResult
     internal static HashSet<NuGetPackageInstance>? GetConsumedPackages( IActivityMonitor monitor, Repo repo )
     {
         var stdOut = new StringBuilder();
-        if( !BuildPlugin.RunDotnet( monitor, repo, "list package --format json --no-restore", stdOut ) )
+        if( !BuildPlugin.RunDotnet( monitor, repo, "package list --format json --no-restore", stdOut ) )
         {
             return null;
         }
@@ -89,7 +94,7 @@ public partial class BuildResult
             {
                 foreach( var f in p.GetProperty( "frameworks"u8 ).EnumerateArray() )
                 {
-                    foreach( var package in p.GetProperty( "topLevelPackages"u8 ).EnumerateArray() )
+                    foreach( var package in f.GetProperty( "topLevelPackages"u8 ).EnumerateArray() )
                     {
                         string? packageId = package.GetProperty( "id"u8 ).GetString();
                         if( string.IsNullOrWhiteSpace( packageId ) )

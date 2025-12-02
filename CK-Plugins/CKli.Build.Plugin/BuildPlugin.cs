@@ -1,52 +1,49 @@
 using CK.Core;
 using CKli.Core;
-using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 using CKli.VersionTag.Plugin;
 using CKli.BranchModel.Plugin;
 using LibGit2Sharp;
 using CSemVer;
-using CKli.LocalNuGetFeed.Plugin;
-using System.Text.Json;
 using System.Text;
 using System;
+using CKli.ArtifactHandler.Plugin;
 
 namespace CKli.Build.Plugin;
 
-public sealed class BuildPlugin : PrimaryPluginBase
+public sealed partial class BuildPlugin : PrimaryPluginBase
 {
     readonly VersionTagPlugin _versionTags;
     readonly BranchModelPlugin _branchModel;
     readonly RepositoryBuilderPlugin _repoBuilder;
-    readonly LocalNuGetFeedPlugin _localNuGetFeed;
+    readonly ArtifactHandlerPlugin _artifactHandler;
 
     public BuildPlugin( PrimaryPluginContext primaryContext,
                         VersionTagPlugin versionTags,
                         BranchModelPlugin branchModel,
                         RepositoryBuilderPlugin repoBuilder,
-                        LocalNuGetFeedPlugin localNuGetFeed )
+                        ArtifactHandlerPlugin artifactHandler )
         : base( primaryContext )
     {
         _versionTags = versionTags;
         _branchModel = branchModel;
         _repoBuilder = repoBuilder;
-        _localNuGetFeed = localNuGetFeed;
+        _artifactHandler = artifactHandler;
+        World.Events.Issue += IssueRequested;
     }
-
-    [Description( "Build-Test-Package the current Repo if needed." )]
+    [Description( "Build-Test-Package and propagate the current Repo/branch if needed." )]
     [CommandPath( "repo build" )]
     public bool RepoBuild( IActivityMonitor monitor,
                            CKliEnv context,
                            [Description( "Specify the branch to build. By default, the current head is considered." )]
                            [OptionName( "--branch" )]
-                           string? branchName,
+                           string? branchName = null,
                            [Description( "Don't run tests even if they have never run on this commit." )]
-                           bool skipTests,
+                           bool skipTests = false,
                            [Description( "Run tests even if they have already run successfuly on this commit." )]
-                           bool forceTests,
-                           [Description( "Build even if a version tag already exist." )]
-                           bool rebuild )
+                           bool forceTests = false,
+                           [Description( "Build even if a version tag exists and its artifacts locally found." )]
+                           bool rebuild = false )
     {
         bool? runTest = null;
         if( forceTests )
@@ -87,12 +84,15 @@ public sealed class BuildPlugin : PrimaryPluginBase
         {
             return BuildFix( monitor, repo, r, context, branch, branchName, fixMajor, fixMinor, runTest, rebuild );
         }
+        // We are not on a vMajor.Minor/fix branch.
+        // We must be on a branch defined in the Branch Model (if at least the root branch exists in the Repo).
         var branchInfo = _branchModel.Get( monitor, repo );
         if( branchInfo.Root.Branch == null )
         {
             monitor.Error( $"No root branch '{_branchModel.BranchTree.Root.Name}' exists. This must be fixed." );
             return false;
         }
+        // If we are not on a known branch (defined by the Branch Model), give up.
         if( !_branchModel.BranchTree.Branches.TryGetValue( branchName, out var exists ) )
         {
             var branchNames = _branchModel.BranchTree.Branches.Values.Select( b => b.Name );
@@ -102,8 +102,7 @@ public sealed class BuildPlugin : PrimaryPluginBase
                 """ );
             return false;
         }
-        var versionInfo = _versionTags.Get( monitor, repo );
-
+        Throw.NotSupportedException( "Not implemented yet." );
         return true;
     }
 
@@ -145,7 +144,10 @@ public sealed class BuildPlugin : PrimaryPluginBase
             // If the lastFix tag is valid (it contains the consumed and produced packages document),
             // and we can find the produced packages in the local NuGet feed, then rebuilding this version
             // is useless. To explicitely rebuild an already built version, we demand the --rebuild flag to be specified.
-            bool isBuildUseless = true;
+            var existingContent = lastFix.BuildContentInfo;
+            bool isBuildUseless = existingContent != null
+                                    ? _artifactHandler.HasAllArtifacts( monitor, repo, lastFix.Version, existingContent )
+                                    : false;
             if( isBuildUseless && !rebuild )
             {
                 monitor.Error( $"""
@@ -178,48 +180,148 @@ public sealed class BuildPlugin : PrimaryPluginBase
         buildCommit ??= r.Head.Tip;
 
         // We are ready to build a fix.
+        if( !CoreBuild( monitor, context, versionInfo, buildCommit, targetVersion, runTest, rebuild ) )
+        {
+            return false;
+        }
+
+        // Each Build call should be "atomic": we want to avoid a "holistic", global approach of the impact as much as possible.
+        // A Build initial trigger is a Repo with a list of produced [(PackageId,Version)] with the same version:
+        // version can be factorized.
+        //
+        // Not factorizing the Version at this level would let the door opened to a "Per Project Version" feature:
+        // the possibility to define (and lock) the version at the project level.
+        // But this is not easy because of transitive dependencies: we must ensure that a "locked" version only
+        // consumes locked version or we must be able to automatically increment the "locked" version. Nightmare.
+        // Moreover, this breaks the UX of the code base discovery in a repo from the version tag. Nightmare again.
+        // We give up on this and keep the single versioned commit pattern that applies to all the produced packages:
+        // the output of a Build is (Repo,Commit,Version,[PackageId]).
+        //
+
+
+        // TODO: Propagate this build where it must be propagated...
+        // We first need to obtain the set of all the Release in the World that consume
+        // at least one of our produced packages.
+        //   [ Then we must topologically sort them to have the entry points of the graph.
+        //     Then we can start building them. Parrallelism would be great here... or not because
+        //     too much build/test/package at the same time can put the machine on its knees. This has to be
+        //     tested and a max degree of parallelism (MaxDOP) should certainly be introduced.
+        //   ]
+        //
+        // What we need here is a list of (Repo,Commit) where:
+        // - the Commit has a Release version tag.
+        // - the Commit code base consumed a previous version of any of our produced packages.
+        // The NuGetReleaseInfo has no knwoledge of the "repository" level. It has only package/version
+        // instances that may be in this World or not and this is a good thing:
+        // - if a Repo appears that produces a package that was used by one Repo in the World, this "previously external"
+        //   package is handled transparently.
+        // - but if a project has been moved from a Repo to another one (okay, this is not exactly the cas of a Fix, but let's
+        //   consider this case here), how should we handle this?
+        //   First, the version number of the moved package is given by the target Repo and it must necessarily be greater
+        //   than the source Repo version number. Moving a project leads to version gaps in the World's Repo.
+        //   High major numbers will be the rule. This is the price to pay for the Repo/Version model.
+        //   (Moving a project should be handled by CKli.)
+        //   
+        // We need a World database that tracks each package/version produced. Package appearance is not an issue but
+        // package removal is. One could also add package rename.
+        // This database has conceptually 2 relations:
+        //  - Consumed( CKliRepoId, PackageId, Version )
+        //  - Produced( CKliRepoId, PackageId, Version )
+        // This is all the data we have. No more, no less and this should be enough to support all the required features.
+        // This database is filled by the Build and can be rebuilt from a Repo's TagCommits.
+        //
+        //
+        // The impact of the produced list is the union of the impact of each produced (PackageId,Version) so we can reason
+        // on a single produced (PackageId,Version). Let's take (P1,v1.2.3).
+        // 
+        // The first level of Repos that are impacted are Repos in the Consumed( CKliRepoId, PackageId, Version )
+        // where PackageId appears (but not the PackageId/Version to support the "Per Project Version").
+        // => (*,P1,*)
+        // Among all these tuples not all of them are impacted... But this depends on the workflow.
+        // Here we are dealing with fixes: what are the Repo that must be fixed?
+        // A fix is a stable. The consumed Version must be stable: it is not our scope to impact the prerelease versions,
+        // this will be the Build of the impacted Repo that will have to handle this.
+        // => (*,P1,[Stable])
+        // Among the stable versions, only the ones with the same Major.Minor as the produced version must be considered.
+        // => (*,P1,v1.2.*)
+        // Among the stable Major.Minor versions, the one with the greatest patch is concerned.
+        // But is it?
+        // => (R1,P1,v1.2.1), (R2,P1,v1.2.2)
+        // For R2, its fine (immediate previous fix). But what about R1 where we have the v1.2.1.
+        // Where is the v1.2.2?
+        // Did we miss an upgrade, or the Repo R1 doesn't consume P1 anymore?
+        // To stay on the safe side, we should consider R1 as a candidate.
+        // => To be robust, a "Package Upgrade" must accept unused packages and should be able to say "no change"
+        // so we can skip the build.
+        // 
+
+        return true;
+    }
+
+    bool CoreBuild( IActivityMonitor monitor,
+                    CKliEnv context,
+                    VersionTagInfo versionInfo,
+                    Commit buildCommit,
+                    SVersion targetVersion,
+                    bool? runTest,
+                    bool rebuild )
+    {
         var buildInfo = versionInfo.TryGetCommitBuildInfo( monitor, buildCommit, targetVersion, rebuild );
         if( buildInfo == null )
         {
             return false;
         }
-
-        var buildResult = _repoBuilder.Get( monitor, repo ).Build( monitor, buildInfo, release: true, runTest );
-        if( !buildResult.Success )
+        //
+        // We ensure that the working folder is checked out on the buildCommit content tree.
+        // We restore the current branch once we are done.
+        // Note that the Branch Head may be a DetachedHead (internal LibGit2Sharp specialization of a Branch) but
+        // we don't care: we restore the current state.
+        //
+        var git = versionInfo.Repo.GitRepository;
+        if( !git.CheckCleanCommit( monitor ) )
         {
             return false;
         }
-        try
+        Branch currentHead = git.Repository.Head;
+        bool mustCheckOut = currentHead.Tip.Tree.Sha != buildCommit.Tree.Sha;
+        if( mustCheckOut )
         {
-            // TODO: Generalizes the Artifacts management.
-            //       Goal: Handle .zip and/or .exe (setup) files.
-            //       Questions: can folders be supported?
-            //                  should we enforce the version number in the asset file name (that sounds required).
-            // 
-            // Publishes the build result artifacts to the local feed: this provides the list of NuGet packages produced.
-            var producedPackages = buildResult.PublishToLocalNuGetFeed( monitor, _localNuGetFeed );
-            if( producedPackages == null )
+            Commands.Checkout( git.Repository, buildCommit );
+        }
+        bool result = DoCoreBuild( monitor, context, _repoBuilder, versionInfo, buildInfo, runTest );
+        if( mustCheckOut )
+        {
+            try
+            {
+                Commands.Checkout( git.Repository, currentHead, new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force } );
+            }
+            catch( Exception ex )
+            {
+                monitor.Error( $"Error while restoring '{git.DisplayPath}' back to '{currentHead}'.", ex );
+                result = false;
+            }
+        }
+        return result;
+
+        static bool DoCoreBuild( IActivityMonitor monitor,
+                                 CKliEnv context,
+                                 RepositoryBuilderPlugin repoBuilder,
+                                 VersionTagInfo versionInfo,
+                                 CommitBuildInfo buildInfo,
+                                 bool? runTest )
+        {
+            var buildResult = repoBuilder.Get( monitor, versionInfo.Repo ).Build( monitor, buildInfo, runTest );
+            if( !buildResult.Success )
             {
                 return false;
             }
-            var message = new StringBuilder();
-            NuGetReleaseInfo.AppendMessage( message, buildResult.ConsumedPackages, producedPackages );
-
-            if( !buildInfo.ApplyRealeaseBuildTag( monitor, context, message.ToString() ) )
+            if( !buildInfo.ApplyReleaseBuildTag( monitor, context, buildResult.Content.ToString() ) )
             {
                 return false;
             }
-
-            // TODO: Propagate this build where it must be propagated...
-
+            return true;
         }
-        finally
-        {
-            buildResult.CleanupTemporaryFolder( monitor );
-        }
-        return true;
     }
-
 
     internal static bool RunDotnet( IActivityMonitor monitor, Repo repo, string args, StringBuilder? stdOut = null )
     {

@@ -1,12 +1,10 @@
 using CK.Core;
-using CKli.LocalNuGetFeed.Plugin;
+using CKli.ArtifactHandler.Plugin;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text;
-using System.Threading.Channels;
 
 namespace CKli.VersionTag.Plugin;
 

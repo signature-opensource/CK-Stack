@@ -2,7 +2,6 @@ using CK.Core;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
-using System;
 using System.Threading.Tasks;
 
 namespace CKli.BranchModel.Plugin;

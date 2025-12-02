@@ -1,7 +1,5 @@
 using CK.Core;
 using System.Collections.Generic;
-using CSemVer;
-using System.Diagnostics;
 
 namespace CKli.BranchModel.Plugin;
 

@@ -1,6 +1,6 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
-using System;
 
 namespace CKli.Build.Plugin;
 
@@ -10,20 +10,23 @@ namespace CKli.Build.Plugin;
 /// </summary>
 public sealed class RepositoryBuilderPlugin : PrimaryRepoPlugin<RepoBuilder>
 {
+    readonly ArtifactHandlerPlugin _artifactHandler;
+
     // This cache is common to all Repo in all World: this caches the Content Sha of
     // successfully passed tests. All RepoBuilder use it.
     // This is in the $Local (not in the git repository) to allow tests to run on each machine.
     // There is currently no housekeeping.
     LocalStringCache? _shaTestRunCache;
 
-    public RepositoryBuilderPlugin( PrimaryPluginContext primaryContext )
+    public RepositoryBuilderPlugin( PrimaryPluginContext primaryContext, ArtifactHandlerPlugin artifactHandler )
         : base( primaryContext )
     {
+        _artifactHandler = artifactHandler;
     }
 
     protected override RepoBuilder Create( IActivityMonitor monitor, Repo repo )
     {
         _shaTestRunCache ??= new LocalStringCache( repo.World.StackRepository, "TestRun.Sha" );
-        return new RepoBuilder( repo, _shaTestRunCache );
+        return new RepoBuilder( repo, _shaTestRunCache, _artifactHandler.Get( monitor, repo ) );
     }
 }

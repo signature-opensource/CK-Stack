@@ -1,10 +1,7 @@
 using CK.Core;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
-using LibGit2Sharp;
 using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using LogLevel = CK.Core.LogLevel;
 

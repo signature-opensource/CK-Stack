@@ -1,7 +1,7 @@
 using CK.Core;
 using CSemVer;
 
-namespace CKli.LocalNuGetFeed.Plugin;
+namespace CKli.ArtifactHandler.Plugin;
 
 public sealed record LocalNuGetPackageInstance( NormalizedPath LocalPath, string PackageId, SVersion Version )
 {

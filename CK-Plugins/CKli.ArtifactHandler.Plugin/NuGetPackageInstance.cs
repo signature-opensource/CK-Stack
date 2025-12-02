@@ -1,8 +1,8 @@
+using CK.Core;
 using CSemVer;
 using System;
-using System.Threading.Tasks;
 
-namespace CKli.LocalNuGetFeed.Plugin;
+namespace CKli.ArtifactHandler.Plugin;
 
 public readonly record struct NuGetPackageInstance( string PackageId, SVersion Version )
 {
@@ -16,7 +16,7 @@ public readonly record struct NuGetPackageInstance( string PackageId, SVersion V
     {
         instance = default;
         int idx = head.IndexOf( '/' );
-        if(  idx <= 0 ) return false;
+        if( idx <= 0 ) return false;
         var rest = head.Slice( idx + 1 );
         var v = SVersion.TryParse( ref rest );
         if( !v.IsValid ) return false;

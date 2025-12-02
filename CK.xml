@@ -3,7 +3,8 @@
     <BranchModel />
     <VersionTag />
     <Build />
-    <LocalNuGetFeed />
+    <ReleaseDatabase />
+    <ArtifactHandler />
   </Plugins>
   <Folder Name="CK-AspNet-Projects">
     <Repository Url="https://github.com/signature-opensource/CK-AspNet" />

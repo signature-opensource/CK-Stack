@@ -5,7 +5,6 @@ using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 namespace CKli.VersionTag.Plugin;
 
@@ -73,7 +72,7 @@ public sealed class VersionTagInfo : RepoInfo
     public IReadOnlyList<Tag>? IgnoredVersionTags => _ignoredVersionTags;
 
     /// <summary>
-    /// Gets the duplicate version tag found.
+    /// Gets the duplicate version tag found. Null when no conflict exists.
     /// </summary>
     public IReadOnlyList<(TagCommit Duplicate, TagCommit FirstFound)>? VersionConflicts => _versionConflicts;
 
@@ -126,9 +125,17 @@ public sealed class VersionTagInfo : RepoInfo
         return null;
     }
 
+    /// <summary>
+    /// Used by build: this checks that the <paramref name="buildCommit"/> can be built with <paramref name="version"/>.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="buildCommit">The build commit selected by the build.</param>
+    /// <param name="version">The target version.</param>
+    /// <param name="allowRebuild">True if the user allows a rebuild of an already built commit.</param>
+    /// <returns>The commit build info on success, null on error.</returns>
     public CommitBuildInfo? TryGetCommitBuildInfo( IActivityMonitor monitor, Commit buildCommit, SVersion version, bool allowRebuild )
     {
-        // Preconditons for any commit.
+        // Preconditions for any commit.
         if( !CanBuildAnyCommit( monitor, buildCommit, version, allowRebuild, out bool isRebuild ) )
         {
             return null;

@@ -1,13 +1,11 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
-using CKli.LocalNuGetFeed.Plugin;
 using CSemVer;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Diagnostics.Contracts;
-using System.IO;
+using System.Linq;
 
 namespace CKli.Build.Plugin;
 
@@ -16,13 +14,15 @@ namespace CKli.Build.Plugin;
 /// </summary>
 public sealed partial class BuildResult
 {
-    readonly ImmutableArray<NormalizedPath> _artifacts;
-    readonly HashSet<NuGetPackageInstance> _consumedPackages;
+    readonly BuildContentInfo _buildContentInfo;
+    readonly NormalizedPath _assetsFolder;
     readonly Repo? _repo;
     readonly SVersion? _version;
-    string? _temporaryFolder;
 
-    BuildResult() => _artifacts = [];
+    BuildResult()
+    {
+        _buildContentInfo = null!;
+    }
 
     /// <summary>
     /// Gets the failed result.
@@ -30,16 +30,19 @@ public sealed partial class BuildResult
     public static readonly BuildResult Failed = new BuildResult(); 
 
     internal BuildResult( Repo repo,
-                        SVersion version,
-                        ImmutableArray<NormalizedPath> artifacts,
-                        HashSet<NuGetPackageInstance> consumedPackages,
-                        string temporaryFolder )
+                          SVersion version,
+                          HashSet<NuGetPackageInstance> consumedPackages,
+                          List<LocalNuGetPackageInstance> producedPackages,
+                          NormalizedPath assetsFolder,
+                          ImmutableArray<string> assetFileNames )
     {
-        _artifacts = artifacts;
-        _consumedPackages = consumedPackages;
+        Throw.DebugAssert( !assetFileNames.IsDefault );
+        _buildContentInfo = new BuildContentInfo( [..consumedPackages],
+                                                  [..producedPackages.Select( p => p.PackageId )],
+                                                  assetFileNames );
+        if( !assetFileNames.IsEmpty ) _assetsFolder = assetsFolder;
         _repo = repo;
         _version = version;
-        _temporaryFolder = temporaryFolder;
     }
 
     /// <summary>
@@ -59,79 +62,28 @@ public sealed partial class BuildResult
     public SVersion? Version => _version;
 
     /// <summary>
-    /// Gets the artifacts. May be empty if build didn't produce artifacts (but this should be exceptional).
+    /// Gets the build content.
     /// </summary>
-    public ImmutableArray<NormalizedPath> Artifacts => _artifacts;
-
-    /// <summary>
-    /// Optional temporary folder that should be deleted once the <see cref="Artifacts"/> have been handled.
-    /// <para>
-    /// <see cref="CleanupTemporaryFolder(IActivityMonitor)"/> sets this to null.
-    /// </para>
-    /// </summary>
-    public string? TemporaryFolder => _temporaryFolder;
-
-    /// <summary>
-    /// Gets the packages that this <see cref="Repo"/> requires.
-    /// </summary>
-    public IReadOnlySet<NuGetPackageInstance> ConsumedPackages => _consumedPackages;
-
-    /// <summary>
-    /// Moves the <see cref="Artifacts"/> that are ".nupkg" files to <see cref="LocalNuGetFeedPlugin"/>.
-    /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
-    /// <param name="localFeed">The local feed plugin.</param>
-    /// <returns>The list of local NuGet packages or null on error.</returns>
-    public List<LocalNuGetPackageInstance>? PublishToLocalNuGetFeed( IActivityMonitor monitor, LocalNuGetFeedPlugin localFeed )
+    public BuildContentInfo Content
     {
-        Throw.CheckState( Success );
-        var result = new List<LocalNuGetPackageInstance>();
-        try
+        get
         {
-            if( _artifacts.Length == 0 )
-            {
-                monitor.Warn( $"No package produced by '{_repo.DisplayPath}' for '{_version}'." );
-            }
-            else
-            {
-                foreach( var a in _artifacts )
-                {
-                    if( a.LastPart.EndsWith( ".nupkg" ) )
-                    {
-                        var p = localFeed.Add( monitor, a );
-                        if( p == null ) return null;
-                        result.Add( p );
-                    }
-                }
-            }
-            return result;
-        }
-        catch( Exception ex ) 
-        {
-            monitor.Error( "Error while publishing NuGet packages to local NuGet feed.", ex ); 
-            return null;
+            Throw.CheckState( Success );
+            return _buildContentInfo;
         }
     }
 
     /// <summary>
-    /// Helper that deletes the <see cref="TemporaryFolder"/> if it exists.
+    /// Gets the assets folder in "$Local/Assets". <see cref="NormalizedPath.IsEmptyPath"/>
+    /// if there is no assets.
     /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
-    public void CleanupTemporaryFolder( IActivityMonitor monitor )
-    {
-        if( _temporaryFolder != null && Directory.Exists( _temporaryFolder ) )
-        {
-            monitor.Trace( $"Deleting temporary folder '{_temporaryFolder}'." );
-            FileHelper.DeleteFolder( monitor, _temporaryFolder );
-            _temporaryFolder = null;
-        }
-    }
+    public NormalizedPath AssetsFolder => _assetsFolder;
 
-    internal void SetConsumedPackages( HashSet<NuGetPackageInstance> consumedPackages )
-    {
-        throw new NotImplementedException();
-    }
-
+    /// <summary>
+    /// Gets the <see cref="BuildContentInfo"/> on success, "Failed" otherwise.
+    /// </summary>
+    /// <returns>The build content info.</returns>
+    public override string ToString() => Success ? "Failed" : _buildContentInfo.ToString();
 }
 
 

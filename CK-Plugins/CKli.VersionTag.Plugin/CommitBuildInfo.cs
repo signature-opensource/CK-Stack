@@ -56,8 +56,14 @@ public sealed class CommitBuildInfo
     }
 
     /// <summary>
+    /// Gets whether the build must use "Release" configuration: the version to build is a
+    /// stable or a release candidate.
+    /// </summary>
+    public bool ReleaseConfiguration => !_version.IsPrerelease || _version.AsCSVersion?.PackageQuality == PackageQuality.ReleaseCandidate;
+
+    /// <summary>
     /// Adds or update the <see cref="TagCommit"/> on the <see cref="BuildCommit"/> for <see cref="Version"/>
-    /// withe the provided <paramref name="releaseMessage"/>.
+    /// with the provided <paramref name="releaseMessage"/>.
     /// <para>
     /// This is the last operation of a build. If this fails, this is a problem.
     /// </para>
@@ -66,9 +72,9 @@ public sealed class CommitBuildInfo
     /// <param name="context">The context.</param>
     /// <param name="releaseMessage">The non empty release message.</param>
     /// <returns>True on success, false on error.</returns>
-    public bool ApplyRealeaseBuildTag( IActivityMonitor monitor,
-                                       CKliEnv context,
-                                       string releaseMessage )
+    public bool ApplyReleaseBuildTag( IActivityMonitor monitor,
+                                      CKliEnv context,
+                                      string releaseMessage )
     {
         Throw.CheckArgument( !string.IsNullOrWhiteSpace( releaseMessage ) );
         try
@@ -81,7 +87,7 @@ public sealed class CommitBuildInfo
             if( _tagInfo.TagCommits.TryGetValue( _version, out var exists ) )
             {
                 Throw.DebugAssert( "When rebuilding an existing version, the build commit must be the same.", _buildCommit.Sha == exists.Sha );
-                exists.UpdateRebuildReleaseTag( t, releaseMessage );
+                exists.UpdateVersionTag( t );
             }
             else
             {

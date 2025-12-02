@@ -6,7 +6,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CKli.LocalNuGetFeed.Plugin\CKli.LocalNuGetFeed.Plugin.csproj" />
+    <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
   </ItemGroup>
 
 </Project>
