@@ -47,7 +47,7 @@ public sealed class VersionTagInfo : RepoInfo
     public IReadOnlyDictionary<SVersion, TagCommit> TagCommits => _v2C;
 
     /// <summary>
-    /// Gets the versioned tag ccommit indexed by their <see cref="TagCommit.Sha"/> and <see cref="TagCommit.ContentSha"/>.
+    /// Gets the versioned tag commit indexed by their <see cref="TagCommit.Sha"/> and <see cref="TagCommit.ContentSha"/>.
     /// </summary>
     public IReadOnlyDictionary<string, TagCommit> TagCommitsBySha
     {
@@ -215,7 +215,7 @@ public sealed class VersionTagInfo : RepoInfo
         isRebuild = false;
         if( _v2C.TryGetValue( version, out var exists ) )
         {
-            // The version has alread been produced. The buildCommit must be the same as the original version
+            // The version has already been produced. The buildCommit must be the same as the original version
             // and allowBuild must be true.
             if( exists.Commit.Sha != buildCommit.Sha )
             {

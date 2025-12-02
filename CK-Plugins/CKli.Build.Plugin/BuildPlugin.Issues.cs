@@ -51,7 +51,7 @@ public sealed partial class BuildPlugin
     {
         readonly BuildPlugin _buildPlugin;
         readonly VersionTagInfo _versionTagInfo;
-        readonly TagCommit[] _lightWeightTags;
+        readonly TagCommit[] _tagsToRebuild;
 
         public VersionTagIssue( BuildPlugin buildPlugin,
                                 VersionTagInfo versionTagInfo,
@@ -62,12 +62,14 @@ public sealed partial class BuildPlugin
         {
             _buildPlugin = buildPlugin;
             _versionTagInfo = versionTagInfo;
-            _lightWeightTags = tagsToRebuild;
+            _tagsToRebuild = tagsToRebuild;
         }
 
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
-            foreach( var tc in _lightWeightTags )
+            Throw.DebugAssert( Repo != null );
+            using var gLog = monitor.OpenInfo( $"Fixing {_tagsToRebuild.Length} tags content info in '{Repo.DisplayPath}'." );
+            foreach( var tc in _tagsToRebuild )
             {
                 if( !_buildPlugin.CoreBuild( monitor, context, _versionTagInfo, tc.Commit, tc.Version, runTest: false, rebuild: true ) )
                 {

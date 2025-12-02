@@ -37,8 +37,9 @@ public sealed class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             var v = SVersion.TryParse( tagName, handleCSVersion: false );
             if( !v.IsValid ) continue;
             // Consider only target that is a commit (safe cast)
-            // and filter out "+invalid" tag.
+            // and filter out "+invalid" or "+deprecated" tag.
             if( v.BuildMetaData.Contains( "invalid", StringComparison.OrdinalIgnoreCase )
+                || v.BuildMetaData.Contains( "deprecated", StringComparison.OrdinalIgnoreCase )
                 || t.Target is not Commit c )
             {
                 ignoredVersionTags ??= new List<Tag>();
@@ -62,7 +63,6 @@ public sealed class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         }
         lastStables.Sort();
         return new VersionTagInfo( repo, lastStables, v2c, ignoredVersionTags, versionConflicts );
-
     }
 
 }

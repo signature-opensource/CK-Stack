@@ -31,7 +31,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         _artifactHandler = artifactHandler;
         World.Events.Issue += IssueRequested;
     }
-    [Description( "Build-Test-Package and propagate the current Repo/branch if needed." )]
+
+    [Description( "Build-Test-Package and propagates the current Repo/branch if needed." )]
     [CommandPath( "repo build" )]
     public bool RepoBuild( IActivityMonitor monitor,
                            CKliEnv context,
@@ -40,7 +41,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            string? branchName = null,
                            [Description( "Don't run tests even if they have never run on this commit." )]
                            bool skipTests = false,
-                           [Description( "Run tests even if they have already run successfuly on this commit." )]
+                           [Description( "Run tests even if they have already run successfully on this commit." )]
                            bool forceTests = false,
                            [Description( "Build even if a version tag exists and its artifacts locally found." )]
                            bool rebuild = false )
@@ -143,7 +144,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
 
             // If the lastFix tag is valid (it contains the consumed and produced packages document),
             // and we can find the produced packages in the local NuGet feed, then rebuilding this version
-            // is useless. To explicitely rebuild an already built version, we demand the --rebuild flag to be specified.
+            // is useless. To explicitly rebuild an already built version, we demand the --rebuild flag to be specified.
             var existingContent = lastFix.BuildContentInfo;
             bool isBuildUseless = existingContent != null
                                     ? _artifactHandler.HasAllArtifacts( monitor, repo, lastFix.Version, existingContent )
@@ -203,7 +204,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // We first need to obtain the set of all the Release in the World that consume
         // at least one of our produced packages.
         //   [ Then we must topologically sort them to have the entry points of the graph.
-        //     Then we can start building them. Parrallelism would be great here... or not because
+        //     Then we can start building them. Parallelism would be great here... or not because
         //     too much build/test/package at the same time can put the machine on its knees. This has to be
         //     tested and a max degree of parallelism (MaxDOP) should certainly be introduced.
         //   ]
@@ -211,7 +212,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // What we need here is a list of (Repo,Commit) where:
         // - the Commit has a Release version tag.
         // - the Commit code base consumed a previous version of any of our produced packages.
-        // The NuGetReleaseInfo has no knwoledge of the "repository" level. It has only package/version
+        // The NuGetReleaseInfo has no knowledge of the "repository" level. It has only package/version
         // instances that may be in this World or not and this is a good thing:
         // - if a Repo appears that produces a package that was used by one Repo in the World, this "previously external"
         //   package is handled transparently.
@@ -271,6 +272,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return false;
         }
+        using var gLog = monitor.OpenTrace( $"Core build for '{buildInfo}'." );
         //
         // We ensure that the working folder is checked out on the buildCommit content tree.
         // We restore the current branch once we are done.
@@ -286,6 +288,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         bool mustCheckOut = currentHead.Tip.Tree.Sha != buildCommit.Tree.Sha;
         if( mustCheckOut )
         {
+            monitor.Trace( $"Current working folder content is not the same as the commit '{buildCommit.Sha}' to build. Checking out (detached head)." );
             Commands.Checkout( git.Repository, buildCommit );
         }
         bool result = DoCoreBuild( monitor, context, _repoBuilder, versionInfo, buildInfo, runTest );
@@ -293,6 +296,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             try
             {
+                monitor.Trace( "Restoring working folder to its previous head." );
                 Commands.Checkout( git.Repository, currentHead, new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force } );
             }
             catch( Exception ex )

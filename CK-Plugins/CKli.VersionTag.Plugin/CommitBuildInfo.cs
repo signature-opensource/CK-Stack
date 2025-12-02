@@ -11,6 +11,7 @@ public sealed class CommitBuildInfo
     readonly VersionTagInfo _tagInfo;
     readonly SVersion _version;
     readonly Commit _buildCommit;
+    readonly string _toString;
     readonly bool _rebuilding;
     string? _informationalVersion;
 
@@ -20,6 +21,7 @@ public sealed class CommitBuildInfo
         _version = version;
         _buildCommit = buildCommit;
         _rebuilding = rebuilding;
+        _toString = $"{tagInfo.Repo.DisplayPath}/{version}";
     }
 
     /// <summary>
@@ -108,6 +110,10 @@ public sealed class CommitBuildInfo
         }
     }
 
-
+    /// <summary>
+    /// Gets "Repo/version".
+    /// </summary>
+    /// <returns>The "Repo/version" that identifies this build info.</returns>
+    public override string ToString() => _toString;
 }
 

@@ -48,7 +48,7 @@ public class RepoBuilder : RepoInfo
         {
             if( DoBuild( monitor, buildInfo.Version, buildInfo.InformationalVersion, buildInfo.ReleaseConfiguration, runTest, outputPath ) )
             {
-                var consumedPackages = BuildResult.GetConsumedPackages( monitor, Repo );
+                var consumedPackages = BuildResult.GetConsumedPackages( monitor, buildInfo );
                 if( consumedPackages != null )
                 {
                     var deploymentFolder = Path.Combine( Repo.WorkingFolder, ArtifactHandlerPlugin.DeployFolderName );

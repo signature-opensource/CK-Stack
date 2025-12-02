@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
+using CKli.VersionTag.Plugin;
 using CSemVer;
 using System;
 using System.Collections.Generic;
@@ -39,17 +40,17 @@ public partial class BuildResult
     /// => The simplest and most robust way is the 'dotnet package list --format json'.
     /// 
     /// </remarks>
-    internal static HashSet<NuGetPackageInstance>? GetConsumedPackages( IActivityMonitor monitor, Repo repo )
+    internal static HashSet<NuGetPackageInstance>? GetConsumedPackages( IActivityMonitor monitor, CommitBuildInfo buildInfo )
     {
         var stdOut = new StringBuilder();
-        if( !BuildPlugin.RunDotnet( monitor, repo, "package list --format json --no-restore", stdOut ) )
+        if( !BuildPlugin.RunDotnet( monitor, buildInfo.Repo, "package list --format json --no-restore", stdOut ) )
         {
             return null;
         }
         try
         {
             using var d = JsonDocument.Parse( stdOut.ToString() );
-            if( !ReadProblems( monitor, repo, d ) )
+            if( !ReadProblems( monitor, buildInfo, d ) )
             {
                 return null;
             }
@@ -57,12 +58,12 @@ public partial class BuildResult
         }
         catch( Exception ex )
         {
-            monitor.Error( $"While reading Package list for '{repo.DisplayPath}'.", ex );
+            monitor.Error( $"While reading Package list for '{buildInfo}'.", ex );
             return null;
         }
 
 
-        static bool ReadProblems( IActivityMonitor monitor, Repo repo, JsonDocument d )
+        static bool ReadProblems( IActivityMonitor monitor, CommitBuildInfo buildInfo, JsonDocument d )
         {
             bool hasWarning = false;
             if( d.RootElement.TryGetProperty( "problems"u8, out var problems ) )
@@ -71,7 +72,7 @@ public partial class BuildResult
                 {
                     if( p.GetProperty( "level"u8 ).GetString() == "error" )
                     {
-                        monitor.Error( $"Package list for '{repo.DisplayPath}' has errors. See logs." );
+                        monitor.Error( $"Package list for '{buildInfo}' has errors. See logs." );
                         return false;
                     }
                     else
@@ -82,7 +83,7 @@ public partial class BuildResult
             }
             if( hasWarning )
             {
-                monitor.Warn( $"Package list for '{repo.DisplayPath}' has warnings. See logs." );
+                monitor.Warn( $"Package list for '{buildInfo}' has warnings. See logs." );
             }
             return true;
         }
