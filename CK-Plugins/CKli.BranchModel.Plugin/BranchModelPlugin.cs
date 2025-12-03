@@ -55,6 +55,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
                            bool noFetch,
                            bool moveBranch )
     {
+        // Parses the Major.Minor. Minor is -1 if only Major is specified (we'll consider the max Minor).
         if( !Parse( version, out int major, out int minor ) )
         {
             monitor.Error( $"Invalid version '{version}'. Must be a major number, major.minor numbers optionally prefixed with 'v'." );
@@ -70,7 +71,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         {
             return false;
         }
-        // Find the commit that must be fixed.
+        // Find the commit that must be fixed. This can perfectly be a +Fake one.
         var versionInfo = _versionTags.Get( monitor, repo );
         var toFix = versionInfo.LastStables.Where( c => c.Version.Major == major && (minor == -1 || c.Version.Minor == minor) ).Max();
         if( toFix == null )

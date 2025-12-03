@@ -224,6 +224,15 @@ public sealed class VersionTagInfo : RepoInfo
         isRebuild = false;
         if( _v2C.TryGetValue( version, out var exists ) )
         {
+            if( exists.IsFakeVersion )
+            {
+                monitor.Error( $"""
+                    The version 'v{version}' in '{Repo.DisplayPath}' is defined by a fake version tag '{exists.Version.ParsedText}' on '{exists.Sha}'.
+
+                    Fake version tags are here to allow explicit gaps in versions: this version should not be produced.
+                    """ );
+                return false;
+            }
             // The version has already been produced. The buildCommit must be the same as the original version
             // and allowBuild must be true.
             if( exists.Commit.Sha != buildCommit.Sha )
@@ -240,7 +249,7 @@ public sealed class VersionTagInfo : RepoInfo
             }
             if( !allowRebuild )
             {
-                // This should have been handled bu the builder before calling TryGetCommitBuildInfo: this is a security.
+                // This should have been handled by the builder before calling TryGetCommitBuildInfo: this is a security.
                 monitor.Error( $"""
                     The version 'v{version}' has already been produced by this commit but rebuilding it is not allowed.
                     """ );
@@ -255,6 +264,24 @@ public sealed class VersionTagInfo : RepoInfo
         var already = Find( buildCommit, out var foundContentSha );
         if( already != null )
         {
+            if( already.IsFakeVersion )
+            {
+                // The Commit is tagged with a +Fake version.
+                // If the commit to build is exactly this one, this is more than weird and we reject this
+                // (almost the same case as the above where a Fake version should be produced).
+                // But if the commit has been found by its content Sha, then this MAY be a valid scenario.
+                if( !foundContentSha )
+                {
+                    monitor.Error( $"""
+                    Commit '{buildCommit.Sha}' is tagged with a fake version '{already.Version.ParsedText}' in '{Repo.DisplayPath}'.
+                    Producing version 'v{version}' from it is forbidden.
+
+                    Fake version tags are here to allow explicit gaps in versions: this version should not be produced.
+                    """ );
+                    return false;
+                }
+                return true;
+            }
             // This is where the --ci build should be allowed (for 0000 version in Debug).
             monitor.Error( foundContentSha
                             ? $"""
