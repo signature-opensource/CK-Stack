@@ -39,26 +39,16 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            [Description( "Specify the branch to build. By default, the current head is considered." )]
                            [OptionName( "--branch" )]
                            string? branchName = null,
-                           [Description( "Don't run tests even if they have never run on this commit." )]
+                           [Description( "Don't run tests even if they have never locally run on this commit." )]
                            bool skipTests = false,
                            [Description( "Run tests even if they have already run successfully on this commit." )]
                            bool forceTests = false,
                            [Description( "Build even if a version tag exists and its artifacts locally found." )]
                            bool rebuild = false )
     {
-        bool? runTest = null;
-        if( forceTests )
+        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
-            if( skipTests )
-            {
-                monitor.Error( $"Invalid flags combination: --skip-test and --force-test cannot be both specified." );
-                return false;
-            }
-            runTest = true;
-        }
-        else if( skipTests )
-        {
-            runTest = false;
+            return false;
         }
         var repo = World.GetDefinedRepo( monitor, context.CurrentDirectory );
         if( repo == null || !repo.GitRepository.CheckCleanCommit( monitor ) )
@@ -104,6 +94,25 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return false;
         }
         Throw.NotSupportedException( "Not implemented yet." );
+        return true;
+    }
+
+    private static bool HandleForceSkipTests( IActivityMonitor monitor, bool skipTests, bool forceTests, out bool? runTest )
+    {
+        runTest = null;
+        if( forceTests )
+        {
+            if( skipTests )
+            {
+                monitor.Error( $"Invalid flags combination: --skip-test and --force-test cannot be both specified." );
+                return false;
+            }
+            runTest = true;
+        }
+        else if( skipTests )
+        {
+            runTest = false;
+        }
         return true;
     }
 

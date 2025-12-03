@@ -40,6 +40,8 @@ public static class CompiledPlugins
         var pluginCommands = new PluginCommand[]{
             new Cmd_branch＿fix( infos[0].PluginTypes[0] ),
             new Cmd_repo＿build( infos[2].PluginTypes[1] ),
+            new Cmd_repo＿rebuild＿old( infos[2].PluginTypes[1] ),
+            new Cmd_repo＿rebuild＿version( infos[2].PluginTypes[1] ),
         };
         var cmds = new Dictionary<string,Command?>();
         foreach( var c in pluginCommands )
@@ -48,6 +50,7 @@ public static class CompiledPlugins
         }
        cmds.Add( "branch", null );
        cmds.Add( "repo", null );
+       cmds.Add( "repo rebuild", null );
         return new Generated( infos, pluginCommands, CommandNamespace.UnsafeCreate( cmds ) );
     }
 }
@@ -120,7 +123,7 @@ sealed class Cmd_repo＿build : PluginCommand
     internal Cmd_repo＿build( IPluginTypeInfo typeInfo )
         : base( typeInfo,
                 "repo build",
-                "Build-Test-Package and propagate the current Repo/branch if needed.",
+                "Build-Test-Package and propagates the current Repo/branch if needed.",
                 true,
                 arguments: [
                 ],
@@ -128,8 +131,8 @@ sealed class Cmd_repo＿build : PluginCommand
                     (["--branch",], "Specify the branch to build. By default, the current head is considered.", false ),
                 ],
                 flags: [
-                    (["--skip-tests",], "Don't run tests even if they have never run on this commit." ),
-                    (["--force-tests",], "Run tests even if they have already run successfuly on this commit." ),
+                    (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
+                    (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
                     (["--rebuild",], "Build even if a version tag exists and its artifacts locally found." ),
                 ],
                 "RepoBuild", MethodAsyncReturn.None ) {}
@@ -142,5 +145,59 @@ sealed class Cmd_repo＿build : PluginCommand
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
         return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).RepoBuild(
                                            monitor, context, o0, f0, f1, f2 ) );
+    }
+}
+sealed class Cmd_repo＿rebuild＿old : PluginCommand
+{
+    internal Cmd_repo＿rebuild＿old( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "repo rebuild old",
+                "Tries to rebuild the oldest releases until a success.\r\nFailing commits are tagged with a '+Deprecated' tag.",
+                true,
+                arguments: [
+                ],
+                options: [
+                ],
+                flags: [
+                    (["--warn-only",], "Warns only: doesn't create a 'Deprecated' tag on the failing commit." ),
+                    (["--run-test",], "Runs unit tests. They must be successful." ),
+                    (["--all",], "Consider all the Repos of the current World (even if current path is in a Repo)." ),
+                ],
+                "RebuildOld", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        var f0 = cmdLine.EatFlag( Flags[0].Names );
+        var f1 = cmdLine.EatFlag( Flags[1].Names );
+        var f2 = cmdLine.EatFlag( Flags[2].Names );
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).RebuildOld(
+                                           monitor, context, f0, f1, f2 ) );
+    }
+}
+sealed class Cmd_repo＿rebuild＿version : PluginCommand
+{
+    internal Cmd_repo＿rebuild＿version( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "repo rebuild version",
+                "Rebuild the specified version in the current repository.",
+                true,
+                arguments: [
+                    ("version", "The version to rebuild."),
+                ],
+                options: [
+                ],
+                flags: [
+                    (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
+                    (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
+                ],
+                "RebuildVersion", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        var a0 = cmdLine.EatArgument();
+        var f0 = cmdLine.EatFlag( Flags[0].Names );
+        var f1 = cmdLine.EatFlag( Flags[1].Names );
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).RebuildVersion(
+                                           monitor, context, a0, f0, f1 ) );
     }
 }

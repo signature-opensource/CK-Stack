@@ -65,7 +65,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         {
             return false;
         }
-        // Fetch the repo before anlyzing versions.
+        // Fetch the repo before analyzing versions.
         if( !noFetch && !repo.Fetch( monitor ) )
         {
             return false;
@@ -110,7 +110,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
                 }
             }
         }
-        // Provide an empty commit to the developper so that the branch is not on the existing versioned commit.
+        // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
         if( bFix == null || bFix.Tip.Sha == toFix.Commit.Sha )
         {
             var c = r.ObjectDatabase.CreateCommit( toFix.Commit.Author,

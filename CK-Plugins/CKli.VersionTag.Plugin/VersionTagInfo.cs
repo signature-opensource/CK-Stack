@@ -5,6 +5,7 @@ using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CKli.VersionTag.Plugin;
 
@@ -13,22 +14,25 @@ public sealed class VersionTagInfo : RepoInfo
     readonly List<TagCommit> _lastStables;
     readonly TagCommit? _lastStable;
     readonly Dictionary<SVersion, TagCommit> _v2C;
-    readonly List<Tag>? _ignoredVersionTags;
-    readonly List<(TagCommit C1, TagCommit C2)>? _versionConflicts;
+    readonly IReadOnlyList<Tag> _removableTags;
+    readonly IReadOnlyList<(TagCommit C1, TagCommit C2)> _versionConflicts;
+    readonly IReadOnlyList<(SVersion, Tag)> _hidingTags;
     Dictionary<string, TagCommit>? _sha2C;
 
     internal VersionTagInfo( Repo repo,
                              List<TagCommit> lastStables,
                              Dictionary<SVersion, TagCommit> v2c,
-                             List<Tag>? ignoredVersionTags,
-                             List<(TagCommit, TagCommit)>? versionConflicts )
+                             List<Tag>? removableTags,
+                             List<(TagCommit, TagCommit)>? versionConflicts,
+                             List<(SVersion, Tag)>? hidingTags )
         : base( repo )
     {
         _lastStables = lastStables;
         if( lastStables.Count > 0 ) _lastStable = lastStables[0];
         _v2C = v2c;
-        _ignoredVersionTags = ignoredVersionTags;
-        _versionConflicts = versionConflicts;
+        _removableTags = removableTags ?? [];
+        _versionConflicts = versionConflicts ?? [];
+        _hidingTags = hidingTags ?? [];
     }
 
     /// <summary>
@@ -67,14 +71,19 @@ public sealed class VersionTagInfo : RepoInfo
     }
 
     /// <summary>
-    /// Gets the version tags that have been ignored.
+    /// Gets the tags that can be removed.
     /// </summary>
-    public IReadOnlyList<Tag>? IgnoredVersionTags => _ignoredVersionTags;
+    public IReadOnlyList<Tag> RemovableTags => _removableTags;
 
     /// <summary>
-    /// Gets the duplicate version tag found. Null when no conflict exists.
+    /// Gets the "+Invalid" or "+Deprecated" tags.
     /// </summary>
-    public IReadOnlyList<(TagCommit Duplicate, TagCommit FirstFound)>? VersionConflicts => _versionConflicts;
+    public IReadOnlyList<(SVersion Version, Tag Tag)> HidingTags => _hidingTags;
+
+    /// <summary>
+    /// Gets the duplicate version tag found.
+    /// </summary>
+    public IReadOnlyList<(TagCommit Duplicate, TagCommit FirstFound)> VersionConflicts => _versionConflicts;
 
     /// <summary>
     /// Finds the first version tag in a commit list.
@@ -378,30 +387,66 @@ public sealed class VersionTagInfo : RepoInfo
         _sha2C.Add( newOne.ContentSha, newOne );
     }
 
-    internal void CollectIssues( IActivityMonitor monitor, ScreenType screenType, Action<World.Issue> add )
+    internal void CollectIssues( IActivityMonitor monitor, ScreenType screenType, Action<World.Issue> collector )
     {
-        if( _versionConflicts != null )
+        if( _versionConflicts.Count > 0 )
         {
-            var invalidExample = _versionConflicts[0].C2.Version;
-            var metaData = invalidExample.BuildMetaData;
-            if( metaData.Length > 0 ) metaData += "-invalid";
-            else metaData = "invalid";
-            invalidExample = invalidExample.WithBuildMetaData( metaData );
+            var invalidExample = _versionConflicts.SelectMany( c => new SVersion[] { c.C1.Version, c.C2.Version } )
+                                                  .FirstOrDefault( v => v.BuildMetaData.Length == 0 )
+                                 ?? SVersion.Create( 1, 2, 3 );
+            invalidExample = invalidExample.WithBuildMetaData( "Invalid" );
 
-            var issue = World.Issue.CreateManual( $"Found {_versionConflicts.Count} duplicate version tags.",
-                    screenType.Text( $"""
-                {_versionConflicts.Select( c => $" - {c.C1} / {c.C2}" ).Concatenate( Environment.NewLine )}
-                This should be fixed manually. One of the tag may be recreated with a "invalid" marker in its meta data.
-                Example: {invalidExample}
-                """ ), Repo );
+            collector( World.Issue.CreateManual( $"Found {_versionConflicts.Count} duplicate version tags.",
+                                        screenType.Text( $"""
+                                        {_versionConflicts.Select( c => $" - {c.C1} / {c.C2}" ).Concatenate( Environment.NewLine )}
+                                        This should be fixed manually.
+                                        One of the commit may be tagged with a "Invalid" marker tag (example: 'v{invalidExample}') to
+                                        distribute the information to other repositories (deleting a tag locally or on the remote origin will
+                                        not delete it for other cloned repositories).
+                                        """ ),
+                                        Repo ) );
         }
-        if( _ignoredVersionTags != null )
+        if( _removableTags.Count > 0 )
         {
-            monitor.Info( $"""
-                Tags ignored in repository '{Repo.DisplayPath}':
-                {_ignoredVersionTags.Select( t => t.ToString() ).Concatenate()}
-                """ );
+            collector( new RemovableVersionTagIssue(
+                                $"Found {_removableTags.Count} removable version tags.",
+                                screenType.Text( $"""
+                                {_removableTags.Select( t => t.FriendlyName ).Concatenate()}
+
+                                This will be fixed by deleting them locally: a fetch will make them reappear.
+                                To really remove them, the tag should be deleted from the remote origin and local 
+                                tags that replace them should be pushed. Use the command 'ckli v-tag push' to publish
+                                all version tags to the remote origin.
+                                """ ),
+                                Repo,
+                                _removableTags ) );
         }
     }
+
+    sealed class RemovableVersionTagIssue : World.Issue
+    {
+        readonly IReadOnlyList<Tag> _tagsToDelete;
+
+        public RemovableVersionTagIssue( string title,
+                                         IRenderable body,
+                                         Repo repo,
+                                         IReadOnlyList<Tag> tagsToDelete )
+            : base( title, body, repo )
+        {
+            _tagsToDelete = tagsToDelete;
+        }
+
+        protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
+        {
+            Throw.DebugAssert( Repo != null );
+            using var gLog = monitor.OpenInfo( $"Deleting {_tagsToDelete.Count} version tags." );
+            foreach( var t in _tagsToDelete )
+            {
+                Repo.GitRepository.Repository.Tags.Remove( t );
+            }
+            return ValueTask.FromResult( true );
+        }
+    }
+
 }
 

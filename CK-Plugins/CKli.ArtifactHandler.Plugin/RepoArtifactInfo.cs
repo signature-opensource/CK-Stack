@@ -24,7 +24,7 @@ public sealed class RepoArtifactInfo : RepoInfo
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The built version.</param>
-    /// <param name="buildOutputPath">The build output folder that contaisn the ".nupkg".</param>
+    /// <param name="buildOutputPath">The build output folder that contains the ".nupkg".</param>
     /// <returns>The list of local NuGet packages or null on error.</returns>
     public List<LocalNuGetPackageInstance>? PublishToNuGetLocalFeed( IActivityMonitor monitor, SVersion version, string buildOutputPath )
     {

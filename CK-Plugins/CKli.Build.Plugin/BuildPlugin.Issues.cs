@@ -23,16 +23,28 @@ public sealed partial class BuildPlugin
                                   ScreenType screenType,
                                   Action<World.Issue> collector )
     {
-        var lightWeightTags = versionTagInfo.LastStables.Where( tc => !tc.Tag.IsAnnotated ).ToArray();
+        var nonFakes = versionTagInfo.LastStables.Where( tc => !tc.IsFakeVersion );
+        var lightWeightTags = nonFakes.Where( tc => !tc.Tag.IsAnnotated ).ToArray();
+        const string rebuildMessage = """
+            Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
+            On success, the tag content is updated.
+            When the commit cannot be successfully recompiled, the command 'ckli rebuild old'
+            can retry and sets a "+Deprecated" version on the old commits on failure.
+            """;
         if( lightWeightTags.Length > 0 )
         {
             collector( new VersionTagIssue( this,
                                             versionTagInfo,
                                             $"{lightWeightTags.Length} lightweight tags must be transformed to annotated tags.",
-                                            screenType.Text( lightWeightTags.Select( t => t.Version.ToString() ).Concatenate() ),
+                                            screenType.Text( $"""
+                                                {lightWeightTags.Select( t => t.Version.ToString() ).Concatenate()}
+
+                                                {rebuildMessage}
+                                                """ ),
+                                                
                                             lightWeightTags ) );
         }
-        var unreadableMessages = versionTagInfo.LastStables.Where( tc => tc.Tag.IsAnnotated && tc.BuildContentInfo == null ).ToArray();
+        var unreadableMessages = nonFakes.Where( tc => tc.Tag.IsAnnotated && tc.BuildContentInfo == null ).ToArray();
         if( unreadableMessages.Length > 0 )
         {
             monitor.Info( $"""
@@ -42,7 +54,11 @@ public sealed partial class BuildPlugin
             collector( new VersionTagIssue( this,
                                             versionTagInfo,
                                             $"{unreadableMessages.Length} tags have unreadable content info (see logs for details).",
-                                            screenType.Text( unreadableMessages.Select( t => t.Version.ToString() ).Concatenate() ),
+                                            screenType.Text( $"""
+                                                {unreadableMessages.Select( t => t.Version.ToString() ).Concatenate()}
+
+                                                {rebuildMessage}
+                                                """ ),
                                             unreadableMessages ) );
         }
     }
