@@ -8,6 +8,7 @@ using CSemVer;
 using System.Text;
 using System;
 using CKli.ArtifactHandler.Plugin;
+using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.Build.Plugin;
 
@@ -297,7 +298,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         bool mustCheckOut = currentHead.Tip.Tree.Sha != buildCommit.Tree.Sha;
         if( mustCheckOut )
         {
-            monitor.Trace( $"Current working folder content is not the same as the commit '{buildCommit.Sha}' to build. Checking out (detached head)." );
+            monitor.Trace( $"Current working folder content is not the same as the commit '{buildCommit.Sha}' to build. Checking out a detached head." );
             Commands.Checkout( git.Repository, buildCommit );
         }
         bool result = DoCoreBuild( monitor, context, _repoBuilder, versionInfo, buildInfo, runTest );
@@ -307,6 +308,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             {
                 monitor.Trace( "Restoring working folder to its previous head." );
                 Commands.Checkout( git.Repository, currentHead, new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force } );
+                FileHelper.DeleteEmptyFoldersBelow( monitor, versionInfo.Repo.WorkingFolder, LogLevel.Warn );
             }
             catch( Exception ex )
             {

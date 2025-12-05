@@ -15,24 +15,30 @@ public sealed class VersionTagInfo : RepoInfo
     readonly TagCommit? _lastStable;
     readonly Dictionary<SVersion, TagCommit> _v2C;
     readonly IReadOnlyList<Tag> _removableTags;
-    readonly IReadOnlyList<(TagCommit C1, TagCommit C2)> _versionConflicts;
-    readonly IReadOnlyList<(SVersion, Tag)> _hidingTags;
+    readonly Dictionary<SVersion, (SVersion V, Tag T)>? _invalidTags;
+    readonly List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? _tagConflicts;
+    readonly int _minMajor;
+    readonly int _maxMajor;
     Dictionary<string, TagCommit>? _sha2C;
 
     internal VersionTagInfo( Repo repo,
+                             int minMajor,
+                             int maxMajor,
                              List<TagCommit> lastStables,
                              Dictionary<SVersion, TagCommit> v2c,
                              List<Tag>? removableTags,
-                             List<(TagCommit, TagCommit)>? versionConflicts,
-                             List<(SVersion, Tag)>? hidingTags )
+                             Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags,
+                             List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts )
         : base( repo )
     {
         _lastStables = lastStables;
         if( lastStables.Count > 0 ) _lastStable = lastStables[0];
         _v2C = v2c;
+        _minMajor = minMajor;
+        _maxMajor = maxMajor;
         _removableTags = removableTags ?? [];
-        _versionConflicts = versionConflicts ?? [];
-        _hidingTags = hidingTags ?? [];
+        _invalidTags = invalidTags;
+        _tagConflicts = tagConflicts;
     }
 
     /// <summary>
@@ -71,19 +77,33 @@ public sealed class VersionTagInfo : RepoInfo
     }
 
     /// <summary>
-    /// Gets the tags that can be removed.
+    /// Gets the tags that can be removed (at least locally).
     /// </summary>
     public IReadOnlyList<Tag> RemovableTags => _removableTags;
 
     /// <summary>
-    /// Gets the "+Invalid" or "+Deprecated" tags.
+    /// Gets whether tag conflicts have been found.
     /// </summary>
-    public IReadOnlyList<(SVersion Version, Tag Tag)> HidingTags => _hidingTags;
+    public bool HasTagConflicts => _tagConflicts != null;
 
     /// <summary>
-    /// Gets the duplicate version tag found.
+    /// Checks that <see cref="HasTagConflicts"/> is false or emits an error that invites
+    /// the user to use 'ckli issue' and returns false. 
     /// </summary>
-    public IReadOnlyList<(TagCommit Duplicate, TagCommit FirstFound)> VersionConflicts => _versionConflicts;
+    /// <param name="monitor">The monitor to use.</param>
+    /// <returns>True if no tag conflict exist, false otherwise.</returns>
+    public bool CheckNoTagConflicts( IActivityMonitor monitor )
+    {
+        if( _tagConflicts != null )
+        {
+            monitor.Error( $"""
+                    There are existing tag conflicts in '{Repo.DisplayPath}'. They must be (manually) fixed before.
+                    Use 'ckli issue' to see them.
+                    """ );
+            return false;
+        }
+        return true;
+    }
 
     /// <summary>
     /// Finds the first version tag in a commit list.
@@ -165,7 +185,9 @@ public sealed class VersionTagInfo : RepoInfo
         //
         if( _lastStable == null )
         {
-            // There is no stable release at all. The very first version must be a stable.
+            // There is no stable release at all in the (MinMajor,MaxMajor) range.
+            
+            // The very first version must be a stable.
             if( version.IsPrerelease )
             {
                 monitor.Error( $"""
@@ -222,6 +244,17 @@ public sealed class VersionTagInfo : RepoInfo
     bool CanBuildAnyCommit( IActivityMonitor monitor, Commit buildCommit, SVersion version, bool allowRebuild, out bool isRebuild )
     {
         isRebuild = false;
+        if( !CheckNoTagConflicts( monitor ) )
+        {
+            return false;
+        }
+        if( version.Major > _maxMajor || version.Major < _minMajor )
+        {
+            monitor.Error( $"""
+                    Version 'v{version}' is out of the MajorRange configured (MajorRange="{_minMajor},{_maxMajor}") in '{Repo.DisplayPath}'.
+                    """ );
+            return false;
+        }
         if( _v2C.TryGetValue( version, out var exists ) )
         {
             if( exists.IsFakeVersion )
@@ -416,22 +449,46 @@ public sealed class VersionTagInfo : RepoInfo
 
     internal void CollectIssues( IActivityMonitor monitor, ScreenType screenType, Action<World.Issue> collector )
     {
-        if( _versionConflicts.Count > 0 )
+        if( _tagConflicts != null )
         {
-            var invalidExample = _versionConflicts.SelectMany( c => new SVersion[] { c.C1.Version, c.C2.Version } )
-                                                  .FirstOrDefault( v => v.BuildMetaData.Length == 0 )
-                                 ?? SVersion.Create( 1, 2, 3 );
-            invalidExample = invalidExample.WithBuildMetaData( "Invalid" );
-
-            collector( World.Issue.CreateManual( $"Found {_versionConflicts.Count} duplicate version tags.",
-                                        screenType.Text( $"""
-                                        {_versionConflicts.Select( c => $" - {c.C1} / {c.C2}" ).Concatenate( Environment.NewLine )}
+            foreach( var conflict in _tagConflicts.GroupBy( c => c.C ) )
+            {
+                switch( conflict.Key )
+                {
+                    case TagConflict.DuplicateInvalidTag:
+                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} +InvalidTag with the same version.",
+                            screenType.Text( $"""
+                                        {conflict.Select( c => $" - {ToString( c.T1 )} / {ToString( c.T2 )}" ).Concatenate( Environment.NewLine )}
                                         This should be fixed manually.
-                                        One of the commit may be tagged with a "Invalid" marker tag (example: 'v{invalidExample}') to
-                                        distribute the information to other repositories (deleting a tag locally or on the remote origin will
-                                        not delete it for other cloned repositories).
                                         """ ),
-                                        Repo ) );
+                            Repo ) );
+                        break;
+                    case TagConflict.InvalidTagOnWrongCommit:
+                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} misplaced +InvalidTag.",
+                            screenType.Text( $"""
+                                        {conflict.Select( c => $" - Tag {ToString( c.T1 )} invalidates the version {ToString( c.T2 )}." ).Concatenate( Environment.NewLine )}
+                                        This should be fixed manually.
+                                        """ ),
+                            Repo ) );
+                        break;
+                    case TagConflict.SameVersionOnDifferentCommit:
+                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} same version tag on different commits.",
+                            screenType.Text( $"""
+                                        {conflict.Select( c => $" - {ToString( c.T1 )} / {ToString( c.T2 )}" ).Concatenate( Environment.NewLine )}
+                                        This should be fixed manually.
+                                        """ ),
+                            Repo ) );
+                        break;
+                    case TagConflict.DuplicatedVersionTag:
+                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} ambiguous version tags.",
+                            screenType.Text( $"""
+                                        {conflict.Select( c => $" - '{c.T1.V.ParsedText}' and '{c.T2.V.ParsedText}' on '{c.T1.T.Target.Sha}'." ).Concatenate( Environment.NewLine )}
+                                        This should be fixed manually.
+                                        """ ),
+                            Repo ) );
+                        break;
+                }
+            }
         }
         if( _removableTags.Count > 0 )
         {
@@ -440,7 +497,7 @@ public sealed class VersionTagInfo : RepoInfo
                                 screenType.Text( $"""
                                 {_removableTags.Select( t => t.FriendlyName ).Concatenate()}
 
-                                This will be fixed by deleting them locally: a fetch will make them reappear.
+                                This will be fixed by deleting them locally: a fetch from te remote will make them reappear.
                                 To really remove them, the tag should be deleted from the remote origin and local 
                                 tags that replace them should be pushed. Use the command 'ckli v-tag push' to publish
                                 all version tags to the remote origin.
@@ -448,7 +505,10 @@ public sealed class VersionTagInfo : RepoInfo
                                 Repo,
                                 _removableTags ) );
         }
+
+        static string ToString( (SVersion V, Tag T) t ) => $"'{t.V.ParsedText}' on '{t.T.Target.Sha}'";
     }
+
 
     sealed class RemovableVersionTagIssue : World.Issue
     {

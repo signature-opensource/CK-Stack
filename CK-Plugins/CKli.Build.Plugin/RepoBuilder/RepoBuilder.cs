@@ -135,7 +135,7 @@ public class RepoBuilder : RepoInfo
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The version to build.</param>
-    /// <param name="informationalVersion">The informatinal version to set (see <see cref="CSemVer.InformationalVersion"/>).</param>
+    /// <param name="informationalVersion">The informational version to set (see <see cref="CSemVer.InformationalVersion"/>).</param>
     /// <param name="release">False to use Debug build configuration.</param>
     /// <param name="runTest">Whether tests should be run or not.</param>
     /// <param name="outputPath">Destination folder where the artifact files must be created.</param>

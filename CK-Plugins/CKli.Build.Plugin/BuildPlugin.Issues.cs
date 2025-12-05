@@ -23,8 +23,8 @@ public sealed partial class BuildPlugin
                                   ScreenType screenType,
                                   Action<World.Issue> collector )
     {
-        var nonFakes = versionTagInfo.LastStables.Where( tc => !tc.IsFakeVersion );
-        var lightWeightTags = nonFakes.Where( tc => !tc.Tag.IsAnnotated ).ToArray();
+        var regulars = versionTagInfo.LastStables.Where( tc => tc.IsRegularVersion );
+        var lightWeightTags = regulars.Where( tc => !tc.Tag.IsAnnotated ).ToArray();
         const string rebuildMessage = """
             Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             On success, the tag content is updated.
@@ -44,7 +44,7 @@ public sealed partial class BuildPlugin
                                                 
                                             lightWeightTags ) );
         }
-        var unreadableMessages = nonFakes.Where( tc => tc.Tag.IsAnnotated && tc.BuildContentInfo == null ).ToArray();
+        var unreadableMessages = regulars.Where( tc => tc.Tag.IsAnnotated && tc.BuildContentInfo == null ).ToArray();
         if( unreadableMessages.Length > 0 )
         {
             monitor.Info( $"""
