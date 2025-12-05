@@ -13,7 +13,8 @@ public static class Plugins
              typeof( Build.Plugin.BuildPlugin ),
                typeof( ReleaseDatabase.Plugin.ReleaseDatabasePlugin ),
                 typeof( ArtifactHandler.Plugin.ArtifactHandlerPlugin ),
-                 // </AutoSection>
+                 typeof( Net8Migration.Plugin.Net8MigrationPlugin ),
+                  // </AutoSection>
         ] );
     }
 }                

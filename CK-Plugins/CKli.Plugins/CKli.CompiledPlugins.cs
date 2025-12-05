@@ -8,7 +8,7 @@ namespace CKli.Plugins;
 
 public static class CompiledPlugins
 {
-    static ReadOnlySpan<byte> _configSignature => [25,185,97,238,57,196,244,38,55,211,112,227,118,131,98,89,219,119,72,229,    ];
+    static ReadOnlySpan<byte> _configSignature => [64,128,31,121,23,130,125,223,231,148,21,151,34,159,77,142,179,212,206,198,    ];
 
     public static IPluginFactory? Get( PluginCollectorContext ctx )
     {
@@ -19,6 +19,7 @@ public static class CompiledPlugins
             new PluginInfo( "CKli.Build.Plugin", "Build", (PluginStatus)0, null, new IPluginTypeInfo[2] ),
             new PluginInfo( "CKli.ReleaseDatabase.Plugin", "ReleaseDatabase", (PluginStatus)0, null, new IPluginTypeInfo[0] ),
             new PluginInfo( "CKli.ArtifactHandler.Plugin", "ArtifactHandler", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
+            new PluginInfo( "CKli.Net8Migration.Plugin", "Net8Migration", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
         };
         PluginInfo plugin;
         IPluginTypeInfo[] types;
@@ -37,6 +38,9 @@ public static class CompiledPlugins
         plugin = infos[4];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin", true, 0, 2 );
+        plugin = infos[5];
+        types = (IPluginTypeInfo[])plugin.PluginTypes;
+        types[0] = new PluginTypeInfo( plugin, "CKli.Net8Migration.Plugin.Net8MigrationPlugin", true, 0, 5 );
         var pluginCommands = new PluginCommand[]{
             new Cmd_branch＿fix( infos[0].PluginTypes[0] ),
             new Cmd_repo＿build( infos[2].PluginTypes[1] ),
@@ -80,12 +84,13 @@ sealed class Generated : IPluginFactory
     {
         var configs = world.DefinitionFile.ReadPluginsConfiguration( monitor );
         Throw.CheckState( "Plugins configurations have already been loaded.", configs != null );
-        var objects = new object[5];
+        var objects = new object[6];
         objects[0] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ) );
         objects[1] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0] );
         objects[2] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
         objects[3] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
         objects[4] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[1], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[3], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
+        objects[5] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ) );
         return PluginCollectionImpl.CreateAndBindCommands( objects, _plugins, _commands, _pluginCommands );
     }
 
