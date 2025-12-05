@@ -71,9 +71,11 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         foreach( var repo in repos )
         {
             // This does nothing when no change.
-            success &= repo.GitRepository.Commit( monitor, "Initialize stable branch without RepositoryInfo.xml and CodeCakeBuilder." ) is not CommitResult.Error;
+            success &= repo.GitRepository.Commit( monitor,
+                                                  "Initialize stable branch without RepositoryInfo.xml and CodeCakeBuilder.",
+                                                  CommitBehavior.AmendIfPossibleAndKeepPreviousMessage ) is not CommitResult.Error;
             // Fix the tags.
-            success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
+            //success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
         }
 
         // We are ready to work... Still in Net8 but on stable branch.
@@ -134,6 +136,23 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         {
             var repoXml = repo.WorkingFolder.AppendPart( "RepositoryInfo.xml" );
             success &= FileHelper.DeleteFile( monitor, repoXml );
+            var slnPath = repo.WorkingFolder.AppendPart( repo.WorkingFolder.LastPart + ".sln" );
+            if( File.Exists( slnPath ) )
+            {
+                if( ProcessRunner.RunProcess( monitor.ParallelLogger, "dotnet", "sln migrate", repo.WorkingFolder ) == 0 )
+                {
+                    FileHelper.DeleteFile( monitor, slnPath );
+                }
+                else
+                {
+                    success = false;
+                }
+            }
+            // Idempotent.
+            success &= ProcessRunner.RunProcess( monitor.ParallelLogger,
+                                                 "dotnet",
+                                                 "sln remove CodeCakeBuilder/CodeCakeBuilder.csproj",
+                                                 repo.WorkingFolder ) == 0;
             var ccbPath = repo.WorkingFolder.AppendPart( "CodeCakeBuilder" );
             success &= FileHelper.DeleteFolder( monitor, ccbPath );
         }
@@ -182,8 +201,8 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             }
             SVersion? min = vB;
             if( vX > vB ) min = vX;
-            min ??= CSVersion.FirstPossibleVersions[0];
-            min = SVersion.Create( min.Major, min.Minor, min.Patch );
+            if( min == null ) min = SVersion.Create( 0, 0, 0 );
+            else min = SVersion.Create( min.Major, min.Minor, min.Patch );
 
             details.AppendLine( $"==> MinVersion = {min}" );
 

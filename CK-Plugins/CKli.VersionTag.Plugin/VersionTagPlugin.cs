@@ -51,7 +51,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     {
         var config = PrimaryPluginContext.GetConfigurationFor( repo );
         // Non existing or invalid MinVersion fallbacks to v0.0.0.
-        SVersion min = ReadVersionAttribute( monitor, config, _xMinVersion, CSVersion.FirstPossibleVersions[0] );
+        SVersion min = ReadVersionAttribute( monitor, config, _xMinVersion, SVersion.Create( 0, 0, 0 ) );
 
         SVersion? max = null;
         var maxAttr = config.XElement.Attribute( _xMaxVersion );
@@ -137,7 +137,6 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // This list is temporary (first pass) to build the v2c index.
         List<TagCommit> validTags = new List<TagCommit>();
         Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags = null;
-        (SVersion? Version,Tag? Tag) lastStableBelowMinMajor = default;
         var r = repo.GitRepository.Repository;
         foreach( var t in r.Tags )
         {
@@ -148,9 +147,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             {
                 continue;
             }
-            // A version above MaxVersion is definitely not our concern.
-            // But it's not the same for the MinMajor...
-            if( maxVersion != null && v > maxVersion ) continue;
+            // Above MaxVersion or below MinVersion: ignore.
+            if( (maxVersion != null && v > maxVersion) || v < minVersion ) continue;
 
             // A +InvalidTag totally cancels an existing version tag. We collect them
             // and apply them once all the valid tags have been collected.
@@ -171,29 +169,6 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 else
                 {
                     invalidTags.Add( v, (v, t) );
-                }
-                continue;
-            }
-            if( v < minVersion )
-            {
-                // Tracking the best version below our MinVersion is required to provide a base
-                // version in order to detect gaps and correct code base inclusion.
-                // We deliberately accept a +Fake and +Deprecated here: a +Deprecated indicates
-                // the existence of a version and +Fake exists exactly for this.
-                //
-                // There is a weakness here: if the best version found here has a +InvalidTag,
-                // we use a version that has been invalidated...
-                //
-                // This is the price to pay to use the minMajor as an early exit and limit the number of handled tags
-                // and this is assumed: MaxVersion is used for LTS, a +InvalidTag appearing after the
-                // last regular release of a LTS is highly improbable - creating a LTS is done
-                // on a clean, fully released World. Moreover the LTS world should only emit fix of already
-                // produced stable.
-                // 
-                if( v.IsStable
-                    && (lastStableBelowMinMajor.Version == null || lastStableBelowMinMajor.Version < v) )
-                {
-                    lastStableBelowMinMajor = (v, t);
                 }
                 continue;
             }
