@@ -17,13 +17,13 @@ public sealed class VersionTagInfo : RepoInfo
     readonly IReadOnlyList<Tag> _removableTags;
     readonly Dictionary<SVersion, (SVersion V, Tag T)>? _invalidTags;
     readonly List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? _tagConflicts;
-    readonly int _minMajor;
-    readonly int _maxMajor;
+    SVersion _minVersion;
+    readonly SVersion? _maxVersion;
     Dictionary<string, TagCommit>? _sha2C;
 
     internal VersionTagInfo( Repo repo,
-                             int minMajor,
-                             int maxMajor,
+                             SVersion minVersion,
+                             SVersion? maxVersion,
                              List<TagCommit> lastStables,
                              Dictionary<SVersion, TagCommit> v2c,
                              List<Tag>? removableTags,
@@ -34,12 +34,29 @@ public sealed class VersionTagInfo : RepoInfo
         _lastStables = lastStables;
         if( lastStables.Count > 0 ) _lastStable = lastStables[0];
         _v2C = v2c;
-        _minMajor = minMajor;
-        _maxMajor = maxMajor;
+        _minVersion = minVersion;
+        _maxVersion = maxVersion;
         _removableTags = removableTags ?? [];
         _invalidTags = invalidTags;
         _tagConflicts = tagConflicts;
     }
+
+    /// <summary>
+    /// Gets the smallest possible version configured for this Repo in the VersionTag plugin configuration.
+    /// <para>
+    /// This is necessarily a stable version (prerelease are automatically corrected).
+    /// </para>
+    /// </summary>
+    public SVersion MinVersion => _minVersion;
+
+    /// <summary>
+    /// Gets the greatest possible version configured for this Repo in the VersionTag plugin configuration.
+    /// <para>
+    /// This is necessarily a stable version and this is always null in the default World and always non null
+    /// in a LTS World.
+    /// </para>
+    /// </summary>
+    public SVersion? MaxVersion => _maxVersion;
 
     /// <summary>
     /// Gets the last stable versions from the <see cref="LastStable"/> one to the oldest one.
@@ -185,20 +202,17 @@ public sealed class VersionTagInfo : RepoInfo
         //
         if( _lastStable == null )
         {
-            // There is no stable release at all in the (MinMajor,MaxMajor) range.
-            
-            // The very first version must be a stable.
-            if( version.IsPrerelease )
-            {
-                monitor.Error( $"""
-                    Invalid pre release version 'v{version}': there is no stable version yet in '{Repo.DisplayPath}'.
-                    The first version must be a stable version (typically 'v0.1.0').
-                    """ );
-                return null;
-            }
-            if( version.Major > 1
-                || (version.Major == 0 && version.Minor > 1)
-                || (version.Major == 0 && version.Minor == 0 && version.Patch > 1) )
+            // There is no stable release at all in the (MinVersion,MaxVersion?) range.
+
+            // We allow prerelase (not stable) to be initially produced.
+            // What matters is the Major.Minor.Patch parts that must be based on our MinVersion that
+            // ultimately defaults to 0.0.0.
+            var minMajor = _minVersion.Major + 1;
+            var minMinor = _minVersion.Minor + 1;
+            var minPatch = _minVersion.Patch + 1;
+            if( version.Major > minMajor
+                || (version.Major == 0 && version.Minor > minMinor )
+                || (version.Major == 0 && version.Minor == 0 && version.Patch > minPatch ) )
             {
                 int fakeMajor = 0, fakeMinor = 0, fakePatch = 0;
                 if( version.Major > 1 ) fakeMajor = version.Major - 1;
@@ -214,8 +228,8 @@ public sealed class VersionTagInfo : RepoInfo
                     fakePatch = version.Patch - 1;
                 }
                 monitor.Error( $"""
-                    Invalid first version 'v{version}' (there is no stable version yet in '{Repo.DisplayPath}').
-                    The first version must be 'v1.0.0', 'v0.1.0' or 'v0.0.1'.
+                    Invalid first version 'v{version}' (there is no version yet in the configured version range in '{Repo.DisplayPath}').
+                    The first version should be the configured VersionTag.MinVersion = "{_minVersion}".
 
                     {AllowFakeMessage( buildCommit, fakeMajor, fakeMinor, fakePatch, "non-standard first version" )}
                     """ );
@@ -248,10 +262,11 @@ public sealed class VersionTagInfo : RepoInfo
         {
             return false;
         }
-        if( version.Major > _maxMajor || version.Major < _minMajor )
+        if( (_maxVersion != null && version > _maxVersion)
+            || version < _minVersion )
         {
             monitor.Error( $"""
-                    Version 'v{version}' is out of the MajorRange configured (MajorRange="{_minMajor},{_maxMajor}") in '{Repo.DisplayPath}'.
+                    Version 'v{version}' is out of the configured MinVersion="{_minVersion}" MaxVersion="{_minVersion}") in '{Repo.DisplayPath}'.
                     """ );
             return false;
         }
@@ -508,7 +523,6 @@ public sealed class VersionTagInfo : RepoInfo
 
         static string ToString( (SVersion V, Tag T) t ) => $"'{t.V.ParsedText}' on '{t.T.Target.Sha}'";
     }
-
 
     sealed class RemovableVersionTagIssue : World.Issue
     {

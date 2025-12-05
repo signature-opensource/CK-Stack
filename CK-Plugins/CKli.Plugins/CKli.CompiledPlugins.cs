@@ -46,6 +46,7 @@ public static class CompiledPlugins
             new Cmd_repo＿build( infos[2].PluginTypes[1] ),
             new Cmd_repo＿rebuild＿old( infos[2].PluginTypes[1] ),
             new Cmd_repo＿rebuild＿version( infos[2].PluginTypes[1] ),
+            new Cmd_migrate＿net8( infos[5].PluginTypes[0] ),
         };
         var cmds = new Dictionary<string,Command?>();
         foreach( var c in pluginCommands )
@@ -55,6 +56,7 @@ public static class CompiledPlugins
        cmds.Add( "branch", null );
        cmds.Add( "repo", null );
        cmds.Add( "repo rebuild", null );
+       cmds.Add( "migrate", null );
         return new Generated( infos, pluginCommands, CommandNamespace.UnsafeCreate( cmds ) );
     }
 }
@@ -90,7 +92,7 @@ sealed class Generated : IPluginFactory
         objects[2] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
         objects[3] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
         objects[4] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[1], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[3], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
-        objects[5] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ) );
+        objects[5] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.Build.Plugin.BuildPlugin)objects[4] );
         return PluginCollectionImpl.CreateAndBindCommands( objects, _plugins, _commands, _pluginCommands );
     }
 
@@ -204,5 +206,26 @@ sealed class Cmd_repo＿rebuild＿version : PluginCommand
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
         return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).RebuildVersion(
                                            monitor, context, a0, f0, f1 ) );
+    }
+}
+sealed class Cmd_migrate＿net8 : PluginCommand
+{
+    internal Cmd_migrate＿net8( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "migrate net8",
+                "Migrate Net8 stack.",
+                true,
+                arguments: [
+                ],
+                options: [
+                ],
+                flags: [
+                ],
+                "Migrate", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.Net8Migration.Plugin.Net8MigrationPlugin)Instance).Migrate(
+                                           monitor, context ) );
     }
 }

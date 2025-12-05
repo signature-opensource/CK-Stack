@@ -2,4 +2,8 @@
     <ItemGroup>
         <PackageReference Include="CKli.Plugins.Core" />
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\CKli.Build.Plugin\CKli.Build.Plugin.csproj" />
+      <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
+    </ItemGroup>
 </Project>

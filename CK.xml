@@ -8,82 +8,208 @@
     <Net8Migration />
   </Plugins>
   <Folder Name="CK-AspNet-Projects">
-    <Repository Url="https://github.com/signature-opensource/CK-AspNet" />
-    <Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth" />
+    <Repository Url="https://github.com/signature-opensource/CK-AspNet">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
   <Folder Name="CK-Core-Projects">
-    <Repository Url="https://github.com/signature-opensource/CK-Core" />
-    <Repository Url="https://github.com/signature-opensource/CK-Configuration" />
-    <Repository Url="https://github.com/signature-opensource/CK-Abstractions" />
-    <Repository Url="https://github.com/signature-opensource/CK-EmbeddedResources" />
-    <Repository Url="https://github.com/signature-opensource/CK-AppIdentity" />
-    <Repository Url="https://github.com/signature-opensource/CK-BinarySerialization" />
-    <Repository Url="https://github.com/signature-opensource/CK-ActivityMonitor" />
-    <Repository Url="https://github.com/signature-opensource/CK-Metrics" />
-    <Repository Url="https://github.com/signature-opensource/CK-Mailer.git" />
-    <Repository Url="https://github.com/signature-opensource/CK-Globalization" />
-    <Repository Url="https://github.com/signature-opensource/CK-PerfectEvent" />
-    <Repository Url="https://github.com/signature-opensource/CK-Auth-Abstractions" />
-    <Repository Url="https://github.com/signature-opensource/CK-SqlServer" />
-    <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Dapper" />
-    <Repository Url="https://github.com/signature-opensource/CK-Monitoring" />
-    <Repository Url="https://github.com/signature-opensource/CK-Testing" />
-    <Repository Url="https://github.com/signature-opensource/CK-Ais-Net" />
+    <Repository Url="https://github.com/signature-opensource/CK-Core">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Configuration">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Abstractions">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-EmbeddedResources">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-AppIdentity">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-BinarySerialization">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-ActivityMonitor">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Metrics">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Mailer.git">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Globalization">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-PerfectEvent">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Auth-Abstractions">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-SqlServer">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Dapper">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Monitoring">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Testing">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Ais-Net">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
   <Folder Name="Observable-Domain">
-    <Repository Url="https://github.com/signature-opensource/CK-Observable-Domain" />
+    <Repository Url="https://github.com/signature-opensource/CK-Observable-Domain">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
   <Folder Name="Device-Model">
-    <Repository Url="https://github.com/signature-opensource/CK-CommChannel" />
-    <Repository Url="https://github.com/signature-opensource/CK-DeviceModel" />
-    <Repository Url="https://github.com/signature-opensource/CK-DeviceModel-ByTopic" />
+    <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DeviceModel">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DeviceModel-ByTopic">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
   <Folder Name="CK-Database-Projects">
-    <Repository Url="https://github.com/signature-opensource/CK-CodeGen" />
-    <Repository Url="https://github.com/signature-opensource/CK-StObj" />
-    <Repository Url="https://github.com/signature-opensource/CK-Database" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-User-NamedUser" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-User-PreferredCulture" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-GitHub" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-GitLab" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-Workspace" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-Organization" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-Res-ResPath" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorEMail" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-SqlCKTrait" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-TokenStore" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor-Acl" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-User-SimpleInvitation" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-User-UserPassword" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-Facebook" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-Twitter" />
-    <Repository Url="https://github.com/signature-opensource/CK-DB-WebPage" />
-    <Repository Url="https://github.com/signature-opensource/CK-Setup-Dependency" />
-    <Repository Url="https://github.com/signature-opensource/CK-Sqlite" />
-    <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser" />
-    <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model" />
+    <Repository Url="https://github.com/signature-opensource/CK-CodeGen">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-StObj">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Database">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-User-NamedUser">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-User-PreferredCulture">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-GitHub">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-GitLab">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Workspace">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Organization">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Res-ResPath">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorEMail">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-SqlCKTrait">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-TokenStore">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor-Acl">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-User-SimpleInvitation">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-User-UserPassword">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Facebook">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Twitter">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-WebPage">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Setup-Dependency">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Sqlite">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
   <Folder Name="CK-Crs-Projects">
-    <Repository Url="https://github.com/signature-opensource/CK-Cris-Abstractions" />
-    <Repository Url="https://github.com/signature-opensource/CK-Cris" />
-    <Repository Url="https://github.com/signature-opensource/CK-Object-Mixer" />
-    <Repository Url="https://github.com/signature-opensource/CK-TypeScript" />
-    <Repository Url="https://github.com/signature-opensource/CK-Cris-TypeScript" />
-    <Repository Url="https://github.com/signature-opensource/CK-Ng-SiteMap" />
-    <Repository Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib" />
-    <Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile" />
+    <Repository Url="https://github.com/signature-opensource/CK-Cris-Abstractions">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Cris">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Object-Mixer">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-TypeScript">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Cris-TypeScript">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Ng-SiteMap">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
   <Folder Name="CK-Sample">
-    <Repository Url="https://github.com/signature-opensource/CK-Sample-MultiBinPath" />
-    <Repository Url="https://github.com/signature-opensource/CK-Sample-Monitoring" />
-    <Repository Url="https://github.com/signature-opensource/CK-Sample-AspNetAuth" />
-    <Repository Url="https://github.com/signature-opensource/CK-Templates" />
+    <Repository Url="https://github.com/signature-opensource/CK-Sample-MultiBinPath">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Sample-Monitoring">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Sample-AspNetAuth">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Templates">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
   <Folder Name="IoT">
-    <Repository Url="https://github.com/signature-opensource/CK-MQTT" />
+    <Repository Url="https://github.com/signature-opensource/CK-MQTT">
+      <VersionTag MinVersion="0.0.0-a" />
+    </Repository>
   </Folder>
 </CK>

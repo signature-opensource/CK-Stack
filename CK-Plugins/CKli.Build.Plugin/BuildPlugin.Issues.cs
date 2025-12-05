@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -16,6 +17,23 @@ public sealed partial class BuildPlugin
         {
             CollectVersionTagIssues( monitor, _versionTags.Get( monitor, r ), e.ScreenType, e.Add ); 
         }
+    }
+
+    /// <summary>
+    /// Enables VersionTag issues to be fixed by code.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="context">The context.</param>
+    /// <param name="versionTagInfo">The Repo's <see cref="VersionTagInfo"/> to consider.</param>
+    /// <returns>True on success, false on error.</returns>
+    public bool FixVersionTagIssues( IActivityMonitor monitor, CKliEnv context, VersionTagInfo versionTagInfo )
+    {
+        bool success = true;
+        CollectVersionTagIssues( monitor, versionTagInfo, ScreenType.Default, issue =>
+        {
+            success &= ((VersionTagIssue)issue).Execute( monitor, context, World );
+        } );
+        return success;
     }
 
     void CollectVersionTagIssues( IActivityMonitor monitor,
@@ -63,7 +81,7 @@ public sealed partial class BuildPlugin
         }
     }
 
-    sealed class VersionTagIssue : World.Issue
+    public sealed class VersionTagIssue : World.Issue
     {
         readonly BuildPlugin _buildPlugin;
         readonly VersionTagInfo _versionTagInfo;
@@ -81,7 +99,7 @@ public sealed partial class BuildPlugin
             _tagsToRebuild = tagsToRebuild;
         }
 
-        protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
+        internal bool Execute( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null );
             using var gLog = monitor.OpenInfo( $"Fixing {_tagsToRebuild.Length} tags content info in '{Repo.DisplayPath}'." );
@@ -89,10 +107,15 @@ public sealed partial class BuildPlugin
             {
                 if( !_buildPlugin.CoreBuild( monitor, context, _versionTagInfo, tc.Commit, tc.Version, runTest: false, rebuild: true ) )
                 {
-                    return ValueTask.FromResult( false );
+                    return false;
                 }
             }
-            return ValueTask.FromResult( true );
+            return true;
+        }
+
+        protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
+        {
+            return ValueTask.FromResult( Execute( monitor, context, world ) );
         }
     }
 }
