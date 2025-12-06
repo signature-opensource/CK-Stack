@@ -56,7 +56,8 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             var stable = repo.GitRepository.EnsureBranch( monitor, "stable" );
             Commands.Checkout( repo.GitRepository.Repository, stable );
         }
-        
+        return true;
+
         var snapshotStables = repos.ToDictionary( r => r, r =>
         {
             Throw.CheckState( !r.GitRepository.GetSimpleStatusInfo().IsDirty );
@@ -75,7 +76,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                                                   "Initialize stable branch without RepositoryInfo.xml and CodeCakeBuilder.",
                                                   CommitBehavior.AmendIfPossibleAndKeepPreviousMessage ) is not CommitResult.Error;
             // Fix the tags.
-            //success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
+            success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
         }
 
         // We are ready to work... Still in Net8 but on stable branch.
@@ -202,7 +203,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             SVersion? min = vB;
             if( vX > vB ) min = vX;
             if( min == null ) min = SVersion.Create( 0, 0, 0 );
-            else min = SVersion.Create( min.Major, min.Minor, min.Patch );
+            else min = SVersion.Create( min.Major, min.Minor, min.Patch+1 );
 
             details.AppendLine( $"==> MinVersion = {min}" );
 
