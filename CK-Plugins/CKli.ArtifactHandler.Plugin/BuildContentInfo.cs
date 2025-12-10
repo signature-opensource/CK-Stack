@@ -1,5 +1,6 @@
 using CK.Core;
 using System;
+using System.Collections;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -133,12 +134,19 @@ public sealed class BuildContentInfo
     /// <returns></returns>
     public StringBuilder Write( StringBuilder b )
     {
-        return b.Append( _consumed.Length ).Append( " Consumed Packages: " )
-                .AppendJoin( ", ", _consumed ).AppendLine()
-                .Append( _produced.Length ).Append( " Produced Packages: " )
-                .AppendJoin( ", ", _produced ).AppendLine()
-                .Append( _assetFileNames.Length ).Append( " Asset Files: " )
-                .AppendJoin( ", ", _assetFileNames ).AppendLine();
+        var text = b.Append( _consumed.Length ).Append( " Consumed Packages: " )
+                    .AppendJoin( ", ", _consumed ).AppendLine()
+                    .Append( _produced.Length ).Append( " Produced Packages: " )
+                    .AppendJoin( ", ", _produced ).AppendLine()
+                    .Append( _assetFileNames.Length ).Append( " Asset Files: " )
+                    .AppendJoin( ", ", _assetFileNames ).AppendLine();
+
+        Throw.DebugAssert( TryParse( text.ToString(), out var clone )
+                           && clone.Consumed.SequenceEqual( _consumed )
+                           && clone.Produced.SequenceEqual( _produced )
+                           && clone.AssetFileNames.SequenceEqual( _assetFileNames ) );
+
+        return text;
     }
 
     /// <summary>

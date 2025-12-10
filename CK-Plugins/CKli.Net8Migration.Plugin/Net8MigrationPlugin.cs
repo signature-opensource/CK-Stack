@@ -56,7 +56,6 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             var stable = repo.GitRepository.EnsureBranch( monitor, "stable" );
             Commands.Checkout( repo.GitRepository.Repository, stable );
         }
-        return true;
 
         var snapshotStables = repos.ToDictionary( r => r, r =>
         {
