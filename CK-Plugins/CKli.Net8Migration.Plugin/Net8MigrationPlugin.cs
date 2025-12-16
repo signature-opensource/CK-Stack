@@ -109,7 +109,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         bool success = true;
         foreach( var repo in repos )
         {
-            success &= repo.SetCurrentBranch( monitor, "master" );
+            success &= repo.GitRepository.SetCurrentBranch( monitor, "master" );
             var dev = repo.GitRepository.GetBranch( monitor, "develop", missingLocalAndRemote: LogLevel.Error );
             if( dev == null )
             {

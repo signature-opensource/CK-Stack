@@ -25,11 +25,15 @@ public sealed class RepoArtifactInfo : RepoInfo
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The built version.</param>
     /// <param name="buildOutputPath">The build output folder that contains the ".nupkg".</param>
-    /// <returns>The list of local NuGet packages or null on error.</returns>
-    public List<LocalNuGetPackageInstance>? PublishToNuGetLocalFeed( IActivityMonitor monitor, SVersion version, string buildOutputPath )
+    /// <param name="packageIdentifiers">The sorted package names. May be empty if the solution doesn't publish packages.</param>
+    /// <returns>True on success, false on error.</returns>
+    public bool PublishToNuGetLocalFeed( IActivityMonitor monitor,
+                                         SVersion version,
+                                         string buildOutputPath,
+                                         out ImmutableArray<string> packageIdentifiers )
     {
         Throw.CheckArgument( buildOutputPath != null );
-        var result = new List<LocalNuGetPackageInstance>();
+        var result = ImmutableArray.CreateBuilder<string>();
         try
         {
             var versionString = version.ToString();
@@ -39,8 +43,13 @@ public sealed class RepoArtifactInfo : RepoInfo
                 var ext = Path.GetExtension( fileName );
                 if( ext.Equals( ".nupkg", StringComparison.Ordinal ) )
                 {
-                    var p = AddNuGetPackage( monitor, _artifactHandler.LocalFeedNuGetPath, a, versionString, fileName, ext, version );
-                    if( p == null ) return null;
+                    var p = MoveNuGetPackage( monitor, _artifactHandler.LocalFeedNuGetPath, a, versionString, fileName, ext );
+                    if( p == null )
+                    {
+                        packageIdentifiers = default;
+                        return false;
+                    }
+
                     result.Add( p );
                 }
                 else
@@ -48,21 +57,23 @@ public sealed class RepoArtifactInfo : RepoInfo
                     monitor.Warn( $"Unexpected file '{fileName}' build by '{Repo.DisplayPath}' in '{version}'. Ignored." );
                 }
             }
-            return result;
+            result.Sort( StringComparer.Ordinal );
+            packageIdentifiers = result.DrainToImmutable();
+            return true;
         }
         catch( Exception ex )
         {
             monitor.Error( $"While publishing nuget packages of '{Repo.DisplayPath}' in '{version}'.", ex );
-            return null;
+            packageIdentifiers = default;
+            return false;
         }
 
-        static LocalNuGetPackageInstance? AddNuGetPackage( IActivityMonitor monitor,
-                                                           NormalizedPath localFeedNuGetPath,
-                                                           string fullPath,
-                                                           string versionString,
-                                                           ReadOnlySpan<char> fileName,
-                                                           ReadOnlySpan<char> ext,
-                                                           SVersion version )
+        static string? MoveNuGetPackage( IActivityMonitor monitor,
+                                        NormalizedPath localFeedNuGetPath,
+                                        string fullPath,
+                                        string versionString,
+                                        ReadOnlySpan<char> fileName,
+                                        ReadOnlySpan<char> ext )
         {
             var artifactName = CheckFileNamePatternAndGetArtifactName( monitor, versionString, fileName, ext );
             if( artifactName.IsEmpty )
@@ -83,7 +94,7 @@ public sealed class RepoArtifactInfo : RepoInfo
             try
             {
                 File.Move( fullPath, target );
-                return new LocalNuGetPackageInstance( target, packageId, version );
+                return packageId;
             }
             catch( Exception ex )
             {
@@ -101,7 +112,7 @@ public sealed class RepoArtifactInfo : RepoInfo
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The built version.</param>
     /// <param name="assetsFolder">The resulting folder in <see cref="ArtifactHandlerPlugin.LocalFeedAssetsPath"/> that contains the files.</param>
-    /// <param name="fileNames">The file names in the <paramref name="assetsFolder"/>. Can be empty if no files nor directories have been generated.</param>
+    /// <param name="fileNames">The sorted file names in the <paramref name="assetsFolder"/>. Can be empty if no files nor directories have been generated.</param>
     /// <returns>True on success, false on error.</returns>
     public bool PublishGeneratedAssets( IActivityMonitor monitor,
                                         SVersion version,
@@ -130,16 +141,17 @@ public sealed class RepoArtifactInfo : RepoInfo
             Directory.CreateDirectory( assetsFolder );
             foreach( var f in Directory.EnumerateFiles( input ) )
             {
-                var fname = GetCleanName( f );
-                File.Copy( f, Path.Combine( assetsFolder, fname ) );
-                files.Add( fname );
+                var fName = GetCleanName( f );
+                File.Copy( f, Path.Combine( assetsFolder, fName ) );
+                files.Add( fName );
             }
             foreach( var d in Directory.EnumerateDirectories( input ) )
             {
-                var fname = GetCleanName( d ) + ".zip";
-                ZipFile.CreateFromDirectory( d, Path.Combine( assetsFolder, fname ) );
-                files.Add( fname );
+                var fName = GetCleanName( d ) + ".zip";
+                ZipFile.CreateFromDirectory( d, Path.Combine( assetsFolder, fName ) );
+                files.Add( fName );
             }
+            files.Sort( StringComparer.Ordinal );
             fileNames = files.DrainToImmutable();
             return true;
         }

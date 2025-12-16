@@ -13,12 +13,12 @@ public sealed partial class BuildPlugin
 {
     [Description( """
         Tries to rebuild the oldest releases until a success.
-        Failing commits are tagged with a '+Deprecated' tag.
+        Failing commits are tagged with a '+deprecated' tag.
         """ )]
     [CommandPath( "repo rebuild old" )]
     public bool RebuildOld( IActivityMonitor monitor,
                             CKliEnv context,
-                            [Description( "Warns only: doesn't create a 'Deprecated' tag on the failing commit." )]
+                            [Description( "Warns only: doesn't create a 'deprecated' tag on the failing commit." )]
                             bool warnOnly,
                             [Description( "Runs unit tests. They must be successful." )]
                             bool runTest,
@@ -47,7 +47,7 @@ public sealed partial class BuildPlugin
                     monitor.Warn( $"Version '{tag.Version.ParsedText}' of '{repo.DisplayPath}' cannot be rebuilt." );
                     if( !warnOnly )
                     {
-                        string deprecatedTag = $"v{tag.Version.WithBuildMetaData( null )}+Deprecated";
+                        string deprecatedTag = $"v{tag.Version.WithBuildMetaData( null )}+deprecated";
                         monitor.Info( $"Adding '{deprecatedTag}' on '{tag.Commit.Sha}'." );
                         repo.GitRepository.Repository.Tags.Add( deprecatedTag, tag.Commit );
                     }

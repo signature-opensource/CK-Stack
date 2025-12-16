@@ -7,6 +7,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
+    <ProjectReference Include="..\CKli.ReleaseDatabase.Plugin\CKli.ReleaseDatabase.Plugin.csproj" />
   </ItemGroup>
 
 </Project>

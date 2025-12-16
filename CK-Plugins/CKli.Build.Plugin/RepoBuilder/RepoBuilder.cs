@@ -54,8 +54,7 @@ public class RepoBuilder : RepoInfo
                     var deploymentFolder = Path.Combine( Repo.WorkingFolder, ArtifactHandlerPlugin.DeployFolderName );
                     if( HandleDeployAssets( monitor, deploymentFolder, buildInfo.Version, out var assetsFolder, out var assetFileNames ) )
                     {
-                        var publishedPackages = _repoArtifact.PublishToNuGetLocalFeed( monitor, buildInfo.Version, outputPath );
-                        if( publishedPackages != null )
+                        if( _repoArtifact.PublishToNuGetLocalFeed( monitor, buildInfo.Version, outputPath, out var publishedPackages ) )
                         {
                             var r = new BuildResult( Repo,
                                                      buildInfo.Version,

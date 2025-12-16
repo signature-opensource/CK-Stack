@@ -8,7 +8,7 @@ using System.Text;
 
 namespace CKli.ArtifactHandler.Plugin;
 
-public sealed class BuildContentInfo
+public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 {
     readonly ImmutableArray<NuGetPackageInstance> _consumed;
     readonly ImmutableArray<string> _produced;
@@ -28,19 +28,33 @@ public sealed class BuildContentInfo
     }
 
     /// <summary>
-    /// Gets the consumed packages.
+    /// Gets the consumed packages. These are sorted.
     /// </summary>
     public ImmutableArray<NuGetPackageInstance> Consumed => _consumed;
 
     /// <summary>
-    /// Gets the produced packages identifiers.
+    /// Gets the produced packages identifiers. These are lexicographically sorted.
     /// </summary>
     public ImmutableArray<string> Produced => _produced;
 
     /// <summary>
-    /// Gets the generated asset file names if any.
+    /// Gets the generated asset file names if any. These are lexicographically sorted.
     /// </summary>
     public ImmutableArray<string> AssetFileNames => _assetFileNames;
+
+    /// <summary>
+    /// Implements value equality semantics.
+    /// </summary>
+    /// <param name="other">The other content.</param>
+    /// <returns>True if this content is the same as the other one.</returns>
+    public bool Equals( BuildContentInfo? other )
+    {
+        if( other == null ) return false;
+        if( other == this ) return true;
+        return _consumed.SequenceEqual( other._consumed )
+               && _produced.SequenceEqual( other._produced )
+               && _assetFileNames.SequenceEqual( other._assetFileNames );
+    }
 
     /// <summary>
     /// Tries to parse the text content info.
@@ -76,9 +90,15 @@ public sealed class BuildContentInfo
 
         static bool TryReadConsumedList( ref ReadOnlySpan<char> s, int count, out ImmutableArray<NuGetPackageInstance> packages )
         {
+            NuGetPackageInstance previous = default;
             var b = ImmutableArray.CreateBuilder<NuGetPackageInstance>( count );
             while( NuGetPackageInstance.TryMatch( ref s, out var p ) )
             {
+                if( previous.CompareTo( p ) >= 0 )
+                {
+                    packages = default;
+                    return false;
+                }
                 b.Add( p );
                 s.SkipWhiteSpaces();
                 if( !s.TryMatch( ',' ) ) break;
@@ -95,9 +115,15 @@ public sealed class BuildContentInfo
 
         static bool TryReadStringList( ref ReadOnlySpan<char> s, int count, out ImmutableArray<string> strings )
         {
+            string previous = string.Empty;
             var b = ImmutableArray.CreateBuilder<string>( count );
             while( TryReadString( ref s, out var text ) )
             {
+                if( previous.CompareTo( text ) >= 0 )
+                {
+                    strings = default;
+                    return false;
+                }
                 b.Add( text );
                 s.SkipWhiteSpaces();
                 if( !s.TryMatch( ',' ) ) break;
@@ -134,6 +160,10 @@ public sealed class BuildContentInfo
     /// <returns></returns>
     public StringBuilder Write( StringBuilder b )
     {
+        if( _toString != null )
+        {
+            return b.Append( _toString );
+        }
         var text = b.Append( _consumed.Length ).Append( " Consumed Packages: " )
                     .AppendJoin( ", ", _consumed ).AppendLine()
                     .Append( _produced.Length ).Append( " Produced Packages: " )

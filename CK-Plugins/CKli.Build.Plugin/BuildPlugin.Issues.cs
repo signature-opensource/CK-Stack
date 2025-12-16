@@ -2,7 +2,6 @@ using CK.Core;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -47,7 +46,7 @@ public sealed partial class BuildPlugin
             Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             On success, the tag content is updated.
             When the commit cannot be successfully recompiled, the command 'ckli rebuild old'
-            can retry and sets a "+Deprecated" version on the old commits on failure.
+            can retry and sets a "+deprecated" version on the old commits on failure.
             """;
         if( lightWeightTags.Length > 0 )
         {
@@ -59,7 +58,6 @@ public sealed partial class BuildPlugin
 
                                                 {rebuildMessage}
                                                 """ ),
-                                                
                                             lightWeightTags ) );
         }
         var unreadableMessages = regulars.Where( tc => tc.Tag.IsAnnotated && tc.BuildContentInfo == null ).ToArray();

@@ -132,15 +132,21 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Collects conflicting tags.
         List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts = null;
 
-        // First pass. Enumerates all the tags to keep all +InvalidTag and
+        // First pass. Enumerates all the tags to keep all +invalid-tag and
         // tags in the MajorRange.
         // This list is temporary (first pass) to build the v2c index.
         List<TagCommit> validTags = new List<TagCommit>();
         Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags = null;
+        bool hasBadTagNames = false;
         var r = repo.GitRepository.Repository;
         foreach( var t in r.Tags )
         {
             var tagName = t.FriendlyName;
+            if( !GitRepository.IsCKliValidTagName( tagName ) )
+            {
+                hasBadTagNames = true;
+                continue;
+            }
             var v = SVersion.TryParse( tagName );
             // Consider only SVersion tag and target that is a commit (safe cast).
             if( !v.IsValid || t.Target is not Commit c )
@@ -150,15 +156,14 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             // Above MaxVersion or below MinVersion: ignore.
             if( (maxVersion != null && v > maxVersion) || v < minVersion ) continue;
 
-            // A +InvalidTag totally cancels an existing version tag. We collect them
+            // A +invalid tag totally cancels an existing version tag. We collect them
             // and apply them once all the valid tags have been collected.
             //
-            // The +InvalidTag tags are temporary artifacts that are used to distribute the information
-            // across the repositories. Once the bad tag doesn't appear anywhere, a +InvalidTag tag
+            // The +invalid tags are temporary artifacts that are used to distribute the information
+            // across the repositories. Once the bad tag doesn't appear anywhere, a +invalid tag 
             // must be removed.
             //
-            if( v.BuildMetaData.Contains( "InvalidTag", StringComparison.OrdinalIgnoreCase )
-                || v.BuildMetaData.Contains( "Invalid", StringComparison.OrdinalIgnoreCase ) )
+            if( v.BuildMetaData.Contains( "invalid", StringComparison.Ordinal ) )
             {
                 invalidTags ??= new Dictionary<SVersion, (SVersion V, Tag T)>();
                 if( invalidTags.TryGetValue( v, out var exists ) )
@@ -172,11 +177,11 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 }
                 continue;
             }
-            // A +Deprecated was an actual version. They appear in the VersionTagInfo.TagCommits and
-            // VersionTagInfo.Stables collections (like a +Fake).
-            // This is required, for instance, to be able to produce a 4.0.1 fix after the Deprecated 4.0.0 version.
+            // A +deprecated was an actual version. They appear in the VersionTagInfo.TagCommits and
+            // VersionTagInfo.Stables collections (like a +fake).
+            // This is required, for instance, to be able to produce a 4.0.1 fix after the deprecated 4.0.0 version.
             //
-            // As opposed to +Invalid tags, +Deprecated tags must never be deleted. They memorize the
+            // As opposed to +invalid tags, +deprecated tags must never be deleted. They memorize the
             // existence of a version.
             //
             validTags.Add( new TagCommit( v, c, t ) );
@@ -186,7 +191,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         var v2c = new Dictionary<SVersion, TagCommit>();
         foreach( var newOne in validTags )
         {
-            // This filters out any version (regular, +Fake or +Deprecated).
+            // This filters out any version (regular, +fake or +deprecated).
             if( invalidTags != null && invalidTags.TryGetValue( newOne.Version, out var invalid ) )
             {
                 if( newOne.Commit.Sha != invalid.T.Target.Sha )
@@ -246,6 +251,11 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
 
         var lastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
 
+        if( hasBadTagNames )
+        {
+            monitor.Warn( $"One or more tags have been ignored in '{repo.DisplayPath}'. Use 'ckli tag list' to identify them." );
+        }
+
         // We capture the invalidTags: may be one day we can create a World.Issue that could
         // remove them (we must ensure that the hidden version tags are removed in other repositories:
         // the origin remote may be enough).
@@ -303,11 +313,5 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
             return resolved;
         }
-    }
-
-    internal static bool IsDeprecatedOrInvalidVersion( SVersion v, out bool isDeprecated )
-    {
-        return (isDeprecated = v.BuildMetaData.Contains( "Deprecated", StringComparison.OrdinalIgnoreCase ))
-                        || v.BuildMetaData.Contains( "Invalid", StringComparison.OrdinalIgnoreCase );
     }
 }

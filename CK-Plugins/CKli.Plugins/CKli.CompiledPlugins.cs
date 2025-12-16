@@ -17,7 +17,7 @@ public static class CompiledPlugins
             new PluginInfo( "CKli.BranchModel.Plugin", "BranchModel", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.VersionTag.Plugin", "VersionTag", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.Build.Plugin", "Build", (PluginStatus)0, null, new IPluginTypeInfo[2] ),
-            new PluginInfo( "CKli.ReleaseDatabase.Plugin", "ReleaseDatabase", (PluginStatus)0, null, new IPluginTypeInfo[0] ),
+            new PluginInfo( "CKli.ReleaseDatabase.Plugin", "ReleaseDatabase", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.ArtifactHandler.Plugin", "ArtifactHandler", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.Net8Migration.Plugin", "Net8Migration", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
         };
@@ -32,15 +32,16 @@ public static class CompiledPlugins
         plugin = infos[2];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.Build.Plugin.RepositoryBuilderPlugin", true, 0, 3 );
-        types[1] = new PluginTypeInfo( plugin, "CKli.Build.Plugin.BuildPlugin", true, 0, 4 );
+        types[1] = new PluginTypeInfo( plugin, "CKli.Build.Plugin.BuildPlugin", true, 0, 5 );
         plugin = infos[3];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
+        types[0] = new PluginTypeInfo( plugin, "CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin", true, 0, 4 );
         plugin = infos[4];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin", true, 0, 2 );
         plugin = infos[5];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
-        types[0] = new PluginTypeInfo( plugin, "CKli.Net8Migration.Plugin.Net8MigrationPlugin", true, 0, 5 );
+        types[0] = new PluginTypeInfo( plugin, "CKli.Net8Migration.Plugin.Net8MigrationPlugin", true, 0, 6 );
         var pluginCommands = new PluginCommand[]{
             new Cmd_branch＿fix( infos[0].PluginTypes[0] ),
             new Cmd_repo＿build( infos[2].PluginTypes[1] ),
@@ -86,13 +87,14 @@ sealed class Generated : IPluginFactory
     {
         var configs = world.DefinitionFile.ReadPluginsConfiguration( monitor );
         Throw.CheckState( "Plugins configurations have already been loaded.", configs != null );
-        var objects = new object[6];
+        var objects = new object[7];
         objects[0] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ) );
         objects[1] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0] );
         objects[2] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
         objects[3] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
-        objects[4] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[1], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[3], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
-        objects[5] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.Build.Plugin.BuildPlugin)objects[4] );
+        objects[4] = new CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin( new PrimaryPluginContext( _plugins[3], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
+        objects[5] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[1], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[3], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[4], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
+        objects[6] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.Build.Plugin.BuildPlugin)objects[5] );
         return PluginCollectionImpl.CreateAndBindCommands( objects, _plugins, _commands, _pluginCommands );
     }
 
@@ -103,7 +105,7 @@ sealed class Cmd_branch＿fix : PluginCommand
     internal Cmd_branch＿fix( IPluginTypeInfo typeInfo )
         : base( typeInfo,
                 "branch fix",
-                "Ensures that a 'vMajor.Minor/fix' branch exists in the repository and checkouts it.",
+                "Ensures that a 'fix/vMajor.Minor' branch exists in the repository and checkouts it.",
                 true,
                 arguments: [
                     ("version", "The Major or Major.Minor for which a fix must be produced."),
@@ -159,14 +161,14 @@ sealed class Cmd_repo＿rebuild＿old : PluginCommand
     internal Cmd_repo＿rebuild＿old( IPluginTypeInfo typeInfo )
         : base( typeInfo,
                 "repo rebuild old",
-                "Tries to rebuild the oldest releases until a success.\r\nFailing commits are tagged with a '+Deprecated' tag.",
+                "Tries to rebuild the oldest releases until a success.\r\nFailing commits are tagged with a '+deprecated' tag.",
                 true,
                 arguments: [
                 ],
                 options: [
                 ],
                 flags: [
-                    (["--warn-only",], "Warns only: doesn't create a 'Deprecated' tag on the failing commit." ),
+                    (["--warn-only",], "Warns only: doesn't create a 'deprecated' tag on the failing commit." ),
                     (["--run-test",], "Runs unit tests. They must be successful." ),
                     (["--all",], "Consider all the Repos of the current World (even if current path is in a Repo)." ),
                 ],

@@ -45,7 +45,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         return info;
     }
 
-    [Description( "Ensures that a 'vMajor.Minor/fix' branch exists in the repository and checkouts it." )]
+    [Description( "Ensures that a 'fix/vMajor.Minor' branch exists in the repository and checkouts it." )]
     [CommandPath( "branch fix" )]
     public bool BranchFix( IActivityMonitor monitor,
                            CKliEnv context,
@@ -58,7 +58,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         // Parses the Major.Minor. Minor is -1 if only Major is specified (we'll consider the max Minor).
         if( !Parse( version, out int major, out int minor ) )
         {
-            monitor.Error( $"Invalid version '{version}'. Must be a major number, major.minor numbers optionally prefixed with 'v'." );
+            monitor.Error( $"Invalid version '{version}'. Must be a Major number, Major.Minor numbers optionally prefixed with 'v'." );
             return false;
         }
         var repo = World.GetDefinedRepo( monitor, context.CurrentDirectory );
@@ -67,11 +67,11 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
             return false;
         }
         // Fetch the repo before analyzing versions.
-        if( !noFetch && !repo.Fetch( monitor ) )
+        if( !noFetch && !repo.GitRepository.FetchBranches( monitor, withTags: false, originOnly: true ) )
         {
             return false;
         }
-        // Find the commit that must be fixed. This can perfectly be a +Fake one.
+        // Find the commit that must be fixed. This can perfectly be a +fake one.
         var versionInfo = _versionTags.Get( monitor, repo );
         var toFix = versionInfo.LastStables.Where( c => c.Version.Major == major && (minor == -1 || c.Version.Minor == minor) ).Max();
         if( toFix == null )
@@ -82,7 +82,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
             return false;
         }
         // The branch name is known.
-        var branchName = $"v{toFix.Version.Major}.{toFix.Version.Minor}/fix";
+        var branchName = $"fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
         monitor.Info( $"Found '{toFix}' as the base commit. Ensuring branch '{branchName}'." );
 
         // Find an existing branch.
@@ -153,13 +153,13 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         major = 0;
         minor = 0;
         var s = branchName.AsSpan();
-        return s.TryMatch( 'v' )
+        return s.TryMatch( "fix/" )
+               && s.TryMatch( 'v' )
                && s.TryMatchInteger( out major )
                && major >= 0
                && s.TryMatch( '.' )
                && s.TryMatchInteger( out minor )
                && minor >= 0
-               && s.TryMatch( "/fix" )
                && s.Length == 0;
     }
 }

@@ -25,8 +25,8 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
         _tag = tag;
         _sha = commit.Sha;
         _contentSha = commit.Tree.Sha;
-        _isFakeVersion = _version.BuildMetaData.Equals( "Fake", StringComparison.OrdinalIgnoreCase );
-        _isDeprecatedVersion = !_isFakeVersion && _version.BuildMetaData.Contains( "Deprecated", StringComparison.OrdinalIgnoreCase );
+        _isFakeVersion = _version.BuildMetaData.Equals( "fake", StringComparison.Ordinal );
+        _isDeprecatedVersion = !_isFakeVersion && _version.BuildMetaData.Contains( "deprecated", StringComparison.Ordinal );
     }
 
     public SVersion Version => _version;
@@ -80,9 +80,9 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
         {
             if( _buildContentInfo == null && !_isFakeVersion )
             {
-                var m = TagMessage;
-                if( m == null ) return null;
-                BuildContentInfo.TryParse( m, out _buildContentInfo );
+                var msg = TagMessage;
+                if( msg == null ) return null;
+                _ = BuildContentInfo.TryParse( msg, out _buildContentInfo );
             }
             return _buildContentInfo;
         }
@@ -103,9 +103,7 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
 
     public override int GetHashCode() => _version.GetHashCode();
 
-    public override string ToString() => _isFakeVersion
-                                            ? $"Fake '{_version.ParsedText}'"
-                                            : $"Tag '{_version.ParsedText}' references Commit '{_sha}'";
+    public override string ToString() => $"Tag '{_version.ParsedText}' references Commit '{_sha}'";
 
     internal void UpdateVersionTag( Tag t )
     {

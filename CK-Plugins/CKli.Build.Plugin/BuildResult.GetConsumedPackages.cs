@@ -24,7 +24,7 @@ public partial class BuildResult
     /// </para>
     /// </summary>
     /// <param name="monitor">The monitor.</param>
-    /// <param name="repo">The repository from which the currently checked out head will be analyzed.</param>
+    /// <param name="buildInfo">The build info that has been built.</param>
     /// <returns>The set of incoming packages or null on error.</returns>
     /// <remarks>
     /// Collecting the package dependencies can be done in multiple ways:
@@ -40,7 +40,7 @@ public partial class BuildResult
     /// => The simplest and most robust way is the 'dotnet package list --format json'.
     /// 
     /// </remarks>
-    internal static HashSet<NuGetPackageInstance>? GetConsumedPackages( IActivityMonitor monitor, CommitBuildInfo buildInfo )
+    internal static SortedSet<NuGetPackageInstance>? GetConsumedPackages( IActivityMonitor monitor, CommitBuildInfo buildInfo )
     {
         var stdOut = new StringBuilder();
         if( !BuildPlugin.RunDotnet( monitor, buildInfo.Repo, "package list --format json --no-restore", stdOut ) )
@@ -88,9 +88,9 @@ public partial class BuildResult
             return true;
         }
 
-        static HashSet<NuGetPackageInstance> ReadPackages( JsonDocument d )
+        static SortedSet<NuGetPackageInstance> ReadPackages( JsonDocument d )
         {
-            var result = new HashSet<NuGetPackageInstance>();
+            var result = new SortedSet<NuGetPackageInstance>();
             foreach( var p in d.RootElement.GetProperty( "projects"u8 ).EnumerateArray() )
             {
                 foreach( var f in p.GetProperty( "frameworks"u8 ).EnumerateArray() )

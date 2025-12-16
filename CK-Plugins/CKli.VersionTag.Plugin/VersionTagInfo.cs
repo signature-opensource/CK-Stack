@@ -17,7 +17,7 @@ public sealed class VersionTagInfo : RepoInfo
     readonly IReadOnlyList<Tag> _removableTags;
     readonly Dictionary<SVersion, (SVersion V, Tag T)>? _invalidTags;
     readonly List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? _tagConflicts;
-    SVersion _minVersion;
+    readonly SVersion _minVersion;
     readonly SVersion? _maxVersion;
     Dictionary<string, TagCommit>? _sha2C;
 
@@ -197,14 +197,14 @@ public sealed class VersionTagInfo : RepoInfo
         // - Whatever the version is (stable, pre or post release - the ones with the -- trick), the immediate
         //   previous stable release must exist and appear in the commit parents.
         //
-        // To handle exceptions, this is where the "+Fake" build meta data is considered: we strictly enforce the rules
-        // but a "+Fake" tag on any commit circumvents the rule and de facto documents the exception. 
+        // To handle exceptions, this is where the "+fake" build meta data is considered: we strictly enforce the rules
+        // but a "+fake" tag on any commit circumvents the rule and de facto documents the exception. 
         //
         if( _lastStable == null )
         {
             // There is no stable release at all in the (MinVersion,MaxVersion?) range.
 
-            // We allow prerelase (not stable) to be initially produced.
+            // We allow prerelease (not stable) to be initially produced.
             // What matters is the Major.Minor.Patch parts that must be based on our MinVersion that
             // ultimately defaults to 0.0.0.
             var minMajor = _minVersion.Major + 1;
@@ -439,7 +439,7 @@ public sealed class VersionTagInfo : RepoInfo
     {
         return $"""
                 If this is intended, you can tag one of the parent commit of '{buildCommit.Sha}' with a fake version tag:
-                'v{fakeMajor}.{fakeMinor}.{fakePatch}+Fake'
+                'v{fakeMajor}.{fakeMinor}.{fakePatch}+fake'
 
                 This will (exceptionally!) allow this {what}.
                 """;
@@ -471,7 +471,7 @@ public sealed class VersionTagInfo : RepoInfo
                 switch( conflict.Key )
                 {
                     case TagConflict.DuplicateInvalidTag:
-                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} +InvalidTag with the same version.",
+                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} +invalid-tag with the same version.",
                             screenType.Text( $"""
                                         {conflict.Select( c => $" - {ToString( c.T1 )} / {ToString( c.T2 )}" ).Concatenate( Environment.NewLine )}
                                         This should be fixed manually.
@@ -479,7 +479,7 @@ public sealed class VersionTagInfo : RepoInfo
                             Repo ) );
                         break;
                     case TagConflict.InvalidTagOnWrongCommit:
-                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} misplaced +InvalidTag.",
+                        collector( World.Issue.CreateManual( $"Found {conflict.Count()} misplaced +invalid-tag.",
                             screenType.Text( $"""
                                         {conflict.Select( c => $" - Tag {ToString( c.T1 )} invalidates the version {ToString( c.T2 )}." ).Concatenate( Environment.NewLine )}
                                         This should be fixed manually.
@@ -514,8 +514,8 @@ public sealed class VersionTagInfo : RepoInfo
 
                                 This will be fixed by deleting them locally: a fetch from te remote will make them reappear.
                                 To really remove them, the tag should be deleted from the remote origin and local 
-                                tags that replace them should be pushed. Use the command 'ckli v-tag push' to publish
-                                all version tags to the remote origin.
+                                tags that replace them should be pushed. Use the command 'ckli tag push' to publish
+                                version tags to the remote origin.
                                 """ ),
                                 Repo,
                                 _removableTags ) );

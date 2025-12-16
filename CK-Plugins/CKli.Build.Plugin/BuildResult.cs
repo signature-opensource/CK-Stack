@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CSemVer;
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -31,14 +32,16 @@ public sealed partial class BuildResult
 
     internal BuildResult( Repo repo,
                           SVersion version,
-                          HashSet<NuGetPackageInstance> consumedPackages,
-                          List<LocalNuGetPackageInstance> producedPackages,
+                          SortedSet<NuGetPackageInstance> consumedPackages,
+                          ImmutableArray<string> producedPackages,
                           NormalizedPath assetsFolder,
                           ImmutableArray<string> assetFileNames )
     {
         Throw.DebugAssert( !assetFileNames.IsDefault );
+        Throw.DebugAssert( producedPackages.IsSortedStrict( StringComparer.Ordinal.Compare ) );
+        Throw.DebugAssert( assetFileNames.IsSortedStrict( StringComparer.Ordinal.Compare ) );
         _buildContentInfo = new BuildContentInfo( [..consumedPackages],
-                                                  [..producedPackages.Select( p => p.PackageId )],
+                                                  producedPackages,
                                                   assetFileNames );
         if( !assetFileNames.IsEmpty ) _assetsFolder = assetsFolder;
         _repo = repo;

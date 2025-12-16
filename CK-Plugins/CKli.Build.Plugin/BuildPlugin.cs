@@ -9,6 +9,7 @@ using System.Text;
 using System;
 using CKli.ArtifactHandler.Plugin;
 using LogLevel = CK.Core.LogLevel;
+using CKli.ReleaseDatabase.Plugin;
 
 namespace CKli.Build.Plugin;
 
@@ -17,18 +18,21 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     readonly VersionTagPlugin _versionTags;
     readonly BranchModelPlugin _branchModel;
     readonly RepositoryBuilderPlugin _repoBuilder;
+    readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
 
     public BuildPlugin( PrimaryPluginContext primaryContext,
                         VersionTagPlugin versionTags,
                         BranchModelPlugin branchModel,
                         RepositoryBuilderPlugin repoBuilder,
+                        ReleaseDatabasePlugin releaseDatabase,
                         ArtifactHandlerPlugin artifactHandler )
         : base( primaryContext )
     {
         _versionTags = versionTags;
         _branchModel = branchModel;
         _repoBuilder = repoBuilder;
+        _releaseDatabase = releaseDatabase;
         _artifactHandler = artifactHandler;
         World.Events.Issue += IssueRequested;
     }
@@ -183,7 +187,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // Wherever we are, it's time to checkout the working folder on the branch's tip.
         // We also do this when buildCommit is set to the lastFix commit (rebuild case) to avoid
         // the detached head state. 
-        if( branch != r.Head && !repo.SetCurrentBranch( monitor, branchName, skipPullMerge: true ) )
+        if( branch != r.Head && !repo.GitRepository.SetCurrentBranch( monitor, branchName, skipPullMerge: true ) )
         {
             return false;
         }
@@ -222,7 +226,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // What we need here is a list of (Repo,Commit) where:
         // - the Commit has a Release version tag.
         // - the Commit code base consumed a previous version of any of our produced packages.
-        // The NuGetReleaseInfo has no knowledge of the "repository" level. It has only package/version
+        // The BuildContentInfo has no knowledge of the "repository" level. It has only package/version
         // instances that may be in this World or not and this is a good thing:
         // - if a Repo appears that produces a package that was used by one Repo in the World, this "previously external"
         //   package is handled transparently.
@@ -301,7 +305,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             monitor.Trace( $"Current working folder content is not the same as the commit '{buildCommit.Sha}' to build. Checking out a detached head." );
             Commands.Checkout( git.Repository, buildCommit );
         }
-        bool result = DoCoreBuild( monitor, context, _repoBuilder, versionInfo, buildInfo, runTest );
+        bool result = DoCoreBuild( monitor, context, _repoBuilder, _releaseDatabase, versionInfo, buildInfo, runTest );
         if( mustCheckOut )
         {
             try
@@ -321,6 +325,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         static bool DoCoreBuild( IActivityMonitor monitor,
                                  CKliEnv context,
                                  RepositoryBuilderPlugin repoBuilder,
+                                 ReleaseDatabasePlugin releaseDatabase,
                                  VersionTagInfo versionInfo,
                                  CommitBuildInfo buildInfo,
                                  bool? runTest )
@@ -330,7 +335,12 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             {
                 return false;
             }
-            if( !buildInfo.ApplyReleaseBuildTag( monitor, context, buildResult.Content.ToString() ) )
+            var content = buildResult.Content;
+            if( !releaseDatabase.OnLocalBuild( monitor, buildResult.Repo, buildResult.Version, buildInfo.Rebuilding, content ) )
+            {
+                return false;
+            }
+            if( !buildInfo.ApplyReleaseBuildTag( monitor, context, content.ToString() ) )
             {
                 return false;
             }

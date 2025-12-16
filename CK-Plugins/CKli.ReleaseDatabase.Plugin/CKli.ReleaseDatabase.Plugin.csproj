@@ -2,4 +2,7 @@
     <ItemGroup>
         <PackageReference Include="CKli.Plugins.Core" />
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
+    </ItemGroup>
 </Project>

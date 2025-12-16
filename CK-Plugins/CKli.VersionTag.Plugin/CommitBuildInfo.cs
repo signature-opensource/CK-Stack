@@ -6,6 +6,9 @@ using System;
 
 namespace CKli.VersionTag.Plugin;
 
+/// <summary>
+/// Captures a commit and everything required to build it in a given version.
+/// </summary>
 public sealed class CommitBuildInfo
 {
     readonly VersionTagInfo _tagInfo;
