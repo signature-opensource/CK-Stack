@@ -15,10 +15,6 @@ using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.Net8Migration.Plugin;
 
-sealed class CreateLTSHelper
-{
-}
-
 public sealed class Net8MigrationPlugin : PrimaryPluginBase
 {
     readonly VersionTagPlugin _versionTag;
@@ -42,8 +38,8 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
 
         //if( !Pull( monitor, repos ) ) return false;
 
-        // If we already run this once, the following check is not useless
-        // if we want to recompute the MinVersion: we need the RepositoryInfo.xml.
+        // If we already run this once, the following check is not useless:
+        // if we want to recompute the MinVersion, we need the RepositoryInfo.xml.
         if( !SetMasterAndCheckDevelopIsMerged( monitor, repos ) ) return false;
 
         // We must computed the MinVersion before removing the RepositoryInfo.xml
@@ -65,7 +61,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         } );
 
         // Here we should also update the DirectoryInfo.props...
-        if( !RemoveRepositoryInfoAndCodeCakeBuilder( monitor, repos ) ) return false;
+        if( !RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( monitor, repos ) ) return false;
 
         bool success = true;
         foreach( var repo in repos )
@@ -129,7 +125,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         return success;
     }
 
-    static bool RemoveRepositoryInfoAndCodeCakeBuilder( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
+    static bool RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
     {
         bool success = true;
         foreach( var repo in repos )
@@ -155,6 +151,11 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                                                  repo.WorkingFolder ) == 0;
             var ccbPath = repo.WorkingFolder.AppendPart( "CodeCakeBuilder" );
             success &= FileHelper.DeleteFolder( monitor, ccbPath );
+            //
+            var slnxPath = slnPath + 'x';
+            var d = XDocument.Load( slnxPath );
+            d.Root.Descendants( "File" ).Where( e => e.Attribute( "Path" )?.Value == "RepositoryInfo.xml" ).Remove();
+            XmlHelper.SaveWithoutXmlDeclaration( d, slnxPath );
         }
 
         return success;

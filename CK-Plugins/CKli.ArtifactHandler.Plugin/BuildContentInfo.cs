@@ -1,4 +1,5 @@
 using CK.Core;
+using CSemVer;
 using System;
 using System.Collections;
 using System.Collections.Immutable;
@@ -25,6 +26,49 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         _consumed = consumed;
         _produced = produced;
         _assetFileNames = assetFileNames;
+    }
+
+    public BuildContentInfo( CKBinaryReader r )
+    {
+        var b = ImmutableArray.CreateBuilder<NuGetPackageInstance>( r.ReadNonNegativeSmallInt32() );
+        for( int i = 0; i < b.Count; ++i )
+        {
+            b.Add( new NuGetPackageInstance( r.ReadString(), SVersion.Parse( r.ReadString() ) ) );
+        }
+        _consumed = b.MoveToImmutable();
+        _produced = Read( r );
+        _assetFileNames = Read( r );
+
+        static ImmutableArray<string> Read( CKBinaryReader r )
+        {
+            var b = ImmutableArray.CreateBuilder<string>( r.ReadNonNegativeSmallInt32() );
+            for( int i = 0; i < b.Count; ++i )
+            {
+                b.Add( r.ReadString() );
+            }
+            return b.MoveToImmutable();
+        }
+    }
+
+    public void Write( CKBinaryWriter w )
+    {
+        w.WriteNonNegativeSmallInt32( _consumed.Length );
+        foreach( var p in _consumed )
+        {
+            w.Write( p.PackageId );
+            w.Write( p.Version.ToString() );
+        }
+        Write( w, _produced );
+        Write( w, _assetFileNames );
+
+        static void Write( CKBinaryWriter w, ImmutableArray<string> a )
+        {
+            w.WriteNonNegativeSmallInt32( a.Length );
+            foreach( var s in a )
+            {
+                w.Write( s ); 
+            }
+        }
     }
 
     /// <summary>

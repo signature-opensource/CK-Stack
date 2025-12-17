@@ -17,6 +17,7 @@ public sealed class VersionTagInfo : RepoInfo
     readonly IReadOnlyList<Tag> _removableTags;
     readonly Dictionary<SVersion, (SVersion V, Tag T)>? _invalidTags;
     readonly List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? _tagConflicts;
+    readonly World.Issue? _publishedReleaseContentIssue;
     readonly SVersion _minVersion;
     readonly SVersion? _maxVersion;
     Dictionary<string, TagCommit>? _sha2C;
@@ -28,7 +29,8 @@ public sealed class VersionTagInfo : RepoInfo
                              Dictionary<SVersion, TagCommit> v2c,
                              List<Tag>? removableTags,
                              Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags,
-                             List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts )
+                             List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts,
+                             World.Issue? publishedReleaseContentIssue )
         : base( repo )
     {
         _lastStables = lastStables;
@@ -39,6 +41,7 @@ public sealed class VersionTagInfo : RepoInfo
         _removableTags = removableTags ?? [];
         _invalidTags = invalidTags;
         _tagConflicts = tagConflicts;
+        _publishedReleaseContentIssue = publishedReleaseContentIssue;
     }
 
     /// <summary>
@@ -504,6 +507,10 @@ public sealed class VersionTagInfo : RepoInfo
                         break;
                 }
             }
+        }
+        if( _publishedReleaseContentIssue != null )
+        {
+            collector( _publishedReleaseContentIssue );
         }
         if( _removableTags.Count > 0 )
         {

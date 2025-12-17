@@ -1,5 +1,7 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
+using CKli.ReleaseDatabase.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using Microsoft.Win32.SafeHandles;
@@ -14,11 +16,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
 {
     static readonly XName _xMinVersion = XNamespace.None.GetName( "MinVersion" );
     static readonly XName _xMaxVersion = XNamespace.None.GetName( "MaxVersion" );
+    readonly ReleaseDatabasePlugin _releaseDatabase;
 
-    public VersionTagPlugin( PrimaryPluginContext primaryContext )
+    public VersionTagPlugin( PrimaryPluginContext primaryContext, ReleaseDatabasePlugin releaseDatabase )
         : base( primaryContext )
     {
         World.Events.Issue += IssueRequested;
+        _releaseDatabase = releaseDatabase;
     }
 
     void IssueRequested( IssueEvent e )
@@ -263,7 +267,44 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // We capture tagConflicts: these MUST be fixed. Most of the branch/build commands will require
         // that there is no more tagConflicts before running.
         //
-        return new VersionTagInfo( repo, minVersion, maxVersion, lastStables, v2c, removableTags, invalidTags, tagConflicts );
+        // We feed the release database with the existing tags: this costs but it guaranties that release
+        // databases are pure "index" that can be rebuilt any time.
+        // We handle only regular versions:
+        //  - Fake versions are, by design, skipped.
+        //  - Deprecated versions are also filtered out: whether the version is deprecated is not the concern of
+        //    the release database. Purging deprecated versions will be done later and through dedicated mechanisms.
+        //
+        // This step can also produce an important issue: the fact that a release tag is NOT the same as the Published
+        // release database contains. This is odd and should almost never happen but this is a checkpoint that doesn't
+        // cost much.
+        // 
+        World.Issue? publishedReleaseContentIssue = null;
+        if( tagConflicts == null )
+        {
+            // This iterator provides all the versions per repository to the release database and detects
+            // version tags with missing or bad content info that will be handled by the Build plugin (the issue
+            // is implemented in the build plugin because its fix requires builds to be run).
+            var it = new RegularVersionTagIterator( v2c );
+            publishedReleaseContentIssue = _releaseDatabase.OnExistingVersionTags( monitor, repo, it.GetVersions() );
+            if( publishedReleaseContentIssue != null || it.HasMissingContentInfo )
+            {
+                monitor.Warn( $"Repository '{repo.DisplayPath}' has at least one issue regarding its version tags. Use 'ckli issue' for details." );
+            }
+        }
+        else
+        {
+            monitor.Warn( $"Repository '{repo.DisplayPath}' has at least one tag conflict. Use 'ckli issue' for details." );
+        }
+
+        return new VersionTagInfo( repo,
+                                   minVersion,
+                                   maxVersion,
+                                   lastStables,
+                                   v2c,
+                                   removableTags,
+                                   invalidTags,
+                                   tagConflicts,
+                                   publishedReleaseContentIssue );
 
         static bool ResolveConflict( Dictionary<SVersion, TagCommit> v2c, TagCommit exists, TagCommit newOne, ref List<Tag>? removableTags )
         {
@@ -312,6 +353,36 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 }
             }
             return resolved;
+        }
+    }
+
+    sealed class RegularVersionTagIterator
+    {
+        readonly Dictionary<SVersion, TagCommit> _v2c;
+        public bool HasMissingContentInfo;
+
+        public RegularVersionTagIterator( Dictionary<SVersion, TagCommit> v2c )
+        {
+            _v2c = v2c;
+        }
+
+        internal IEnumerable<(SVersion,BuildContentInfo)> GetVersions()
+        {
+            foreach( var tc in _v2c.Values )
+            {
+                if( tc.IsRegularVersion )
+                {
+                    var info = tc.BuildContentInfo;
+                    if( info != null )
+                    {
+                        yield return (tc.Version, info);
+                    }
+                    else
+                    {
+                        HasMissingContentInfo = true;
+                    }
+                }
+            }
         }
     }
 }

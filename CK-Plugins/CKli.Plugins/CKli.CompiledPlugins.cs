@@ -25,20 +25,20 @@ public static class CompiledPlugins
         IPluginTypeInfo[] types;
         plugin = infos[0];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
-        types[0] = new PluginTypeInfo( plugin, "CKli.BranchModel.Plugin.BranchModelPlugin", true, 0, 1 );
+        types[0] = new PluginTypeInfo( plugin, "CKli.BranchModel.Plugin.BranchModelPlugin", true, 0, 3 );
         plugin = infos[1];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
-        types[0] = new PluginTypeInfo( plugin, "CKli.VersionTag.Plugin.VersionTagPlugin", true, 0, 0 );
+        types[0] = new PluginTypeInfo( plugin, "CKli.VersionTag.Plugin.VersionTagPlugin", true, 0, 2 );
         plugin = infos[2];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
-        types[0] = new PluginTypeInfo( plugin, "CKli.Build.Plugin.RepositoryBuilderPlugin", true, 0, 3 );
+        types[0] = new PluginTypeInfo( plugin, "CKli.Build.Plugin.RepositoryBuilderPlugin", true, 0, 4 );
         types[1] = new PluginTypeInfo( plugin, "CKli.Build.Plugin.BuildPlugin", true, 0, 5 );
         plugin = infos[3];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
-        types[0] = new PluginTypeInfo( plugin, "CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin", true, 0, 4 );
+        types[0] = new PluginTypeInfo( plugin, "CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin", true, 0, 1 );
         plugin = infos[4];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
-        types[0] = new PluginTypeInfo( plugin, "CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin", true, 0, 2 );
+        types[0] = new PluginTypeInfo( plugin, "CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin", true, 0, 0 );
         plugin = infos[5];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.Net8Migration.Plugin.Net8MigrationPlugin", true, 0, 6 );
@@ -88,13 +88,13 @@ sealed class Generated : IPluginFactory
         var configs = world.DefinitionFile.ReadPluginsConfiguration( monitor );
         Throw.CheckState( "Plugins configurations have already been loaded.", configs != null );
         var objects = new object[7];
-        objects[0] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ) );
-        objects[1] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0] );
-        objects[2] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
-        objects[3] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
-        objects[4] = new CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin( new PrimaryPluginContext( _plugins[3], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
-        objects[5] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[1], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[3], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[4], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[2] );
-        objects[6] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[0], (CKli.Build.Plugin.BuildPlugin)objects[5] );
+        objects[0] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
+        objects[1] = new CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin( new PrimaryPluginContext( _plugins[3], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
+        objects[2] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ), (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1] );
+        objects[3] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2] );
+        objects[4] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
+        objects[5] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[3], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[4], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
+        objects[6] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.Build.Plugin.BuildPlugin)objects[5] );
         return PluginCollectionImpl.CreateAndBindCommands( objects, _plugins, _commands, _pluginCommands );
     }
 
