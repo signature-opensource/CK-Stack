@@ -71,7 +71,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                                                   "Initialize stable branch without RepositoryInfo.xml and CodeCakeBuilder.",
                                                   CommitBehavior.AmendIfPossibleAndKeepPreviousMessage ) is not CommitResult.Error;
             // Fix the tags.
-            success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
+            //success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
         }
 
         // We are ready to work... Still in Net8 but on stable branch.
@@ -186,7 +186,8 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                 var d = repo.GitRepository.Repository.Describe( bStartNet6.Tip, new DescribeOptions { Strategy = DescribeStrategy.Tags } );
                 vB = SVersion.TryParse( d );
                 details.AppendLine( $"[B] - {d} - {vB}" );
-                if( !vB.IsValid ) vB = null;
+                if( vB.IsValid ) vB = SVersion.Create( vB.Major, vB.Minor, vB.Patch + 1 );
+                else vB = null;
             }
             SVersion? vX = null;
             var file = repo.WorkingFolder.AppendPart( "RepositoryInfo.xml" );
@@ -198,12 +199,12 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                                      .Value;
                 vX = SVersion.TryParse( d );
                 details.AppendLine( $"[X] - {d} - {vX}" );
-                if( !vX.IsValid ) vX = null;
+                if( vX.IsValid ) vX = SVersion.Create( vX.Major, vX.Minor, vX.Patch );
+                else vX = null;
             }
             SVersion? min = vB;
             if( vX > vB ) min = vX;
             if( min == null ) min = SVersion.Create( 0, 0, 0 );
-            else min = SVersion.Create( min.Major, min.Minor, min.Patch+1 );
 
             details.AppendLine( $"==> MinVersion = {min}" );
 
