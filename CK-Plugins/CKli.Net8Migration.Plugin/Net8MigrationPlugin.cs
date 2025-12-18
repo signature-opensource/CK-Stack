@@ -33,6 +33,20 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
     [CommandPath( "migrate net8" )]
     public bool Migrate( IActivityMonitor monitor, CKliEnv context )
     {
+        using( monitor.OpenInfo( "Deleting all existing repo." ) )
+        {
+            foreach( var f in Directory.EnumerateDirectories( World.Name.WorldRoot ) )
+            {
+                if( Path.GetFileName( f ) != StackRepository.PublicStackName )
+                {
+                    if( !FileHelper.DeleteFolder( monitor, f ) )
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        // This will fix the layout by cloning the repos.
         var repos = World.GetAllDefinedRepo( monitor );
         if( repos == null ) return false;
 
