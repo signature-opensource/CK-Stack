@@ -60,6 +60,12 @@ sealed class ReleaseDB
                 {
                     if( info != exists )
                     {
+                        monitor.Warn( $"""
+                            Updating release database '{Name}' for '{repo.DisplayPath}/{version}':
+                            {exists}
+                            Replaced by:
+                            {info}
+                            """ );
                         _data[key] = info;
                         localChanged = true;
                     }
@@ -201,13 +207,20 @@ sealed class ReleaseDB
         }
         try
         {
-            using var f = new FileStream( _filePath, FileMode.Open, FileAccess.Read, FileShare.None, 4096, FileOptions.SequentialScan );
-            using var r = new CKBinaryReader( f, Encoding.UTF8, leaveOpen: true );
+            using var r = new CKBinaryReader( new FileStream( _filePath,
+                                                              FileMode.Open,
+                                                              FileAccess.Read,
+                                                              FileShare.None,
+                                                              4096,
+                                                              FileOptions.SequentialScan ) );
             Throw.CheckData( "Version", r.ReadByte() == 0 );
             int count = r.ReadInt32();
             while( --count >= 0 )
             {
-                _data.Add( (r.ReadUInt64(), SVersion.Parse( r.ReadString() )), new BuildContentInfo( r ) );
+                var id = r.ReadUInt64();
+                var v = SVersion.Parse( r.ReadString() );
+                var c = new BuildContentInfo( r );
+                _data.Add( (id, v), c );
             }
             return true;
         }
@@ -222,8 +235,12 @@ sealed class ReleaseDB
     {
         try
         {
-            using var f = new FileStream( _filePath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, FileOptions.SequentialScan );
-            using var w = new CKBinaryWriter( f, Encoding.UTF8, leaveOpen: true );
+            using var w = new CKBinaryWriter( new FileStream( _filePath,
+                                                              FileMode.Create,
+                                                              FileAccess.Write,
+                                                              FileShare.None,
+                                                              4096,
+                                                              FileOptions.SequentialScan ) );
             w.Write( (byte)0 ); // Version.
             w.Write( _data.Count );
             foreach( var (k, v) in _data )

@@ -1,7 +1,9 @@
 using CK.Core;
 using CSemVer;
+using Microsoft.VisualBasic;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -31,7 +33,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
     public BuildContentInfo( CKBinaryReader r )
     {
         var b = ImmutableArray.CreateBuilder<NuGetPackageInstance>( r.ReadNonNegativeSmallInt32() );
-        for( int i = 0; i < b.Count; ++i )
+        for( int i = 0; i < b.Capacity; ++i )
         {
             b.Add( new NuGetPackageInstance( r.ReadString(), SVersion.Parse( r.ReadString() ) ) );
         }
@@ -41,12 +43,17 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 
         static ImmutableArray<string> Read( CKBinaryReader r )
         {
-            var b = ImmutableArray.CreateBuilder<string>( r.ReadNonNegativeSmallInt32() );
-            for( int i = 0; i < b.Count; ++i )
+            int count = r.ReadNonNegativeSmallInt32();
+            if( count > 0 )
             {
-                b.Add( r.ReadString() );
+                var b = ImmutableArray.CreateBuilder<string>( count );
+                for( int i = 0; i < count; ++i )
+                {
+                    b.Add( r.ReadString() );
+                }
+                return b.MoveToImmutable();
             }
-            return b.MoveToImmutable();
+            return [];
         }
     }
 
@@ -93,11 +100,22 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
     /// <returns>True if this content is the same as the other one.</returns>
     public bool Equals( BuildContentInfo? other )
     {
-        if( other == null ) return false;
-        if( other == this ) return true;
+        if( ReferenceEquals( other, null ) ) return false;
+        if( ReferenceEquals( other, this ) ) return true;
         return _consumed.SequenceEqual( other._consumed )
                && _produced.SequenceEqual( other._produced )
                && _assetFileNames.SequenceEqual( other._assetFileNames );
+    }
+
+    public override bool Equals( object? obj ) => Equals( obj as BuildContentInfo );
+
+    public override int GetHashCode()
+    {
+        HashCode hash = new HashCode();
+        foreach( var c in _consumed ) hash.Add( c.GetHashCode() );
+        foreach( var p in _produced ) hash.Add( p.GetHashCode() );
+        foreach( var a in _assetFileNames  ) hash.Add( a.GetHashCode() ); 
+        return hash.ToHashCode();
     }
 
     /// <summary>
@@ -134,6 +152,11 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 
         static bool TryReadConsumedList( ref ReadOnlySpan<char> s, int count, out ImmutableArray<NuGetPackageInstance> packages )
         {
+            if( count == 0 )
+            {
+                packages = [];
+                return true;
+            }
             NuGetPackageInstance previous = default;
             var b = ImmutableArray.CreateBuilder<NuGetPackageInstance>( count );
             while( NuGetPackageInstance.TryMatch( ref s, out var p ) )
@@ -159,6 +182,11 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 
         static bool TryReadStringList( ref ReadOnlySpan<char> s, int count, out ImmutableArray<string> strings )
         {
+            if( count == 0 )
+            {
+                strings = [];
+                return true;
+            }
             string previous = string.Empty;
             var b = ImmutableArray.CreateBuilder<string>( count );
             while( TryReadString( ref s, out var text ) )
@@ -228,4 +256,15 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
     /// </summary>
     /// <returns>The content info.</returns>
     public override string ToString() => _toString ??= Write( new StringBuilder() ).ToString();
+
+
+    public static bool operator ==( BuildContentInfo? left, BuildContentInfo? right )
+    {
+        return EqualityComparer<BuildContentInfo>.Default.Equals( left, right );
+    }
+
+    public static bool operator !=( BuildContentInfo? left, BuildContentInfo? right )
+    {
+        return !(left == right);
+    }
 }

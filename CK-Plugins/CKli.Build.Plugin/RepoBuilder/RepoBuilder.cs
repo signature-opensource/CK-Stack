@@ -46,7 +46,13 @@ public class RepoBuilder : RepoInfo
         var outputPath = FileUtil.CreateUniqueTimedFolder( Path.GetTempPath() + "CKliBuild", null, DateTime.UtcNow );
         try
         {
-            if( DoBuild( monitor, buildInfo.Version, buildInfo.InformationalVersion, buildInfo.ReleaseConfiguration, runTest, outputPath ) )
+            if( DoBuild( monitor,
+                         buildInfo.Version,
+                         buildInfo.InformationalVersion,
+                         buildInfo.FileVersion,
+                         buildInfo.ReleaseConfiguration,
+                         runTest,
+                         outputPath ) )
             {
                 var consumedPackages = BuildResult.GetConsumedPackages( monitor, buildInfo );
                 if( consumedPackages != null )
@@ -134,7 +140,8 @@ public class RepoBuilder : RepoInfo
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The version to build.</param>
-    /// <param name="informationalVersion">The informational version to set (see <see cref="CSemVer.InformationalVersion"/>).</param>
+    /// <param name="informationalVersion">The informational version to set (see <see cref="InformationalVersion"/>).</param>
+    /// <param name="fileVersion">The windows file version. See <see cref="CommitBuildInfo.FileVersion"/>.</param>
     /// <param name="release">False to use Debug build configuration.</param>
     /// <param name="runTest">Whether tests should be run or not.</param>
     /// <param name="outputPath">Destination folder where the artifact files must be created.</param>
@@ -142,11 +149,12 @@ public class RepoBuilder : RepoInfo
     protected virtual bool DoBuild( IActivityMonitor monitor,
                                     SVersion version,
                                     string informationalVersion,
+                                    string fileVersion,
                                     bool release,
                                     bool? runTest,
                                     NormalizedPath outputPath )
     {
-        return DotNetBuildTestPack( monitor, version, informationalVersion, release, runTest, outputPath );
+        return DotNetBuildTestPack( monitor, version, informationalVersion, fileVersion, release, runTest, outputPath );
     }
 
     /// <summary>
@@ -156,6 +164,7 @@ public class RepoBuilder : RepoInfo
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The version to build.</param>
     /// <param name="informationalVersion">The informational version to set (see <see cref="CSemVer.InformationalVersion"/>).</param>
+    /// <param name="fileVersion">The windows file version. See <see cref="CommitBuildInfo.FileVersion"/>.</param>
     /// <param name="release">False to use Debug build configuration.</param>
     /// <param name="runTest">Whether tests should be run or not.</param>
     /// <param name="outputPath">Destination folder where the artifact files must be created.</param>
@@ -163,11 +172,12 @@ public class RepoBuilder : RepoInfo
     protected virtual bool DotNetBuildTestPack( IActivityMonitor monitor,
                                                 SVersion version,
                                                 string informationalVersion,
+                                                string fileVersion,
                                                 bool release,
                                                 bool? runTest,
                                                 string outputPath )
     {
-        return DotNetBuild( monitor, version, informationalVersion, release )
+        return DotNetBuild( monitor, version, informationalVersion, fileVersion, release )
                && DotNetTest( monitor, runTest )
                && DotNetPack( monitor, version, outputPath );
     }
@@ -178,12 +188,13 @@ public class RepoBuilder : RepoInfo
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The version to build.</param>
     /// <param name="informationalVersion">The informational version to set (see <see cref="CSemVer.InformationalVersion"/>).</param>
+    /// <param name="fileVersion">The windows file version. See <see cref="CommitBuildInfo.FileVersion"/>.</param>
     /// <param name="release">False to use Debug build configuration.</param>
     /// <returns>True on success, false otherwise.</returns>
-    protected bool DotNetBuild( IActivityMonitor monitor, SVersion version, string informationalVersion, bool release )
+    protected bool DotNetBuild( IActivityMonitor monitor, SVersion version, string informationalVersion, string fileVersion, bool release )
     {
         return BuildPlugin.RunDotnet( monitor, Repo, $"""
-            build -tl:off --nologo -c {(release ? "Release" : "Debug")} /p:Version={version};InformationalVersion="{informationalVersion}"
+            build -tl:off --nologo -c {(release ? "Release" : "Debug")} /p:Version={version};InformationalVersion="{informationalVersion}";FileVersion="{fileVersion}"
             """ );
     }
 

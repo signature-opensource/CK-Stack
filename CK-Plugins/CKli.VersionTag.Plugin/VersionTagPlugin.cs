@@ -288,12 +288,12 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             publishedReleaseContentIssue = _releaseDatabase.OnExistingVersionTags( monitor, repo, it.GetVersions() );
             if( publishedReleaseContentIssue != null || it.HasMissingContentInfo )
             {
-                monitor.Warn( $"Repository '{repo.DisplayPath}' has at least one issue regarding its version tags. Use 'ckli issue' for details." );
+                monitor.Warn( $"At least one version tag issue in '{repo.DisplayPath}'. Use 'ckli issue' for details." );
             }
         }
         else
         {
-            monitor.Warn( $"Repository '{repo.DisplayPath}' has at least one tag conflict. Use 'ckli issue' for details." );
+            monitor.Warn( $"{tagConflicts.Count} tag conflicts in repository '{repo.DisplayPath}'. Use 'ckli issue' for details." );
         }
 
         return new VersionTagInfo( repo,
