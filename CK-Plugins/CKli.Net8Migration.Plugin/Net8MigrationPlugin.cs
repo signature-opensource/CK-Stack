@@ -46,7 +46,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                 }
             }
         }
-        // This will fix the layout by cloning the repos.
+        // This will fix the layout by re-cloning all the repos.
         var repos = World.GetAllDefinedRepo( monitor );
         if( repos == null ) return false;
 
@@ -82,8 +82,8 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         {
             // This does nothing when no change.
             success &= repo.GitRepository.Commit( monitor,
-                                                  "Initialize stable branch without RepositoryInfo.xml and CodeCakeBuilder.",
-                                                  CommitBehavior.AmendIfPossibleAndKeepPreviousMessage ) is not CommitResult.Error;
+                                                  "Initialize stable branch with slnx and no RepositoryInfo.xml nor CodeCakeBuilder.",
+                                                  CommitBehavior.CreateNewCommit ) is not CommitResult.Error;
             // Fix the tags.
             //success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
         }
@@ -168,7 +168,8 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             //
             var slnxPath = slnPath + 'x';
             var d = XDocument.Load( slnxPath );
-            d.Root.Descendants( "File" ).Where( e => e.Attribute( "Path" )?.Value == "RepositoryInfo.xml" ).Remove();
+            d.Root.Descendants( "File" ).Where( e => e.Attribute( "Path" )?.Value == "RepositoryInfo.xml"
+                                                     || e.Attribute( "Path" )?.Value == "Common/SharedKey.snk" ).Remove();
             XmlHelper.SaveWithoutXmlDeclaration( d, slnxPath );
         }
 
