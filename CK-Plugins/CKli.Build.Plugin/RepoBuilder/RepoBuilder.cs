@@ -35,9 +35,9 @@ public class RepoBuilder : RepoInfo
     /// <param name="buildInfo">The build info.</param>
     /// <param name="runTest"></param>
     /// <returns></returns>
-    public BuildResult Build( IActivityMonitor monitor,
-                              CommitBuildInfo buildInfo,
-                              bool? runTest )
+    public BuildResult? Build( IActivityMonitor monitor,
+                               CommitBuildInfo buildInfo,
+                               bool? runTest )
     {
         Throw.CheckState( "Repository must not be dirty when calling build.",
                           !Repo.GitRepository.GetSimpleStatusInfo().IsDirty );
@@ -79,7 +79,7 @@ public class RepoBuilder : RepoInfo
         {
             if( outputPath != null ) FileHelper.DeleteFolder( monitor, outputPath );
         }
-        return BuildResult.Failed;
+        return null;
     }
 
     bool HandleDeployAssets( IActivityMonitor monitor,

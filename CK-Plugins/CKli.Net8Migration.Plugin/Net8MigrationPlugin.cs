@@ -91,7 +91,6 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         // We are ready to work... Still in Net8 but on stable branch.
 
         // Now we can fix the tags after having computed the MinVersion.
-        //===> Fix issues... But currently we cannot run 'ckli issue --fix' from the inside.
 
         // Restore stable.
         //foreach( var (repo, commit) in snapshotStables )
@@ -168,7 +167,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             //
             var slnxPath = slnPath + 'x';
             var d = XDocument.Load( slnxPath );
-            d.Root.Descendants( "File" ).Where( e => e.Attribute( "Path" )?.Value == "RepositoryInfo.xml"
+            d.Root!.Descendants( "File" ).Where( e => e.Attribute( "Path" )?.Value == "RepositoryInfo.xml"
                                                      || e.Attribute( "Path" )?.Value == "Common/SharedKey.snk" ).Remove();
             XmlHelper.SaveWithoutXmlDeclaration( d, slnxPath );
         }

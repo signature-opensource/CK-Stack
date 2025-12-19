@@ -40,7 +40,7 @@ public sealed partial class BuildPlugin
                                   ScreenType screenType,
                                   Action<World.Issue> collector )
     {
-        var regulars = versionTagInfo.LastStables.Where( tc => tc.IsRegularVersion );
+        var regulars = versionTagInfo.TagCommits.Values.Where( tc => tc.IsRegularVersion );
         var lightWeightTags = regulars.Where( tc => !tc.Tag.IsAnnotated ).ToArray();
         const string rebuildMessage = """
             Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
@@ -103,7 +103,7 @@ public sealed partial class BuildPlugin
             using var gLog = monitor.OpenInfo( $"Fixing {_tagsToRebuild.Length} tags content info in '{Repo.DisplayPath}'." );
             foreach( var tc in _tagsToRebuild )
             {
-                if( !_buildPlugin.CoreBuild( monitor, context, _versionTagInfo, tc.Commit, tc.Version, runTest: false, rebuild: true ) )
+                if( _buildPlugin.CoreBuild( monitor, context, _versionTagInfo, tc.Commit, tc.Version, runTest: false, rebuild: true ) == null )
                 {
                     return false;
                 }

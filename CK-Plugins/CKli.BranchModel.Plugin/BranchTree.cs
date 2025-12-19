@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace CKli.BranchModel.Plugin;
 
 /// <summary>
-/// "alpha", "beta", "preview", "rc", "stable".
+/// "alpha", "beta", "delta", "epsilon", "gamma", "kappa", "pre", "rc" and "stable".
 /// </summary>
 public sealed class BranchTree
 {
@@ -18,6 +18,10 @@ public sealed class BranchTree
         var b = _root;
         b = Create( b, "rc" + ltsName );
         b = Create( b, "pre" + ltsName );
+        b = Create( b, "kappa" + ltsName );
+        b = Create( b, "gamma" + ltsName );
+        b = Create( b, "epsilon" + ltsName );
+        b = Create( b, "delta" + ltsName );
         b = Create( b, "beta" + ltsName );
         b = Create( b, "alpha" + ltsName );
 

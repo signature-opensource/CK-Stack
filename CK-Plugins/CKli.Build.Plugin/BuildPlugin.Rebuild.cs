@@ -39,7 +39,7 @@ public sealed partial class BuildPlugin
                 var versionTagInfo = _versionTags.Get( monitor, repo );
                 foreach( var tag in versionTagInfo.LastStables.Reverse() )
                 {
-                    if( CoreBuild( monitor, context, versionTagInfo, tag.Commit, tag.Version, runTest, rebuild: true ) )
+                    if( CoreBuild( monitor, context, versionTagInfo, tag.Commit, tag.Version, runTest, rebuild: true ) == null )
                     {
                         monitor.Info( ScreenType.CKliScreenTag, $"Version '{tag.Version.ParsedText}' of '{repo.DisplayPath}' is valid." );
                         break;
@@ -91,12 +91,12 @@ public sealed partial class BuildPlugin
             monitor.Error( $"Unable to find version 'v{v}'." );
             return false;
         }
-        if( CoreBuild( monitor, context, versionTagInfo, tag.Commit, tag.Version, runTest, rebuild: true ) )
+        if( CoreBuild( monitor, context, versionTagInfo, tag.Commit, tag.Version, runTest, rebuild: true ) == null )
         {
-            monitor.Info( ScreenType.CKliScreenTag, $"Version '{tag.Version.ParsedText}' of '{repo.DisplayPath}' has been successfully rebuilt." );
-            return true;
+            monitor.Error( "Build failed. See 'ckli log'." );
+            return false;
         }
-        monitor.Error( "Build failed. See 'ckli log'." );
-        return false;
+        monitor.Info( ScreenType.CKliScreenTag, $"Version '{tag.Version.ParsedText}' of '{repo.DisplayPath}' has been successfully rebuilt." );
+        return true;
     }
 }

@@ -68,4 +68,18 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         return _local.OnLocalBuild( monitor, repo, version, rebuild, content );
     }
 
+    /// <summary>
+    /// This should only be called by the VersionTag plugin.
+    /// <para>
+    /// This is idempotent.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The source repository.</param>
+    /// <param name="version">The release to destroy.</param>
+    /// <returns>The content info it has been removed. Null if it didn't exist.</returns>
+    public BuildContentInfo? DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
+    {
+        return _local.DestroyLocalRelease( monitor, repo, version );
+    }
 }

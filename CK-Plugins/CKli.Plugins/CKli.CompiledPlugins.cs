@@ -90,7 +90,7 @@ sealed class Generated : IPluginFactory
         var objects = new object[7];
         objects[0] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
         objects[1] = new CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin( new PrimaryPluginContext( _plugins[3], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
-        objects[2] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ), (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1] );
+        objects[2] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ), (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[3] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2] );
         objects[4] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[5] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[3], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[4], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );

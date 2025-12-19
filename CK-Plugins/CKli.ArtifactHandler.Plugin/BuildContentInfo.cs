@@ -1,8 +1,6 @@
 using CK.Core;
 using CSemVer;
-using Microsoft.VisualBasic;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -35,7 +33,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         var b = ImmutableArray.CreateBuilder<NuGetPackageInstance>( r.ReadNonNegativeSmallInt32() );
         for( int i = 0; i < b.Capacity; ++i )
         {
-            b.Add( new NuGetPackageInstance( r.ReadString(), SVersion.Parse( r.ReadString() ) ) );
+            b.Add( new NuGetPackageInstance( r.ReadSharedString()!, SVersion.Parse( r.ReadSharedString() ) ) );
         }
         _consumed = b.MoveToImmutable();
         _produced = Read( r );
@@ -49,7 +47,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
                 var b = ImmutableArray.CreateBuilder<string>( count );
                 for( int i = 0; i < count; ++i )
                 {
-                    b.Add( r.ReadString() );
+                    b.Add( r.ReadSharedString()! );
                 }
                 return b.MoveToImmutable();
             }
@@ -62,8 +60,8 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         w.WriteNonNegativeSmallInt32( _consumed.Length );
         foreach( var p in _consumed )
         {
-            w.Write( p.PackageId );
-            w.Write( p.Version.ToString() );
+            w.WriteSharedString( p.PackageId );
+            w.WriteSharedString( p.Version.ToString() );
         }
         Write( w, _produced );
         Write( w, _assetFileNames );
@@ -73,7 +71,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
             w.WriteNonNegativeSmallInt32( a.Length );
             foreach( var s in a )
             {
-                w.Write( s ); 
+                w.WriteSharedString( s ); 
             }
         }
     }

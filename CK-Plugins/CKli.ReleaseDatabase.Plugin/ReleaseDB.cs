@@ -218,7 +218,7 @@ sealed class ReleaseDB
             while( --count >= 0 )
             {
                 var id = r.ReadUInt64();
-                var v = SVersion.Parse( r.ReadString() );
+                var v = SVersion.Parse( r.ReadSharedString() );
                 var c = new BuildContentInfo( r );
                 _data.Add( (id, v), c );
             }
@@ -246,7 +246,7 @@ sealed class ReleaseDB
             foreach( var (k, v) in _data )
             {
                 w.Write( k.RepoId );
-                w.Write( k.Version.ToString() );
+                w.WriteSharedString( k.Version.ToString() );
                 v.Write( w );
             }
         }
@@ -256,5 +256,17 @@ sealed class ReleaseDB
             return false;
         }
         return true;
+    }
+
+    internal BuildContentInfo? DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
+    {
+        Throw.DebugAssert( IsLocal );
+        EnsureLoad( monitor );
+        if( _data.Remove( (repo.CKliRepoId.Value, version), out var exists ) )
+        {
+            monitor.Info( $"Removed version '{repo.DisplayPath}/{version}' from {Name} release database." );
+            OnChanged( monitor );
+        }
+        return exists;
     }
 }

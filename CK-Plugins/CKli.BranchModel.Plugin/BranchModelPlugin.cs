@@ -145,14 +145,16 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
     /// Tries to parse "v<paramref name="major"/>.<paramref name="minor"/>/fix".
     /// </summary>
     /// <param name="branchName">The name to parse.</param>
+    /// <param name="dev">Whether the branch is the "dev/" branch.</param>
     /// <param name="major">The major version to fix.</param>
     /// <param name="minor">The minor version to fix.</param>
     /// <returns>True on success, false otherwise.</returns>
-    public static bool TryParseBranchFixName( string branchName, out int major, out int minor )
+    public static bool TryParseBranchFixName( string branchName, out bool dev, out int major, out int minor )
     {
         major = 0;
         minor = 0;
         var s = branchName.AsSpan();
+        dev = s.TryMatch( "dev/" );
         return s.TryMatch( "fix/" )
                && s.TryMatch( 'v' )
                && s.TryMatchInteger( out major )

@@ -7,7 +7,7 @@ namespace CKli.ArtifactHandler.Plugin;
 public readonly record struct NuGetPackageInstance( string PackageId, SVersion Version ) : IComparable<NuGetPackageInstance>
 {
     /// <summary>
-    /// Tries to match "xxx/version" pattern. The <paramref name="head"/> is not forwarded on error.
+    /// Tries to match "xxx@version" pattern. The <paramref name="head"/> is not forwarded on error.
     /// </summary>
     /// <param name="head">The head.</param>
     /// <param name="instance">The instance on success.</param>
@@ -15,7 +15,7 @@ public readonly record struct NuGetPackageInstance( string PackageId, SVersion V
     public static bool TryMatch( ref ReadOnlySpan<char> head, out NuGetPackageInstance instance )
     {
         instance = default;
-        int idx = head.IndexOf( '/' );
+        int idx = head.IndexOf( '@' );
         if( idx <= 0 ) return false;
         var rest = head.Slice( idx + 1 );
         var v = SVersion.TryParse( ref rest );
@@ -38,8 +38,8 @@ public readonly record struct NuGetPackageInstance( string PackageId, SVersion V
     }
 
     /// <summary>
-    /// Returns "<see cref="PackageId"/>/<see cref="Version"/>".
+    /// Returns "<see cref="PackageId"/>@<see cref="Version"/>".
     /// </summary>
     /// <returns>The package/version string.</returns>
-    public override string ToString() => $"{PackageId}/{Version}";
+    public override string ToString() => $"{PackageId}@{Version}";
 }

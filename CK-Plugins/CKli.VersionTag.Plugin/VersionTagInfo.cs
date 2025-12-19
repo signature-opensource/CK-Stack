@@ -4,6 +4,7 @@ using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -20,7 +21,9 @@ public sealed class VersionTagInfo : RepoInfo
     readonly World.Issue? _publishedReleaseContentIssue;
     readonly SVersion _minVersion;
     readonly SVersion? _maxVersion;
+    readonly bool _hasIssues;
     Dictionary<string, TagCommit>? _sha2C;
+    ImmutableArray<TagCommit> _lastMajorMinorStables;
 
     internal VersionTagInfo( Repo repo,
                              SVersion minVersion,
@@ -30,7 +33,8 @@ public sealed class VersionTagInfo : RepoInfo
                              List<Tag>? removableTags,
                              Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags,
                              List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts,
-                             World.Issue? publishedReleaseContentIssue )
+                             World.Issue? publishedReleaseContentIssue,
+                             bool hasMissingContentInfo )
         : base( repo )
     {
         _lastStables = lastStables;
@@ -42,6 +46,7 @@ public sealed class VersionTagInfo : RepoInfo
         _invalidTags = invalidTags;
         _tagConflicts = tagConflicts;
         _publishedReleaseContentIssue = publishedReleaseContentIssue;
+        _hasIssues = hasMissingContentInfo || tagConflicts != null || publishedReleaseContentIssue != null;
     }
 
     /// <summary>
@@ -62,9 +67,55 @@ public sealed class VersionTagInfo : RepoInfo
     public SVersion? MaxVersion => _maxVersion;
 
     /// <summary>
+    /// Gets whether this repository has "annoying" issues related to its version tags: it should be better to fix
+    /// these before taking any decision based on versions for this repository.
+    /// <para>
+    /// Non empty <see cref="RemovableTags"/> is not considered annoying.
+    /// </para>
+    /// </summary>
+    public bool HasIssues => _hasIssues;
+
+    /// <summary>
     /// Gets the last stable versions from the <see cref="LastStable"/> one to the oldest one.
+    /// <para>
+    /// <see cref="TagCommit.IsRegularVersion"/> is always true (no "+fake" nor "+deprecated" here).
+    /// </para>
     /// </summary>
     public IReadOnlyList<TagCommit> LastStables => _lastStables;
+
+    /// <summary>
+    /// Gets the filtered set of <see cref="LastStables"/> with the maximal <see cref="SVersion.Patch"/>.
+    /// </summary>
+    public ImmutableArray<TagCommit> LastMajorMinorStables
+    {
+        get
+        {
+            if( _lastMajorMinorStables.IsDefault )
+            {
+                var c = _lastStable;
+                if( c == null )
+                {
+                    _lastMajorMinorStables = [];
+                }
+                else
+                {
+                    var cV = c.Version;
+                    var b = ImmutableArray.CreateBuilder<TagCommit>();
+                    foreach( var tc in _lastStables )
+                    {
+                        var v = tc.Version;
+                        if( v.Major != cV.Major || v.Minor != cV.Minor )
+                        {
+                            b.Add( tc );
+                            cV = v;
+                        }
+                    }
+                    _lastMajorMinorStables = b.DrainToImmutable();
+                }
+            }
+            return _lastMajorMinorStables;
+        }
+    }
 
     /// <summary>
     /// Gets the last stable version: this is the common ancestor of the "hot zone" where branch model applies.
@@ -457,13 +508,38 @@ public sealed class VersionTagInfo : RepoInfo
                              && !_sha2C.ContainsKey( buildCommit.Tree.Sha ) );
 
         var newOne = new TagCommit( version, buildCommit, t );
-        var idx = _lastStables.BinarySearch( newOne );
-        Throw.DebugAssert( idx < 0 );
-        _lastStables.Insert( ~idx, newOne );
         _v2C.Add( version, newOne );
         _sha2C.Add( newOne.Sha, newOne );
         _sha2C.Add( newOne.ContentSha, newOne );
+        if( version.IsStable )
+        {
+            var idx = _lastStables.BinarySearch( newOne );
+            Throw.DebugAssert( idx < 0 );
+            _lastStables.Insert( ~idx, newOne );
+            _lastMajorMinorStables = default;
+        }
     }
+
+    internal TagCommit? RemoveTag( SVersion version )
+    {
+        if( _v2C.Remove( version, out var tc ) )
+        {
+            if( _sha2C != null )
+            {
+                _sha2C.Remove( tc.Sha );
+                _sha2C.Remove( tc.ContentSha );
+            }
+            if( version.IsStable )
+            {
+                var idx = _lastStables.BinarySearch( tc );
+                Throw.DebugAssert( idx >= 0 );
+                _lastStables.RemoveAt( idx );
+                _lastMajorMinorStables = default;
+            }
+        }
+        return tc;
+    }
+
 
     internal void CollectIssues( IActivityMonitor monitor, ScreenType screenType, Action<World.Issue> collector )
     {
@@ -521,7 +597,7 @@ public sealed class VersionTagInfo : RepoInfo
 
                                 This will be fixed by deleting them locally: a fetch from te remote will make them reappear.
                                 To really remove them, the tag should be deleted from the remote origin and local 
-                                tags that replace them should be pushed. Use the command 'ckli tag push' to publish
+                                tags that replace them should be pushed. Use the command 'ckli tag push/pull/list/delete' to publish
                                 version tags to the remote origin.
                                 """ ),
                                 Repo,

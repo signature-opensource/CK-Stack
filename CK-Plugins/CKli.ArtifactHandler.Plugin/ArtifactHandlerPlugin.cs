@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.Core;
 using CSemVer;
+using System;
 using System.Collections.Generic;
 using System.IO;
 
@@ -114,4 +115,29 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         return false;
     }
 
+    /// <summary>
+    /// This should only be called by the VersionTag plugin.
+    /// <para>
+    /// This is idempotent.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The source repository.</param>
+    /// <param name="version">The release to destroy.</param>
+    /// <returns>True on success, false if deleting some artifacts failed.</returns>
+    public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version, BuildContentInfo buildContentInfo )
+    {
+        bool success = true;
+        if( buildContentInfo.Produced.Length > 0 )
+        {
+            foreach( var p in buildContentInfo.Produced )
+            {
+                NuGetHelper.ClearGlobalCache( monitor, p, version.ToString() );
+                success &= FileHelper.DeleteFile( monitor, Path.Combine( _localFeedNuGetPath, $"{p}.{version}.nupkg" ) );
+            }
+        }
+        var assetsFolder = GetAssetsFolder( repo, version );
+        success &= FileHelper.DeleteFolder( monitor, assetsFolder );
+        return success;
+    }
 }

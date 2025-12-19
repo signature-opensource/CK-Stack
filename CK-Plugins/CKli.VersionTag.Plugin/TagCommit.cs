@@ -44,19 +44,19 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
     public string ContentSha => _contentSha;
 
     /// <summary>
-    /// Gets whether this version tag is "+Fake" one: it is here only
+    /// Gets whether this version tag is "+fake" one: it is here only
     /// to enables gaps between versions that would otherwise be rejected.
     /// </summary>
     public bool IsFakeVersion => _isFakeVersion;
 
     /// <summary>
-    /// Gets whether this version tag is "+Deprecated" one: an actual 
+    /// Gets whether this version tag is "+deprecated" one: an actual 
     /// version exists but for any reason it must not be used anymore.
     /// </summary>
     public bool IsDeprecatedVersion => _isDeprecatedVersion;
 
     /// <summary>
-    /// Gets whether this version tag is nor a +Fake nor a +Deprecated one.
+    /// Gets whether this version tag is nor a "+fake" nor a "+deprecated" one.
     /// </summary>
     public bool IsRegularVersion => !_isDeprecatedVersion && !_isFakeVersion;
 

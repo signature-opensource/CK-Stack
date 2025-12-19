@@ -17,7 +17,7 @@ public sealed class BranchNode
         _name = name;
         if( !dev )
         {
-            _devBranch = new BranchNode( this, $"{name}-dev", true );
+            _devBranch = new BranchNode( this, $"dev/{name}", true );
         }
     }
 
@@ -33,12 +33,12 @@ public sealed class BranchNode
 
     /// <summary>
     /// Gets the dev branch if this is "stable", "rc", "pre", "beta", "alpha",
-    /// null if this is a "XXX-dev" branch.
+    /// null if this is a "dev/XXX" branch.
     /// </summary>
     public BranchNode? DevBranch => _devBranch;
 
     /// <summary>
-    /// Gets whether this is a not a "XXX-dev" branch.
+    /// Gets whether this is a not a "dev/XXX" branch.
     /// </summary>
     [MemberNotNullWhen( false, nameof( DevBranch ) )]
     public bool IsDevBranch => _devBranch == null;

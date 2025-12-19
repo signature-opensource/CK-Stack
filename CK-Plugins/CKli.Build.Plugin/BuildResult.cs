@@ -11,24 +11,14 @@ using System.Linq;
 namespace CKli.Build.Plugin;
 
 /// <summary>
-/// Captures the result of a <see cref="RepoBuilder.Build(IActivityMonitor, SVersion, bool, bool?)"/>.
+/// Captures the result of a successful <see cref="RepoBuilder.Build(IActivityMonitor, SVersion, bool, bool?)"/>.
 /// </summary>
 public sealed partial class BuildResult
 {
     readonly BuildContentInfo _buildContentInfo;
     readonly NormalizedPath _assetsFolder;
-    readonly Repo? _repo;
-    readonly SVersion? _version;
-
-    BuildResult()
-    {
-        _buildContentInfo = null!;
-    }
-
-    /// <summary>
-    /// Gets the failed result.
-    /// </summary>
-    public static readonly BuildResult Failed = new BuildResult(); 
+    readonly Repo _repo;
+    readonly SVersion _version;
 
     internal BuildResult( Repo repo,
                           SVersion version,
@@ -49,32 +39,19 @@ public sealed partial class BuildResult
     }
 
     /// <summary>
-    /// Gets whether the build succeeded.
+    /// Gets the repository.
     /// </summary>
-    [MemberNotNullWhen( true, nameof( Repo ), nameof( _repo ), nameof( Version ), nameof( _version ) )]
-    public bool Success => _version != null;
+    public Repo Repo => _repo;
 
     /// <summary>
-    /// Gets the repository. Always available when <see cref="Success"/> is true.
+    /// Gets the version built.
     /// </summary>
-    public Repo? Repo => _repo;
-
-    /// <summary>
-    /// Gets the version built. Always available when <see cref="Success"/> is true.
-    /// </summary>
-    public SVersion? Version => _version;
+    public SVersion Version => _version;
 
     /// <summary>
     /// Gets the build content.
     /// </summary>
-    public BuildContentInfo Content
-    {
-        get
-        {
-            Throw.CheckState( Success );
-            return _buildContentInfo;
-        }
-    }
+    public BuildContentInfo Content => _buildContentInfo;
 
     /// <summary>
     /// Gets the assets folder in "$Local/Assets". <see cref="NormalizedPath.IsEmptyPath"/>
@@ -83,10 +60,10 @@ public sealed partial class BuildResult
     public NormalizedPath AssetsFolder => _assetsFolder;
 
     /// <summary>
-    /// Gets the <see cref="BuildContentInfo"/> on success, "Failed" otherwise.
+    /// Gets the <see cref="BuildContentInfo"/>.
     /// </summary>
     /// <returns>The build content info.</returns>
-    public override string ToString() => Success ? "Failed" : _buildContentInfo.ToString();
+    public override string ToString() => _buildContentInfo.ToString();
 }
 
 

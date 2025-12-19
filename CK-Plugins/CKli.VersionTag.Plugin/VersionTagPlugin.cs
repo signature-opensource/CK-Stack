@@ -17,12 +17,16 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     static readonly XName _xMinVersion = XNamespace.None.GetName( "MinVersion" );
     static readonly XName _xMaxVersion = XNamespace.None.GetName( "MaxVersion" );
     readonly ReleaseDatabasePlugin _releaseDatabase;
+    readonly ArtifactHandlerPlugin _artifactHandler;
 
-    public VersionTagPlugin( PrimaryPluginContext primaryContext, ReleaseDatabasePlugin releaseDatabase )
+    public VersionTagPlugin( PrimaryPluginContext primaryContext,
+                             ReleaseDatabasePlugin releaseDatabase,
+                             ArtifactHandlerPlugin artifactHandler )
         : base( primaryContext )
     {
         World.Events.Issue += IssueRequested;
         _releaseDatabase = releaseDatabase;
+        _artifactHandler = artifactHandler;
     }
 
     void IssueRequested( IssueEvent e )
@@ -49,6 +53,43 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         Throw.CheckState( !HasRepoInfoBeenCreated( repo ) );
         return PrimaryPluginContext.GetConfigurationFor( repo )
                                    .Edit( monitor, ( monitor, e ) => e.SetAttributeValue( _xMinVersion, min.ToString() ) );
+    }
+
+    /// <summary>
+    /// Destroys a released version. The version tag is deleted, the release database is updated
+    /// and any artifacts are removed: this centralizes the calls to <see cref="ReleaseDatabasePlugin.DestroyLocalRelease(IActivityMonitor, Repo, SVersion)"/>
+    /// and <see cref="ArtifactHandlerPlugin.DestroyLocalRelease(IActivityMonitor, Repo, SVersion, BuildContentInfo)"/>
+    /// that should not be called directly.
+    /// <para>
+    /// This is idempotent.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The source repository.</param>
+    /// <param name="version">The release to destroy.</param>
+    /// <returns>True on success, false on error (only errors are that assets cannot be properly deleted).</returns>
+    public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
+    {
+        var info = Get( monitor, repo );
+        if( info == null ) return false;
+        using( monitor.OpenInfo( $"Deleting local release '{repo.DisplayPath}/{version}'." ) )
+        {
+            // Take no risk: delete every possible traces.
+            var tag = info.RemoveTag( version )?.BuildContentInfo;
+            var db = _releaseDatabase.DestroyLocalRelease( monitor, repo, version );
+            if( tag != null && db != null && db != tag )
+            {
+                // Use single | (no short circuit).
+                return _artifactHandler.DestroyLocalRelease( monitor, repo, version, tag )
+                        | _artifactHandler.DestroyLocalRelease( monitor, repo, version, db );
+            }
+            var any = db ?? tag;
+            if( any != null )
+            {
+                return _artifactHandler.DestroyLocalRelease( monitor, repo, version, any );
+            }
+        }
+        return true;
     }
 
     (SVersion Min, SVersion? Max) ReadRepoConfiguration( IActivityMonitor monitor, Repo repo )
@@ -132,11 +173,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     {
         var (minVersion, maxVersion) = ReadRepoConfiguration( monitor, repo );
 
+        var isExecutingIssue = PrimaryPluginContext.Command is CKliIssue;
+
         List<Tag>? removableTags = null;
         // Collects conflicting tags.
         List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts = null;
 
-        // First pass. Enumerates all the tags to keep all +invalid-tag and
+        // First pass. Enumerates all the tags to keep all +invalid and
         // tags in the MajorRange.
         // This list is temporary (first pass) to build the v2c index.
         List<TagCommit> validTags = new List<TagCommit>();
@@ -253,7 +296,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
         }
 
-        var lastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
+        var lastStables = v2c.Values.Where( tc => tc.IsRegularVersion && tc.Version.IsStable ).Order().ToList();
 
         if( hasBadTagNames )
         {
@@ -277,7 +320,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // This step can also produce an important issue: the fact that a release tag is NOT the same as the Published
         // release database contains. This is odd and should almost never happen but this is a checkpoint that doesn't
         // cost much.
-        // 
+        //
+        bool hasMissingContentInfo = false;
         World.Issue? publishedReleaseContentIssue = null;
         if( tagConflicts == null )
         {
@@ -286,12 +330,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             // is implemented in the build plugin because its fix requires builds to be run).
             var it = new RegularVersionTagIterator( v2c );
             publishedReleaseContentIssue = _releaseDatabase.OnExistingVersionTags( monitor, repo, it.GetVersions() );
-            if( publishedReleaseContentIssue != null || it.HasMissingContentInfo )
+            hasMissingContentInfo = it.HasMissingContentInfo;
+            if( !isExecutingIssue && (publishedReleaseContentIssue != null || hasMissingContentInfo) )
             {
                 monitor.Warn( $"At least one version tag issue in '{repo.DisplayPath}'. Use 'ckli issue' for details." );
             }
         }
-        else
+        else if( !isExecutingIssue )
         {
             monitor.Warn( $"{tagConflicts.Count} tag conflicts in repository '{repo.DisplayPath}'. Use 'ckli issue' for details." );
         }
@@ -304,7 +349,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                                    removableTags,
                                    invalidTags,
                                    tagConflicts,
-                                   publishedReleaseContentIssue );
+                                   publishedReleaseContentIssue,
+                                   hasMissingContentInfo );
 
         static bool ResolveConflict( Dictionary<SVersion, TagCommit> v2c, TagCommit exists, TagCommit newOne, ref List<Tag>? removableTags )
         {
