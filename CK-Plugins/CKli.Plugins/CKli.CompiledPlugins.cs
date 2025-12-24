@@ -48,6 +48,7 @@ public static class CompiledPlugins
         types[0] = new PluginTypeInfo( plugin, "CKli.ShallowSolution.Plugin.ShallowSolutionPlugin", true, 0, 7 );
         var pluginCommands = new PluginCommand[]{
             new Cmd_branch＿fix( infos[0].PluginTypes[0] ),
+            new Cmd_build( infos[2].PluginTypes[1] ),
             new Cmd_repo＿build( infos[2].PluginTypes[1] ),
             new Cmd_repo＿rebuild＿old( infos[2].PluginTypes[1] ),
             new Cmd_repo＿rebuild＿version( infos[2].PluginTypes[1] ),
@@ -133,6 +134,36 @@ sealed class Cmd_branch＿fix : PluginCommand
                                            monitor, context, a0, f0, f1 ) );
     }
 }
+sealed class Cmd_build : PluginCommand
+{
+    internal Cmd_build( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "build",
+                "Build-Test-Package and propagates the current Repo/branch if needed.",
+                1,
+                -1,
+                arguments: [
+                    ("branchName", "Specify the branch to build."),
+                ],
+                options: [
+                ],
+                flags: [
+                    (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
+                    (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
+                    (["--rebuild",], "Build even if a version tag exists and its artifacts already exist locally." ),
+                ],
+                "Build", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        var a0 = cmdLine.EatArgument();
+        var f0 = cmdLine.EatFlag( Flags[0].Names );
+        var f1 = cmdLine.EatFlag( Flags[1].Names );
+        var f2 = cmdLine.EatFlag( Flags[2].Names );
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).Build(
+                                           monitor, context, a0, f0, f1, f2 ) );
+    }
+}
 sealed class Cmd_repo＿build : PluginCommand
 {
     internal Cmd_repo＿build( IPluginTypeInfo typeInfo )
@@ -149,7 +180,7 @@ sealed class Cmd_repo＿build : PluginCommand
                 flags: [
                     (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
-                    (["--rebuild",], "Build even if a version tag exists and its artifacts locally found." ),
+                    (["--rebuild",], "Build even if a version tag exists and its artifacts already exist locally." ),
                 ],
                 "RepoBuild", MethodAsyncReturn.None ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )

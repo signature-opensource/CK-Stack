@@ -1,29 +1,26 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
+using CKli.BranchModel.Plugin;
 using CKli.Core;
+using CKli.VersionTag.Plugin;
+using LibGit2Sharp;
 using System;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
+using System.Text;
 
 namespace CKli.ShallowSolution.Plugin;
 
+// Should be HotGraphPlugin?
 public sealed class ShallowSolutionPlugin : PrimaryPluginBase
 {
-    /// <summary>
-    /// This is a primary plugin. <see cref="PrimaryPluginBase.PrimaryPluginContext"/>
-    /// is always available (as well as the <see cref="PluginBase.World"/>).
-    /// </summary>
     public ShallowSolutionPlugin( PrimaryPluginContext primaryContext )
         : base( primaryContext )
     {
-        primaryContext.World.Events.PluginInfo += e =>
-        {
-            Throw.CheckState( PrimaryPluginContext.PluginInfo.FullPluginName == "CKli.ShallowSolution.Plugin" );
-            Throw.CheckState( World == e.World );
-            Throw.CheckState( PrimaryPluginContext.World == e.World );
-            e.AddMessage( PrimaryPluginContext, e.ScreenType.Text( "Message from 'ShallowSolution' plugin." ) );
-            e.Monitor.Info( $"New 'ShallowSolution' in world '{e.World.Name}' plugin certainly requires some development." );
-            Console.WriteLine( $"Hello from 'ShallowSolution' plugin." );
-        };
     }
+
 }
+

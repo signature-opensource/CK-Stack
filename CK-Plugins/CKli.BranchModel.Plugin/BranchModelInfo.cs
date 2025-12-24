@@ -46,7 +46,7 @@ public sealed partial class BranchModelInfo : RepoInfo
         _removable = removable;
         _desynchronized = desynchronized;
         _unrelated = unrelated;
-        _hasIssues = unrelated != null || desynchronized != null;
+        _hasIssues = unrelated != null || desynchronized != null || removable != null;
     }
 
     /// <summary>

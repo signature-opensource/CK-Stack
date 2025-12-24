@@ -9,8 +9,8 @@ public sealed class HotBranch
     readonly BranchName _name;
     readonly HotBranch? _theoreticalBaseBranch;
     readonly HotBranch? _existingBaseBranch;
-    readonly Branch? _gitBranch;
     readonly HistoryDivergence? _divergence;
+    Branch? _gitBranch;
 
     internal HotBranch( BranchName name,
                         HotBranch? theoreticalBaseBranch,
@@ -96,12 +96,34 @@ public sealed class HotBranch
         {
             if( _divergence != null && _divergence.BehindBy.HasValue && _divergence.BehindBy.Value > 0 )
             {
-                Throw.DebugAssert( _gitBranch != null && _existingBaseBranch._gitBranch != null );
+                Throw.DebugAssert( _gitBranch != null && _existingBaseBranch != null && _existingBaseBranch._gitBranch != null );
                 // Handle the edge case of an empty commit on the child branch (or a "magically" same content).
                 return _gitBranch.Tip.Tree.Sha != _existingBaseBranch._gitBranch.Tip.Tree.Sha;
             }
             return false;
         }
+    }
+
+
+    internal void CreateGitBranch( Signature committer )
+    {
+        Throw.DebugAssert( _gitBranch == null );
+        // When the "stable" branch doesn't exist, no other HotBranch are instantiated.
+        Throw.CheckState( "The root \"stable\" branch cannot be created by this method.", ExistingBaseBranch != null );
+        Throw.DebugAssert( _existingBaseBranch!._gitBranch != null );
+        var git = ((IBelongToARepository)_existingBaseBranch!._gitBranch).Repository;
+
+        var baseCommit = _existingBaseBranch!._gitBranch.Tip;
+        var c = git.ObjectDatabase.CreateCommit( committer,
+                                                 committer,
+                                                 $"""
+                                                 Initializing '{_name}'.
+
+                                                 """,
+                                                 baseCommit.Tree,
+                                                 [baseCommit],
+                                                 prettifyMessage: false );
+        _gitBranch = git.Branches.Add( _name.Name, c );
     }
 
     /// <summary>

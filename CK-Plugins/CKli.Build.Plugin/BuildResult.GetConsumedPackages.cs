@@ -5,6 +5,7 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Text;
 using System.Text.Json;
 
@@ -40,75 +41,15 @@ public partial class BuildResult
     /// => The simplest and most robust way is the 'dotnet package list --format json'.
     /// 
     /// </remarks>
-    internal static SortedSet<NuGetPackageInstance>? GetConsumedPackages( IActivityMonitor monitor, CommitBuildInfo buildInfo )
+    internal static bool GetConsumedPackages( IActivityMonitor monitor, CommitBuildInfo buildInfo, out ImmutableArray<NuGetPackageInstance> packages )
     {
         var stdOut = new StringBuilder();
         if( !BuildPlugin.RunDotnet( monitor, buildInfo.Repo, "package list --format json --no-restore", stdOut ) )
         {
-            return null;
+            packages = [];
+            return false;
         }
-        try
-        {
-            using var d = JsonDocument.Parse( stdOut.ToString() );
-            if( !ReadProblems( monitor, buildInfo, d ) )
-            {
-                return null;
-            }
-            return ReadPackages( d );
-        }
-        catch( Exception ex )
-        {
-            monitor.Error( $"While reading Package list for '{buildInfo}'.", ex );
-            return null;
-        }
-
-
-        static bool ReadProblems( IActivityMonitor monitor, CommitBuildInfo buildInfo, JsonDocument d )
-        {
-            bool hasWarning = false;
-            if( d.RootElement.TryGetProperty( "problems"u8, out var problems ) )
-            {
-                foreach( var p in problems.EnumerateArray() )
-                {
-                    if( p.GetProperty( "level"u8 ).GetString() == "error" )
-                    {
-                        monitor.Error( $"Package list for '{buildInfo}' has errors. See logs." );
-                        return false;
-                    }
-                    else
-                    {
-                        hasWarning = true;
-                    }
-                }
-            }
-            if( hasWarning )
-            {
-                monitor.Warn( $"Package list for '{buildInfo}' has warnings. See logs." );
-            }
-            return true;
-        }
-
-        static SortedSet<NuGetPackageInstance> ReadPackages( JsonDocument d )
-        {
-            var result = new SortedSet<NuGetPackageInstance>();
-            foreach( var p in d.RootElement.GetProperty( "projects"u8 ).EnumerateArray() )
-            {
-                foreach( var f in p.GetProperty( "frameworks"u8 ).EnumerateArray() )
-                {
-                    foreach( var package in f.GetProperty( "topLevelPackages"u8 ).EnumerateArray() )
-                    {
-                        string? packageId = package.GetProperty( "id"u8 ).GetString();
-                        if( string.IsNullOrWhiteSpace( packageId ) )
-                        {
-                            Throw.InvalidDataException( $"Null or empty 'topLevelPackages.id' property." );
-                        }
-                        result.Add( new NuGetPackageInstance( packageId,
-                                                              SVersion.Parse( package.GetProperty( "resolvedVersion"u8 ).GetString() ) ) );
-                    }
-                }
-            }
-            return result;
-        }
-
+        return NuGetPackageInstance.ReadConsumedPackages( monitor, stdOut.ToString(), buildInfo, out packages );
     }
+
 }

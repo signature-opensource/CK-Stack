@@ -22,7 +22,7 @@ public sealed partial class BuildResult
 
     internal BuildResult( Repo repo,
                           SVersion version,
-                          SortedSet<NuGetPackageInstance> consumedPackages,
+                          ImmutableArray<NuGetPackageInstance> consumedPackages,
                           ImmutableArray<string> producedPackages,
                           NormalizedPath assetsFolder,
                           ImmutableArray<string> assetFileNames )

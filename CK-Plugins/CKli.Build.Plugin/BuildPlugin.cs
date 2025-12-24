@@ -41,6 +41,69 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     }
 
     [Description( "Build-Test-Package and propagates the current Repo/branch if needed." )]
+    [CommandPath( "build" )]
+    public bool Build( IActivityMonitor monitor,
+                       CKliEnv context,
+                       [Description( "Specify the branch to build." )]
+                       string branchName,
+                       [Description( "Don't run tests even if they have never locally run on this commit." )]
+                       bool skipTests = false,
+                       [Description( "Run tests even if they have already run successfully on this commit." )]
+                       bool forceTests = false,
+                       [Description( "Build even if a version tag exists and its artifacts already exist locally." )]
+                       bool rebuild = false )
+    {
+        BranchName? namedBranch;
+        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
+            || (namedBranch = _branchModel.GetValidBranchName( monitor, branchName )) == null
+            || !CheckBuildPreconditions( monitor, out var allRepos ) )
+        {
+            return false;
+        }
+        bool success = true;
+        foreach( var repo in allRepos )
+        {
+            var branchInfo = _branchModel.Get( monitor, repo );
+            Throw.DebugAssert( branchInfo != null );
+            var hotBranch = branchInfo.Branches[namedBranch.Name];
+            var contentInfo = GetBuildInfo( monitor, repo, hotBranch );
+            if( contentInfo != null )
+            {
+                monitor.Info( $"""
+                    {repo.DisplayPath}/{hotBranch}:
+                    {contentInfo.ToString()}
+                    """ );
+            }
+            else
+            {
+                success = false;
+            }
+        }
+        return success;
+
+        static BuildContentInfo? GetBuildInfo( IActivityMonitor monitor, Repo repo, HotBranch branch )
+        {
+            var b = branch.GitBranch ?? branch.ExistingBaseBranch?.GitBranch;
+            if( b == null )
+            {
+                monitor.Error( "Invalid HotBranch." );
+                return null;
+            }
+            // Should use versionTags from Content Sha before ShallowBuild.
+            var s = new CKli.ArtifactHandler.Plugin.ShallowSolution( repo, b.Tip );
+            try
+            {
+                return s.ShallowBuild( monitor );
+            }
+            finally
+            {
+                s.Destroy( monitor );
+            }
+        }
+
+    }
+
+    [Description( "Build-Test-Package and propagates the current Repo/branch if needed." )]
     [CommandPath( "repo build" )]
     public bool RepoBuild( IActivityMonitor monitor,
                            CKliEnv context,
@@ -51,14 +114,11 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            bool skipTests = false,
                            [Description( "Run tests even if they have already run successfully on this commit." )]
                            bool forceTests = false,
-                           [Description( "Build even if a version tag exists and its artifacts locally found." )]
+                           [Description( "Build even if a version tag exists and its artifacts already exist locally." )]
                            bool rebuild = false )
     {
-        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
-        {
-            return false;
-        }
-        if( !CheckBuildPreconditions( monitor, out var allRepos ) )
+        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
+            || !CheckBuildPreconditions( monitor, out var allRepos ) )
         {
             return false; 
         }
@@ -85,21 +145,13 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return BuildFix( monitor, repo, r, context, branch, branchName, devFix, fixMajor, fixMinor, runTest, rebuild );
         }
         // We are not on a vMajor.Minor/fix branch.
-        // We must be on a branch defined in the Branch Model (if at least the root branch exists in the Repo).
+        // We must be on a branch defined in the Branch Model.
         var branchInfo = _branchModel.Get( monitor, repo );
-        if( branchInfo.Root.GitBranch == null )
-        {
-            monitor.Error( $"No root branch '{_branchModel.BranchNamespace.Root.Name}' exists. This must be fixed." );
-            return false;
-        }
+        Throw.DebugAssert( "There's no branch issue.", branchInfo.Root.GitBranch != null );
         // If we are not on a known branch (defined by the Branch Model), give up.
-        if( !_branchModel.BranchNamespace.Branches.TryGetValue( branchName, out var exists ) )
+        var namedBranch = _branchModel.GetValidBranchName( monitor, branchName );
+        if( namedBranch == null )
         {
-            var branchNames = _branchModel.BranchNamespace.Branches.Values.Select( b => b.Name );
-            monitor.Error( $"""
-                Invalid branch '{branchName}'.
-                Supported branches are '{branchNames.Order().Concatenate( "', '" )}'.
-                """ );
             return false;
         }
         Throw.NotSupportedException( "Not implemented yet." );
@@ -111,21 +163,24 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // Build preconditions are strict:
         // - No repo must be dirty.
         // - No repo's VersionTagInfo must have issues.
+        // - No repo's BranchModelInfo must have issues.
         using( monitor.OpenTrace( $"Checking World's global state." ) )
         {
             bool success = true;
             allRepos = World.GetAllDefinedRepo( monitor );
             if( allRepos == null ) return false;
-            foreach( var rr in allRepos )
+            foreach( var repo in allRepos )
             {
-                if( !rr.GitRepository.CheckCleanCommit( monitor ) )
+                if( !repo.GitRepository.CheckCleanCommit( monitor ) )
                 {
                     success = false;
                 }
                 else
                 {
-                    var tags = _versionTags.Get( monitor, rr );
+                    var tags = _versionTags.Get( monitor, repo );
                     success &= !tags.HasIssues;
+                    var branch = _branchModel.Get( monitor, repo );
+                    success &= !branch.HasIssues;
                 }
             }
             if( !success )

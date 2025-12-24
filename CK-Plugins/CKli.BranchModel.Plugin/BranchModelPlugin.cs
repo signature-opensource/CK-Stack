@@ -40,6 +40,27 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
     /// </summary>
     public BranchNamespace BranchNamespace => _namespace;
 
+    /// <summary>
+    /// Finds the <paramref name="branchName"/> in the <see cref="BranchNamespace"/> or emits an error
+    /// if this is not a valid name.
+    /// </summary>
+    /// <param name="monitor">The monitor to emit the error.</param>
+    /// <param name="branchName">The branch name to lookup.</param>
+    /// <returns>The name or null on error.</returns>
+    public BranchName? GetValidBranchName( IActivityMonitor monitor, string branchName )
+    {
+        // If we are not on a known branch (defined by the Branch Model), give up.
+        if( !_namespace.Branches.TryGetValue( branchName, out var exists ) )
+        {
+            var branchNames = _namespace.Branches.Values.Select( b => b.Name );
+            monitor.Error( $"""
+                Invalid branch '{branchName}'.
+                Supported branches are '{branchNames.Order().Concatenate( "', '" )}'.
+                """ );
+        }
+        return exists;
+    }
+
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
     {
         var git = repo.GitRepository.Repository;
@@ -64,7 +85,11 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         Throw.DebugAssert( index.Count == _namespace.Branches.Count );
         // Traversal has been done top-down. If branches can be removed this must be done bottom-up.
         if( removable != null ) removable.Reverse();
-        if( (unrelated != null || desynchronized != null) && PrimaryPluginContext.Command is not CKliIssue )
+        // Currently we consider that removable branches is an issue.
+        // This is clearly a bit too strong but simplifies the build initialization.
+        // To make this optional, The HotBranch.EnsureGitBranch() must be enhanced to reposition the
+        // branch tip.
+        if( (unrelated != null || desynchronized != null || removable != null) && PrimaryPluginContext.Command is not CKliIssue )
         {
             monitor.Warn( $"Repository '{repo.DisplayPath}' has branch related issues. Use 'ckli issue' for details." );
         }
