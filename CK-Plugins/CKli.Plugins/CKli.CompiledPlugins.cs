@@ -106,7 +106,8 @@ sealed class Cmd_branch＿fix : PluginCommand
         : base( typeInfo,
                 "branch fix",
                 "Ensures that a 'fix/vMajor.Minor' branch exists in the repository and checkouts it.",
-                true,
+                1,
+                -1,
                 arguments: [
                     ("version", "The Major or Major.Minor for which a fix must be produced."),
                 ],
@@ -133,7 +134,8 @@ sealed class Cmd_repo＿build : PluginCommand
         : base( typeInfo,
                 "repo build",
                 "Build-Test-Package and propagates the current Repo/branch if needed.",
-                true,
+                1,
+                -1,
                 arguments: [
                 ],
                 options: [
@@ -162,7 +164,8 @@ sealed class Cmd_repo＿rebuild＿old : PluginCommand
         : base( typeInfo,
                 "repo rebuild old",
                 "Tries to rebuild the oldest releases until a success.\r\nFailing commits are tagged with a '+deprecated' tag.",
-                true,
+                1,
+                -1,
                 arguments: [
                 ],
                 options: [
@@ -189,7 +192,8 @@ sealed class Cmd_repo＿rebuild＿version : PluginCommand
         : base( typeInfo,
                 "repo rebuild version",
                 "Rebuild the specified version in the current repository.",
-                true,
+                1,
+                -1,
                 arguments: [
                     ("version", "The version to rebuild."),
                 ],
@@ -216,7 +220,8 @@ sealed class Cmd_migrate＿net8 : PluginCommand
         : base( typeInfo,
                 "migrate net8",
                 "Migrate Net8 stack.",
-                true,
+                1,
+                -1,
                 arguments: [
                 ],
                 options: [

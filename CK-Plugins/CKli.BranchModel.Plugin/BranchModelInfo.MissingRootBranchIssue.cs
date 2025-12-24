@@ -10,11 +10,11 @@ public sealed partial class BranchModelInfo
 {
     sealed class MissingRootBranchIssue : World.Issue
     {
-        readonly BranchInfo _root;
+        readonly HotBranch _root;
         readonly Branch _starting;
         readonly bool _isRootDev;
 
-        MissingRootBranchIssue( string title, IRenderable body, BranchInfo root, Branch starting, bool isRootDev, Repo repo )
+        MissingRootBranchIssue( string title, IRenderable body, HotBranch root, Branch starting, bool isRootDev, Repo repo )
             : base( title, body, repo )
         {
             _root = root;
@@ -23,14 +23,14 @@ public sealed partial class BranchModelInfo
         }
 
         public static World.Issue Create( IActivityMonitor monitor,
-                                          BranchInfo root,
+                                          HotBranch root,
                                           VersionTagInfo tags,
                                           Branch? startingD,
                                           Branch? startingM,
                                           ScreenType screenType,
                                           Repo repo )
         {
-            var title = $"Missing root branch '{root.Expected.Name}'.";
+            var title = $"Missing root branch '{root.BranchName.Name}'.";
             bool isRootDev = false;
             Branch start;
             if( startingD == null )
@@ -57,7 +57,7 @@ public sealed partial class BranchModelInfo
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null );
-            Throw.DebugAssert( !_root.Expected.IsDevBranch );
+            Throw.DebugAssert( !_root.BranchName.IsDevBranch );
 
             var r = Repo.GitRepository.Repository;
             Branch dev;
@@ -67,15 +67,15 @@ public sealed partial class BranchModelInfo
             }
             else
             {
-                dev = CreateInitialBranch( r, context.Committer, _starting.Tip, _root.Expected.DevBranch );
+                dev = CreateInitialBranch( r, context.Committer, _starting.Tip, _root.BranchName.DevBranch );
             }
             // Creating the root.
-            CreateInitialBranch( r, context.Committer, dev.Tip, _root.Expected );
+            CreateInitialBranch( r, context.Committer, dev.Tip, _root.BranchName );
 
             return ValueTask.FromResult( true );
         }
 
-        static Branch CreateInitialBranch( Repository r, Signature committer, Commit fromCommit, BranchNode b )
+        static Branch CreateInitialBranch( Repository r, Signature committer, Commit fromCommit, BranchName b )
         {
             var c = r.ObjectDatabase.CreateCommit( fromCommit.Author,
                                                    committer,

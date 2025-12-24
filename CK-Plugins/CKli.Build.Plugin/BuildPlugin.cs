@@ -87,15 +87,15 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // We are not on a vMajor.Minor/fix branch.
         // We must be on a branch defined in the Branch Model (if at least the root branch exists in the Repo).
         var branchInfo = _branchModel.Get( monitor, repo );
-        if( branchInfo.Root.Branch == null )
+        if( branchInfo.Root.GitBranch == null )
         {
-            monitor.Error( $"No root branch '{_branchModel.BranchTree.Root.Name}' exists. This must be fixed." );
+            monitor.Error( $"No root branch '{_branchModel.BranchNamespace.Root.Name}' exists. This must be fixed." );
             return false;
         }
         // If we are not on a known branch (defined by the Branch Model), give up.
-        if( !_branchModel.BranchTree.Branches.TryGetValue( branchName, out var exists ) )
+        if( !_branchModel.BranchNamespace.Branches.TryGetValue( branchName, out var exists ) )
         {
-            var branchNames = _branchModel.BranchTree.Branches.Values.Select( b => b.Name );
+            var branchNames = _branchModel.BranchNamespace.Branches.Values.Select( b => b.Name );
             monitor.Error( $"""
                 Invalid branch '{branchName}'.
                 Supported branches are '{branchNames.Order().Concatenate( "', '" )}'.
@@ -338,8 +338,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                 {
                     // We must build the
                     var targetBranchName = $"{(isDevBranch ? "dev/" : "")}fix/v{tc.Version.Major}.{tc.Version.Minor}";
-
-                    GetTargetVersion( tc.Version, isDevBranch )
                 }
             }
         }

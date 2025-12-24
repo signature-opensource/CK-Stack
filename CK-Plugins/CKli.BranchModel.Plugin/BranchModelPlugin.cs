@@ -1,7 +1,9 @@
 using CK.Core;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
+using LibGit2Sharp;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using LogLevel = CK.Core.LogLevel;
 
@@ -9,7 +11,7 @@ namespace CKli.BranchModel.Plugin;
 
 public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
 {
-    readonly BranchTree _branchTree;
+    readonly BranchNamespace _namespace;
     readonly VersionTagPlugin _versionTags;
 
     /// <summary>
@@ -18,7 +20,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
     public BranchModelPlugin( PrimaryPluginContext primaryContext, VersionTagPlugin versionTags )
         : base( primaryContext )
     {
-        _branchTree = new BranchTree( World.Name.LTSName );
+        _namespace = new BranchNamespace( World.Name.LTSName );
         World.Events.Issue += IssueRequested;
         _versionTags = versionTags;
     }
@@ -36,13 +38,77 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
     /// <summary>
     /// Gets the branch model.
     /// </summary>
-    public BranchTree BranchTree => _branchTree;
+    public BranchNamespace BranchNamespace => _namespace;
 
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
     {
-        var info = new BranchModelInfo( repo, _branchTree );
-        info.Initialize( monitor );
-        return info;
+        var git = repo.GitRepository.Repository;
+        var gitRoot = repo.GitRepository.GetBranch( monitor, _namespace.Root.Name, missingLocalAndRemote: LogLevel.None );
+        var root = new HotBranch( _namespace.Root, null, null, gitRoot, null );
+        if( gitRoot == null )
+        {
+            if( PrimaryPluginContext.Command is not CKliIssue )
+            {
+                monitor.Warn( $"Missing '{root.BranchName}' branch in '{repo.DisplayPath}'. Use 'ckli issue' for details." );
+            }
+            // The worst issue: no "stable" branch. This has to be resolved before doing anything else.
+            return new BranchModelInfo( repo, _namespace, root );
+        }
+        // We have our hot "stable".
+        var index = new Dictionary<string, HotBranch>( _namespace.Branches.Count );
+        index.Add( root.BranchName.Name, root );
+        List<HotBranch>? removable = null;
+        List<HotBranch>? desynchronized = null;
+        List<HotBranch>? unrelated = null;
+        CreateChildren( monitor, root, repo, git, index, ref removable, ref desynchronized, ref unrelated );
+        Throw.DebugAssert( index.Count == _namespace.Branches.Count );
+        // Traversal has been done top-down. If branches can be removed this must be done bottom-up.
+        if( removable != null ) removable.Reverse();
+        if( (unrelated != null || desynchronized != null) && PrimaryPluginContext.Command is not CKliIssue )
+        {
+            monitor.Warn( $"Repository '{repo.DisplayPath}' has branch related issues. Use 'ckli issue' for details." );
+        }
+        return new BranchModelInfo( repo, _namespace, root, index, removable, desynchronized, unrelated );
+
+        static void CreateChildren( IActivityMonitor monitor,
+                                    HotBranch parent,
+                                    Repo repo,
+                                    Repository git,
+                                    Dictionary<string, HotBranch> index,
+                                    ref List<HotBranch>? removable,
+                                    ref List<HotBranch>? desynchronized,
+                                    ref List<HotBranch>? unrelated )
+        {
+            var baseBranch = parent.GitBranch != null ? parent : parent.ExistingBaseBranch;
+            foreach( var childName in parent.BranchName.Children )
+            {
+                var gitBranch = repo.GitRepository.GetBranch( monitor, childName.Name, missingLocalAndRemote: LogLevel.None );
+                HistoryDivergence? div = gitBranch != null && baseBranch?.GitBranch != null
+                                            ? git.ObjectDatabase.CalculateHistoryDivergence( gitBranch.Tip, baseBranch.GitBranch.Tip )
+                                            : null;
+                var b = new HotBranch( childName, parent, baseBranch, gitBranch, div );
+                index.Add( childName.Name, b );
+                if( div != null && div.CommonAncestor == null )
+                {
+                    unrelated ??= new List<HotBranch>();
+                    unrelated.Add( b );
+                }
+                else if( b.IsOrphanDevBranch || b.IsIntegratedBranch )
+                {
+                    removable ??= new List<HotBranch>();
+                    removable.Add( b );
+                }
+                else if( b.IsDesynchronizedBranch )
+                {
+                    desynchronized ??= new List<HotBranch>();
+                    desynchronized.Add( b );
+                }
+                if( childName.HasChild )
+                {
+                    CreateChildren( monitor, b, repo, git, index, ref removable, ref desynchronized, ref unrelated );
+                }
+            }
+        }
     }
 
     [Description( "Ensures that a 'fix/vMajor.Minor' branch exists in the repository and checkouts it." )]

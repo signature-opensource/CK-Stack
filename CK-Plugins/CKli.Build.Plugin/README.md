@@ -11,10 +11,15 @@ Commits that have been built are tagged with the produced version. These tags ar
 - A list of package identifiers produced. This is empty for a terminal solution that doesn't produce packages but only build assets.
 - A list of build asset files that are the "deployment" files. Empty for solutions that only produce packages.
 
-The state of the system is in the repositories. Databases, when they exist, can be rebuilt from scratch any time from the World's
-repository. This is a key point of the architecture. In practice, even the content of the tags can be rebuilt: empty or
-lightweight tags that are parsable as versions are automatically detected issues that can be automatically fixed by rebuilding
-the their target commit and generating the tag message from the build result.
+The state of the system is in the repositories. "Databases", when they exist are only "index" that are here to boost the performance
+and ease the implementation of the build process and issue detections. They can be rebuilt from scratch any time from the World's
+repositories.
+
+__Important:__ This is a key point of the architecture.
+
+In practice, even the content of the tags can be rebuilt: empty or lightweight tags that are parsable as versions are automatically detected
+issues that can be automatically fixed by rebuilding their target commit, generating the tag message from the build result and modifying
+the tag (that will be pushed to the "origin" repository during publication).
 
 # Branch model & workflows.
 
