@@ -6,6 +6,7 @@
     <ReleaseDatabase />
     <ArtifactHandler />
     <Net8Migration />
+    <ShallowSolution />
   </Plugins>
   <Folder Name="CK-AspNet-Projects">
     <Repository Url="https://github.com/signature-opensource/CK-AspNet">
