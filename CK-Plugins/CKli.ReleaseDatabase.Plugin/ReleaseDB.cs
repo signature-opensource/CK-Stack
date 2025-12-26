@@ -15,14 +15,15 @@ namespace CKli.ReleaseDatabase.Plugin;
 
 sealed class ReleaseDB
 {
-    readonly Dictionary<(ulong RepoId, SVersion Version), BuildContentInfo> _data;
+    readonly Dictionary<RepoKey, BuildContentInfo> _data;
     readonly ReleaseDB? _published;
     readonly NormalizedPath _filePath;
+    Dictionary<NuGetPackageInstance, RepoKey>? _producedIndex;
     bool _isLoaded;
 
     internal ReleaseDB( ReleaseDB? published, NormalizedPath filePath )
     {
-        _data = new Dictionary<(ulong RepoId, SVersion Version), BuildContentInfo>();
+        _data = new Dictionary<RepoKey, BuildContentInfo>();
         _published = published;
         _filePath = filePath;
     }
@@ -32,7 +33,71 @@ sealed class ReleaseDB
 
     public string Name => IsLocal ? "Local" : "Published";
 
-    public BuildContentInfo? Find( Repo repo, SVersion version ) => _data.GetValueOrDefault( (repo.CKliRepoId.Value, version) );
+    internal BuildContentInfo? Find( IActivityMonitor monitor, Repo repo, SVersion version, out bool local )
+    {
+        Throw.DebugAssert( IsLocal );
+        var key = new RepoKey( repo.CKliRepoId.Value, version );
+        EnsureLoad( monitor );
+        if( _data.TryGetValue( key, out var c ) )
+        {
+            local = true;
+            return c;
+        }
+        _published.EnsureLoad( monitor );
+        local = false;
+        return _published._data.GetValueOrDefault( key );
+    }
+
+    internal bool FindProducer( IActivityMonitor monitor,
+                                NuGetPackageInstance p,
+                                [NotNullWhen(true)] out RepoKey? repo,
+                                [NotNullWhen( true )] out BuildContentInfo? content )
+    {
+        Throw.DebugAssert( IsLocal );
+        EnsureLoad( monitor );
+        if( EnsureProducedIndex().TryGetValue( p, out repo ) )
+        {
+            content = _data[repo];
+            return true;
+        }
+        _published.EnsureLoad( monitor );
+        if( _published.EnsureProducedIndex().TryGetValue( p, out repo ) )
+        {
+            content = _published._data[repo];
+            return true;
+        }
+        content = null;
+        return false;
+    }
+
+    Dictionary<NuGetPackageInstance, RepoKey> EnsureProducedIndex()
+    {
+        Throw.DebugAssert( _isLoaded );
+        if( _producedIndex == null )
+        {
+            _producedIndex = new Dictionary<NuGetPackageInstance, RepoKey>();
+            foreach( var e in _data )
+            {
+                foreach( var id in e.Value.Produced )
+                {
+                    _producedIndex.Add( new NuGetPackageInstance( id, e.Key.Version ), e.Key );
+                }
+            }
+        }
+        return _producedIndex;
+    }
+
+    internal void CollectReferences( IActivityMonitor monitor, in NuGetPackageInstance p, Dictionary<RepoKey, BuildContentInfo> collector )
+    {
+        EnsureLoad( monitor );
+        foreach( var d in _data )
+        {
+            if( d.Value.Consumed.Contains( p ) )
+            {
+                collector.TryAdd( d.Key, d.Value );
+            }
+        }
+    }
 
     internal World.Issue? OnExistingVersionTags( IActivityMonitor monitor, ScreenType screenType, Repo repo, IEnumerable<(SVersion, BuildContentInfo)> versions )
     {
@@ -45,7 +110,7 @@ sealed class ReleaseDB
         ulong repoId = repo.CKliRepoId.Value;
         foreach( var (version,info) in versions )
         {
-            var key = (repoId, version);
+            var key = new RepoKey(repoId, version);
             if( _published._data.TryGetValue( key, out var exists ) )
             {
                 if( info != exists )
@@ -66,13 +131,13 @@ sealed class ReleaseDB
                             Replaced by:
                             {info}
                             """ );
-                        _data[key] = info;
+                        DataUpdate( key, exists, info );
                         localChanged = true;
                     }
                 }
                 else
                 {
-                    _data.Add( key, info );
+                    DataAdd( key, info );
                     localChanged = true;
                 }
             }
@@ -106,7 +171,7 @@ sealed class ReleaseDB
         _published.EnsureLoad( monitor );
         EnsureLoad( monitor );
 
-        var key = (repo.CKliRepoId.Value, version);
+        var key = new RepoKey(repo.CKliRepoId.Value, version);
         if( _published._data.TryGetValue( key, out var exists ) )
         {
             return OnAlreadyLocalBuild( monitor, repo, version, rebuild, info, key, exists );
@@ -115,7 +180,7 @@ sealed class ReleaseDB
         {
             return OnAlreadyLocalBuild( monitor, repo, version, rebuild, info, key, exists );
         }
-        _data.Add( key, info );
+        DataAdd( key, info );
         return OnChanged( monitor );
     }
 
@@ -124,7 +189,7 @@ sealed class ReleaseDB
                               SVersion version,
                               bool rebuild,
                               BuildContentInfo info,
-                              (ulong Value, SVersion version) key,
+                              RepoKey key,
                               BuildContentInfo exists )
     {
         if( !rebuild )
@@ -147,7 +212,7 @@ sealed class ReleaseDB
                         Replaced by:
                         {info}
                         """ );
-                _data[key] = info;
+                DataUpdate( key, exists, info );
                 return OnChanged( monitor );
             }
             monitor.Error( $"""
@@ -163,30 +228,70 @@ sealed class ReleaseDB
         return true;
     }
 
-
     internal bool PublishRelease( IActivityMonitor monitor, Repo repo, SVersion version )
     {
         Throw.DebugAssert( IsLocal );
         _published.EnsureLoad( monitor );
         EnsureLoad( monitor );
 
-        var key = (repo.CKliRepoId.Value, version);
+        var key = new RepoKey(repo.CKliRepoId.Value, version);
         if( _published._data.ContainsKey( key ) )
         {
             return true;
         }
         if( _data.TryGetValue( key, out var info ) )
         {
-            _published._data.Add( key, info );
+            _published.DataAdd( key, info );
             if( !_published.OnChanged( monitor ) )
             {
                 return false;
             }
-            _data.Remove( key );
+            DataRemove( key, info );
             return OnChanged( monitor );
         }
         monitor.Error( $"Unable to find a release for '{repo.DisplayPath}/{version}' in Local or Published release databases." );
         return false;
+    }
+
+    void DataAdd( RepoKey key, BuildContentInfo info )
+    {
+        _data.Add( key, info );
+        if( _producedIndex != null )
+        {
+            foreach( var id in info.Produced )
+            {
+                _producedIndex.Add( new NuGetPackageInstance( id, key.Version ), key );
+            }
+        }
+    }
+
+    void DataUpdate( RepoKey key, BuildContentInfo exists, BuildContentInfo info )
+    {
+        Throw.DebugAssert( _data[key] == exists && exists != info );
+        _data[key] = info;
+        if( _producedIndex != null && !exists.Produced.SequenceEqual( info.Produced ) )
+        {
+            foreach( var id in exists.Produced )
+            {
+                _producedIndex.Remove( new NuGetPackageInstance( id, key.Version ) );
+            }
+            foreach( var id in info.Produced )
+            {
+                _producedIndex.Add( new NuGetPackageInstance( id, key.Version ), key );
+            }
+        }
+    }
+
+    void DataRemove( RepoKey key, BuildContentInfo exists )
+    {
+        _data.Remove( key );
+        if( _producedIndex != null )
+        {
+            foreach( var id in exists.Produced )
+            {
+                _producedIndex.Remove( new NuGetPackageInstance( id, key.Version ) );
+            }
+        }
     }
 
     bool OnChanged( IActivityMonitor monitor )
@@ -220,7 +325,7 @@ sealed class ReleaseDB
                 var id = r.ReadUInt64();
                 var v = SVersion.Parse( r.ReadSharedString() );
                 var c = new BuildContentInfo( r );
-                _data.Add( (id, v), c );
+                _data.Add( new RepoKey( id, v ), c );
             }
             return true;
         }
@@ -262,11 +367,19 @@ sealed class ReleaseDB
     {
         Throw.DebugAssert( IsLocal );
         EnsureLoad( monitor );
-        if( _data.Remove( (repo.CKliRepoId.Value, version), out var exists ) )
+        if( _data.Remove( new RepoKey( repo.CKliRepoId.Value, version ), out var exists ) )
         {
             monitor.Info( $"Removed version '{repo.DisplayPath}/{version}' from {Name} release database." );
+            if( _producedIndex != null )
+            {
+                foreach( var id in exists.Produced )
+                {
+                    _producedIndex.Remove( new NuGetPackageInstance( id, version ) );
+                }
+            }
             OnChanged( monitor );
         }
         return exists;
     }
+
 }
