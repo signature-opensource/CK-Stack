@@ -63,43 +63,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         bool success = true;
         foreach( var repo in allRepos )
         {
-            var branchInfo = _branchModel.Get( monitor, repo );
-            Throw.DebugAssert( branchInfo != null );
-            var hotBranch = branchInfo.Branches[namedBranch.Name];
-            var contentInfo = GetBuildInfo( monitor, repo, hotBranch );
-            if( contentInfo != null )
-            {
-                monitor.Info( $"""
-                    {repo.DisplayPath}/{hotBranch}:
-                    {contentInfo.ToString()}
-                    """ );
-            }
-            else
-            {
-                success = false;
-            }
         }
         return success;
-
-        static BuildContentInfo? GetBuildInfo( IActivityMonitor monitor, Repo repo, HotBranch branch )
-        {
-            var b = branch.GitBranch ?? branch.ExistingBaseBranch?.GitBranch;
-            if( b == null )
-            {
-                monitor.Error( "Invalid HotBranch." );
-                return null;
-            }
-            // Should use versionTags from Content Sha before ShallowBuild.
-            var s = new CKli.ArtifactHandler.Plugin.ShallowSolution( repo, b.Tip );
-            try
-            {
-                return s.ShallowBuild( monitor );
-            }
-            finally
-            {
-                s.Destroy( monitor );
-            }
-        }
 
     }
 
