@@ -6,23 +6,23 @@ namespace CKli.ReleaseDatabase.Plugin;
 
 sealed class RepoKey : IEquatable<RepoKey>
 {
-    readonly ulong _repoId;
+    readonly RandomId _repoId;
     readonly SVersion _version;
     readonly int _hashCode;
 
     public RepoKey( Repo repo, SVersion version )
-        : this( repo.CKliRepoId.Value, version )
+        : this( repo.CKliRepoId, version )
     {
     }
 
-    public RepoKey( ulong repoId, SVersion version )
+    public RepoKey( RandomId repoId, SVersion version )
     {
         _repoId = repoId;
         _version = version;
         _hashCode = HashCode.Combine( repoId, version.GetHashCode() );
     }
 
-    public ulong RepoId => _repoId;
+    public RandomId RepoId => _repoId;
 
     public SVersion Version => _version;
 

@@ -35,8 +35,12 @@ sealed class ReleaseDB
 
     internal BuildContentInfo? Find( IActivityMonitor monitor, Repo repo, SVersion version, out bool local )
     {
+        return Find( monitor, new RepoKey( repo.CKliRepoId, version ), out local );
+    }
+
+    internal BuildContentInfo? Find( IActivityMonitor monitor, RepoKey key, out bool local )
+    {
         Throw.DebugAssert( IsLocal );
-        var key = new RepoKey( repo.CKliRepoId.Value, version );
         EnsureLoad( monitor );
         if( _data.TryGetValue( key, out var c ) )
         {
@@ -51,15 +55,18 @@ sealed class ReleaseDB
     internal bool FindProducer( IActivityMonitor monitor,
                                 NuGetPackageInstance p,
                                 [NotNullWhen(true)] out RepoKey? repo,
-                                [NotNullWhen( true )] out BuildContentInfo? content )
+                                [NotNullWhen( true )] out BuildContentInfo? content,
+                                out bool isLocal )
     {
         Throw.DebugAssert( IsLocal );
         EnsureLoad( monitor );
         if( EnsureProducedIndex().TryGetValue( p, out repo ) )
         {
             content = _data[repo];
+            isLocal = true;
             return true;
         }
+        isLocal = false;
         _published.EnsureLoad( monitor );
         if( _published.EnsureProducedIndex().TryGetValue( p, out repo ) )
         {
@@ -87,14 +94,21 @@ sealed class ReleaseDB
         return _producedIndex;
     }
 
-    internal void CollectReferences( IActivityMonitor monitor, in NuGetPackageInstance p, Dictionary<RepoKey, BuildContentInfo> collector )
+    internal void CollectConsumers( IActivityMonitor monitor,
+                                    in NuGetPackageInstance p,
+                                    Dictionary<RepoKey, (BuildContentInfo Content, bool IsLocal)> collector )
     {
         EnsureLoad( monitor );
         foreach( var d in _data )
         {
             if( d.Value.Consumed.Contains( p ) )
             {
-                collector.TryAdd( d.Key, d.Value );
+                Throw.DebugAssert( """
+                    The local DB must first be challenged:
+                    if the consumer has already been found, then it has been found in the local db
+                    or in the published db and we are in the published db. 
+                    """, !collector.TryGetValue( d.Key, out var exist ) || exist.IsLocal || exist.IsLocal == IsLocal);
+                collector.TryAdd( d.Key, (d.Value, IsLocal) );
             }
         }
     }

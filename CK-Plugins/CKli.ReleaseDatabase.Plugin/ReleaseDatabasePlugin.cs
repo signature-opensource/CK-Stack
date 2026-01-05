@@ -5,7 +5,6 @@ using CSemVer;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 
 namespace CKli.ReleaseDatabase.Plugin;
 
@@ -14,6 +13,7 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
     readonly ArtifactHandlerPlugin _artifactHandler;
     readonly ReleaseDB _local;
     readonly ReleaseDB _published;
+    readonly Dictionary<RepoKey, RepoReleaseInfo> _releaseInfo;
 
     public ReleaseDatabasePlugin( PrimaryPluginContext context, ArtifactHandlerPlugin artifactHandler )
         : base( context )
@@ -22,101 +22,130 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         var stackFolder = World.StackRepository.StackWorkingFolder;
         _published = new ReleaseDB( null, stackFolder.Combine( $"{World.Name.FullName}.PublishedRelease.cache" ) );
         _local = new ReleaseDB( _published, stackFolder.Combine( $"$Local/{World.Name.FullName}.LocalRelease.cache" ) );
+        _releaseInfo = new Dictionary<RepoKey, RepoReleaseInfo>();
     }
 
-
-
     /// <summary>
-    /// Gets the <see cref="ReleaseInfo"/> for a released version of a repository.
+    /// Gets the <see cref="RepoReleaseInfo"/> for a released version of a repository.
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The released repository.</param>
     /// <param name="version">The released version.</param>
     /// <returns>The information or null on error: the released version doesn't exist.</returns>
-    public ReleaseInfo? GetReleaseInfo( IActivityMonitor monitor, Repo repo, SVersion version )
+    public RepoReleaseInfo? GetReleaseInfo( IActivityMonitor monitor, Repo repo, SVersion version )
     {
-        var key = new RepoKey( repo.CKliRepoId.Value, version );
-
-        var content = _local.Find( monitor, repo, version, out var isLocal );
-        if( content != null )
+        var key = new RepoKey( repo.CKliRepoId, version );
+        var content = _local.Find( monitor, key, out var isLocal );
+        if( content == null )
         {
-            var externalDependencies = new HashSet<NuGetPackageInstance>();
-            var predecessors = new Dictionary<RepoKey, ReleaseInfo.Dependency>();
-            CollectDependencies( monitor, content, externalDependencies, predecessors, 0 );
-            var producers = predecessors.Values.ToArray();
-            producers.Sort( (p1,p2) => p1.SortKey.CompareTo( p2.SortKey ) );
-            return new ReleaseInfo( repo, version, content, externalDependencies, ImmutableCollectionsMarshal.AsImmutableArray( producers ) );
+            monitor.Error( $"No release exist for '{repo.DisplayPath}/{key.Version}'." );
+            return null;
         }
-        monitor.Error( $"No release exist for '{repo.DisplayPath}/{version}'." );
-        return null;
+        return GetReleasedInfo( monitor, repo, key, content, isLocal );
     }
 
-    void CollectDependencies( IActivityMonitor monitor,
-                              BuildContentInfo content,
-                              HashSet<NuGetPackageInstance> externalDependencies,
-                              Dictionary<RepoKey, ReleaseInfo.Dependency> predecessors,
-                              int rank )
+    RepoReleaseInfo GetReleasedInfo( IActivityMonitor monitor, Repo repo, RepoKey key, BuildContentInfo content, bool isLocal )
     {
+        if( _releaseInfo.TryGetValue( key, out var r ) )
+        {
+            return r;
+        }
+        var directProducers = new List<RepoReleaseInfo>();
+        var allProducers = new HashSet<RepoReleaseInfo>();
         foreach( var consumed in content.Consumed )
         {
-            if( !_local.FindProducer( monitor, consumed, out RepoKey? producer, out BuildContentInfo? producerContent ) )
+            // If we can't find a producer for a consumed package, it is an external package.
+            // If we can't find the Repo in the World, it is a "new" external package.
+            // We don't track them.
+            if( _local.FindProducer( monitor,
+                                     consumed,
+                                     out RepoKey? producerKey,
+                                     out BuildContentInfo? producerContent,
+                                     out var isLocalProducer ) )
             {
-                externalDependencies.Add( consumed );
+                var producer = World.FindByCKliRepoId( producerKey.RepoId );
+                if( producer != null )
+                {
+                    var p = GetReleasedInfo( monitor, producer, producerKey, producerContent, isLocalProducer );
+                    directProducers.Add( p );
+                    allProducers.UnionWith( p.AllProducers );
+                }
+            }
+        }
+        for( int i = 0; i < directProducers.Count; i++ )
+        {
+            var producer = directProducers[i];
+            if( allProducers.Contains( producer ) )
+            {
+                directProducers.RemoveAt( i-- );
+            }
+        }
+        return new RepoReleaseInfo( this, repo, key, content, directProducers, allProducers, isLocal );
+    }
+
+    internal IReadOnlyList<RepoReleaseInfo> GetDirectConsumers( IActivityMonitor monitor, RepoReleaseInfo info )
+    {
+        // Collecting in a dictionary: duplicated RepoKey is removed,
+        // this handles the Package -> Solution projection.
+        var consumers = new Dictionary<RepoKey, (BuildContentInfo Content, bool IsLocal)>();
+        foreach( var id in info.Content.Produced )
+        {
+            var consumed = new NuGetPackageInstance( id, info.Version );
+            _local.CollectConsumers( monitor, consumed, consumers );
+            if( !info.IsLocal ) _published.CollectConsumers( monitor, consumed, consumers );
+        }
+        // Among these consumers, there are transitive dependencies:
+        // it is all the (Repo,Version) that consume a package produced by another consumer
+        // but recursively:
+        // - CK-Core -> CK.Core
+        // - CK-ActivityMonitor -> CK.ActivityMonitor
+        //      <- CK.Core
+        // - CK-Monitoring -> CK.Monitoring
+        //      <- CK.ActivityMonitor
+        // - CK-XXX
+        //      <- CK.Monitoring
+        //      <- CK.Core
+        // Here, the single direct consumer of CK-Core is CK.ActivityMonitor.
+        // To evict CK-XXX as a direct consumer, we must first discover CK-Monitoring (that is not itself
+        // a direct consumer of CK-Core).
+        // Instead of implementing here the mirror of the RepoReleaseInfo, we use them (the "past") to filter
+        // the direct consumers (the "future").
+        //
+        var consumerInfos = new List<RepoReleaseInfo>();
+        foreach( var (consumerKey,(consumerContent, isLocal)) in consumers )
+        {
+            var consumer = World.FindByCKliRepoId( consumerKey.RepoId );
+            // If we can't find the Repo in the World, this is weird but it may happen.
+            // We warn and ignore it.
+            if( consumer == null )
+            {
+                monitor.Warn( $"""
+                    Unable to find RepoId='{consumerKey.RepoId}' in the current World.
+                    This Repo has been removed since it as been built in version '{consumerKey.Version}'. Its content was:
+                    {consumerContent}
+                    It is ignored.
+                    """ );
             }
             else
             {
-                if( predecessors.TryGetValue( producer, out var exists ) )
-                {
-                    exists.UpdateRank( rank );
-                }
-                else
-                {
-                    var repoId = new RandomId( producer.RepoId );
-                    var r = World.FindByCKliRepoId( repoId );
-                    if( r == null )
-                    {
-                        if( externalDependencies.Add( consumed ) )
-                        {
-                            monitor.Warn( $"""
-                                Unknown CKliRepoId '{repoId}' among World's repositories.
-                                Package '{consumed}' is considered as an external dependency.
-                                """ );
-                        }
-                    }
-                    else
-                    {
-                        predecessors.Add( producer, new ReleaseInfo.Dependency( r, producer.Version, producerContent, rank ) );
-                        CollectDependencies( monitor, producerContent, externalDependencies, predecessors, rank + 1 );
-                    }
-                }
+                consumerInfos.Add( GetReleasedInfo( monitor, consumer, consumerKey, consumerContent, isLocal ) );
             }
         }
-    }
-
-    public void GetSuccessors( IActivityMonitor monitor, Repo repo, SVersion version )
-    {
-        var c = _local.Find( monitor, repo, version, out var isLocal );
-        if( c != null )
+        for( int i = 0; i < consumerInfos.Count; i++ )
         {
-            // Collecting in a dictionary: duplicated RepoKey is removed.
-            var successors = new Dictionary<RepoKey, BuildContentInfo>();
-            foreach( var id in c.Produced )
+            var candidate = consumerInfos[i];
+            for( int j = 0; j < consumerInfos.Count; j++ )
             {
-                var consumed = new NuGetPackageInstance( id, version );
-                _local.CollectReferences( monitor, consumed, successors );
-                if( !isLocal ) _published.CollectReferences( monitor, consumed, successors );
-            }
-            // Among these successors, there are transitive dependencies:
-            // it is all the (Repo,Version) that consume a package produced by another successor*!
-            // They must be removed...
-            foreach( var s in successors )
-            {
-                foreach( var p in s.Value.Produced )
+                if( i == j ) continue;
+                var other = consumerInfos[j];
+                if( other == candidate || other.AllProducers.Contains( candidate ) )
                 {
-
+                    consumerInfos.RemoveAt( i-- );
+                    break;
                 }
             }
         }
+        return consumerInfos;
     }
 
     /// <summary>

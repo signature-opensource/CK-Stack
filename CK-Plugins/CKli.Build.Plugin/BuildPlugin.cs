@@ -109,7 +109,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return BuildFix( monitor, repo, r, context, branch, branchName, devFix, fixMajor, fixMinor, runTest, rebuild );
         }
-        // We are not on a vMajor.Minor/fix branch.
+        // We are not on a fix/vMajor.Minor branch.
         // We must be on a branch defined in the Branch Model.
         var branchInfo = _branchModel.Get( monitor, repo );
         Throw.DebugAssert( "There's no branch issue.", branchInfo.Root.GitBranch != null );
@@ -305,7 +305,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         //   - easy to initiate and to stop.
         //   - easy to grasp (by looking at the repository).
         // Idea! Can it be the "fix/" branch that does the job?
-        // Given a fix of "Core/v1.0.1", a repo consumed this package in its v1.0.0 for its own versions
+        // Given a fix of "My-Core/v1.0.1", a repo consumed this package in its v1.0.0 for its own versions
         // - v4.0.0 (LastStable, LastMajorMinorStable)
         // - v3.1.2 (LastMajorMinorStable)
         // - v3.1.1 (out of this scope: not in the LastMajorMinorStable)
@@ -315,7 +315,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // - v2.0.1 (LastMajorMinorStable)
         // - v2.0.0 (out of this scope: not in the LastMajorMinorStable)
         //
-        // Using the LastMajorMinorStable this triggers 4 new versions (4.0.1, 3.1.3, 3.0.2 and 2.0.2) which, in turn, produce
+        // Using the LastMajorMinorStable, this triggers 4 new versions (4.0.1, 3.1.3, 3.0.2 and 2.0.2) which, in turn, produce
         // more versions of downstream repos.
         // Is the 2.0.2 useful? required?
         // If we really don't care of v2 anymore, then a +deprecated tag can/should be created (this solves the problem:
@@ -341,12 +341,23 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         //
         // May be the solution is using the +deprecated: a regular version is "alive" (and must be fixed).
         // A +deprecated version is "dead" and should not be used anymore. If we deprecate aggressively, we won't have
-        // these problems (and leads to less versions to manage) that optimize the system.
+        // these problems (and leads to less versions to manage) that globally optimize the system.
         //
         // To conclude: The impacts of a fix are all the Repo's LastMajorMinorStables commits that have one of
         //              our content's produced package identifiers consumed with the lastFix.Version.
 
         Throw.Assert( "Preconditions: no version tag issue.", _versionTags.TryGetAll( monitor, out var allRepoVersions ) );
+        var releaseInfo = _releaseDatabase.GetReleaseInfo( monitor, repo, lastFix.Version );
+        if( releaseInfo == null )
+        {
+            monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,
+                $"Release '{repo.DisplayPath}/{lastFix.Version}' cannot be found in the Release database and there's no Tag issue. This should not happen." );
+            _versionTags.DestroyLocalRelease( monitor, repo, result.Version );
+            return false;
+        }
+        IReadOnlyList<RepoReleaseInfo> firstImpacts = releaseInfo.GetDirectConsumers( monitor );
+        IEnumerable<NuGetPackageInstance> initialUpgradeList = result.Content.Produced.Select( id => new NuGetPackageInstance( id, result.Version ) );
+
         // Build the "update list".
         var updateList = result.Content.Produced.Select( id => new NuGetPackageInstance( id, result.Version ) ).ToImmutableArray();
         foreach( var rV in allRepoVersions )
@@ -362,77 +373,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             }
         }
 
-
-
-        // Each Build call should be "atomic": we want to avoid a "holistic", global approach of the impact as much as possible.
-        // A Build initial trigger is a Repo with a list of produced [(PackageId,Version)] with the same version:
-        // version can be factorized.
-        //
-        // Not factorizing the Version at this level would let the door opened to a "Per Project Version" feature:
-        // the possibility to define (and lock) the version at the project level.
-        // But this is not easy because of transitive dependencies: we must ensure that a "locked" version only
-        // consumes locked version or we must be able to automatically increment the "locked" version. Nightmare.
-        // Moreover, this breaks the UX of the code base discovery in a repo from the version tag. Nightmare again.
-        // We give up on this and keep the single versioned commit pattern that applies to all the produced packages:
-        // the output of a Build is (Repo,Commit,Version,[PackageId]).
-        //
-
-
-        // TODO: Propagate this build where it must be propagated...
-        // We first need to obtain the set of all the Release in the World that consume
-        // at least one of our produced packages.
-        //   [ Then we must topologically sort them to have the entry points of the graph.
-        //     Then we can start building them. Parallelism would be great here... or not because
-        //     too much build/test/package at the same time can put the machine on its knees. This has to be
-        //     tested and a max degree of parallelism (MaxDOP) should certainly be introduced.
-        //   ]
-        //
-        // What we need here is a list of (Repo,Commit) where:
-        // - the Commit has a Release version tag.
-        // - the Commit code base consumed a previous version of any of our produced packages.
-        // The BuildContentInfo has no knowledge of the "repository" level. It has only package/version
-        // instances that may be in this World or not and this is a good thing:
-        // - if a Repo appears that produces a package that was used by one Repo in the World, this "previously external"
-        //   package is handled transparently.
-        // - but if a project has been moved from a Repo to another one (okay, this is not exactly the cas of a Fix, but let's
-        //   consider this case here), how should we handle this?
-        //   First, the version number of the moved package is given by the target Repo and it must necessarily be greater
-        //   than the source Repo version number. Moving a project leads to version gaps in the World's Repo.
-        //   High major numbers will be the rule. This is the price to pay for the Repo/Version model.
-        //   (Moving a project should be handled by CKli.)
-        //   
-        // We need a World database that tracks each package/version produced. Package appearance is not an issue but
-        // package removal is. One could also add package rename.
-        // This database has conceptually 2 relations:
-        //  - Consumed( CKliRepoId, PackageId, Version )
-        //  - Produced( CKliRepoId, PackageId, Version )
-        // This is all the data we have. No more, no less and this should be enough to support all the required features.
-        // This database is filled by the Build and can be rebuilt from a Repo's TagCommits.
-        //
-        //
-        // The impact of the produced list is the union of the impact of each produced (PackageId,Version) so we can reason
-        // on a single produced (PackageId,Version). Let's take (P1,v1.2.3).
-        // 
-        // The first level of Repos that are impacted are Repos in the Consumed( CKliRepoId, PackageId, Version )
-        // where PackageId appears (but not the PackageId/Version to support the "Per Project Version").
-        // => (*,P1,*)
-        // Among all these tuples not all of them are impacted... But this depends on the workflow.
-        // Here we are dealing with fixes: what are the Repo that must be fixed?
-        // A fix is a stable. The consumed Version must be stable: it is not our scope to impact the prerelease versions,
-        // this will be the Build of the impacted Repo that will have to handle this.
-        // => (*,P1,[Stable])
-        // Among the stable versions, only the ones with the same Major.Minor as the produced version must be considered.
-        // => (*,P1,v1.2.*)
-        // Among the stable Major.Minor versions, the one with the greatest patch is concerned.
-        // But is it?
-        // => (R1,P1,v1.2.1), (R2,P1,v1.2.2)
-        // For R2, its fine (immediate previous fix). But what about R1 where we have the v1.2.1.
-        // Where is the v1.2.2?
-        // Did we miss an upgrade, or the Repo R1 doesn't consume P1 anymore?
-        // To stay on the safe side, we should consider R1 as a candidate.
-        // => To be robust, a "Package Upgrade" must accept unused packages and should be able to say "no change"
-        // so we can skip the build.
-        // 
 
         return true;
     }
