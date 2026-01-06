@@ -1,18 +1,20 @@
 using CK.Core;
-using CKli.Core;
-using System.Linq;
-using CKli.VersionTag.Plugin;
-using CKli.BranchModel.Plugin;
-using LibGit2Sharp;
-using CSemVer;
-using System.Text;
-using System;
 using CKli.ArtifactHandler.Plugin;
-using LogLevel = CK.Core.LogLevel;
+using CKli.BranchModel.Plugin;
+using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
+using CKli.VersionTag.Plugin;
+using CSemVer;
+using LibGit2Sharp;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+using System.Text;
+using System.Xml;
+using static CK.Core.CheckedWriteStream;
+using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.Build.Plugin;
 
@@ -88,7 +90,11 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return false; 
         }
         var repo = World.GetDefinedRepo( monitor, context.CurrentDirectory );
-        Throw.DebugAssert( "Preconditions fulfilled.", repo != null && !repo.GitStatus.IsDirty );
+        if( repo == null )
+        {
+            return false;
+        }
+        Throw.DebugAssert( "Preconditions fulfilled.", !repo.GitStatus.IsDirty );
         var r = repo.GitRepository.Repository;
         Branch? branch;
         if( branchName != null )
@@ -102,10 +108,10 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         else
         {
             branch = r.Head;
-            branchName = branch.FriendlyName;
         }
+        branchName = branch.FriendlyName;
 
-        if( BranchModelPlugin.TryParseBranchFixName( branchName, out var devFix, out var fixMajor, out var fixMinor ) )
+        if( BranchModelPlugin.TryParseBranchFixName( branchName, out bool devFix, out var fixMajor, out var fixMinor ) )
         {
             return BuildFix( monitor, repo, r, context, branch, branchName, devFix, fixMajor, fixMinor, runTest, rebuild );
         }
@@ -197,6 +203,16 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         Throw.DebugAssert( "See Preconditions: there should be no version tag issue and a missing version tag content is an issue.",
                            lastFix.BuildContentInfo != null );
 
+        // Defensive programming here: the RepoReleaseInfo must exist.
+        // This is the starting point of the FixPropagator.
+        var originReleaseInfo = _releaseDatabase.GetReleaseInfo( monitor, repo, lastFix.Version );
+        if( originReleaseInfo == null )
+        {
+            monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,
+                $"Release '{repo.DisplayPath}/{lastFix.Version}' cannot be found in the Release database and there's no Tag issue. This should not happen." );
+            return false;
+        }
+
         var divergence = r.ObjectDatabase.CalculateHistoryDivergence( lastFix.Commit, branch.Tip );
         if( divergence.CommonAncestor.Sha != lastFix.Sha )
         {
@@ -232,8 +248,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                         """ );
                 return false;
             }
-            // TODO: Here we should consider isDevBranch and upgrade the dependencies to be in CI
-            //       before building...
             if( !isBranchOnLastFix )
             {
                 // The branch is on a commit with the same content but not on the lastFix commit.
@@ -268,113 +282,20 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // If we are not rebuilding an existing tagged commit, the buildCommit is now the head's tip.
         buildCommit ??= r.Head.Tip;
 
-        // We are ready to build a fix.
+        // We are ready to build the origin fix.
         var result = CoreBuild( monitor, context, versionInfo, buildCommit, targetVersion, runTest, rebuild );
         if( result == null )
         {
             return false;
         }
-        //
-        // We introduce a check here: we demand that the produced package identifiers are the same as the release
-        // we are fixing: changing the produced packages that are structural/architectural artifacts is
-        // everything but fixing.
-        // We do this before checking if there are produced package identifiers.
-        //
-        if( !result.Content.Produced.SequenceEqual( lastFix.BuildContentInfo.Produced ) )
+        // We create a FixPropagator even if there is no consumer behind (no consumer is not the nominal case) to centralize
+        // the checks and the initialization code on the origin/originResult pair.
+        var fixer = FixPropagator.Create( monitor, originReleaseInfo, result, context, this, _releaseDatabase, _versionTags );
+        if( fixer == null )
         {
-            monitor.Error( $"""
-                Forbidden change in produced packages for a fix in '{repo.DisplayPath}':
-                The version '{lastFix.Version.ParsedText}' produced packages: '{lastFix.BuildContentInfo.Produced.Concatenate("', '")}'.
-                But the new fix 'v{result.Version}' produced: '{result.Content.Produced.Concatenate( "', '" )}'.
-                """ );
-            _versionTags.DestroyLocalRelease( monitor, repo, result.Version );
             return false;
         }
-        // If there's no production, we are done.
-        if( result.Content.Produced.Length == 0 )
-        {
-            return true;
-        }
-        // The impacts are all the Repo's LastMajorMinorStables commits that have one of our content's
-        // produced package identifiers consumed with the lastFix.Version.
-        // A lighter impact can be to consider only the Repo's LastStable... But here we are on a "fix/"
-        // branch of a somehow "past" release, we are not releasing in the "hot zone" (as a new minor stable version):
-        // it seems coherent to propagate "widely in the past"... But this may produce a lot of useless releases...
-        //
-        // Is there a way to "opt in" or "opt out" the propagation? It must be:
-        //   - easy to initiate and to stop.
-        //   - easy to grasp (by looking at the repository).
-        // Idea! Can it be the "fix/" branch that does the job?
-        // Given a fix of "My-Core/v1.0.1", a repo consumed this package in its v1.0.0 for its own versions
-        // - v4.0.0 (LastStable, LastMajorMinorStable)
-        // - v3.1.2 (LastMajorMinorStable)
-        // - v3.1.1 (out of this scope: not in the LastMajorMinorStable)
-        // - v3.1.1 (same as above)
-        // - v3.0.1 (LastMajorMinorStable)
-        // - v3.0.0 (out of this scope: not in the LastMajorMinorStable)
-        // - v2.0.1 (LastMajorMinorStable)
-        // - v2.0.0 (out of this scope: not in the LastMajorMinorStable)
-        //
-        // Using the LastMajorMinorStable, this triggers 4 new versions (4.0.1, 3.1.3, 3.0.2 and 2.0.2) which, in turn, produce
-        // more versions of downstream repos.
-        // Is the 2.0.2 useful? required?
-        // If we really don't care of v2 anymore, then a +deprecated tag can/should be created (this solves the problem:
-        // deprecated versions are no more "regular" versions and are ignored).
-        // But if we consider +deprecated as a "strong signal" that shouldn't be overused, then we need another mechanism
-        // that may be the existence of the "fix/" branch (here, does a "fix/v2.0" exist or not?).
-        //  - Is this branch "automatically" created (opt-out mode)?
-        //    Pros: safe. Cons: when will they be deleted? by who? (answer: almost never...)
-        //  - Opt-in mode? It's so easy to forget to create it...
-        //  => None is good.
-        // Changing the point of view: a --critical-fix flag makes us use the LastMajorMinorStable otherwise
-        // only the LastStable is used.
-        // This is far better (especially regarding the fact that in practice CK has a "upgrade asap" philosophy).
-        // But... wait... We started this discussion with
-        //      "But here we are on a "fix/" branch of a somehow "past" release, we are not releasing in the "hot zone"
-        //      (as a new minor stable version): it seems coherent to propagate "widely in the past"... "
-        // I initially thought that the "build fix" was easier than working in the "hot zone". But this is not that obvious.
-        // Is it because we are "pushing downstream" rather that thinking "pulling upstream"?
-        // What does pulling means here. Something like:
-        // "Hey, World, please upgrade ALL your dependencies to available patch versions and gives me updated packages.".
-        // The question is eventually the same: which packages for which (potentially outdated) versions?
-        // No... We definitely want to push fixes downstream.
-        //
-        // May be the solution is using the +deprecated: a regular version is "alive" (and must be fixed).
-        // A +deprecated version is "dead" and should not be used anymore. If we deprecate aggressively, we won't have
-        // these problems (and leads to less versions to manage) that globally optimize the system.
-        //
-        // To conclude: The impacts of a fix are all the Repo's LastMajorMinorStables commits that have one of
-        //              our content's produced package identifiers consumed with the lastFix.Version.
-
-        Throw.Assert( "Preconditions: no version tag issue.", _versionTags.TryGetAll( monitor, out var allRepoVersions ) );
-        var releaseInfo = _releaseDatabase.GetReleaseInfo( monitor, repo, lastFix.Version );
-        if( releaseInfo == null )
-        {
-            monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,
-                $"Release '{repo.DisplayPath}/{lastFix.Version}' cannot be found in the Release database and there's no Tag issue. This should not happen." );
-            _versionTags.DestroyLocalRelease( monitor, repo, result.Version );
-            return false;
-        }
-        IReadOnlyList<RepoReleaseInfo> firstImpacts = releaseInfo.GetDirectConsumers( monitor );
-        IEnumerable<NuGetPackageInstance> initialUpgradeList = result.Content.Produced.Select( id => new NuGetPackageInstance( id, result.Version ) );
-
-        // Build the "update list".
-        var updateList = result.Content.Produced.Select( id => new NuGetPackageInstance( id, result.Version ) ).ToImmutableArray();
-        foreach( var rV in allRepoVersions )
-        {
-            foreach( var tc in rV.LastMajorMinorStables )
-            {
-                Throw.DebugAssert( tc.IsRegularVersion && tc.BuildContentInfo != null );
-                if( tc.BuildContentInfo.Consumed.AsSpan().ContainsAny( updateList.AsSpan() ) )
-                {
-                    // We must build the
-                    var targetBranchName = $"{(isDevBranch ? "dev/" : "")}fix/v{tc.Version.Major}.{tc.Version.Minor}";
-                }
-            }
-        }
-
-
-        return true;
+        return fixer.RunAll( monitor );
     }
 
     BuildResult? CoreBuild( IActivityMonitor monitor,
@@ -469,31 +390,4 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return true;
     }
 
-}
-
-sealed class BuildGraph
-{
-    /// <summary>
-    /// Implies that all the <see cref="BuildTarget.BuildBranch"/> are "dev/" branches.
-    /// </summary>
-    public bool IsCIBuild { get; }
-
-    /// <summary>
-    /// Ever increasing set of package instances to upgrade <see cref="BuildTarget"/>.
-    /// </summary>
-    public IReadOnlyDictionary<string,NuGetPackageInstance> Upgrades { get; }
-}
-
-
-sealed class BuildTarget
-{
-    public BuildGraph Graph { get; }
-
-    public Repo Repo { get; set; }
-
-    public string BuildBranch { get; }
-
-    public ImmutableArray<NuGetPackageInstance> Consumed { get; }
-
-    public ImmutableArray<string> Produced { get; }
 }

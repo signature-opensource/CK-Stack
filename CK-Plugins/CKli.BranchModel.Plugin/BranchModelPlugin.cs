@@ -176,45 +176,7 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         var branchName = $"fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
         monitor.Info( $"Found '{toFix}' as the base commit. Ensuring branch '{branchName}'." );
 
-        // Find an existing branch.
-        var r = repo.GitRepository.Repository;
-        var bFix = repo.GitRepository.GetBranch( monitor, branchName, LogLevel.Info );
-        if( bFix != null )
-        {
-            // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the nominal case:
-            // the commit referenced by the /fix branch contains the code to fix.
-            if( bFix.Tip.Tree.Sha != toFix.ContentSha )
-            {
-                // The /fix branch must contain the commit to fix.
-                var versionedParent = versionInfo.FindFirst( bFix.Commits, out _ );
-                if( versionedParent != toFix )
-                {
-                    if( !moveBranch )
-                    {
-                        monitor.Error( $"""
-                            Branch '{branchName}' doesn't contain the commit '{toFix.Sha}' for the version '{toFix.Version.ParsedText}' to fix.
-                            Use --move-branch flag to move the branch on the commit to fix.
-                            """ );
-                        return false;
-                    }
-                    monitor.Info( $"Moving branch '{branchName}' to {toFix.Sha}." );
-                    bFix = null;
-                }
-            }
-        }
-        // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
-        if( bFix == null || bFix.Tip.Sha == toFix.Commit.Sha )
-        {
-            var c = r.ObjectDatabase.CreateCommit( toFix.Commit.Author,
-                                                   context.Committer,
-                                                   $"Starting '{branchName}' (this commit can be amended).",
-                                                   toFix.Commit.Tree,
-                                                   [toFix.Commit],
-                                                   prettifyMessage: false );
-            // Create or update the /fix branch.
-            repo.GitRepository.Repository.Branches.Add( branchName, c, allowOverwrite: true );
-        }
-        return true;
+        return EnsureFixBranch( monitor, context, versionInfo, toFix, moveBranch, branchName ) != null;
 
         static bool Parse( ReadOnlySpan<char> s, out int major, out int minor )
         {
@@ -230,6 +192,55 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
             }
             return false;
         }
+    }
+
+    static Branch? EnsureFixBranch( IActivityMonitor monitor,
+                                    CKliEnv context,
+                                    VersionTagInfo versionInfo,
+                                    TagCommit toFix,
+                                    bool allowMoveBranch,
+                                    string branchName )
+    {
+        // Find an existing branch.
+        var repo = versionInfo.Repo;
+        var r = repo.GitRepository.Repository;
+        var bFix = repo.GitRepository.GetBranch( monitor, branchName, LogLevel.Info );
+        if( bFix != null )
+        {
+            // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the nominal case:
+            // the commit referenced by the /fix branch contains the code to fix.
+            if( bFix.Tip.Tree.Sha != toFix.ContentSha )
+            {
+                // The /fix branch must contain the commit to fix.
+                var versionedParent = versionInfo.FindFirst( bFix.Commits, out _ );
+                if( versionedParent != toFix )
+                {
+                    if( !allowMoveBranch )
+                    {
+                        monitor.Error( $"""
+                            Branch '{branchName}' doesn't contain the commit '{toFix.Sha}' for the version '{toFix.Version.ParsedText}' to fix.
+                            Use --move-branch flag to move the branch on the commit to fix.
+                            """ );
+                        return null;
+                    }
+                    monitor.Info( $"Moving branch '{branchName}' to commit '{toFix.Sha}'." );
+                    bFix = null;
+                }
+            }
+        }
+        // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
+        if( bFix == null || bFix.Tip.Sha == toFix.Commit.Sha )
+        {
+            var c = r.ObjectDatabase.CreateCommit( toFix.Commit.Author,
+                                                   context.Committer,
+                                                   $"Starting '{branchName}' (this commit can be amended).",
+                                                   toFix.Commit.Tree,
+                                                   [toFix.Commit],
+                                                   prettifyMessage: false );
+            // Create or update the /fix branch.
+            bFix = repo.GitRepository.Repository.Branches.Add( branchName, c, allowOverwrite: true );
+        }
+        return bFix;
     }
 
     /// <summary>

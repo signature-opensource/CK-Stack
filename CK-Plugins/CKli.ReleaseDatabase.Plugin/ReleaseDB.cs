@@ -121,10 +121,9 @@ sealed class ReleaseDB
 
         bool localChanged = false;
         List<(SVersion V, BuildContentInfo Pub, BuildContentInfo Tag)>? issues = null; 
-        ulong repoId = repo.CKliRepoId.Value;
         foreach( var (version,info) in versions )
         {
-            var key = new RepoKey(repoId, version);
+            var key = new RepoKey( repo.CKliRepoId, version);
             if( _published._data.TryGetValue( key, out var exists ) )
             {
                 if( info != exists )
@@ -185,7 +184,7 @@ sealed class ReleaseDB
         _published.EnsureLoad( monitor );
         EnsureLoad( monitor );
 
-        var key = new RepoKey(repo.CKliRepoId.Value, version);
+        var key = new RepoKey(repo.CKliRepoId, version);
         if( _published._data.TryGetValue( key, out var exists ) )
         {
             return OnAlreadyLocalBuild( monitor, repo, version, rebuild, info, key, exists );
@@ -248,7 +247,7 @@ sealed class ReleaseDB
         _published.EnsureLoad( monitor );
         EnsureLoad( monitor );
 
-        var key = new RepoKey(repo.CKliRepoId.Value, version);
+        var key = new RepoKey(repo.CKliRepoId, version);
         if( _published._data.ContainsKey( key ) )
         {
             return true;
@@ -336,7 +335,7 @@ sealed class ReleaseDB
             int count = r.ReadInt32();
             while( --count >= 0 )
             {
-                var id = r.ReadUInt64();
+                var id = new RandomId( r.ReadUInt64() );
                 var v = SVersion.Parse( r.ReadSharedString() );
                 var c = new BuildContentInfo( r );
                 _data.Add( new RepoKey( id, v ), c );
@@ -364,7 +363,7 @@ sealed class ReleaseDB
             w.Write( _data.Count );
             foreach( var (k, v) in _data )
             {
-                w.Write( k.RepoId );
+                w.Write( k.RepoId.Value );
                 w.WriteSharedString( k.Version.ToString() );
                 v.Write( w );
             }
@@ -381,7 +380,7 @@ sealed class ReleaseDB
     {
         Throw.DebugAssert( IsLocal );
         EnsureLoad( monitor );
-        if( _data.Remove( new RepoKey( repo.CKliRepoId.Value, version ), out var exists ) )
+        if( _data.Remove( new RepoKey( repo.CKliRepoId, version ), out var exists ) )
         {
             monitor.Info( $"Removed version '{repo.DisplayPath}/{version}' from {Name} release database." );
             if( _producedIndex != null )
