@@ -4,7 +4,6 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CSemVer;
 using LibGit2Sharp;
-using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.Linq;

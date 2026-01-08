@@ -4,8 +4,6 @@ using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 using System.Text;
 using LogLevel = CK.Core.LogLevel;
 

@@ -1,28 +1,32 @@
 using CK.Core;
 using CKli.Core;
+using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;
 
-public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
+public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
 {
     readonly BranchNamespace _namespace;
     readonly VersionTagPlugin _versionTags;
+    readonly ReleaseDatabasePlugin _releaseDatabase;
 
     /// <summary>
     /// This is a primary plugin.
     /// </summary>
-    public BranchModelPlugin( PrimaryPluginContext primaryContext, VersionTagPlugin versionTags )
+    public BranchModelPlugin( PrimaryPluginContext primaryContext, VersionTagPlugin versionTags, ReleaseDatabasePlugin releaseDatabase )
         : base( primaryContext )
     {
         _namespace = new BranchNamespace( World.Name.LTSName );
         World.Events.Issue += IssueRequested;
         _versionTags = versionTags;
+        _releaseDatabase = releaseDatabase;
     }
 
     void IssueRequested( IssueEvent e )
@@ -61,6 +65,48 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
         return exists;
     }
 
+    /// <summary>
+    /// Basic preconditions are strict:
+    /// <list type="bullet">
+    ///     <item>No repo must be dirty.</item>
+    ///     <item>No repo's VersionTagInfo must have issues.</item>
+    ///     <item>No repo's BranchModelInfo must have issues.</item>
+    /// </list>
+    /// </summary>
+    /// <param name="monitor">The required monitor.</param>
+    /// <param name="plannedAction">The planned action description. Example: "building" or "starting a fix".</param>
+    /// <param name="allRepos">Outputs all the <see cref="Repo"/>.</param>
+    /// <returns>True on success, false on error.</returns>
+    public bool CheckBasicPreconditions( IActivityMonitor monitor,
+                                         string plannedAction,
+                                         [NotNullWhen( true )] out IReadOnlyList<Repo>? allRepos )
+    {
+        using( monitor.OpenTrace( $"Checking World's global state." ) )
+        {
+            bool success = true;
+            allRepos = World.GetAllDefinedRepo( monitor );
+            if( allRepos == null ) return false;
+            foreach( var repo in allRepos )
+            {
+                if( !repo.GitRepository.CheckCleanCommit( monitor ) )
+                {
+                    success = false;
+                }
+                else
+                {
+                    var tags = _versionTags.Get( monitor, repo );
+                    success &= !tags.HasIssues;
+                    var branch = Get( monitor, repo );
+                    success &= !branch.HasIssues;
+                }
+            }
+            if( !success )
+            {
+                monitor.Error( $"Please fix any issue before {plannedAction}." );
+            }
+            return success;
+        }
+    }
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
     {
         var git = repo.GitRepository.Repository;
@@ -134,113 +180,6 @@ public sealed class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
                 }
             }
         }
-    }
-
-    [Description( "Ensures that a 'fix/vMajor.Minor' branch exists in the repository and checkouts it." )]
-    [CommandPath( "branch fix" )]
-    public bool BranchFix( IActivityMonitor monitor,
-                           CKliEnv context,
-                           [Description( "The Major or Major.Minor for which a fix must be produced." )]
-                           string version,
-                           [Description( "Don't initially fetch 'origin' repository." )]
-                           bool noFetch,
-                           bool moveBranch )
-    {
-        // Parses the Major.Minor. Minor is -1 if only Major is specified (we'll consider the max Minor).
-        if( !Parse( version, out int major, out int minor ) )
-        {
-            monitor.Error( $"Invalid version '{version}'. Must be a Major number, Major.Minor numbers optionally prefixed with 'v'." );
-            return false;
-        }
-        var repo = World.GetDefinedRepo( monitor, context.CurrentDirectory );
-        if( repo == null )
-        {
-            return false;
-        }
-        // Fetch the repo before analyzing versions.
-        if( !noFetch && !repo.GitRepository.FetchBranches( monitor, withTags: false, originOnly: true ) )
-        {
-            return false;
-        }
-        // Find the commit that must be fixed. This can perfectly be a +fake one.
-        var versionInfo = _versionTags.Get( monitor, repo );
-        var toFix = versionInfo.LastStables.Where( c => c.Version.Major == major && (minor == -1 || c.Version.Minor == minor) ).Max();
-        if( toFix == null )
-        {
-            monitor.Error( minor != -1
-                            ? $"Unable to find any version to fix for 'v{major}.{minor}'."
-                            : $"Unable to find any version to fix for 'v{major}'." );
-            return false;
-        }
-        // The branch name is known.
-        var branchName = $"fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
-        monitor.Info( $"Found '{toFix}' as the base commit. Ensuring branch '{branchName}'." );
-
-        return EnsureFixBranch( monitor, context, versionInfo, toFix, moveBranch, branchName ) != null;
-
-        static bool Parse( ReadOnlySpan<char> s, out int major, out int minor )
-        {
-            minor = -1;
-            s.TryMatch( 'v' );
-            if( s.TryMatchInteger( out major ) && major >= 0 )
-            {
-                if( s.TryMatch( '.' ) && (!s.TryMatchInteger( out minor ) || minor < 0) )
-                {
-                    return false;
-                }
-                return true;
-            }
-            return false;
-        }
-    }
-
-    static Branch? EnsureFixBranch( IActivityMonitor monitor,
-                                    CKliEnv context,
-                                    VersionTagInfo versionInfo,
-                                    TagCommit toFix,
-                                    bool allowMoveBranch,
-                                    string branchName )
-    {
-        // Find an existing branch.
-        var repo = versionInfo.Repo;
-        var r = repo.GitRepository.Repository;
-        var bFix = repo.GitRepository.GetBranch( monitor, branchName, LogLevel.Info );
-        if( bFix != null )
-        {
-            // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the nominal case:
-            // the commit referenced by the /fix branch contains the code to fix.
-            if( bFix.Tip.Tree.Sha != toFix.ContentSha )
-            {
-                // The /fix branch must contain the commit to fix.
-                var versionedParent = versionInfo.FindFirst( bFix.Commits, out _ );
-                if( versionedParent != toFix )
-                {
-                    if( !allowMoveBranch )
-                    {
-                        monitor.Error( $"""
-                            Branch '{branchName}' doesn't contain the commit '{toFix.Sha}' for the version '{toFix.Version.ParsedText}' to fix.
-                            Use --move-branch flag to move the branch on the commit to fix.
-                            """ );
-                        return null;
-                    }
-                    monitor.Info( $"Moving branch '{branchName}' to commit '{toFix.Sha}'." );
-                    bFix = null;
-                }
-            }
-        }
-        // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
-        if( bFix == null || bFix.Tip.Sha == toFix.Commit.Sha )
-        {
-            var c = r.ObjectDatabase.CreateCommit( toFix.Commit.Author,
-                                                   context.Committer,
-                                                   $"Starting '{branchName}' (this commit can be amended).",
-                                                   toFix.Commit.Tree,
-                                                   [toFix.Commit],
-                                                   prettifyMessage: false );
-            // Create or update the /fix branch.
-            bFix = repo.GitRepository.Repository.Branches.Add( branchName, c, allowOverwrite: true );
-        }
-        return bFix;
     }
 
     /// <summary>

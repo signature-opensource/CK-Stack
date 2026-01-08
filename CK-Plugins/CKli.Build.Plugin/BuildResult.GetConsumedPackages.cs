@@ -1,13 +1,8 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
-using CKli.Core;
 using CKli.VersionTag.Plugin;
-using CSemVer;
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Text;
-using System.Text.Json;
 
 namespace CKli.Build.Plugin;
 

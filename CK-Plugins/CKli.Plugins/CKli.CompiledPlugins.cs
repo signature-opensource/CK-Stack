@@ -43,7 +43,9 @@ public static class CompiledPlugins
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.Net8Migration.Plugin.Net8MigrationPlugin", true, 0, 6 );
         var pluginCommands = new PluginCommand[]{
-            new Cmd_branch＿fix( infos[0].PluginTypes[0] ),
+            new Cmd_fix＿start( infos[0].PluginTypes[0] ),
+            new Cmd_fix＿info( infos[0].PluginTypes[0] ),
+            new Cmd_fix＿cancel( infos[0].PluginTypes[0] ),
             new Cmd_build( infos[2].PluginTypes[1] ),
             new Cmd_repo＿build( infos[2].PluginTypes[1] ),
             new Cmd_repo＿rebuild＿old( infos[2].PluginTypes[1] ),
@@ -55,7 +57,7 @@ public static class CompiledPlugins
         {
             cmds.Add( c.CommandPath, c );
         }
-       cmds.Add( "branch", null );
+       cmds.Add( "fix", null );
        cmds.Add( "repo", null );
        cmds.Add( "repo rebuild", null );
        cmds.Add( "migrate", null );
@@ -92,7 +94,7 @@ sealed class Generated : IPluginFactory
         objects[0] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
         objects[1] = new CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin( new PrimaryPluginContext( _plugins[3], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[2] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ), (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
-        objects[3] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2] );
+        objects[3] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1] );
         objects[4] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[5] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[3], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[4], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[6] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.Build.Plugin.BuildPlugin)objects[5] );
@@ -101,32 +103,76 @@ sealed class Generated : IPluginFactory
 
     public void Dispose() { }
 }
-sealed class Cmd_branch＿fix : PluginCommand
+sealed class Cmd_fix＿start : PluginCommand
 {
-    internal Cmd_branch＿fix( IPluginTypeInfo typeInfo )
+    internal Cmd_fix＿start( IPluginTypeInfo typeInfo )
         : base( typeInfo,
-                "branch fix",
-                "Ensures that a 'fix/vMajor.Minor' branch exists in the repository and checkouts it.",
+                "fix start",
+                "Starts a Fix Workflow. This Repo 'fix/vMajor.Minor' branch is checked out.",
                 1,
                 -1,
                 arguments: [
-                    ("version", "The Major or Major.Minor for which a fix must be produced."),
+                    ("version", "The Major or Major.Minor version to fix."),
                 ],
                 options: [
                 ],
                 flags: [
                     (["--no-fetch",], "Don't initially fetch 'origin' repository." ),
-                    (["--move-branch",], "<no description>" ),
+                    (["--move-branch",], "Allow 'fix/' branches to be moved on the commit to fix if they are not already on it." ),
                 ],
-                "BranchFix", MethodAsyncReturn.None ) {}
+                "FixStart", MethodAsyncReturn.None ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
         var a0 = cmdLine.EatArgument();
         var f0 = cmdLine.EatFlag( Flags[0].Names );
         var f1 = cmdLine.EatFlag( Flags[1].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return ValueTask.FromResult( ((CKli.BranchModel.Plugin.BranchModelPlugin)Instance).BranchFix(
+        return ValueTask.FromResult( ((CKli.BranchModel.Plugin.BranchModelPlugin)Instance).FixStart(
                                            monitor, context, a0, f0, f1 ) );
+    }
+}
+sealed class Cmd_fix＿info : PluginCommand
+{
+    internal Cmd_fix＿info( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "fix info",
+                "Dumps the current Fix Workflow state.",
+                1,
+                -1,
+                arguments: [
+                ],
+                options: [
+                ],
+                flags: [
+                ],
+                "FixInfo", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.BranchModel.Plugin.BranchModelPlugin)Instance).FixInfo(
+                                           monitor, context ) );
+    }
+}
+sealed class Cmd_fix＿cancel : PluginCommand
+{
+    internal Cmd_fix＿cancel( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "fix cancel",
+                "Cancels the current Fix Workflow.",
+                1,
+                -1,
+                arguments: [
+                ],
+                options: [
+                ],
+                flags: [
+                ],
+                "FixCancel", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.BranchModel.Plugin.BranchModelPlugin)Instance).FixCancel(
+                                           monitor, context ) );
     }
 }
 sealed class Cmd_build : PluginCommand

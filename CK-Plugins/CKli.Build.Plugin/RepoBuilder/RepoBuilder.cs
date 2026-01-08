@@ -33,8 +33,8 @@ public class RepoBuilder : RepoInfo
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="buildInfo">The build info.</param>
-    /// <param name="runTest"></param>
-    /// <returns></returns>
+    /// <param name="runTest">Whether tests should be run or not.</param>
+    /// <returns>True on success, false otherwise.</returns>
     public BuildResult? Build( IActivityMonitor monitor,
                                CommitBuildInfo buildInfo,
                                bool? runTest )

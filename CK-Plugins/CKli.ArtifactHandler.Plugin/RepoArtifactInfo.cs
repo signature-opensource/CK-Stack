@@ -2,7 +2,6 @@ using CK.Core;
 using CKli.Core;
 using CSemVer;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.IO.Compression;

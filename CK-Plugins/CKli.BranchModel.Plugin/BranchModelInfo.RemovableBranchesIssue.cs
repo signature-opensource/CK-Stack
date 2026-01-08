@@ -1,6 +1,5 @@
 using CK.Core;
 using CKli.Core;
-using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -44,7 +43,7 @@ public sealed partial class BranchModelInfo
                 {
                     var target = b.ExistingBaseBranch.BranchName.Name;
                     monitor.Info( $"Branch to remove is the current head. Switching to its existing base branch '{target}'." );
-                    success &= Repo.GitRepository.SetCurrentBranch( monitor, b.ExistingBaseBranch.BranchName.Name, skipPullMerge: true );
+                    success &= Repo.GitRepository.Checkout( monitor, b.ExistingBaseBranch.BranchName.Name, skipFetchMerge: true );
                     switchSuccess = false;
                 }
                 if( switchSuccess )

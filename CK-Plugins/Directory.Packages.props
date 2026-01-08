@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0096-dev" />
+    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0107-dev" />
     <PackageVersion Include="CSemVer" Version="13.0.0" />
     <PackageVersion Include="Microsoft.VisualStudio.SolutionPersistence" Version="1.0.52" />
   </ItemGroup>

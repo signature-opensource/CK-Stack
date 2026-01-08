@@ -3,8 +3,6 @@ using CKli.Core;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CKli.BranchModel.Plugin;

@@ -7,9 +7,6 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Text;
-using System.Text.Json;
-using System.Xml.Linq;
 
 namespace CKli.ReleaseDatabase.Plugin;
 

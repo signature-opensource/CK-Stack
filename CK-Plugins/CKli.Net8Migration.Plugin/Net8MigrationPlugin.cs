@@ -4,8 +4,6 @@ using CKli.Core;
 using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
-using Microsoft.VisualBasic;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -102,23 +100,12 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         return success;
     }
 
-    private static bool Pull( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
-    {
-        bool success = true;
-        foreach( var repo in repos )
-        {
-            success &= repo.Pull( monitor ).IsSuccess();
-        }
-        return success;
-    }
-
-
     private static bool SetMasterAndCheckDevelopIsMerged( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
     {
         bool success = true;
         foreach( var repo in repos )
         {
-            success &= repo.GitRepository.SetCurrentBranch( monitor, "master" );
+            success &= repo.GitRepository.Checkout( monitor, "master", skipFetchMerge: true );
             var dev = repo.GitRepository.GetBranch( monitor, "develop", missingLocalAndRemote: LogLevel.Error );
             if( dev == null )
             {

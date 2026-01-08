@@ -7,13 +7,8 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
-using System.Collections.Generic;
-using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
-using System.Xml;
-using static CK.Core.CheckedWriteStream;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.Build.Plugin;
@@ -58,7 +53,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         BranchName? namedBranch;
         if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
             || (namedBranch = _branchModel.GetValidBranchName( monitor, branchName )) == null
-            || !CheckBuildPreconditions( monitor, out var allRepos ) )
+            || !_branchModel.CheckBasicPreconditions( monitor, "building", out var allRepos ) )
         {
             return false;
         }
@@ -85,7 +80,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            bool rebuild = false )
     {
         if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
-            || !CheckBuildPreconditions( monitor, out var allRepos ) )
+            || !_branchModel.CheckBasicPreconditions( monitor, "building", out var allRepos ) )
         {
             return false; 
         }
@@ -129,38 +124,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return true;
     }
 
-    bool CheckBuildPreconditions( IActivityMonitor monitor, [NotNullWhen(true)]out IReadOnlyList<Repo>? allRepos )
-    {
-        // Build preconditions are strict:
-        // - No repo must be dirty.
-        // - No repo's VersionTagInfo must have issues.
-        // - No repo's BranchModelInfo must have issues.
-        using( monitor.OpenTrace( $"Checking World's global state." ) )
-        {
-            bool success = true;
-            allRepos = World.GetAllDefinedRepo( monitor );
-            if( allRepos == null ) return false;
-            foreach( var repo in allRepos )
-            {
-                if( !repo.GitRepository.CheckCleanCommit( monitor ) )
-                {
-                    success = false;
-                }
-                else
-                {
-                    var tags = _versionTags.Get( monitor, repo );
-                    success &= !tags.HasIssues;
-                    var branch = _branchModel.Get( monitor, repo );
-                    success &= !branch.HasIssues;
-                }
-            }
-            if( !success )
-            {
-                monitor.Error( $"Please fix any issue before building." );
-            }
-            return success;
-        }
-    }
 
     static bool HandleForceSkipTests( IActivityMonitor monitor, bool skipTests, bool forceTests, out bool? runTest )
     {
@@ -275,7 +238,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // Wherever we are, it's time to checkout the working folder on the branch's tip.
         // We also do this when buildCommit is set to the lastFix commit (rebuild case) to avoid
         // the detached head state. 
-        if( branch != r.Head && !repo.GitRepository.SetCurrentBranch( monitor, branchName, skipPullMerge: true ) )
+        if( branch != r.Head && !repo.GitRepository.Checkout( monitor, branchName, skipFetchMerge: true ) )
         {
             return false;
         }
