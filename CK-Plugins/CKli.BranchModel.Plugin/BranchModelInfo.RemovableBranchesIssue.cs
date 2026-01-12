@@ -37,13 +37,12 @@ public sealed partial class BranchModelInfo
             bool success = true;
             foreach( var b in _removables )
             {
-                Throw.DebugAssert( b.GitBranch != null && b.ExistingBaseBranch != null );
+                Throw.DebugAssert( b.GitBranch != null && b.ExistingBaseBranch != null && b.ExistingBaseBranch.GitBranch != null );
                 bool switchSuccess = true;
                 if( git.Head.Tip.Sha == b.GitBranch.Tip.Sha )
                 {
-                    var target = b.ExistingBaseBranch.BranchName.Name;
-                    monitor.Info( $"Branch to remove is the current head. Switching to its existing base branch '{target}'." );
-                    success &= Repo.GitRepository.Checkout( monitor, b.ExistingBaseBranch.BranchName.Name, skipFetchMerge: true );
+                    monitor.Info( $"Branch to remove is the current head. Switching to its existing base branch '{b.ExistingBaseBranch.BranchName.Name}'." );
+                    success &= Repo.GitRepository.Checkout( monitor, b.ExistingBaseBranch.GitBranch );
                     switchSuccess = false;
                 }
                 if( switchSuccess )

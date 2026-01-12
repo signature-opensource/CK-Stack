@@ -238,7 +238,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // Wherever we are, it's time to checkout the working folder on the branch's tip.
         // We also do this when buildCommit is set to the lastFix commit (rebuild case) to avoid
         // the detached head state. 
-        if( branch != r.Head && !repo.GitRepository.Checkout( monitor, branchName, skipFetchMerge: true ) )
+        if( !repo.GitRepository.Checkout( monitor, branch ) )
         {
             return false;
         }

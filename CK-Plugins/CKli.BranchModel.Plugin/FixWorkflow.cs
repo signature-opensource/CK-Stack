@@ -68,6 +68,7 @@ public sealed class FixWorkflow
 
         /// <summary>
         /// Gets the rank of this target among the <see cref="Targets"/>.
+        /// The targets that share the same rank can be built in parallel.
         /// </summary>
         public int Rank => _rank;
 
@@ -117,6 +118,7 @@ public sealed class FixWorkflow
 
     internal FixWorkflow( World world, ImmutableArray<TargetRepo> targets )
     {
+        Throw.DebugAssert( targets.Length >= 1 );
         _world = world;
         _targets = targets;
     }
@@ -145,13 +147,13 @@ public sealed class FixWorkflow
     {
         var o = OriginRepo;
         var header = s.Text( $"Fixing 'v{o.TargetVersion.Major}.{o.TargetVersion.Minor}.{o.TargetVersion.Patch - 1}' on" ).Box( marginRight: 1 )
-                      .AddRight( s.Text( o.Repo.DisplayPath ).HyperLink( new Uri( "file:///" + o.Repo.WorkingFolder ) ).Box( marginRight: 1 ) )
+                      .AddRight( s.Text( o.Repo.DisplayPath ).HyperLink( new Uri( o.Repo.WorkingFolder ) ).Box( marginRight: 1 ) )
                       .AddRight( s.Text( $" on branch '{o.BranchName}'" ).Box( marginRight: 1 ) )
                       .AddRight( s.Text( $" to publish '{o.TargetVersion}'" ).Box() );
 
         var rows = header.AddBelow( _targets.Select( t =>
                      s.Text( $"{t.Index} >" ).Box( marginRight:1, align:ContentAlign.HRight)
-                     .AddRight( s.Text( t.Repo.DisplayPath ).HyperLink( new Uri( "file:///" + t.Repo.WorkingFolder ) ).Box( marginRight: 1 ) )
+                     .AddRight( s.Text( t.Repo.DisplayPath ).HyperLink( new Uri( t.Repo.WorkingFolder ) ).Box( marginRight: 1 ) )
                      .AddRight( s.Text( t.BranchName ).Box( marginRight: 1 ) )
                      .AddRight( s.Text( o.TargetVersion.ToString() ).Box( foreColor: ConsoleColor.Green ) ) ) );
         var table = rows.TableLayout();
@@ -231,6 +233,12 @@ public sealed class FixWorkflow
             return false;
         }
     }
+
+    /// <summary>
+    /// Overridden to return the <see cref="OriginRepo"/> path and <see cref="TargetRepo.BranchName"/>.
+    /// </summary>
+    /// <returns>A readable string.</returns>
+    public override string ToString() => $"{OriginRepo.Repo.DisplayPath}/{OriginRepo.BranchName}";
 
     static FixWorkflow? DoRead( IActivityMonitor monitor, CKBinaryReader r, World world )
     {

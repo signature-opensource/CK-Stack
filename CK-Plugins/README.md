@@ -17,7 +17,7 @@ This fix context is unique: the fix must be published or canceled before another
 Canceling a fix preserves the work that may have been done in the different repositories, the branches
 with their commits if any are left as-is and the same fix can be restarted anytime.
 
-Publishing the fix compiles, tests and propagates recursively the fixed packages
+Publishing the fix compiles, tests and propagates the fixed packages
 recursively to the fix branches of the downstream repositories.
 
 If the build fails, the downstream repositories are restored. No

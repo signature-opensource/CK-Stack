@@ -38,6 +38,27 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     }
 
     /// <summary>
+    /// Gets the non null version tag info for the repository only if <see cref="VersionTagInfo.HasIssues"/> is false.
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The repository.</param>
+    /// <param name="before">Expected following operation description. When null, no warning is emitted (it must be emitted by the caller).</param>
+    /// <returns>The non null info or null if there are issues.</returns>
+    public VersionTagInfo? GetWithoutIssue( IActivityMonitor monitor, Repo repo, string? before = "continuing" )
+    {
+        var versionInfo = Get( monitor, repo );
+        if( versionInfo.HasIssues )
+        {
+            if( before != null )
+            {
+                monitor.Error( $"Please fix any issue before {before}." );
+            }
+            return null;
+        }
+        return versionInfo;
+    }
+
+    /// <summary>
     /// Sets <see cref="MinVersion"/> for a Repo.
     /// This must be called before the <see cref="VersionTagInfo"/> for the Repo is obtained.
     /// This is required for .Net 8 migration. This can be removed one day. 

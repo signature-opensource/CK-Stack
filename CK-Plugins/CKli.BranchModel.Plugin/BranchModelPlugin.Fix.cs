@@ -18,8 +18,6 @@ public sealed partial class BranchModelPlugin
                           CKliEnv context,
                           [Description( "The Major or Major.Minor version to fix." )]
                           string version,
-                          [Description( "Don't initially fetch 'origin' repository." )]
-                          bool noFetch,
                           [Description( "Allow 'fix/' branches to be moved on the commit to fix if they are not already on it." )]
                           bool moveBranch )
     {
@@ -34,37 +32,69 @@ public sealed partial class BranchModelPlugin
         {
             return false;
         }
-        // Fetch the repo's branches but withut tags before analyzing versions.
-        if( !noFetch && !repo.GitRepository.FetchBranches( monitor, withTags: false, originOnly: true ) )
+        // It's not that easy here:
+        // - We must know the LastStables of this Repo to resolve the base version to fix.
+        // - Once we Get the VersionTagInfo for this Repo it is immutable: so we should have all the required tags before.
+        // - But we don't want to blindly replace all the local tags with the remote ones: starting a fix should have as
+        //   few side-effects as possible.
+        // 
+        // So we fetch only the "fix/vMajor.*" branches with tags that limits the pulled tags to the minimum and
+        // enables us to handle the floating minor.
+        //
+        // We consider only the "origin" remote here but we COULD allow all remotes.
+        //
+        var branchSpec = $"{World.Name.LTSName}/fix/v{major}.*";
+        if( !repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, originOnly: true, branchSpec ) )
         {
             return false;
         }
-        //repo.GitRepository.SetCurrentBranch( monitor, branchName, skipPullMerge: true );
-
-        if( !CheckBasicPreconditions( monitor, "starting a fix", out var allRepos ) )
+        // Now that the tags of the vMajor have been fetched, we can obtain the VersionTagInfo to find the commit that must be fixed.
+        // This can perfectly be a +fake one.
+        var versionInfo = _versionTags.GetWithoutIssue( monitor, repo, "starting a fix" );
+        if( versionInfo == null )
         {
             return false;
         }
-        // If load fails, the workflow has been canceled. We could allow this (as there's no more workflow)
-        // but this would be weird. It's cleaner to fail this call: the fix start command can now be repeated.
-        if( !FixWorkflow.Load( monitor, World, out var exists ) )
-        {
-            return false;
-        }
-        if( exists != null )
-        {
-            monitor.Error( $"A fix workflow already exists for world '{World.Name}'. It must be canceled first." );
-            context.Screen.Display( exists.ToRenderable );
-            return false;
-        }
-        // Find the commit that must be fixed. This can perfectly be a +fake one.
-        var versionInfo = _versionTags.Get( monitor, repo );
         var toFix = versionInfo.LastStables.Where( c => c.Version.Major == major && (minor == -1 || c.Version.Minor == minor) ).Max();
         if( toFix == null )
         {
             monitor.Error( minor != -1
                             ? $"Unable to find any version to fix for 'v{major}.{minor}'."
                             : $"Unable to find any version to fix for 'v{major}'." );
+            return false;
+        }
+        // We now know the target version.
+        var targetVersion = SVersion.Create( toFix.Version.Major, toFix.Version.Minor, toFix.Version.Patch + 1 );
+        // We are on the origin of the fix, we have fetched all the fix branches for the major: we try to merge
+        // any remote work in this scope into our local repository. It is a kind of "scoped pull" that guaranties
+        // that we start a fix with an up-to-date local code of the fix origin.
+        if( !repo.GitRepository.MergeTrackedBranches( monitor, continueOnError: true, fromAllRemotes: true, branchSpec ) )
+        {
+            monitor.Error( "The merge conflicts must be resolved before starting the fix." );
+            return false;
+        }
+        // In the recursive part of CreateTargets that handles the impacts (below), we fetch all the "fix/v*" branches
+        // and merge only the impacted branches.
+        // If any impacted branch has any merge conflict, this is also an error that must be fixed.
+
+        // If load fails, the workflow has been canceled. We could allow this (as there's no more workflow)
+        // but this would be weird. It's cleaner to fail this call: the fix start command can be repeated.
+        if( !FixWorkflow.Load( monitor, World, out var exists ) )
+        {
+            return false;
+        }
+        if( exists != null )
+        {
+            var o = exists.OriginRepo;
+            if( o.Repo == repo && o.TargetVersion == targetVersion )
+            {
+                // TODO: Restarting. What does it mean? It must resynchronizes the workflow with the remote branches.
+                //       Is it exactly the same as a "cancel+start"?
+                //       This "resync" may also be done at the start of 'ckli publish' to detect fix already existing
+                //       on the remotes...
+            }
+            monitor.Error( $"A fix workflow already exists for world '{World.Name}'. It must be canceled first." );
+            context.Screen.Display( exists.ToRenderable );
             return false;
         }
         // Defensive programming here: the RepoReleaseInfo must exist.
@@ -76,9 +106,9 @@ public sealed partial class BranchModelPlugin
                 $"Release '{repo.DisplayPath}/{toFix.Version}' cannot be found in the Release database and there's no VersionTag issue. This should not happen." );
             return false;
         }
-        // First, creates the origin (originReleaseInfo,fixVersion) as a FixWorkflow.TargetRepo.
+        // First, creates the origin (originReleaseInfo,targetVersion) as a FixWorkflow.TargetRepo.
         // If it fails, it is useless to create the downstream repositories targets.
-        var origin = CreateTarget( monitor, context, _versionTags, moveBranch, originReleaseInfo.Repo, toFix, 0 );
+        var origin = CreateTarget( monitor, context, _versionTags, moveBranch, originReleaseInfo.Repo, toFix, targetVersion, 0 );
         if( origin == null )
         {
             return false;
@@ -117,6 +147,7 @@ public sealed partial class BranchModelPlugin
                                    RepoReleaseInfo origin,
                                    out ImmutableArray<FixWorkflow.TargetRepo> targets )
         {
+            #region Comments
             // The direct impacts are filtered. This limits the number of release to process at the source: only
             // repo/version that need to be built will appear in the direct impacts.
             //
@@ -204,17 +235,34 @@ public sealed partial class BranchModelPlugin
             // We use another approach that updates the depth (rank) while traversing the consumers. If we avoid a repetitive
             // lookup in the tags.LastMajorMinorStables, we unfortunately reprocess shared consumers to increase the
             // ranks (but only when needed).
-            //
+            // 
+            #endregion
+            // This tracks the repo for which "fix/v*" branches have been fetched.
+            var fetched = new HashSet<Repo>();
             var all = new Dictionary<RepoReleaseInfo, (TagCommit? Commit, int Rank)>();
             Throw.DebugAssert( first.Index == 0 && first.Rank == 0 );
-            int count = Collect( monitor, all, versionTags, origin, 1 );
+            int? count = Collect( monitor, all, versionTags, origin, 1, fetched );
+            if( !count.HasValue )
+            {
+                targets = default;
+                return false;
+            }
             targets = default;
-            var b = ImmutableArray.CreateBuilder<FixWorkflow.TargetRepo>( 1 + count );
+            var b = ImmutableArray.CreateBuilder<FixWorkflow.TargetRepo>( 1 + count.Value );
             b.Add( first );
             foreach( var (info, (commit, rank)) in all )
             {
+                // Skips null marker.
                 if( commit == null ) continue;
-                var t = CreateTarget( monitor, context, versionTags, moveBranch, info.Repo, commit, rank );
+                var targetVersion = SVersion.Create( commit.Version.Major, commit.Version.Minor, commit.Version.Patch + 1 );
+                if( !info.Repo.GitRepository.MergeTrackedBranches( monitor,
+                                                                    continueOnError: false,
+                                                                    fromAllRemotes: false,
+                                                                    $"{info.Repo.World.Name.LTSName}/fix/v{targetVersion.Major}.{targetVersion.Minor}" ) )
+                {
+                    return false;
+                }
+                var t = CreateTarget( monitor, context, versionTags, moveBranch, info.Repo, commit, targetVersion, rank );
                 if( t == null ) return false;
                 b.Add( t );
             }
@@ -234,14 +282,15 @@ public sealed partial class BranchModelPlugin
             }
             return true;
 
-            static int Collect( IActivityMonitor monitor,
-                                Dictionary<RepoReleaseInfo, (TagCommit? Commit, int Rank)> all,
-                                VersionTagPlugin versionTags,
-                                RepoReleaseInfo origin,
-                                int rank )
+            static int? Collect( IActivityMonitor monitor,
+                                 Dictionary<RepoReleaseInfo, (TagCommit? Commit, int Rank)> all,
+                                 VersionTagPlugin versionTags,
+                                 RepoReleaseInfo origin,
+                                 int rank,
+                                 HashSet<Repo> fetched )
             {
                 int count = 0;
-                foreach( var next in origin.GetDirectConsumers( monitor ) )
+                foreach( RepoReleaseInfo next in origin.GetDirectConsumers( monitor ) )
                 {
                     if( all.TryGetValue( next, out var exists ) )
                     {
@@ -250,22 +299,49 @@ public sealed partial class BranchModelPlugin
                             if( exists.Rank < rank )
                             {
                                 all[next] = (exists.Commit, rank);
-                                Collect( monitor, all, versionTags, next, rank + 1 );
+                                Collect( monitor, all, versionTags, next, rank + 1, fetched );
                             }
                         }
                     }
                     else
                     {
-                        var tags = versionTags.Get( monitor, next.Repo );
+                        // We fetch (with the tags) all the "fix/v*" branches here (before computing the version tags).
+                        // There can be multiple impacts in the same repository (with different minors but
+                        // also majors!).
+                        // And we do this only once per impacted Repo (hence the HashSet<Repo> fetched).
+                        if( fetched.Add( next.Repo ) )
+                        {
+                            if( !next.Repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, originOnly: true, $"{next.Repo.World.Name.LTSName}/fix/v*" ) )
+                            {
+                                return null;
+                            }
+                        }
+                        var tags = versionTags.GetWithoutIssue( monitor, next.Repo, "starting the fix" );
+                        if( tags == null )
+                        {
+                            return null;
+                        }
+                        // This may seem counter intuitive here but the impact here often doesn't exist:
+                        // this is because we consider here the last patch of the major.minor for the repo
+                        // and a origin can have been consumed by the v1.2.3 of a consumer but if a v1.2.4
+                        // has been built, the v1.2.3 must be skipped.
+                        // Note that if the v1.2.4 doesn't consume origin anymore, this is a violation of the
+                        // "fix policy" but is not an error: we just ignore this.
                         var commit = tags.LastMajorMinorStables.FirstOrDefault( tc => tc.Version == next.Version );
                         if( commit != null )
                         {
                             all.Add( next, (commit, rank) );
                             ++count;
-                            count += Collect( monitor, all, versionTags, next, rank + 1 );
+                            int? belowCount = Collect( monitor, all, versionTags, next, rank + 1, fetched );
+                            if( !belowCount.HasValue )
+                            {
+                                return null;
+                            }
+                            count += belowCount.Value;
                         }
                         else
                         {
+                            // Adds a null marker to avoid subsequent lookups.
                             all.Add( next, default );
                         }
                     }
@@ -281,9 +357,10 @@ public sealed partial class BranchModelPlugin
                                                      bool moveBranch,
                                                      Repo repo,
                                                      TagCommit toFix,
+                                                     SVersion targetVersion,
                                                      int rank )
         {
-            var branchName = $"fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
+            var branchName = $"{repo.World.Name.LTSName}/fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
             string? initialBranchSha = null;
             // Find an existing branch.
             var bFix = repo.GitRepository.GetBranch( monitor, branchName, LogLevel.Info );
@@ -310,26 +387,26 @@ public sealed partial class BranchModelPlugin
                         monitor.Info( $"Moving branch '{branchName}' in '{repo.DisplayPath}' to commit '{toFix.Sha}'." );
                         bFix = null;
                     }
-                    // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
-                    if( bFix == null || bFix.Tip.Sha == toFix.Commit.Sha )
-                    {
-                        var r = repo.GitRepository.Repository;
-                        var c = r.ObjectDatabase.CreateCommit( toFix.Commit.Author,
-                                                               context.Committer,
-                                                               $"Starting '{branchName}' (this commit can be amended).",
-                                                               toFix.Commit.Tree,
-                                                               [toFix.Commit],
-                                                               prettifyMessage: false );
-                        // Create or update the /fix branch.
-                        bFix = r.Branches.Add( branchName, c, allowOverwrite: true );
-                    }
                 }
+            }
+            // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
+            if( bFix == null || bFix.Tip.Sha == toFix.Commit.Sha )
+            {
+                var r = repo.GitRepository.Repository;
+                var c = r.ObjectDatabase.CreateCommit( toFix.Commit.Author,
+                                                        context.Committer,
+                                                        $"Starting '{branchName}' (this commit can be amended).",
+                                                        toFix.Commit.Tree,
+                                                        [toFix.Commit],
+                                                        prettifyMessage: false );
+                // Create or update the /fix branch.
+                bFix = r.Branches.Add( branchName, c, allowOverwrite: true );
             }
 
             return new FixWorkflow.TargetRepo( repo,
                                                branchName,
                                                initialBranchSha,
-                                               SVersion.Create( toFix.Version.Major, toFix.Version.Minor, toFix.Version.Patch + 1 ),
+                                               targetVersion,
                                                rank );
         }
 

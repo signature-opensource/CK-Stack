@@ -29,17 +29,22 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
 
     [Description( "Migrate Net8 stack." )]
     [CommandPath( "migrate net8" )]
-    public bool Migrate( IActivityMonitor monitor, CKliEnv context )
+    public bool Migrate( IActivityMonitor monitor,
+                         bool resetAll = false,
+                         bool checkDevelop = false )
     {
-        using( monitor.OpenInfo( "Deleting all existing repo." ) )
+        if( resetAll )
         {
-            foreach( var f in Directory.EnumerateDirectories( World.Name.WorldRoot ) )
+            using( monitor.OpenInfo( "Deleting all existing repo." ) )
             {
-                if( Path.GetFileName( f ) != StackRepository.PublicStackName )
+                foreach( var f in Directory.EnumerateDirectories( World.Name.WorldRoot ) )
                 {
-                    if( !FileHelper.DeleteFolder( monitor, f ) )
+                    if( Path.GetFileName( f ) != StackRepository.PublicStackName )
                     {
-                        return false;
+                        if( !FileHelper.DeleteFolder( monitor, f ) )
+                        {
+                            return false;
+                        }
                     }
                 }
             }
@@ -48,11 +53,9 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         var repos = World.GetAllDefinedRepo( monitor );
         if( repos == null ) return false;
 
-        //if( !Pull( monitor, repos ) ) return false;
-
         // If we already run this once, the following check is not useless:
         // if we want to recompute the MinVersion, we need the RepositoryInfo.xml.
-        if( !SetMasterAndCheckDevelopIsMerged( monitor, repos ) ) return false;
+        if( !SetMasterAndCheckDevelopIsMerged( monitor, repos, checkDevelop ) ) return false;
 
         // We must computed the MinVersion before removing the RepositoryInfo.xml
         // (so before switching to stable if it has already been created).
@@ -100,25 +103,28 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         return success;
     }
 
-    private static bool SetMasterAndCheckDevelopIsMerged( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
+    static bool SetMasterAndCheckDevelopIsMerged( IActivityMonitor monitor, IReadOnlyList<Repo> repos, bool checkDevelop )
     {
         bool success = true;
         foreach( var repo in repos )
         {
-            success &= repo.GitRepository.Checkout( monitor, "master", skipFetchMerge: true );
-            var dev = repo.GitRepository.GetBranch( monitor, "develop", missingLocalAndRemote: LogLevel.Error );
-            if( dev == null )
+            success &= repo.GitRepository.FullCheckout( monitor, "master", skipFetchMerge: true );
+            if( checkDevelop )
             {
-                success = false;
-            }
-            else
-            {
-                var master = repo.GitRepository.Repository.Head;
-                var div = repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( master.Tip, dev.Tip );
-                if( div.CommonAncestor != dev.Tip && dev.Tip.Tree.Sha != master.Tip.Tree.Sha )
+                var dev = repo.GitRepository.GetBranch( monitor, "develop", missingLocalAndRemote: LogLevel.Error );
+                if( dev == null )
                 {
-                    monitor.Error( $"The 'develop' branch is not merged in 'master'." );
                     success = false;
+                }
+                else
+                {
+                    var master = repo.GitRepository.Repository.Head;
+                    var div = repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( master.Tip, dev.Tip );
+                    if( div.CommonAncestor != dev.Tip && dev.Tip.Tree.Sha != master.Tip.Tree.Sha )
+                    {
+                        monitor.Error( $"The 'develop' branch is not merged in 'master'." );
+                        success = false;
+                    }
                 }
             }
         }
