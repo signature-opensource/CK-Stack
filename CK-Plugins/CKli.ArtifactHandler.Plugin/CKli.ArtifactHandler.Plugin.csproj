@@ -1,6 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="CKli.Plugins.Core" />
-    <PackageReference Include="Microsoft.VisualStudio.SolutionPersistence" />
   </ItemGroup>
 </Project>

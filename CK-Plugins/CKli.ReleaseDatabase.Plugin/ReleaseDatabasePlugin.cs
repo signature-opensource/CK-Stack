@@ -147,7 +147,7 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
     }
 
     /// <summary>
-    /// Called with existing version tags. This initialize the Local release database and checks that an already
+    /// Called with existing version tags. This initializes the Local release database and checks that an already
     /// Published version has the same content as the one provided.
     /// </summary>
     /// <param name="monitor">The monitor.</param>
@@ -205,5 +205,19 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
     public BuildContentInfo? DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
     {
         return _local.DestroyLocalRelease( monitor, repo, version );
+    }
+
+    /// <summary>
+    /// Destroys the local and published databases. None of them must already be loaded otherwise a <see cref="System.InvalidOperationException"/>
+    /// is throw. The databases must be rebuilt.
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    public void DestroyDatabases( IActivityMonitor monitor )
+    {
+        using( monitor.OpenTrace( "Deleting release databases." ) )
+        {
+            _published.Destroy( monitor, createBackup: false );
+            _local.Destroy( monitor, createBackup: true );
+        }
     }
 }

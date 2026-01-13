@@ -54,9 +54,7 @@ public sealed partial class BuildPlugin
         return true;
     }
 
-    [Description( """
-        Rebuild the specified version in the current repository.
-        """ )]
+    [Description( """Rebuild the specified version in the current repository.""" )]
     [CommandPath( "repo rebuild version" )]
     public bool RebuildVersion( IActivityMonitor monitor,
                                 CKliEnv context,

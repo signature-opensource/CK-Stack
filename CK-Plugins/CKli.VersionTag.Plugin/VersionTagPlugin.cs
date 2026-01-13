@@ -6,6 +6,7 @@ using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -110,6 +111,161 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
         }
         return true;
+    }
+
+
+    [Description( """
+        Suppress the published and local databases and rebuild them from the version tags content.
+        """ )]
+    [CommandPath( "release-database rebuild" )]
+    public bool RebuildReleaseDatabases( IActivityMonitor monitor, CKliEnv context )
+    {
+        var repos = World.GetAllDefinedRepo( monitor );
+        if( repos == null ) return false;
+
+        // Before destroying the databases, we require that the tags (GitTagInfo.Diff) are "clean":
+        // there must not be "fetch required" (tags with unknown commit target) nor tag conflicts
+        // (tag that exists on local and remote and targets 2 different commits).
+        //
+        // Obtaining these tags info will allow us to consider that a version tag that is on the
+        // remote side is de facto published: we'll publish the local release that transfers its
+        // information from the local to the published database. Moreover, if the version tag
+        // differ, we'll delete the remote tag and push the local one: this supports a move from
+        // obsolete (or legacy lightweight) tags to an up-to-date version of the tags content.
+        //
+        if( !GetAllDiffTags( monitor, context, repos, out var allDiffTags ) )
+        {
+            return false;
+        }
+
+        // Deleting the databases.
+        _releaseDatabase.DestroyDatabases( monitor );
+
+        // Resolving the VersionTagInfo repopulates (and saves) the local database.
+        if( !TryGetAll( monitor, out var allInfo ) )
+        {
+            return false;
+        }
+        if( allInfo.Any( i => i.HasIssues ) )
+        {
+            monitor.Error( "There must be no version tag issues. Use 'ckli issue' before retrying." );
+            return false;
+        }
+        //
+        bool pushTagFailed = false;
+        var pushTagBuffer = new List<string>();
+        foreach( var repo in repos )
+        {
+            using( monitor.OpenInfo( $"Analyzing releases of '{repo.DisplayPath}'." ) )
+            {
+                var diffTags = allDiffTags[repo.Index];
+                var versionTags = Get( monitor, repo );
+                foreach( var tc in versionTags.TagCommits.Values.Where( tc => tc.IsRegularVersion ) )
+                {
+                    GitTagInfo.DiffEntry e = diffTags.Entries.FirstOrDefault( e => e.Commit.Sha == tc.Sha );
+                    GitTagInfo.LocalRemoteTag? t = e.Tags?.FirstOrDefault( t => t.CanonicalName == tc.Tag.CanonicalName );
+                    if( t == null )
+                    {
+                        monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,
+                                       $"""
+                                       Version tag '{tc.Version.ParsedText}' on commit '{tc.Sha}' with content:
+                                       {tc.BuildContentInfo}
+
+                                       Cannot be found in any GitTagInfo.DiffEntry of '{repo.DisplayPath}'. 
+                                       """ );
+                        return false;
+                    }
+                    Throw.DebugAssert( "Otherwise we wouldn't have found it.", t.Local != null );
+                    // Ignores local only.
+                    if( t.Remote != null )
+                    {
+                        // This release has a remote tag: publish it.
+                        monitor.Info( $"Moving '{tc.Version.ParsedText}' to published database." );
+                        // This has no reason to fail: stop early.
+                        if( !_releaseDatabase.PublishRelease( monitor, repo, tc.Version ) )
+                        {
+                            return false;
+                        }
+                        if( (t.Diff & GitTagInfo.TagDiff.DifferMask) != 0 )
+                        {
+                            // The remote tag must be updated.
+                            pushTagBuffer.Add( tc.Tag.CanonicalName );
+                        }
+                    }
+                }
+                if( pushTagBuffer.Count > 0 )
+                {
+                    monitor.Info( "Updating remote tags that differ from locally updated ones." );
+                    if( !repo.GitRepository.PushTags( monitor, pushTagBuffer ) )
+                    {
+                        pushTagFailed = true;
+                    }
+                    pushTagBuffer.Clear();
+                }
+            }
+        }
+        if( pushTagFailed )
+        {
+            monitor.Warn( """
+                Some tag pushes have failed. Use 'ckli tag list' to analyze tag differences.
+                These differences should be fixed manually.
+                """ );
+        }
+        return true;
+    }
+
+    static bool GetAllDiffTags( IActivityMonitor monitor,
+                                CKliEnv context,
+                                IReadOnlyList<Repo> repos,
+                                out ImmutableArray<GitTagInfo.Diff> allDiffTags )
+    {
+        using( monitor.OpenInfo( "Analyzing Tags on the repositories and their 'origin' remotes." ) )
+        {
+            bool success = true;
+            var b = ImmutableArray.CreateBuilder<GitTagInfo.Diff>( repos.Count );
+            List<int>? issues = null;
+            foreach( var repo in repos )
+            {
+                if( repo.GitRepository.GetDiffTags( monitor, out var diffTags ) )
+                {
+                    b.Add( diffTags );
+                    if( diffTags.FetchRequired || diffTags.ConflictCount > 0 )
+                    {
+                        issues ??= new List<int>();
+                        issues.Add( repo.Index );
+                    }
+                    else
+                    {
+                        success = false;
+                    }
+                }
+            }
+            if( !success )
+            {
+                allDiffTags = default;
+                return false;
+            }
+            if( issues != null )
+            {
+                allDiffTags = default;
+                monitor.Error( $"{issues.Count} repositories have tag issues that must be fixed. Please fix them before retrying." );
+                // We want to display only the "fetch required" and the conflicts. Existing tags, local/remote and even differences
+                // are not really relevant here.
+                context.Screen.Display( s => s.Unit.AddBelow(
+                    issues.Select( idx => (Repo: repos[idx], Diff: b[idx]) )
+                          .Select( d => new Collapsable( s.Text( d.Repo.DisplayPath ).HyperLink( new Uri( d.Repo.WorkingFolder ) )
+                                                          .AddBelow( d.Diff.ToRenderable( s,
+                                                                                          withLocalInvalidTags: false,
+                                                                                          withRemoteInvalidTags: false,
+                                                                                          withRegularTags: false,
+                                                                                          withLocalOnlyTags: false,
+                                                                                          withRemoteOnlyTags: false,
+                                                                                          withDifferences: false ) ) ) ) ) );
+                return false;
+            }
+            allDiffTags = b.MoveToImmutable();
+            return true;
+        }
     }
 
     (SVersion Min, SVersion? Max) ReadRepoConfiguration( IActivityMonitor monitor, Repo repo )
@@ -286,16 +442,20 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     // version can be deleted.
                     removableTags ??= new List<Tag>();
                     removableTags.Add( newOne.Tag );
+                    continue;
                 }
-                else if( newOne.IsDeprecatedVersion && exists.IsRegularVersion )
+                if( newOne.IsDeprecatedVersion && exists.IsRegularVersion )
                 {
                     // The collected tag is replaced with the deprecated one.
                     // The regular tag can be removed.
                     v2c[newOne.Version] = newOne;
                     removableTags ??= new List<Tag>();
                     removableTags.Add( exists.Tag );
+                    continue;
                 }
-                else if( exists.IsRegularVersion && newOne.IsRegularVersion )
+                // 2 regular tags: we must be able to chose a best one or this is
+                // a DuplicatedVersionTag tag conflict.
+                if( exists.IsRegularVersion && newOne.IsRegularVersion )
                 {
                     // If both versions are regular, we try to resolve the conflict by choosing
                     // - an annotated tag with a parsable content info

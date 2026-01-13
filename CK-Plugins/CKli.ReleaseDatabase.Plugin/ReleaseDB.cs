@@ -392,4 +392,21 @@ sealed class ReleaseDB
         return exists;
     }
 
+    internal void Destroy( IActivityMonitor monitor, bool createBackup )
+    {
+        Throw.CheckState( !_isLoaded );
+        if( File.Exists( _filePath ) )
+        {
+            if( createBackup )
+            {
+                var backup = _filePath.Path + ".bak";
+                FileHelper.DeleteFile( monitor, backup );
+                File.Move( _filePath, backup );
+            }
+            else
+            {
+                FileHelper.DeleteFile( monitor, _filePath );
+            }
+        }
+    }
 }
