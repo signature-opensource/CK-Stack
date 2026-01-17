@@ -6,6 +6,9 @@
     <File Path="nuget.config" />
     <File Path="README.md" />
   </Folder>
+  <Folder Name="/Tests/">
+    <Project Path="Tests/Plugins.Tests/Plugins.Tests.csproj" Id="7983a214-89e3-4463-aa11-f303632d3281" />
+  </Folder>
   <Project Path="CKli.ArtifactHandler.Plugin/CKli.ArtifactHandler.Plugin.csproj" />
   <Project Path="CKli.BranchModel.Plugin/CKli.BranchModel.Plugin.csproj" />
   <Project Path="CKli.Build.Plugin/CKli.Build.Plugin.csproj" />

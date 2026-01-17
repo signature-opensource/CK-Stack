@@ -1,5 +1,5 @@
 <CK>
-  <Plugins CompilationMode="Debug" CompileMode="Debug">
+  <Plugins CompileMode="Debug">
     <BranchModel />
     <VersionTag />
     <Build />

@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <Nullable>enable</Nullable>
+    <!--
+          There should be:
+
+          <UseArtifactsOutput>false</UseArtifactsOutput>
+          
+          Once https://github.com/dotnet/sdk/issues/45953 is solved.
+          But currenlty relies on the empty Directory.Build.props companion.
+    -->
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CK.Testing.NUnit" Version="14.1.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--<PackageReference Include="CKli.Testing" Version="0.0.8- -0136-dev" />-->
+    <ProjectReference Include="..\..\CKli.Plugins\CKli.Plugins.csproj" />
+  </ItemGroup>
+
+  <!-- Consider the Remotes and Cloned folders as pure
+       content: their .csproj are ignored by the build system.
+       Note that there must not be any test projects in theses solutions:
+       the NUnitTestAdapter v6.0.0 discovers them regardless of this exclusion.
+  -->
+  <ItemGroup>
+    <None Include="$(Content);Remotes\**;Cloned\**" />
+    <Compile Remove="Remotes\**;Cloned\**" />
+  </ItemGroup>
+  
+</Project>

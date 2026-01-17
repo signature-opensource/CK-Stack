@@ -19,6 +19,11 @@ public sealed class RepoArtifactInfo : RepoInfo
     }
 
     /// <summary>
+    /// Gets the <see cref="ArtifactHandlerPlugin.LocalFeedNuGetPath"/>.
+    /// </summary>
+    public NormalizedPath LocalFeedNuGetPath => _artifactHandler.LocalFeedNuGetPath;
+
+    /// <summary>
     /// Moves the ".nupkg" in <paramref name="buildOutputPath"/> folder to the NuGet local feed.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>

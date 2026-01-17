@@ -32,12 +32,12 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     public NormalizedPath LocalFeedPath => _localFeedPath;
 
     /// <summary>
-    /// Gets the "<see cref="LocalFeedPath"/>/NuGet" folder.
+    /// Gets the "<see cref="LocalFeedPath">$Local/Feed</see>/NuGet" folder.
     /// </summary>
     public NormalizedPath LocalFeedNuGetPath => _localFeedNuGetPath;
 
     /// <summary>
-    /// Gets the "<see cref="LocalFeedPath"/>/<see cref="DeployAssetsName"/>" folder.
+    /// Gets the "<see cref="LocalFeedPath">$Local/Feed</see>/<see cref="DeployAssetsName"/>" folder.
     /// </summary>
     public NormalizedPath LocalFeedAssetsPath => _localFeedAssetsPath;
 
@@ -51,7 +51,6 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     {
         return _localFeedAssetsPath.AppendPart( repo.DisplayPath.LastPart ).AppendPart( version.ToString() );
     }
-
 
     protected override RepoArtifactInfo Create( IActivityMonitor monitor, Repo repo )
     {

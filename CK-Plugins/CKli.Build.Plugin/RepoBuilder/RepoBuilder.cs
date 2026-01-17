@@ -6,6 +6,8 @@ using CSemVer;
 using System;
 using System.Collections.Immutable;
 using System.IO;
+using System.Linq;
+using System.Xml.Linq;
 
 namespace CKli.Build.Plugin;
 
@@ -56,7 +58,7 @@ public class RepoBuilder : RepoInfo
             {
                 if( BuildResult.GetConsumedPackages( monitor, buildInfo, out var consumedPackages ) )
                 {
-                    var deploymentFolder = Path.Combine( Repo.WorkingFolder, ArtifactHandlerPlugin.DeployFolderName );
+                    var deploymentFolder = Repo.WorkingFolder.AppendPart( ArtifactHandlerPlugin.DeployFolderName );
                     if( HandleDeployAssets( monitor, deploymentFolder, buildInfo.Version, out var assetsFolder, out var assetFileNames ) )
                     {
                         if( _repoArtifact.PublishToNuGetLocalFeed( monitor, buildInfo.Version, outputPath, out var publishedPackages ) )
@@ -82,7 +84,7 @@ public class RepoBuilder : RepoInfo
     }
 
     bool HandleDeployAssets( IActivityMonitor monitor,
-                             string deploymentFolder,
+                             NormalizedPath deploymentFolder,
                              SVersion version,
                              out NormalizedPath assetsFolder,
                              out ImmutableArray<string> fileNames )
@@ -92,23 +94,23 @@ public class RepoBuilder : RepoInfo
         if( !Directory.Exists( deploymentFolder ) )
         {
             // No Deployment assets.
-            monitor.Trace( $"No '{Repo.DisplayPath}/{ArtifactHandlerPlugin.DeployFolderName}' folder." );
+            monitor.Trace( $"No '{deploymentFolder}' folder." );
             return true;
         }
-        using var gLog = monitor.OpenInfo( $"Handling {ArtifactHandlerPlugin.DeployFolderName}/{ArtifactHandlerPlugin.DeployAssetsName}." );
+        using var gLog = monitor.OpenInfo( $"Handling {deploymentFolder}." );
         try
         {
-            var generateFileApp = Path.Combine( deploymentFolder, "GenerateAssets.cs" );
+            var generateFileApp = deploymentFolder.AppendPart( "GenerateAssets.cs" );
             if( !File.Exists( generateFileApp ) )
             {
                 // Not an error.
-                monitor.Warn( $"Ignoring '{Repo.DisplayPath}/{ArtifactHandlerPlugin.DeployFolderName}' because no 'GenerateAssets.cs' file exists." );
+                monitor.Warn( $"Ignoring '{deploymentFolder}' because no 'GenerateAssets.cs' file exists." );
                 return true;
             }
-            var repoAssetsFolder = Path.Combine( deploymentFolder, "Assets" );
+            var repoAssetsFolder = deploymentFolder.AppendPart( ArtifactHandlerPlugin.DeployAssetsName );
             if( Directory.Exists( repoAssetsFolder ) )
             {
-                monitor.Trace( $"Cleaning up '{Repo.DisplayPath}/{ArtifactHandlerPlugin.DeployFolderName}/{ArtifactHandlerPlugin.DeployAssetsName}'." );
+                monitor.Trace( $"Cleaning up '{repoAssetsFolder}'." );
                 if( !FileHelper.DeleteFolder( monitor, assetsFolder ) )
                 {
                     return false;
@@ -121,21 +123,21 @@ public class RepoBuilder : RepoInfo
                                               deploymentFolder );
             if( e != 0 )
             {
-                monitor.Error( $"Running '{Repo.DisplayPath}/{ArtifactHandlerPlugin.DeployFolderName}/GenerateAssets.cs' failed with code '{e}'." );
+                monitor.Error( $"Running '{generateFileApp}' failed with code '{e}'." );
                 return false;
             }
             return _repoArtifact.PublishGeneratedAssets( monitor, version, out assetsFolder, out fileNames );
         }
         catch( Exception ex )
         {
-            monitor.Error( $"While handling '{ArtifactHandlerPlugin.DeployFolderName}/{ArtifactHandlerPlugin.DeployAssetsName}' creation.", ex );
+            monitor.Error( $"While handling '{deploymentFolder}' creation.", ex );
             return false;
         }
     }
 
     /// <summary>
     /// Core Build method.
-    /// By default, this calls the <see cref="DotNetBuildTestPack(IActivityMonitor, SVersion, string, bool, bool?, string)"/> helper.
+    /// By default, this calls the <see cref="DotNetBuildTestPack"/> helper.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The version to build.</param>
@@ -157,8 +159,7 @@ public class RepoBuilder : RepoInfo
     }
 
     /// <summary>
-    /// Helper that calls <see cref="DotNetBuild(IActivityMonitor, SVersion, string, bool)"/>,
-    /// <see cref="DotNetTest(IActivityMonitor, bool?)"/> and <see cref="DotNetPack(IActivityMonitor, string)"/>.
+    /// Helper that calls <see cref="DotNetBuild"/>, <see cref="DotNetTest"/> and <see cref="DotNetPack"/>.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The version to build.</param>
@@ -190,10 +191,30 @@ public class RepoBuilder : RepoInfo
     /// <param name="fileVersion">The windows file version. See <see cref="CommitBuildInfo.FileVersion"/>.</param>
     /// <param name="release">False to use Debug build configuration.</param>
     /// <returns>True on success, false otherwise.</returns>
-    protected bool DotNetBuild( IActivityMonitor monitor, SVersion version, string informationalVersion, string fileVersion, bool release )
+    protected bool DotNetBuild( IActivityMonitor monitor,
+                                SVersion version,
+                                string informationalVersion,
+                                string fileVersion,
+                                bool release )
     {
+        var localFeed = _repoArtifact.LocalFeedNuGetPath;
+        //
+        // Calling "dotnet build --source <localFeed>" fails with:
+        //      error NU1100: Unable to resolve 'CKt.Core (>= 1.0.0)' for 'net8.0'.
+        //      PackageSourceMapping is enabled, the following source( s ) were not considered: <localFeed>
+        //
+        // Even when nuget.config doesn't contain any <packageSourceMapping>...
+        // 
+        // Before building, we modify the nuget.config (this helper ensures that <packageSourceMapping> exists
+        // with all the existing sources plus the one we add.
+        //
+        var nugetConfigPath = Repo.WorkingFolder.AppendPart( "nuget.config" );
+        var nugetConfig = XDocument.Load( nugetConfigPath );
+        NuGetHelper.SetOrRemoveNuGetSource( monitor, nugetConfig, "local-feed", localFeed );
+        XmlHelper.SaveWithoutXmlDeclaration( nugetConfig, nugetConfigPath );
+
         return BuildPlugin.RunDotnet( monitor, Repo, $"""
-            build -tl:off --nologo -c {(release ? "Release" : "Debug")} /p:Version={version};InformationalVersion="{informationalVersion}";FileVersion="{fileVersion}"
+            build -tl:off --nologo --no-incremental -c {(release ? "Release" : "Debug")} /p:Version={version};InformationalVersion="{informationalVersion}";FileVersion="{fileVersion}"
             """ );
     }
 
