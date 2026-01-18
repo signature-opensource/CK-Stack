@@ -9,6 +9,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices.Marshalling;
 using System.Runtime.Loader;
 using System.Text;
 using System.Xml.Linq;
@@ -75,8 +76,8 @@ static partial class TestEnv
         {
             Throw.InvalidOperationException( "Unable to get the plugin factory from the compiled plugins." );
         }
-        CKliRootEnv.Initialize( _worldName.FullName, screen: new StringScreen(), findCurrentStackPath: false );
         World.DirectPluginFactory = f;
+        CKliRootEnv.Initialize( _worldName.FullName, screen: new StringScreen(), findCurrentStackPath: false );
 
         _remoteRepositories = InitializeRemotes();
 
@@ -114,13 +115,14 @@ static partial class TestEnv
             return stackPlugins;
         }
 
-        static IPluginFactory? GetPluginFactory( NormalizedPath ckliPluginFilePath )
+        static Func<IPluginFactory>? GetPluginFactory( NormalizedPath ckliPluginFilePath )
         {
             var ckliPlugins = Assembly.LoadFrom( ckliPluginFilePath );
             var compiled = ckliPlugins.GetType( "CKli.Plugins.CompiledPlugins" );
-            return (IPluginFactory?)compiled?
-                                    .GetMethod( "UncheckedGet" )?
-                                    .Invoke( null, [] );
+            var m = compiled?.GetMethod( "UncheckedGet" );
+            return m == null
+                    ? null
+                    : () => (IPluginFactory)m.Invoke( null, [] )!;
         }
     }
 

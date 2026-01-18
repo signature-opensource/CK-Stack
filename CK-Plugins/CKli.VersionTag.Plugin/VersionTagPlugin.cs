@@ -43,7 +43,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The repository.</param>
-    /// <param name="before">Expected following operation description. When null, no warning is emitted (it must be emitted by the caller).</param>
+    /// <param name="before">Expected following operation description. When null, no error is emitted (it must be emitted by the caller).</param>
     /// <returns>The non null info or null if there are issues.</returns>
     public VersionTagInfo? GetWithoutIssue( IActivityMonitor monitor, Repo repo, string? before = "continuing" )
     {
@@ -114,8 +114,21 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     }
 
 
+    /// <summary>
+    /// Rebuilds the published and local databases.
+    /// Remote tags drives the update of the published database and are updated on the remote: a local only version
+    /// tag will remain local.
+    /// <para>
+    /// Artefacts are not pushed.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="context">The CKli context.</param>
+    /// <returns>True on success, false on error.</returns>
     [Description( """
         Suppress the published and local databases and rebuild them from the version tags content.
+        Remote tags drives the update of the published database and are updated on the remote:
+        a local only version tag will remain local.
         """ )]
     [CommandPath( "release-database rebuild" )]
     public bool RebuildReleaseDatabases( IActivityMonitor monitor, CKliEnv context )
@@ -130,7 +143,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Obtaining these tags info will allow us to consider that a version tag that is on the
         // remote side is de facto published: we'll publish the local release that transfers its
         // information from the local to the published database. Moreover, if the version tag
-        // differ, we'll delete the remote tag and push the local one: this supports a move from
+        // differ, we push the local one (that updates the remote one): this supports a move from
         // obsolete (or legacy lightweight) tags to an up-to-date version of the tags content.
         //
         if( !GetAllDiffTags( monitor, context, repos, out var allDiffTags ) )
@@ -142,6 +155,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         _releaseDatabase.DestroyDatabases( monitor );
 
         // Resolving the VersionTagInfo repopulates (and saves) the local database.
+        // If there is any version tag issue (rebuild is needed to compute the tag content),
+        // we demand to execute a "ckli issue --fix".
         if( !TryGetAll( monitor, out var allInfo ) )
         {
             return false;
@@ -166,6 +181,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     GitTagInfo.LocalRemoteTag? t = e.Tags?.FirstOrDefault( t => t.CanonicalName == tc.Tag.CanonicalName );
                     if( t == null )
                     {
+                        // This should not happen: stop early.
                         monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,
                                        $"""
                                        Version tag '{tc.Version.ParsedText}' on commit '{tc.Sha}' with content:
@@ -234,10 +250,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                         issues ??= new List<int>();
                         issues.Add( repo.Index );
                     }
-                    else
-                    {
-                        success = false;
-                    }
+                }
+                else
+                {
+                    success = false;
                 }
             }
             if( !success )
