@@ -35,6 +35,7 @@ public sealed partial class BuildPlugin
         {
             return false;
         }
+        return false;
         var updates = new List<NuGetPackageInstance>();
         foreach( var target in exists.Targets )
         {

@@ -75,7 +75,9 @@ public sealed class FixWorkflow
 
         /// <summary>
         /// Checks out <see cref="BranchName"/> in <see cref="Repo"/>.
+        /// <para>
         /// This checks first that <see cref="ToFixCommitSha"/> is reachable from <see cref="BranchName"/>.
+        /// </para>
         /// </summary>
         /// <param name="monitor">The monitor to use.</param>
         /// <param name="depthFromFix">Outputs the number of commits between <see cref="BranchName"/> and <see cref="ToFixCommitSha"/>.</param>
