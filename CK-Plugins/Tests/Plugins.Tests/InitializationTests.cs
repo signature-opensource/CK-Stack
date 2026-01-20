@@ -98,6 +98,9 @@ public class InitializationTests
 
             """ );
 
+        // ckli fix build
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
+
         using( TestHelper.Monitor.CollectTexts( out var logs ) )
         {
             (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "start", "v2" )).ShouldBeFalse();
