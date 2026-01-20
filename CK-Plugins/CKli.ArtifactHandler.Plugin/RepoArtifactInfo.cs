@@ -85,6 +85,10 @@ public sealed class RepoArtifactInfo : RepoInfo
                 monitor.Error( $"Invalid package file name '{fileName}'. Expecting 'PackageName.{versionString}{ext}'." );
                 return null;
             }
+            // Here is the current "deal" with NuGet:
+            // Each time we generate a local package that replaces an already existing one, we clear
+            // it from the global cache. This allows the built package, if it is added at least once
+            // in any subsequent build to be available (for instance to tune tests Remotes).
             string packageId = new string( artifactName );
             var target = $"{localFeedNuGetPath}/{fileName}";
             if( File.Exists( target ) )

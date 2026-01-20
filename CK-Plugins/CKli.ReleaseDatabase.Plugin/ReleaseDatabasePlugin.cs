@@ -39,6 +39,11 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
             monitor.Error( $"No release exist for '{repo.DisplayPath}/{key.Version}'." );
             return null;
         }
+        // To compute RepoReleaseInfo we need to resolve the Repo.CKliRepoId. All the Repo must be loaded.
+        if( World.GetAllDefinedRepo( monitor ) == null )
+        {
+            return null;
+        }
         return GetReleasedInfo( monitor, repo, key, content, isLocal );
     }
 
@@ -61,7 +66,7 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
                                      out BuildContentInfo? producerContent,
                                      out var isLocalProducer ) )
             {
-                var producer = World.FindByCKliRepoId( producerKey.RepoId );
+                var producer = World.FindByCKliRepoId( monitor, producerKey.RepoId );
                 if( producer != null )
                 {
                     var p = GetReleasedInfo( monitor, producer, producerKey, producerContent, isLocalProducer );
@@ -112,7 +117,7 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         var consumerInfos = new List<RepoReleaseInfo>();
         foreach( var (consumerKey,(consumerContent, isLocal)) in consumers )
         {
-            var consumer = World.FindByCKliRepoId( consumerKey.RepoId );
+            var consumer = World.FindByCKliRepoId( monitor, consumerKey.RepoId );
             // If we can't find the Repo in the World, this is weird but it may happen.
             // We warn and ignore it.
             if( consumer == null )
@@ -217,7 +222,7 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         using( monitor.OpenTrace( "Deleting release databases." ) )
         {
             _published.Destroy( monitor, createBackup: false );
-            _local.Destroy( monitor, createBackup: true );
+            _local.Destroy( monitor, createBackup: false );
         }
     }
 }

@@ -206,7 +206,7 @@ public class RepoBuilder : RepoInfo
         // Even when nuget.config doesn't contain any <packageSourceMapping>...
         // 
         // Before building, we modify the nuget.config (this helper ensures that <packageSourceMapping> exists
-        // with all the existing sources plus the one we add.
+        // with all the existing sources plus the one we add).
         //
         var nugetConfigPath = Repo.WorkingFolder.AppendPart( "nuget.config" );
         var nugetConfig = XDocument.Load( nugetConfigPath );

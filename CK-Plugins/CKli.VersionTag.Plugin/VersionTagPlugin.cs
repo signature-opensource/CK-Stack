@@ -130,7 +130,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         Remote tags drives the update of the published database and are updated on the remote:
         a local only version tag will remain local.
         """ )]
-    [CommandPath( "release-database rebuild" )]
+    [CommandPath( "maintenance release-database rebuild" )]
     public bool RebuildReleaseDatabases( IActivityMonitor monitor, CKliEnv context )
     {
         var repos = World.GetAllDefinedRepo( monitor );
@@ -166,9 +166,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             monitor.Error( "There must be no version tag issues. Use 'ckli issue' before retrying." );
             return false;
         }
-        //
+        // Consider remote version tags: move the release from local to remote database and update the remote tag if it differs.
         bool pushTagFailed = false;
         var pushTagBuffer = new List<string>();
+        int publishedReleaseCount = 0;
         foreach( var repo in repos )
         {
             using( monitor.OpenInfo( $"Analyzing releases of '{repo.DisplayPath}'." ) )
@@ -202,6 +203,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                         {
                             return false;
                         }
+                        ++publishedReleaseCount;
                         if( (t.Diff & GitTagInfo.TagDiff.DifferMask) != 0 )
                         {
                             // The remote tag must be updated.
@@ -218,6 +220,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     }
                     pushTagBuffer.Clear();
                 }
+            }
+        }
+        if( publishedReleaseCount > 0 )
+        {
+            if( !World.StackRepository.Commit( monitor, $"Updated published database with {publishedReleaseCount} releases." ) )
+            {
+                return false;
             }
         }
         if( pushTagFailed )

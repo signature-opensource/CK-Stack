@@ -11,7 +11,7 @@ function Add-Error($message) {
 # ------------------------------------------------------------------
 $currentDir = Get-Item -Path "."
 if ($currentDir.Name -ne "Remotes") {
-    Write-Error "Current directory must be named 'Remotes'. Found '$($currentDir.Name)'."
+    Write-Host "Current directory must be named 'Remotes'. Found '$($currentDir.Name)'." -ForegroundColor Red
     exit 1
 }
 
@@ -22,7 +22,7 @@ $containers = Get-ChildItem -Directory |
     Where-Object { $_.Name -ne "bare" }
 
 if ($containers.Count -eq 0) {
-    Write-Error "No container directories found in 'Remotes' (excluding 'bare')."
+    Write-Host "No container directories found in 'Remotes' (excluding 'bare')." -ForegroundColor Red
     exit 1
 }
 
@@ -34,7 +34,7 @@ $repos = foreach ($container in $containers) {
 }
 
 if (-not $repos) {
-    Write-Error "No repositories found under container directories."
+    Write-Host "No repositories found under container directories." -ForegroundColor Red
     exit 1
 }
 
@@ -82,14 +82,16 @@ foreach ($repo in $repos) {
 }
 
 # ------------------------------------------------------------------
-# Abort if any validation failed
+# Abort if any validation failed (full, untruncated output)
 # ------------------------------------------------------------------
 if ($errors.Count -gt 0) {
-    Write-Error "Validation failed with the following issues:"
+    Write-Host ""
+    Write-Host "Validation failed with the following issues:" -ForegroundColor Red
     foreach ($err in $errors) {
-        Write-Error "  $err"
+        Write-Host "  - $err" -ForegroundColor Red
     }
-    exit 1
+    Write-Host ""
+    throw "Validation failed. Fix the issues above and retry."
 }
 
 # ------------------------------------------------------------------
@@ -100,10 +102,24 @@ foreach ($repo in $repos) {
 
     Push-Location $repo.FullName
 
+    # --------------------------------------------------------------
     # Git cleanup
+    # --------------------------------------------------------------
     git reflog expire --expire=now --expire-unreachable=now --all
     git prune
     git repack -ad
+
+    # --------------------------------------------------------------
+    # Remove git hook sample files (safe)
+    # --------------------------------------------------------------
+    $hooksDir = Join-Path (Join-Path $repo.FullName ".git") "hooks"
+    if (Test-Path $hooksDir) {
+        Get-ChildItem -Path $hooksDir -File -Filter "*.sample" |
+            ForEach-Object {
+                Write-Host "  Removing git hook sample $($_.FullName)"
+                Remove-Item -Force $_.FullName
+            }
+    }
 
     # --------------------------------------------------------------
     # IDE / editor cleanup
@@ -122,7 +138,6 @@ foreach ($repo in $repos) {
     Get-ChildItem -Recurse -File -Include *.csproj,*.fsproj,*.vbproj |
         ForEach-Object {
             $projectDir = $_.Directory.FullName
-
             foreach ($folderName in @("bin", "obj")) {
                 $candidate = Join-Path $projectDir $folderName
                 if (Test-Path $candidate) {

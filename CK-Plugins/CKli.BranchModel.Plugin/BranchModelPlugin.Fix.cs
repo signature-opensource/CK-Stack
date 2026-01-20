@@ -43,7 +43,9 @@ public sealed partial class BranchModelPlugin
         //
         // We consider only the "origin" remote here but we COULD allow all remotes.
         //
-        var branchSpec = $"{World.Name.LTSName}/fix/v{major}.*";
+        var branchSpec = World.Name.LTSName != null
+                            ? $"{World.Name.LTSName}/fix/v{major}.*"
+                            : $"fix/v{major}.*";
         if( !repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, originOnly: true, branchSpec ) )
         {
             return false;
@@ -311,7 +313,9 @@ public sealed partial class BranchModelPlugin
                         // And we do this only once per impacted Repo (hence the HashSet<Repo> fetched).
                         if( fetched.Add( next.Repo ) )
                         {
-                            if( !next.Repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, originOnly: true, $"{next.Repo.World.Name.LTSName}/fix/v*" ) )
+                            var ltsName = next.Repo.World.Name.LTSName;
+                            var branchSpec = ltsName != null ? $"{ltsName}/fix/v*" : "fix/v*";
+                            if( !next.Repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, originOnly: true, branchSpec ) )
                             {
                                 return null;
                             }
@@ -360,14 +364,15 @@ public sealed partial class BranchModelPlugin
                                                      SVersion targetVersion,
                                                      int rank )
         {
-            var branchName = $"{repo.World.Name.LTSName}/fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
-            string? initialBranchSha = null;
+            var ltsName = repo.World.Name.LTSName;
+            var branchName = ltsName != null
+                                ? $"{ltsName}/fix/v{toFix.Version.Major}.{toFix.Version.Minor}"
+                                : $"fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
             // Find an existing branch.
             var bFix = repo.GitRepository.GetBranch( monitor, branchName, LogLevel.Info );
             // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
             if( bFix != null )
             {
-                initialBranchSha = bFix.Tip.Sha;
                 // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the nominal case:
                 // the commit referenced by the /fix branch contains the code to fix.
                 if( bFix.Tip.Tree.Sha != toFix.ContentSha )
@@ -394,18 +399,18 @@ public sealed partial class BranchModelPlugin
             {
                 var r = repo.GitRepository.Repository;
                 var c = r.ObjectDatabase.CreateCommit( toFix.Commit.Author,
-                                                        context.Committer,
-                                                        $"Starting '{branchName}' (this commit can be amended).",
-                                                        toFix.Commit.Tree,
-                                                        [toFix.Commit],
-                                                        prettifyMessage: false );
+                                                       context.Committer,
+                                                       $"Starting '{branchName}' (this commit can be amended).",
+                                                       toFix.Commit.Tree,
+                                                       [toFix.Commit],
+                                                       prettifyMessage: false );
                 // Create or update the /fix branch.
                 bFix = r.Branches.Add( branchName, c, allowOverwrite: true );
             }
 
             return new FixWorkflow.TargetRepo( repo,
                                                branchName,
-                                               initialBranchSha,
+                                               toFix.Commit.Sha,
                                                targetVersion,
                                                rank );
         }

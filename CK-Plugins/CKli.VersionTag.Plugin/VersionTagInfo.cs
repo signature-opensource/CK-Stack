@@ -99,8 +99,9 @@ public sealed class VersionTagInfo : RepoInfo
                 }
                 else
                 {
-                    var cV = c.Version;
                     var b = ImmutableArray.CreateBuilder<TagCommit>();
+                    b.Add( c );
+                    var cV = c.Version;
                     foreach( var tc in _lastStables )
                     {
                         var v = tc.Version;

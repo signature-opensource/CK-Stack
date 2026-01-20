@@ -5,6 +5,7 @@ using CK.Core;
 using System.IO;
 using System;
 using System.Linq;
+using LibGit2Sharp;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -35,7 +36,7 @@ public sealed class FixWorkflow
     {
         readonly Repo _repo;
         readonly string _branchName;
-        readonly string? _initialCommitSha;
+        readonly string _toFixCommitSha;
         readonly SVersion _targetVersion;
         readonly int _rank;
         int _index;
@@ -56,9 +57,9 @@ public sealed class FixWorkflow
         public string BranchName => _branchName;
 
         /// <summary>
-        /// Gets the initial branch's Tip. Null if the branch has been created for this workflow.
+        /// Gets the commit Sha to be fixed.
         /// </summary>
-        public string? InitialCommitSha => _initialCommitSha;
+        public string ToFixCommitSha => _toFixCommitSha;
 
         /// <summary>
         /// Gets the target version to produce.
@@ -72,11 +73,41 @@ public sealed class FixWorkflow
         /// </summary>
         public int Rank => _rank;
 
-        internal TargetRepo( Repo repo, string branchName, string? initialCommitSha, SVersion targetVersion, int rank )
+        /// <summary>
+        /// Checks out <see cref="BranchName"/> in <see cref="Repo"/>.
+        /// This checks first that <see cref="ToFixCommitSha"/> is reachable from <see cref="BranchName"/>.
+        /// </summary>
+        /// <param name="monitor">The monitor to use.</param>
+        /// <param name="depthFromFix">Outputs the number of commits between <see cref="BranchName"/> and <see cref="ToFixCommitSha"/>.</param>
+        /// <returns>True on success, false on error.</returns>
+        public bool CheckoutBranch( IActivityMonitor monitor, out int depthFromFix )
+        {
+            depthFromFix = 0;
+            var branch = _repo.GitRepository.GetBranch( monitor, _branchName, CK.Core.LogLevel.Error );
+            if( branch == null )
+            {
+                return false;
+            }
+            var toFixCommit = _repo.GitRepository.Repository.Lookup<Commit>( _toFixCommitSha );
+            if( toFixCommit == null )
+            {
+                monitor.Error( $"Unable to find the initial commit to fix '{_toFixCommitSha}'." );
+            }
+            var divergence = _repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( toFixCommit, branch.Tip );
+            if( divergence.BehindBy == null )
+            {
+                monitor.Error( $"Branch '{_branchName}' in '{_repo.DisplayPath}' doesn't contain the initial commit to fix '{_toFixCommitSha}'." );
+                return false; 
+            }
+            depthFromFix = divergence.BehindBy.Value;
+            return _repo.GitRepository.Checkout( monitor, branch );
+        }
+
+        internal TargetRepo( Repo repo, string branchName, string toFixCommitSha, SVersion targetVersion, int rank )
         {
             _repo = repo;
             _branchName = branchName;
-            _initialCommitSha = initialCommitSha;
+            _toFixCommitSha = toFixCommitSha;
             _targetVersion = targetVersion;
             _rank = rank;
         }
@@ -85,7 +116,7 @@ public sealed class FixWorkflow
         {
             w.Write( _repo.CKliRepoId.Value );
             w.Write( _branchName );
-            w.WriteNullableString( _initialCommitSha );
+            w.Write( _toFixCommitSha );
             w.Write( _targetVersion.ToString() );
             w.WriteNonNegativeSmallInt32( _rank );
         }
@@ -95,17 +126,17 @@ public sealed class FixWorkflow
             Throw.DebugAssert( version == 0 );
             var id = new RandomId( r.ReadUInt64() );
             var branchName = r.ReadString();
-            var initialCommitSha = r.ReadNullableString();
+            var toFixCommitSha = r.ReadString();
             var targetVersion = r.ReadString();
             var rank = r.ReadNonNegativeSmallInt32();
 
-            var repo = world.FindByCKliRepoId( id );
+            var repo = world.FindByCKliRepoId( monitor, id );
             if( repo == null )
             {
-                monitor.Error( $"Unable to find RepoId = {id} in current world. Current FixContext is invalid and will be cancelled." );
+                monitor.Error( $"Unable to find RepoId = {id} in current world. Current Fix Workflow is invalid and will be cancelled." );
                 return null;
             }
-            var t = new TargetRepo( repo, branchName, initialCommitSha, SVersion.Parse( targetVersion ), rank );
+            var t = new TargetRepo( repo, branchName, toFixCommitSha, SVersion.Parse( targetVersion ), rank );
             t._index = index;
             return t;
         }
@@ -147,27 +178,19 @@ public sealed class FixWorkflow
     {
         var o = OriginRepo;
         var header = s.Text( $"Fixing 'v{o.TargetVersion.Major}.{o.TargetVersion.Minor}.{o.TargetVersion.Patch - 1}' on" ).Box( marginRight: 1 )
-                      .AddRight( s.Text( o.Repo.DisplayPath ).HyperLink( new Uri( o.Repo.WorkingFolder ) ).Box( marginRight: 1 ) )
-                      .AddRight( s.Text( $" on branch '{o.BranchName}'" ).Box( marginRight: 1 ) )
-                      .AddRight( s.Text( $" to publish '{o.TargetVersion}'" ).Box() );
+                      .AddRight( s.Text( o.Repo.DisplayPath ).HyperLink( new Uri( o.Repo.WorkingFolder ) ) )
+                      .AddRight( s.Text( ":" ) )
+                      .Box();
 
-        var rows = header.AddBelow( _targets.Select( t =>
-                     s.Text( $"{t.Index} >" ).Box( marginRight:1, align:ContentAlign.HRight)
+        var arrow = s.Text( "->" ).Box( marginRight: 1 );
+        var rows = s.Unit.AddBelow( _targets.Select( t =>
+                     s.Text( $"{t.Index} -" ).Box( marginRight:1, align:ContentAlign.HRight)
                      .AddRight( s.Text( t.Repo.DisplayPath ).HyperLink( new Uri( t.Repo.WorkingFolder ) ).Box( marginRight: 1 ) )
-                     .AddRight( s.Text( t.BranchName ).Box( marginRight: 1 ) )
-                     .AddRight( s.Text( o.TargetVersion.ToString() ).Box( foreColor: ConsoleColor.Green ) ) ) );
-        var table = rows.TableLayout();
-        return table;
-    }
+                     .AddRight( arrow )
+                     .AddRight( s.Text( t.TargetVersion.ToString() ).Box( foreColor: ConsoleColor.Green, marginRight: 1 ) )
+                     .AddRight( s.Text( $"({t.BranchName})" ).Box( marginRight: 1, foreColor: ConsoleColor.DarkBlue ) ) ) );
 
-    /// <summary>
-    /// Cancels the current fix workflow for the world if it exists.
-    /// </summary>
-    /// <param name="monitor">The monitor.</param>
-    /// <param name="world">The world.</param>
-    public static void CancelCurrent( IActivityMonitor monitor, World world )
-    {
-        CancelCurrent( monitor, world, GetFilePath( world ) );
+        return header.AddBelow( rows.TableLayout() );
     }
 
     /// <summary>
@@ -235,10 +258,21 @@ public sealed class FixWorkflow
     }
 
     /// <summary>
+    /// Cancels the current fix workflow for the world if it exists.
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="world">The world.</param>
+    public static void CancelCurrent( IActivityMonitor monitor, World world )
+    {
+        CancelCurrent( monitor, world, GetFilePath( world ) );
+    }
+
+    /// <summary>
     /// Overridden to return the <see cref="OriginRepo"/> path and <see cref="TargetRepo.BranchName"/>.
     /// </summary>
     /// <returns>A readable string.</returns>
     public override string ToString() => $"{OriginRepo.Repo.DisplayPath}/{OriginRepo.BranchName}";
+
 
     static FixWorkflow? DoRead( IActivityMonitor monitor, CKBinaryReader r, World world )
     {

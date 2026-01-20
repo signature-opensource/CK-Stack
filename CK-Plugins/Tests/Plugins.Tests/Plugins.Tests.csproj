@@ -15,18 +15,14 @@
     <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="CK.Testing.NUnit" Version="14.1.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
-    <PackageReference Include="NUnit3TestAdapter" Version="6.1.0">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
 
   <ItemGroup>
-    <!--<PackageReference Include="CKli.Testing" Version="0.0.8- -0136-dev" />-->
+    <PackageReference Include="CKli.Testing" Version="0.0.8--0157-dev" />
     <ProjectReference Include="..\..\CKli.Plugins\CKli.Plugins.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.1" />
+    <PackageReference Include="NUnit3TestAdapter" Version="6.1.0" PrivateAssets="All" />
   </ItemGroup>
 
   <!-- Consider the Remotes and Cloned folders as pure
