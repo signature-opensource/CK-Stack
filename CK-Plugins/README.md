@@ -31,17 +31,3 @@ This produces short-lived prerelease versions of the fix that are kept
 alive locally and replaced by subsequent prerelease (and the final fix).
 Theses local prerelease versions follow the pattern "Major.Minor.Patch-local.fix.CommitDepth"
 and cannot be published.
-
-
-
-
-
-
-
-
-   1. 1. Go to the repository that produces the package.
-2. Creates the `fix/` branch for the version to fix (`ckli branch fix v3.1` or `ckli branch fix v3`).
-3. The branch `fix/v3.1` is created or moved to a commit that is based
-on the last patch for the Major.Minor and the branch is checked out.
-4. Develop and test the fix in the branch.
-1. 

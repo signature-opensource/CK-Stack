@@ -39,6 +39,7 @@ public sealed class FixWorkflow
         readonly string _toFixCommitSha;
         readonly SVersion _targetVersion;
         readonly int _rank;
+        SVersion? _toFixVersion;
         int _index;
 
         /// <summary>
@@ -62,6 +63,11 @@ public sealed class FixWorkflow
         public string ToFixCommitSha => _toFixCommitSha;
 
         /// <summary>
+        /// Gets the commit Sha to be fixed.
+        /// </summary>
+        public SVersion ToFixVersion => _toFixVersion ??= SVersion.Create( _targetVersion.Major, _targetVersion.Minor, _targetVersion.Patch - 1 );
+
+        /// <summary>
         /// Gets the target version to produce.
         /// <see cref="SVersion.IsStable"/> is true, the <see cref="SVersion.Patch"/> is positive.
         /// </summary>
@@ -72,38 +78,6 @@ public sealed class FixWorkflow
         /// The targets that share the same rank can be built in parallel.
         /// </summary>
         public int Rank => _rank;
-
-        /// <summary>
-        /// Checks out <see cref="BranchName"/> in <see cref="Repo"/>.
-        /// <para>
-        /// This checks first that <see cref="ToFixCommitSha"/> is reachable from <see cref="BranchName"/>.
-        /// </para>
-        /// </summary>
-        /// <param name="monitor">The monitor to use.</param>
-        /// <param name="depthFromFix">Outputs the number of commits between <see cref="BranchName"/> and <see cref="ToFixCommitSha"/>.</param>
-        /// <returns>True on success, false on error.</returns>
-        public bool CheckoutBranch( IActivityMonitor monitor, out int depthFromFix )
-        {
-            depthFromFix = 0;
-            var branch = _repo.GitRepository.GetBranch( monitor, _branchName, CK.Core.LogLevel.Error );
-            if( branch == null )
-            {
-                return false;
-            }
-            var toFixCommit = _repo.GitRepository.Repository.Lookup<Commit>( _toFixCommitSha );
-            if( toFixCommit == null )
-            {
-                monitor.Error( $"Unable to find the initial commit to fix '{_toFixCommitSha}'." );
-            }
-            var divergence = _repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( toFixCommit, branch.Tip );
-            if( divergence.BehindBy == null )
-            {
-                monitor.Error( $"Branch '{_branchName}' in '{_repo.DisplayPath}' doesn't contain the initial commit to fix '{_toFixCommitSha}'." );
-                return false; 
-            }
-            depthFromFix = divergence.BehindBy.Value;
-            return _repo.GitRepository.Checkout( monitor, branch );
-        }
 
         internal TargetRepo( Repo repo, string branchName, string toFixCommitSha, SVersion targetVersion, int rank )
         {

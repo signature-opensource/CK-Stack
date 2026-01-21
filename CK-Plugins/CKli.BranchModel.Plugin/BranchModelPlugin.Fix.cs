@@ -51,7 +51,6 @@ public sealed partial class BranchModelPlugin
             return false;
         }
         // Now that the tags of the vMajor have been fetched, we can obtain the VersionTagInfo to find the commit that must be fixed.
-        // This can perfectly be a +fake one.
         var versionInfo = _versionTags.GetWithoutIssue( monitor, repo, "starting a fix" );
         if( versionInfo == null )
         {

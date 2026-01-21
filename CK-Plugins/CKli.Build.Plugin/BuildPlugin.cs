@@ -4,6 +4,7 @@ using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
+using CKli.VSSolution.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
@@ -20,13 +21,15 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     readonly RepositoryBuilderPlugin _repoBuilder;
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
+    readonly VSSolutionPlugin _solutionPlugin;
 
     public BuildPlugin( PrimaryPluginContext primaryContext,
                         VersionTagPlugin versionTags,
                         BranchModelPlugin branchModel,
                         RepositoryBuilderPlugin repoBuilder,
                         ReleaseDatabasePlugin releaseDatabase,
-                        ArtifactHandlerPlugin artifactHandler )
+                        ArtifactHandlerPlugin artifactHandler,
+                        VSSolutionPlugin solutionPlugin )
         : base( primaryContext )
     {
         _versionTags = versionTags;
@@ -34,6 +37,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         _repoBuilder = repoBuilder;
         _releaseDatabase = releaseDatabase;
         _artifactHandler = artifactHandler;
+        _solutionPlugin = solutionPlugin;
         World.Events.Issue += IssueRequested;
     }
 
@@ -106,11 +110,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         branchName = branch.FriendlyName;
 
-        if( BranchModelPlugin.TryParseBranchFixName( branchName, out bool devFix, out var fixMajor, out var fixMinor ) )
-        {
-            return BuildFix( monitor, repo, r, context, branch, branchName, devFix, fixMajor, fixMinor, runTest, rebuild );
-        }
-        // We are not on a fix/vMajor.Minor branch.
         // We must be on a branch defined in the Branch Model.
         var branchInfo = _branchModel.Get( monitor, repo );
         Throw.DebugAssert( "There's no branch issue.", branchInfo.Root.GitBranch != null );
@@ -144,132 +143,15 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return true;
     }
 
-    bool BuildFix( IActivityMonitor monitor,
-                   Repo repo,
-                   Repository r,
-                   CKliEnv context,
-                   Branch branch,
-                   string branchName,
-                   bool isDevBranch,
-                   int fixMajor,
-                   int fixMinor,
-                   bool? runTest,
-                   bool rebuild )
-    {
-        var versionInfo = _versionTags.Get( monitor, repo );
-        var lastFix = versionInfo.LastMajorMinorStables.FirstOrDefault( tc => tc.Version.Major == fixMajor && tc.Version.Minor == fixMinor );
-        if( lastFix == null )
-        {
-            monitor.Error( $"Unable to find any stable version 'v{fixMajor}.{fixMinor}.X' in '{repo.DisplayPath}'." );
-            return false;
-        }
-        Throw.DebugAssert( "See Preconditions: there should be no version tag issue and a missing version tag content is an issue.",
-                           lastFix.BuildContentInfo != null );
-
-        // Defensive programming here: the RepoReleaseInfo must exist.
-        // This is the starting point of the FixPropagator.
-        var originReleaseInfo = _releaseDatabase.GetReleaseInfo( monitor, repo, lastFix.Version );
-        if( originReleaseInfo == null )
-        {
-            monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,
-                $"Release '{repo.DisplayPath}/{lastFix.Version}' cannot be found in the Release database and there's no Tag issue. This should not happen." );
-            return false;
-        }
-
-        var divergence = r.ObjectDatabase.CalculateHistoryDivergence( lastFix.Commit, branch.Tip );
-        if( divergence.CommonAncestor.Sha != lastFix.Sha )
-        {
-            monitor.Error( $"Branch '{branchName}' doesn't contain '{lastFix.Version.ParsedText}' code base that is the last released version." );
-            return false;
-        }
-        // The commit that is considered to be built.
-        // May not be the current repository head (but it has the same content).
-        Commit? buildCommit = null;
-        SVersion? targetVersion = null;
-
-        bool isBranchOnLastFix = branch.Tip.Sha == lastFix.Sha;
-        if( isBranchOnLastFix || branch.Tip.Tree.Sha == lastFix.ContentSha )
-        {
-            // The commit referenced by branch already contains the lastFix code: there's nothing new to build,
-            // the target version (if we eventually rebuild) is the lastFix version.
-            targetVersion = lastFix.Version;
-
-            // If the lastFix tag is valid (it contains the consumed and produced packages document),
-            // and we can find the produced packages in the local NuGet feed, then rebuilding this version
-            // is useless. To explicitly rebuild an already built version, we demand the --rebuild flag to be specified.
-            var existingContent = lastFix.BuildContentInfo;
-            bool isBuildUseless = existingContent != null
-                                    ? _artifactHandler.HasAllArtifacts( monitor, repo, lastFix.Version, existingContent )
-                                    : false;
-            if( isBuildUseless && !rebuild )
-            {
-                monitor.Error( $"""
-                        The commit has already been released in version '{lastFix.Version.ParsedText}' and all artifacts exist in /$Local folder:
-                        {existingContent}
-
-                        Use --rebuild flag to rebuild the same version.
-                        """ );
-                return false;
-            }
-            if( !isBranchOnLastFix )
-            {
-                // The branch is on a commit with the same content but not on the lastFix commit.
-                // We consider the lastFix.Commit as the buildCommit (instead of the branch's tip that will be the head's tip)
-                // to preserve the sha and commit date.
-                buildCommit = lastFix.Commit;
-            }
-        }
-        else
-        {
-            rebuild = false;
-            if( isDevBranch )
-            {
-                int? commitNumber = divergence.BehindBy;
-                Throw.DebugAssert( "Because lastFix is the common ancestor.", commitNumber != null );
-                Throw.DebugAssert( lastFix.Version is CSVersion );
-                var ciBuild = new CIBuildDescriptor { BranchName = "dev", BuildIndex = commitNumber.Value };
-                targetVersion = SVersion.Parse( ((CSVersion)lastFix.Version).ToString( CSVersionFormat.Normalized, ciBuild ) );
-            }
-            else
-            {
-                targetVersion = SVersion.Create( fixMajor, fixMinor, lastFix.Version.Patch + 1 );
-            }
-        }
-        // Wherever we are, it's time to checkout the working folder on the branch's tip.
-        // We also do this when buildCommit is set to the lastFix commit (rebuild case) to avoid
-        // the detached head state. 
-        if( !repo.GitRepository.Checkout( monitor, branch ) )
-        {
-            return false;
-        }
-        // If we are not rebuilding an existing tagged commit, the buildCommit is now the head's tip.
-        buildCommit ??= r.Head.Tip;
-
-        // We are ready to build the origin fix.
-        var result = CoreBuild( monitor, context, versionInfo, buildCommit, targetVersion, runTest, rebuild );
-        if( result == null )
-        {
-            return false;
-        }
-        // We create a FixPropagator even if there is no consumer behind (no consumer is not the nominal case) to centralize
-        // the checks and the initialization code on the origin/originResult pair.
-        var fixer = FixPropagator.Create( monitor, originReleaseInfo, result, context, this, _releaseDatabase, _versionTags );
-        if( fixer == null )
-        {
-            return false;
-        }
-        return fixer.RunAll( monitor );
-    }
-
     BuildResult? CoreBuild( IActivityMonitor monitor,
                             CKliEnv context,
                             VersionTagInfo versionInfo,
                             Commit buildCommit,
                             SVersion targetVersion,
                             bool? runTest,
-                            bool rebuild )
+                            bool allowRebuild )
     {
-        var buildInfo = versionInfo.TryGetCommitBuildInfo( monitor, buildCommit, targetVersion, rebuild );
+        var buildInfo = versionInfo.TryGetCommitBuildInfo( monitor, buildCommit, targetVersion, allowRebuild );
         if( buildInfo == null )
         {
             return null;

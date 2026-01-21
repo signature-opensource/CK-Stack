@@ -6,5 +6,9 @@
       <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
       <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
       <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
+      <PackageReference Include="CKli.VSSolution.Plugin" />
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="PackageMapping\" />
     </ItemGroup>
 </Project>
