@@ -48,7 +48,9 @@ public sealed class LocalStringCache
             var path = GetFilePath();
             try
             {
-                _cache = new HashSet<string>( File.ReadLines( path ) );
+                _cache = File.Exists( path )
+                            ? new HashSet<string>( File.ReadLines( path ) )
+                            : new HashSet<string>();
             }
             catch( Exception ex )
             {

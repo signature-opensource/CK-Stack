@@ -3,6 +3,7 @@ using CKli.Core;
 using CSemVer;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 
 namespace CKli.ArtifactHandler.Plugin;
 

@@ -392,7 +392,7 @@ public sealed class VersionTagInfo : RepoInfo
                             This commit contains the exact same code as the version 'v{already.Version}' released on {already.Commit.Committer.When} by commit '{already.Sha}'.
                             
                             If publishing 2 different versions of the exact same code is really what is intended, please alter
-                            any file with a minor modification. 
+                            any file with a minor modification.
                             """
                             : $"""
                             Invalid build commit '{buildCommit.Sha}' for version 'v{version}' in '{Repo.DisplayPath}'.

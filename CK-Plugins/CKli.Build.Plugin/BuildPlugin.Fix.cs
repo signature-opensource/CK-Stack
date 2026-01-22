@@ -71,7 +71,7 @@ public sealed partial class BuildPlugin
                 var targetVersion = target.TargetVersion;
                 if( !publishing )
                 {
-                    targetVersion = SVersion.Create( targetVersion.Major, targetVersion.Minor, targetVersion.Patch, $"-local.fix.{commitDepth}" );
+                    targetVersion = SVersion.Create( targetVersion.Major, targetVersion.Minor, targetVersion.Patch, $"local.fix.{commitDepth}" );
                 }
                 //var alreadyBuilt = _releaseDatabase.GetReleaseInfo( monitor, target.Repo, targetVersion );
                 //if( alreadyBuilt != null )
@@ -112,7 +112,7 @@ public sealed partial class BuildPlugin
                 results[target.Index] = (result, hasNewCommit);
             }
         }
-        return false;
+        return true;
 
         static bool Commit( IActivityMonitor monitor,
                             PackageMapper? reusableUpdated,
@@ -191,10 +191,10 @@ public sealed partial class BuildPlugin
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The repository (must be checked out).</param>
-    /// <param name="packageMapper">The packages mapper.</param>
+    /// <param name="mapping">The packages mapping to apply.</param>
     /// <param name="updated">The package actually updated.</param>
     /// <returns>True on success, false on failure.</returns>
-    bool UpdatePackages( IActivityMonitor monitor, Repo repo, PackageMapper packageMapper, ref PackageMapper? updated )
+    bool UpdatePackages( IActivityMonitor monitor, Repo repo, IPackageMapping mapping, ref PackageMapper? updated )
     {
         var solution = _solutionPlugin.Get( monitor, repo );
         if( solution.Issue != VSSolution.Plugin.VSSolutionIssue.None )
@@ -202,7 +202,7 @@ public sealed partial class BuildPlugin
             monitor.Error( $"Solution '{repo.DisplayPath}' must be fixed first ({solution.Issue}). Use 'ckli issue' for details." );
             return false;
         }
-        if( packageMapper.Count > 0 )
+        if( !mapping.IsEmpty )
         {
             var projectFiles = LoadAllProjectFiles( monitor, repo, solution );
             if( projectFiles == null )
@@ -213,7 +213,7 @@ public sealed partial class BuildPlugin
             {
                 foreach( var p in projectFiles )
                 {
-                    if( !UpdateVersions( monitor, p.Path, p.Doc, packageMapper, ref updated ) )
+                    if( !UpdateVersions( monitor, p.Path, p.Doc, mapping, ref updated ) )
                     {
                         return false;
                     }
@@ -229,7 +229,7 @@ public sealed partial class BuildPlugin
         static bool UpdateVersions( IActivityMonitor monitor,
                                     string path,
                                     XDocument doc,
-                                    PackageMapper packageMapper,
+                                    IPackageMapping mapping,
                                     ref PackageMapper? updated )
         {
             if( doc.Root == null )
@@ -242,9 +242,9 @@ public sealed partial class BuildPlugin
                 foreach( var e in doc.Root.Descendants( "PackageVersion" ) )
                 {
                     var name = GetIncludedName( monitor, path, e );
-                    if( name != null && packageMapper.TryGetMapping( name, out var map ) ) 
+                    if( name != null && mapping.TryGetMapping( name, out var map ) ) 
                     {
-                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version", in map, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version", map, ref updated ) )
                         {
                             return false;
                         }
@@ -256,13 +256,13 @@ public sealed partial class BuildPlugin
                 foreach( var e in doc.Root.Descendants( "PackageReference" ) )
                 {
                     var name = GetIncludedName( monitor, path, e );
-                    if( name != null && packageMapper.TryGetMapping( name, out var map ) )
+                    if( name != null && mapping.TryGetMapping( name, out var map ) )
                     {
-                        if( !UpdateVersion( monitor, path, e, name, "VersionOverride", null, in map, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "VersionOverride", null, map, ref updated ) )
                         {
                             return false;
                         }
-                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version or VersionOverride", in map, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version or VersionOverride", map, ref updated ) )
                         {
                             return false;
                         }
@@ -292,7 +292,7 @@ public sealed partial class BuildPlugin
                                        string packageId,
                                        XName attributeName,
                                        string? attributeRequiredMessage,
-                                       in PackageMapper.VersionMap map,
+                                       IPackageVersionMapping map,
                                        ref PackageMapper? updated )
             {
                 var a = e.Attribute( attributeName );
@@ -347,7 +347,7 @@ public sealed partial class BuildPlugin
             var projectFiles = new List<(string Path, XDocument Doc)>();
             foreach( var p in solution.Projects.Values )
             {
-                var path = p.FilePath;
+                var path = Path.Combine( repo.WorkingFolder, p.FilePath );
 
                 if( !LoadProjectFile( monitor, projectFiles, path )
                     || !LoadDirectoryFiles( monitor, projectFiles, path, repo.WorkingFolder.Path.Length, dedupFolders ) )

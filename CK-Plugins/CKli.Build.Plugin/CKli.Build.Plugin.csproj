@@ -8,7 +8,4 @@
       <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
       <PackageReference Include="CKli.VSSolution.Plugin" />
     </ItemGroup>
-    <ItemGroup>
-      <Folder Include="PackageMapping\" />
-    </ItemGroup>
 </Project>

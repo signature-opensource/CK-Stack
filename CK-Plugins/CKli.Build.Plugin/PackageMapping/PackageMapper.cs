@@ -8,70 +8,12 @@ using System.Text;
 
 namespace CKli.Build.Plugin;
 
-/// <summary>
-/// Primary package mapping interface.
-/// </summary>
-interface IPackageMapping
-{
-    /// <summary>
-    /// Gets whether there is at least one mapping.
-    /// </summary>
-    bool IsEmpty { get; }
-
-    /// <summary>
-    /// Gets the mapped version.
-    /// </summary>
-    /// <param name="packageId">The package identifier.</param>
-    /// <param name="from">The origin version.</param>
-    /// <returns>Null when not mapped.</returns>
-    SVersion? GetMappedVersion( string packageId, SVersion from );
-
-    /// <summary>
-    /// Gets the mapped version.
-    /// </summary>
-    /// <param name="packageId">The package identifier.</param>
-    /// <param name="from">The origin version.</param>
-    /// <param name="to">The mapped version.</param>
-    /// <returns>True on success, false on error.</returns>
-    bool TryGetMappedVersion( string packageId, SVersion from, [NotNullWhen( true )] out SVersion? to );
-
-    ///// <summary>
-    ///// Gets the mapping for the package.
-    ///// </summary>
-    ///// <param name="packageId">The package identifier.</param>
-    ///// <param name="map">The version map.</param>
-    ///// <returns>Whether the mapping exists.</returns>
-    //bool TryGetMapping( string packageId, [NotNullWhen( true )] out IPackageVersionMapping? map );
-}
-
-/// <summary>
-/// Version mapping for a package.
-/// </summary>
-interface IPackageVersionMapping
-{
-    /// <summary>
-    /// Gets the mapped version.
-    /// </summary>
-    /// <param name="from">The origin version.</param>
-    /// <returns>The mapped version or null.</returns>
-    SVersion? Get( SVersion from );
-
-    /// <summary>
-    /// Gets the mapped version.
-    /// </summary>
-    /// <param name="from">The origin version.</param>
-    /// <param name="to">Outputs the mapped version on success.</param>
-    /// <returns>True on success, false if not found.</returns>
-    bool TryGet( SVersion from, [NotNullWhen( true )] out SVersion? to );
-
-}
-
 sealed class PackageMapper : IPackageMapping
 {
     Dictionary<string, VersionMap> _mapping;
     int _count;
 
-    public sealed class VersionMap : IPackageVersionMapping
+    sealed class VersionMap : IPackageVersionMapping
     {
         readonly List<(SVersion From, SVersion To)> _map;
 
@@ -92,8 +34,6 @@ sealed class PackageMapper : IPackageMapping
         }
 
         public SVersion? Get( SVersion from ) => _map.FirstOrDefault( m => m.From == from ).To;
-
-        public bool TryGet( SVersion from, [NotNullWhen( true )] out SVersion? to ) => (to = Get( from )) != null;
 
         public StringBuilder Write( StringBuilder b )
         {
@@ -145,29 +85,22 @@ sealed class PackageMapper : IPackageMapping
         }
     }
 
-    public bool TryGetMapping( string packageId, [NotNullWhen( true )] out VersionMap? map ) => _mapping.TryGetValue( packageId, out map );
-
-    //public bool TryGetMapping( string packageId, [NotNullWhen( true )] out IPackageVersionMapping? map )
-    //{
-    //    if( _mapping.TryGetValue( packageId, out var cmap ) )
-    //    {
-    //        map = cmap;
-    //        return true;
-    //    }
-    //    map = null;
-    //    return false;
-    //}
+    public bool TryGetMapping( string packageId, [NotNullWhen( true )] out IPackageVersionMapping? map )
+    {
+        if( _mapping.TryGetValue( packageId, out var cmap ) )
+        {
+            map = cmap;
+            return true;
+        }
+        map = null;
+        return false;
+    }
 
     public SVersion? GetMappedVersion( string packageId, SVersion from )
     {
         return _mapping.TryGetValue( packageId, out var map )
                 ? map.Get( from )
                 : null;
-    }
-
-    public bool TryGetMappedVersion( string packageId, SVersion from, [NotNullWhen( true )] out SVersion? to )
-    {
-        return (to = GetMappedVersion( packageId, from )) != null;
     }
 
     public void Clear()

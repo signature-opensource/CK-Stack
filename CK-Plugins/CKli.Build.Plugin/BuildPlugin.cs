@@ -201,7 +201,9 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                          bool? runTest )
         {
             var buildResult = repoBuilder.Get( monitor, versionInfo.Repo ).Build( monitor, buildInfo, runTest );
-            if( buildResult != null )
+
+            // Local fix builds are not tracked: they don't appear in the release database and have no release tag.
+            if( buildResult != null && !buildResult.Version.IsLocalFix() )
             {
                 var content = buildResult.Content;
                 if( !releaseDatabase.OnLocalBuild( monitor, buildResult.Repo, buildResult.Version, buildInfo.Rebuilding, content ) )

@@ -45,6 +45,24 @@ public class RepoBuilder : RepoInfo
                           !Repo.GitRepository.GetSimpleStatusInfo().IsDirty );
         Throw.CheckArgument( buildInfo.Repo == Repo );
 
+        monitor.Trace( "Add the '$Local/Feed/NuGet' local feed to the 'nuget.config' file." );
+        // Calling "dotnet build --source <localFeed>" fails with:
+        //      error NU1100: Unable to resolve 'CKt.Core (>= 1.0.0)' for 'net8.0'.
+        //      PackageSourceMapping is enabled, the following source( s ) were not considered: <localFeed>
+        //
+        // Even when nuget.config doesn't contain any <packageSourceMapping>...
+        // 
+        // Before building, we modify the nuget.config (this helper ensures that <packageSourceMapping> exists
+        // with all the existing sources plus the one we add).
+        //
+        var localFeed = _repoArtifact.LocalFeedNuGetPath;
+        var nugetConfigPath = Repo.WorkingFolder.AppendPart( "nuget.config" );
+        var nugetConfig = XDocument.Load( nugetConfigPath );
+        NuGetHelper.SetOrRemoveNuGetSource( monitor, nugetConfig, "local-feed", localFeed );
+        XmlHelper.SaveWithoutXmlDeclaration( nugetConfig, nugetConfigPath );
+        // We ResetHard the repository after the build.
+        bool resetHardDone = false;
+
         var outputPath = FileUtil.CreateUniqueTimedFolder( Path.GetTempPath() + "CKliBuild", null, DateTime.UtcNow );
         try
         {
@@ -56,22 +74,27 @@ public class RepoBuilder : RepoInfo
                          runTest,
                          outputPath ) )
             {
+                // If we cannot reset the working folder, we don't want to ignore this at all: the build fails.
+                if( !Repo.GitRepository.ResetHard( monitor, out _, tryDeleteUntrackedFiles: true) )
+                {
+                    monitor.Error( $"Unable to reset the working folder after build. This should not happen: failing the build." );
+                    return null;
+                }
+                resetHardDone = true;
                 if( BuildResult.GetConsumedPackages( monitor, buildInfo, out var consumedPackages ) )
                 {
                     var deploymentFolder = Repo.WorkingFolder.AppendPart( ArtifactHandlerPlugin.DeployFolderName );
-                    if( HandleDeployAssets( monitor, deploymentFolder, buildInfo.Version, out var assetsFolder, out var assetFileNames ) )
+                    if( HandleDeployAssets( monitor, deploymentFolder, buildInfo.Version, out var assetsFolder, out var assetFileNames )
+                        && _repoArtifact.PublishToNuGetLocalFeed( monitor, buildInfo.Version, outputPath, out var publishedPackages ) ) 
                     {
-                        if( _repoArtifact.PublishToNuGetLocalFeed( monitor, buildInfo.Version, outputPath, out var publishedPackages ) )
-                        {
-                            var r = new BuildResult( Repo,
-                                                     buildInfo.Version,
-                                                     consumedPackages,
-                                                     publishedPackages,
-                                                     assetsFolder,
-                                                     assetFileNames );
-                            outputPath = null;
-                            return r;
-                        }
+                        var r = new BuildResult( Repo,
+                                                 buildInfo.Version,
+                                                 consumedPackages,
+                                                 publishedPackages,
+                                                 assetsFolder,
+                                                 assetFileNames );
+
+                        return r;
                     }
                 }
             }
@@ -79,6 +102,11 @@ public class RepoBuilder : RepoInfo
         finally
         {
             if( outputPath != null ) FileHelper.DeleteFolder( monitor, outputPath );
+            // If reset has not been done (build failed), do it.
+            if( !resetHardDone )
+            {
+                Repo.GitRepository.ResetHard( monitor, out var remainingUntrackedFiles, tryDeleteUntrackedFiles: true );
+            }
         }
         return null;
     }
@@ -179,7 +207,7 @@ public class RepoBuilder : RepoInfo
     {
         return DotNetBuild( monitor, version, informationalVersion, fileVersion, release )
                && DotNetTest( monitor, runTest )
-               && DotNetPack( monitor, version, outputPath );
+               && DotNetPack( monitor, version, release, outputPath );
     }
 
     /// <summary>
@@ -197,22 +225,6 @@ public class RepoBuilder : RepoInfo
                                 string fileVersion,
                                 bool release )
     {
-        var localFeed = _repoArtifact.LocalFeedNuGetPath;
-        //
-        // Calling "dotnet build --source <localFeed>" fails with:
-        //      error NU1100: Unable to resolve 'CKt.Core (>= 1.0.0)' for 'net8.0'.
-        //      PackageSourceMapping is enabled, the following source( s ) were not considered: <localFeed>
-        //
-        // Even when nuget.config doesn't contain any <packageSourceMapping>...
-        // 
-        // Before building, we modify the nuget.config (this helper ensures that <packageSourceMapping> exists
-        // with all the existing sources plus the one we add).
-        //
-        var nugetConfigPath = Repo.WorkingFolder.AppendPart( "nuget.config" );
-        var nugetConfig = XDocument.Load( nugetConfigPath );
-        NuGetHelper.SetOrRemoveNuGetSource( monitor, nugetConfig, "local-feed", localFeed );
-        XmlHelper.SaveWithoutXmlDeclaration( nugetConfig, nugetConfigPath );
-
         return BuildPlugin.RunDotnet( monitor, Repo, $"""
             build -tl:off --nologo --no-incremental -c {(release ? "Release" : "Debug")} /p:Version={version};InformationalVersion="{informationalVersion}";FileVersion="{fileVersion}"
             """ );
@@ -247,9 +259,9 @@ public class RepoBuilder : RepoInfo
     /// <param name="version">The version to pack.</param>
     /// <param name="outputPath">Destination folder where the artifact files must be created.</param>
     /// <returns>True on success, false otherwise.</returns>
-    protected bool DotNetPack( IActivityMonitor monitor, SVersion version, string outputPath )
+    protected bool DotNetPack( IActivityMonitor monitor, SVersion version, bool release, string outputPath )
     {
-        return BuildPlugin.RunDotnet( monitor, Repo, $"""pack -tl:off /p:Version={version} --nologo --no-build -o "{outputPath}" """ );
+        return BuildPlugin.RunDotnet( monitor, Repo, $"""pack -tl:off /p:Version={version} -c {(release ? "Release" : "Debug")} --nologo --no-build -o "{outputPath}" """ );
     }
 
 
