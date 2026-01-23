@@ -3,6 +3,7 @@ using CSemVer;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 
 namespace CKli.ArtifactHandler.Plugin;
@@ -118,6 +119,42 @@ public readonly record struct NuGetPackageInstance( string PackageId, SVersion V
             return result.ToImmutableArray();
         }
 
+    }
+
+
+    /// <summary>
+    /// Tries to parse a "package.version.nupkg" file name.
+    /// </summary>
+    /// <param name="fileName">The file name to parse.</param>
+    /// <param name="version">The non null parsed version on success.</param>
+    /// <param name="packageIdLength">The package name length.</param>
+    /// <returns>True on success, false if the file name cannot be parsed.</returns>
+    public static bool TryParseNupkgFileName( ReadOnlySpan<char> fileName,
+                                              [NotNullWhen( true )] out SVersion? version,
+                                              out int packageIdLength )
+    {
+        var h = fileName;
+        for(; ; )
+        {
+            var nextDot = h.IndexOf( '.' );
+            // Consider 2 consecutive .. to be invalid.
+            if( nextDot <= 0 ) break;
+            h = h.Slice( nextDot + 1 );
+            if( h.Length > 0 && char.IsAsciiDigit( h[0] ) )
+            {
+                packageIdLength = fileName.Length - h.Length - 1;
+                version = SVersion.TryParse( ref h );
+                // Here we allow a starting digit in the package id because this is legit (tested):
+                // Successfully created package '...\package\debug\Truc.0Machin.1.0.0.nupkg
+                if( version.IsValid )
+                {
+                    return h.TryMatch( ".nupkg" ) && h.Length == 0;
+                }
+            }
+        }
+        version = null;
+        packageIdLength = 0;
+        return false;
     }
 
     /// <summary>

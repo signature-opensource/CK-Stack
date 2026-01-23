@@ -7,11 +7,13 @@ using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace CKli.Build.Plugin;
@@ -23,95 +25,195 @@ public sealed partial class BuildPlugin
         Local build the current Fix Workflow.
         """ )]
     [CommandPath( "fix build" )]
-    public bool FixBuild( IActivityMonitor monitor,
-                          CKliEnv context,
-                          [Description( "Don't run tests even if they have never locally run on a commit." )]
-                          bool skipTests = false,
-                          [Description( "Run tests even if they have already run successfully on a commit." )]
-                          bool forceTests = false )
+    public async Task<bool> FixBuildAsync( IActivityMonitor monitor,
+                                           CKliEnv context,
+                                           [Description( "Don't run tests even if they have never locally run on a commit." )]
+                                           bool skipTests = false,
+                                           [Description( "Run tests even if they have already run successfully on a commit." )]
+                                           bool forceTests = false,
+                                           [Description( "Force a rebuild." )]
+                                           bool rebuild = false )
     {
         if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
             || !FixWorkflow.Load( monitor, World, out var workflow ) )
         {
             return false;
         }
-        bool publishing = false;
+        var results = await DoBuildFixAsync( monitor, context, runTest, workflow, rebuild, publishing: false ).ConfigureAwait( false );
+        if( results.IsDefault )
+        {
+            return false;
+        }
+        context.Screen.Display( s => RenderBuildResults( s, results ) );
+        return true;
+
+    }
+
+    [Description( """
+        Local build the current Fix Workflow.
+        """ )]
+    [CommandPath( "fix publish" )]
+    public async Task<bool> FixPublishAsync( IActivityMonitor monitor,
+                                             CKliEnv context,
+                                             [Description( "Force a rebuild." )]
+                                             bool rebuild = false )
+    {
+        if( !FixWorkflow.Load( monitor, World, out var workflow ) )
+        {
+            return false;
+        }
+        var results = await DoBuildFixAsync( monitor,
+                                             context,
+                                             runTest: rebuild ? true : null,
+                                             workflow,
+                                             rebuild,
+                                             publishing: true ).ConfigureAwait( false );
+        if( results.IsDefault )
+        {
+            return false;
+        }
+        context.Screen.Display( s => s.Text( "Publishing fix:" )
+                                      .AddBelow( RenderBuildResults( s, results ) ) );
+        // TODO:
+        // Introduce a "$Local/Pub" folder?
+        //  - /NuGet
+        //    - One folder per remote NuGet feed that contains the pending packages to push.
+        //      - Can packages be pushed in the background until the folder is empty?
+        //        Don't think so or we must implement a Service. No go.
+        //  - /Assets
+        // 1 - Push the NuGet packages to the remote feeds (this requires a World configuration).
+        // 2 - Push the branches and tags.
+        // 2 - Create the Release as a draft on GitHub (seems that the tag must first exist)
+        //     Upload the assets.
+        // 3 - Undraft the release.
+        // 
+        return true;
+    }
+
+    static IRenderable RenderBuildResults( ScreenType s, ImmutableArray<BuildResult> results )
+    {
+        var d = s.Unit.AddBelow( results.Select( r => r.Repo.ToRenderable( s, withBranchName: true )
+                                                            .AddRight( s.Text( r.Version.ToString() )
+                                                                        .Box( marginLeft: 1,
+                                                                                foreColor: r.SkippedBuild
+                                                                                            ? ConsoleColor.DarkYellow
+                                                                                            : ConsoleColor.Green ) ) ) );
+        return d.TableLayout();
+    }
 
 
+    async Task<ImmutableArray<BuildResult>> DoBuildFixAsync( IActivityMonitor monitor,
+                                                                CKliEnv context,
+                                                                bool? runTest,
+                                                                FixWorkflow? workflow,
+                                                                bool rebuild,
+                                                                bool publishing )
+    {
         if( workflow == null )
         {
             monitor.Error( $"No current Fix Workflow exist for world '{World.Name}'." );
-            return false;
+            return default;
         }
         if( !_branchModel.CheckBasicPreconditions( monitor, $"building '{workflow}'", out var allRepos ) )
         {
-            return false;
+            return default;
         }
-        var results = new BuildResult[workflow.Targets.Length];
+        var bResults = ImmutableArray.CreateBuilder<BuildResult>( workflow.Targets.Length );
         var packageMapper = new PackageMapper();
         var packageMapping = new FixPackageMapping( packageMapper );
-        var reusableUpdated = new PackageMapper();
         foreach( var target in workflow.Targets )
         {
-            using( monitor.OpenInfo( $"Building {target.Index} - {target.Repo.DisplayPath}" ) )
+            using( monitor.OpenInfo( $"Building n°{target.Index} - {target.Repo.DisplayPath}" ) )
             {
-                var versionInfo = _versionTags.Get( monitor, target.Repo );
-
-                if( !CheckoutFixTargetBranch( monitor, target, versionInfo, out var toFix, out int commitDepth )
-                    || !UpdatePackages( monitor, target.Repo, packageMapping, ref reusableUpdated )
-                    || !CommitUpdatedPackages( monitor, reusableUpdated, target, out bool hasNewCommit ) )
+                if( !await BuildOneFixTarget( monitor,
+                                              context,
+                                              runTest,
+                                              rebuild,
+                                              publishing,
+                                              bResults,
+                                              packageMapper,
+                                              packageMapping,
+                                              target ).ConfigureAwait( false ) )
                 {
-                    return false;
+                    break;
                 }
-                Throw.DebugAssert( toFix.BuildContentInfo != null );
-
-                if( hasNewCommit )
-                {
-                    commitDepth++;
-                }
-                var targetVersion = target.TargetVersion;
-                if( !publishing )
-                {
-                    targetVersion = SVersion.Create( targetVersion.Major, targetVersion.Minor, targetVersion.Patch, $"local.fix.{commitDepth}" );
-                }
-
-                var result = CoreBuild( monitor,
-                                        context,
-                                        versionInfo,
-                                        target.Repo.GitRepository.Repository.Head.Tip,
-                                        targetVersion,
-                                        runTest );
-                if( result == null )
-                {
-                    return false;
-                }
-                // We introduce a check here: we demand that the produced package identifiers are the same as the release
-                // we are fixing: changing the produced packages that are structural/architectural artifacts is
-                // everything but fixing.
-                if( !result.SkippedBuild && !result.Content.Produced.SequenceEqual( toFix.BuildContentInfo.Produced ) )
-                {
-                    monitor.Error( $"""
-                            Forbidden change in produced packages for a fix in '{target.Repo.DisplayPath}':
-                            The version 'v{target.ToFixVersion}' produced packages: '{toFix.BuildContentInfo.Produced.Concatenate( "', '" )}'.
-                            But the new fix 'v{targetVersion}' produced: '{result.Content.Produced.Concatenate( "', '" )}'.
-                            """ );
-                    _versionTags.DestroyLocalRelease( monitor, result.Repo, targetVersion );
-                    return false;
-                }
-                // Adds the new produced packages to the updates map.
-                foreach( var p in result.Content.Produced )
-                {
-                    packageMapper.Add( p, target.ToFixVersion, targetVersion );
-                }
-                results[target.Index] = result;
             }
         }
+        if( bResults.Count == workflow.Targets.Length )
+        {
+            return bResults.MoveToImmutable();
+        }
+        return default;
+    }
+
+    async Task<bool> BuildOneFixTarget( IActivityMonitor monitor,
+                                        CKliEnv context,
+                                        bool? runTest,
+                                        bool rebuild,
+                                        bool publishing,
+                                        ImmutableArray<BuildResult>.Builder bResults,
+                                        PackageMapper packageMapper,
+                                        FixPackageMapping packageMapping,
+                                        FixWorkflow.TargetRepo target )
+    {
+        var versionInfo = _versionTags.Get( monitor, target.Repo );
+
+        var updated = new PackageMapper();
+        if( !CheckoutFixTargetBranch( monitor, target, versionInfo, out var toFix, out int commitDepth )
+            || !UpdatePackages( monitor, target.Repo, packageMapping, updated )
+            || !CommitUpdatedPackages( monitor, updated, target, out bool hasNewCommit ) )
+        {
+            return false;
+        }
+        Throw.DebugAssert( toFix.BuildContentInfo != null );
+
+        if( hasNewCommit )
+        {
+            commitDepth++;
+        }
+        var targetVersion = target.TargetVersion;
+        if( !publishing )
+        {
+            targetVersion = SVersion.Create( targetVersion.Major, targetVersion.Minor, targetVersion.Patch, $"local.fix.{commitDepth}" );
+        }
+
+        var result = await CoreBuildAsync( monitor,
+                                            context,
+                                            versionInfo,
+                                            target.Repo.GitRepository.Repository.Head.Tip,
+                                            targetVersion,
+                                            runTest,
+                                            forceRebuild: rebuild ).ConfigureAwait( false );
+        if( result == null )
+        {
+            return false;
+        }
+        // We introduce a check here: we demand that the produced package identifiers are the same as the release
+        // we are fixing: changing the produced packages that are structural/architectural artifacts is
+        // everything but fixing.
+        if( !result.SkippedBuild && !result.Content.Produced.SequenceEqual( toFix.BuildContentInfo.Produced ) )
+        {
+            monitor.Error( $"""
+                    Forbidden change in produced packages for a fix in '{target.Repo.DisplayPath}':
+                    The version 'v{target.ToFixVersion}' produced packages: '{toFix.BuildContentInfo.Produced.Concatenate( "', '" )}'.
+                    But the new fix 'v{targetVersion}' produced: '{result.Content.Produced.Concatenate( "', '" )}'.
+                    """ );
+            _versionTags.DestroyLocalRelease( monitor, result.Repo, targetVersion );
+            return false;
+        }
+        // Adds the new produced packages to the updates map.
+        foreach( var p in result.Content.Produced )
+        {
+            packageMapper.Add( p, target.ToFixVersion, targetVersion );
+        }
+        Throw.DebugAssert( bResults.Count == target.Index );
+        bResults.Add( result );
         return true;
 
         static bool CommitUpdatedPackages( IActivityMonitor monitor,
-                                           PackageMapper? reusableUpdated,
-                                           FixWorkflow.TargetRepo target,
-                                           out bool hasNewCommit )
+                        PackageMapper? reusableUpdated,
+                        FixWorkflow.TargetRepo target,
+                        out bool hasNewCommit )
         {
             Throw.DebugAssert( reusableUpdated != null );
             hasNewCommit = false;
@@ -129,45 +231,47 @@ public sealed partial class BuildPlugin
             }
             return true;
         }
+
+        static bool CheckoutFixTargetBranch( IActivityMonitor monitor,
+                                                FixWorkflow.TargetRepo target,
+                                                VersionTagInfo versionInfo,
+                                                [NotNullWhen( true )] out TagCommit? toFix,
+                                                out int commitDepth )
+        {
+            commitDepth = 0;
+            // We must be able to retrieve the TagCommit to fix.
+            if( !versionInfo.TagCommits.TryGetValue( target.ToFixVersion, out toFix ) )
+            {
+                monitor.Error( $"Unable to find the commit '{target.ToFixCommitSha}' version 'v{target.ToFixVersion}' to be fixed in '{target.Repo.DisplayPath}'." );
+                return false;
+            }
+            if( toFix.BuildContentInfo == null )
+            {
+                monitor.Error( $"The version 'v{target.ToFixVersion}' of the commit '{target.ToFixCommitSha}' to be fixed in '{target.Repo.DisplayPath}' has no more a valid build content." );
+                return false;
+            }
+
+            GitRepository gitRepository = target.Repo.GitRepository;
+
+            var branch = gitRepository.GetBranch( monitor, target.BranchName, CK.Core.LogLevel.Error );
+            if( branch == null )
+            {
+                return false;
+            }
+
+            var divergence = gitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( toFix.Commit, branch.Tip );
+            if( divergence.BehindBy == null )
+            {
+                monitor.Error( $"Branch '{target.BranchName}' in '{target.Repo.DisplayPath}' is not related to the commit '{target.ToFixCommitSha}' version 'v{target.ToFixVersion}' to be fixed." );
+                return false;
+            }
+            commitDepth = divergence.BehindBy.Value;
+
+            return gitRepository.Checkout( monitor, branch );
+        }
+
     }
 
-    bool CheckoutFixTargetBranch( IActivityMonitor monitor,
-                                  FixWorkflow.TargetRepo target,
-                                  VersionTag.Plugin.VersionTagInfo versionInfo,
-                                  [NotNullWhen(true)]out TagCommit? toFix,
-                                  out int commitDepth )
-    {
-        commitDepth = 0;
-        // We must be able to retrieve the TagCommit to fix.
-        if( !versionInfo.TagCommits.TryGetValue( target.ToFixVersion, out toFix ) )
-        {
-            monitor.Error( $"Unable to find the commit '{target.ToFixCommitSha}' version 'v{target.ToFixVersion}' to be fixed in '{target.Repo.DisplayPath}'." );
-            return false;
-        }
-        if( toFix.BuildContentInfo == null )
-        {
-            monitor.Error( $"The version 'v{target.ToFixVersion}' of the commit '{target.ToFixCommitSha}' to be fixed in '{target.Repo.DisplayPath}' has no more a valid build content." );
-            return false;
-        }
-
-        GitRepository gitRepository = target.Repo.GitRepository;
-
-        var branch = gitRepository.GetBranch( monitor, target.BranchName, CK.Core.LogLevel.Error );
-        if( branch == null )
-        {
-            return false;
-        }
-
-        var divergence = gitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( toFix.Commit, branch.Tip );
-        if( divergence.BehindBy == null )
-        {
-            monitor.Error( $"Branch '{target.BranchName}' in '{target.Repo.DisplayPath}' is not related to the commit '{target.ToFixCommitSha}' version 'v{target.ToFixVersion}' to be fixed." );
-            return false;
-        }
-        commitDepth = divergence.BehindBy.Value;
-
-        return gitRepository.Checkout( monitor, branch );
-    }
 
     /// <summary>
     /// Not that easy. "dotnet package update" is rather useless (it works only on a single project and when packages to update
@@ -188,7 +292,7 @@ public sealed partial class BuildPlugin
     /// <param name="mapping">The packages mapping to apply.</param>
     /// <param name="updated">The package actually updated.</param>
     /// <returns>True on success, false on failure.</returns>
-    bool UpdatePackages( IActivityMonitor monitor, Repo repo, IPackageMapping mapping, ref PackageMapper? updated )
+    bool UpdatePackages( IActivityMonitor monitor, Repo repo, IPackageMapping mapping, PackageMapper updated )
     {
         var solution = _solutionPlugin.Get( monitor, repo );
         if( solution.Issue != VSSolution.Plugin.VSSolutionIssue.None )
@@ -207,7 +311,7 @@ public sealed partial class BuildPlugin
             {
                 foreach( var p in projectFiles )
                 {
-                    if( !UpdateVersions( monitor, p.Path, p.Doc, mapping, ref updated ) )
+                    if( !UpdateVersions( monitor, p.Path, p.Doc, mapping, updated ) )
                     {
                         return false;
                     }
@@ -224,7 +328,7 @@ public sealed partial class BuildPlugin
                                     string path,
                                     XDocument doc,
                                     IPackageMapping mapping,
-                                    ref PackageMapper? updated )
+                                    PackageMapper updated )
         {
             if( doc.Root == null )
             {
@@ -238,7 +342,7 @@ public sealed partial class BuildPlugin
                     var name = GetIncludedName( monitor, path, e );
                     if( name != null && mapping.HasMapping( name ) ) 
                     {
-                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version", mapping, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version", mapping, updated ) )
                         {
                             return false;
                         }
@@ -252,11 +356,11 @@ public sealed partial class BuildPlugin
                     var name = GetIncludedName( monitor, path, e );
                     if( name != null && mapping.HasMapping( name ) )
                     {
-                        if( !UpdateVersion( monitor, path, e, name, "VersionOverride", null, mapping, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "VersionOverride", null, mapping, updated ) )
                         {
                             return false;
                         }
-                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version or VersionOverride", mapping, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version or VersionOverride", mapping, updated ) )
                         {
                             return false;
                         }
@@ -287,7 +391,7 @@ public sealed partial class BuildPlugin
                                        XName attributeName,
                                        string? attributeRequiredMessage,
                                        IPackageMapping map,
-                                       ref PackageMapper? updated )
+                                       PackageMapper updated )
             {
                 var a = e.Attribute( attributeName );
                 if( a == null )
@@ -317,7 +421,6 @@ public sealed partial class BuildPlugin
                 if( map.TryGetMappedVersion( packageId, from, out var to ) )
                 {
                     a.SetValue( to.ToString() );
-                    updated ??= new PackageMapper();
                     updated.TryAdd( packageId, from, to );
                 }
                 else

@@ -3,6 +3,7 @@ using CKli.Core;
 using CSemVer;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CKli.Build.Plugin;
 
@@ -13,14 +14,14 @@ public sealed partial class BuildPlugin
         Failing commits are tagged with a '+deprecated' tag.
         """ )]
     [CommandPath( "repo rebuild old" )]
-    public bool RebuildOld( IActivityMonitor monitor,
-                            CKliEnv context,
-                            [Description( "Warns only: doesn't create a 'deprecated' tag on the failing commit." )]
-                            bool warnOnly,
-                            [Description( "Runs unit tests. They must be successful." )]
-                            bool runTest,
-                            [Description( "Consider all the Repos of the current World (even if current path is in a Repo)." )]
-                            bool all )
+    public async Task<bool> RebuildOldAsync( IActivityMonitor monitor,
+                                             CKliEnv context,
+                                             [Description( "Warns only: doesn't create a 'deprecated' tag on the failing commit." )]
+                                             bool warnOnly,
+                                             [Description( "Runs unit tests. They must be successful." )]
+                                             bool runTest,
+                                             [Description( "Consider all the Repos of the current World (even if current path is in a Repo)." )]
+                                             bool all )
     {
         IReadOnlyList<Repo>? repos = all
                                       ? World.GetAllDefinedRepo( monitor )
@@ -36,7 +37,13 @@ public sealed partial class BuildPlugin
                 var versionTagInfo = _versionTags.Get( monitor, repo );
                 foreach( var tag in versionTagInfo.LastStables.Reverse() )
                 {
-                    if( CoreBuild( monitor, context, versionTagInfo, tag.Commit, tag.Version, runTest, forceRebuild: true ) == null )
+                    if( await CoreBuildAsync( monitor,
+                                              context,
+                                              versionTagInfo,
+                                              tag.Commit,
+                                              tag.Version,
+                                              runTest,
+                                              forceRebuild: true ).ConfigureAwait( false ) == null )
                     {
                         monitor.Info( ScreenType.CKliScreenTag, $"Version '{tag.Version.ParsedText}' of '{repo.DisplayPath}' is valid." );
                         break;
@@ -56,14 +63,14 @@ public sealed partial class BuildPlugin
 
     [Description( """Rebuild the specified version in the current repository.""" )]
     [CommandPath( "repo rebuild version" )]
-    public bool RebuildVersion( IActivityMonitor monitor,
-                                CKliEnv context,
-                                [Description( "The version to rebuild." )]
-                                string version,
-                                [Description( "Don't run tests even if they have never locally run on this commit." )]
-                                bool skipTests = false,
-                                [Description( "Run tests even if they have already run successfully on this commit." )]
-                                bool forceTests = false )
+    public async Task<bool> RebuildVersionAsync( IActivityMonitor monitor,
+                                                 CKliEnv context,
+                                                 [Description( "The version to rebuild." )]
+                                                 string version,
+                                                 [Description( "Don't run tests even if they have never locally run on this commit." )]
+                                                 bool skipTests = false,
+                                                 [Description( "Run tests even if they have already run successfully on this commit." )]
+                                                 bool forceTests = false )
     {
         if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
@@ -86,7 +93,13 @@ public sealed partial class BuildPlugin
             monitor.Error( $"Unable to find version 'v{v}'." );
             return false;
         }
-        if( CoreBuild( monitor, context, versionTagInfo, tag.Commit, tag.Version, runTest, forceRebuild: true ) == null )
+        if( await CoreBuildAsync( monitor,
+                                  context,
+                                  versionTagInfo,
+                                  tag.Commit,
+                                  tag.Version,
+                                  runTest,
+                                  forceRebuild: true ).ConfigureAwait( false ) == null )
         {
             monitor.Error( "Build failed. See 'ckli log'." );
             return false;

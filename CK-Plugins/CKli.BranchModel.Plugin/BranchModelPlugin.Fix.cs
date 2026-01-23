@@ -92,7 +92,7 @@ public sealed partial class BranchModelPlugin
         // and merge only the impacted branches.
         // If any impacted branch has any merge conflict, this is also an error that must be fixed.
 
-        // If load fails, the workflow has been canceled. We could allow this (as there's no more workflow)
+        // If load fails, the workflow has been deleted. We could allow this (as there's no more workflow)
         // but this would be weird. It's cleaner to fail this call: the fix start command can be repeated.
         if( !FixWorkflow.Load( monitor, World, out var exists ) )
         {
@@ -149,7 +149,7 @@ public sealed partial class BranchModelPlugin
                     if( !await _onFixStart.SafeRaiseAsync( monitor, e ).ConfigureAwait( false )
                         || eventError )
                     {
-                        monitor.Error( $"StarEvent handling failed. Cancelling." );
+                        monitor.CloseGroup( $"OnFixStart event handling failed." );
                         return false;
                     }
                 }
@@ -159,6 +159,13 @@ public sealed partial class BranchModelPlugin
         if( !workflow.Save( monitor ) )
         {
             return false;
+        }
+        // If it's a new workflow, let's keep the house clean by deleting any trace
+        // of a previous workflow.
+        if( !restartingWorkflow )
+        {
+            _releaseDatabase.DestroyAllLocalFixRelease( monitor );
+            _artifactHandler.DestroyAllLocalFixRelease( monitor );
         }
         return true;
 
@@ -453,7 +460,7 @@ public sealed partial class BranchModelPlugin
 
     }
 
-    [Description( "Dumps the current Fix Workflow state." )]
+    [Description( "Dumps the current Fix Workflow." )]
     [CommandPath( "fix info" )]
     public bool FixInfo( IActivityMonitor monitor, CKliEnv context )
     {
@@ -476,7 +483,20 @@ public sealed partial class BranchModelPlugin
     [CommandPath( "fix cancel" )]
     public bool FixCancel( IActivityMonitor monitor, CKliEnv context )
     {
-        FixWorkflow.CancelCurrent( monitor, World );
+        if( !FixWorkflow.Load( monitor, World, out var workflow ) )
+        {
+            return false;
+        }
+        if( workflow == null )
+        {
+            monitor.Info( ScreenType.CKliScreenTag, "No current workflow exist." );
+            return true;
+        }
+        foreach( var target in workflow.Targets )
+        {
+            _versionTags.DestroyLocalRelease( monitor, target.Repo, target.TargetVersion );
+        }
+        FixWorkflow.DeleteCurrent( monitor, World );
         return true;
     }
 }

@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CSemVer;
+using System;
 using System.Collections.Generic;
 
 namespace CKli.ReleaseDatabase.Plugin;
@@ -219,5 +220,15 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
             _published.Destroy( monitor, createBackup: false );
             _local.Destroy( monitor, createBackup: false );
         }
+    }
+
+    /// <summary>
+    /// Removes all <see cref="SVersionExtensions.IsLocalFix(SVersion)"/> releases from
+    /// the local database.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    public void DestroyAllLocalFixRelease( IActivityMonitor monitor )
+    {
+        _local.DestroyAllLocalFixRelease( monitor );
     }
 }

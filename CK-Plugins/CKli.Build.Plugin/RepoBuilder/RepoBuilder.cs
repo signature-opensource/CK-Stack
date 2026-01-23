@@ -8,6 +8,7 @@ using System;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace CKli.Build.Plugin;
@@ -21,13 +22,13 @@ namespace CKli.Build.Plugin;
 /// </summary>
 public class RepoBuilder : RepoInfo
 {
-    readonly LocalStringCache _shaTestRunCache;
+    readonly RepositoryBuilderPlugin _repositoryBuilder;
     readonly RepoArtifactInfo _repoArtifact;
 
-    public RepoBuilder( Repo repo, LocalStringCache shaTestRunCache, RepoArtifactInfo repoArtifact )
+    public RepoBuilder( Repo repo, RepositoryBuilderPlugin repositoryBuilder, RepoArtifactInfo repoArtifact )
         : base( repo )
     {
-        _shaTestRunCache = shaTestRunCache;
+        _repositoryBuilder = repositoryBuilder;
         _repoArtifact = repoArtifact;
     }
 
@@ -40,7 +41,8 @@ public class RepoBuilder : RepoInfo
     public bool HasTestRun( IActivityMonitor monitor, Commit commit )
     {
         string testKey = commit.Tree.Sha;
-        return _shaTestRunCache.Contains( monitor, testKey );
+        Throw.DebugAssert( _repositoryBuilder._shaTestRunCache != null );
+        return _repositoryBuilder._shaTestRunCache.Contains( monitor, testKey );
     }
 
     /// <summary>
@@ -52,9 +54,9 @@ public class RepoBuilder : RepoInfo
     /// <param name="buildInfo">The build info.</param>
     /// <param name="runTest">Whether tests should be run or not.</param>
     /// <returns>True on success, false otherwise.</returns>
-    public BuildResult? Build( IActivityMonitor monitor,
-                               CommitBuildInfo buildInfo,
-                               bool? runTest )
+    public async Task<BuildResult?> BuildAsync( IActivityMonitor monitor,
+                                                CommitBuildInfo buildInfo,
+                                                bool runTest )
     {
         Throw.CheckState( "Repository must not be dirty when calling build.",
                           !Repo.GitRepository.GetSimpleStatusInfo().IsDirty );
@@ -74,20 +76,18 @@ public class RepoBuilder : RepoInfo
         var nugetConfigPath = Repo.WorkingFolder.AppendPart( "nuget.config" );
         var nugetConfig = XDocument.Load( nugetConfigPath );
         NuGetHelper.SetOrRemoveNuGetSource( monitor, nugetConfig, "local-feed", localFeed );
-        XmlHelper.SaveWithoutXmlDeclaration( nugetConfig, nugetConfigPath );
+        XmlHelper.SaveWithoutXmlDeclaration( nugetConfig, nugetConfigPath, SaveOptions.DisableFormatting );
         // We ResetHard the repository after the build.
         bool resetHardDone = false;
 
+        // Temporary output folder for artifacts.
         var outputPath = FileUtil.CreateUniqueTimedFolder( Path.GetTempPath() + "CKliBuild", null, DateTime.UtcNow );
+
         try
         {
-            if( DoBuild( monitor,
-                         buildInfo.Version,
-                         buildInfo.InformationalVersion,
-                         buildInfo.FileVersion,
-                         buildInfo.ReleaseConfiguration,
-                         runTest,
-                         outputPath ) )
+
+            if( await _repositoryBuilder.RaiseOnCoreBuildAsync( monitor, buildInfo ).ConfigureAwait( false )
+                && DotNetBuildTestPack( monitor, buildInfo, runTest, outputPath ) )
             {
                 // If we cannot reset the working folder, we don't want to ignore this at all: the build fails.
                 if( !Repo.GitRepository.ResetHard( monitor, out _, tryDeleteUntrackedFiles: true) )
@@ -180,49 +180,42 @@ public class RepoBuilder : RepoInfo
 
     /// <summary>
     /// Core Build method.
-    /// By default, this calls the <see cref="DotNetBuildTestPack"/> helper.
+    /// This raises the <see cref="RepositoryBuilderPlugin.OnCoreBuild"/> and calls the <see cref="DotNetBuildTestPack"/> helper.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
-    /// <param name="version">The version to build.</param>
-    /// <param name="informationalVersion">The informational version to set (see <see cref="InformationalVersion"/>).</param>
-    /// <param name="fileVersion">The windows file version. See <see cref="CommitBuildInfo.FileVersion"/>.</param>
-    /// <param name="release">False to use Debug build configuration.</param>
+    /// <param name="buildInfo">The build information.</param>
     /// <param name="runTest">Whether tests should be run or not.</param>
     /// <param name="outputPath">Destination folder where the artifact files must be created.</param>
     /// <returns>True on success, false otherwise.</returns>
-    protected virtual bool DoBuild( IActivityMonitor monitor,
-                                    SVersion version,
-                                    string informationalVersion,
-                                    string fileVersion,
-                                    bool release,
-                                    bool? runTest,
-                                    NormalizedPath outputPath )
+    protected virtual async Task<bool> DoBuildAsync( IActivityMonitor monitor,
+                                                     CommitBuildInfo buildInfo,
+                                                     bool runTest,
+                                                     NormalizedPath outputPath )
     {
-        return DotNetBuildTestPack( monitor, version, informationalVersion, fileVersion, release, runTest, outputPath );
+        return await _repositoryBuilder.RaiseOnCoreBuildAsync( monitor, buildInfo ).ConfigureAwait( false )
+               && DotNetBuildTestPack( monitor, buildInfo, runTest, outputPath );
     }
 
     /// <summary>
     /// Helper that calls <see cref="DotNetBuild"/>, <see cref="DotNetTest"/> and <see cref="DotNetPack"/>.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
-    /// <param name="version">The version to build.</param>
-    /// <param name="informationalVersion">The informational version to set (see <see cref="CSemVer.InformationalVersion"/>).</param>
-    /// <param name="fileVersion">The windows file version. See <see cref="CommitBuildInfo.FileVersion"/>.</param>
-    /// <param name="release">False to use Debug build configuration.</param>
+    /// <param name="buildInfo">The build information.</param>
     /// <param name="runTest">Whether tests should be run or not.</param>
-    /// <param name="outputPath">Destination folder where the artifact files must be created.</param>
+    /// <param name="packOutputPath">Destination folder where the artifact files must be created.</param>
     /// <returns>True on success, false otherwise.</returns>
     protected virtual bool DotNetBuildTestPack( IActivityMonitor monitor,
-                                                SVersion version,
-                                                string informationalVersion,
-                                                string fileVersion,
-                                                bool release,
-                                                bool? runTest,
-                                                string outputPath )
+                                                CommitBuildInfo buildInfo,
+                                                bool runTest,
+                                                string packOutputPath )
     {
-        return DotNetBuild( monitor, version, informationalVersion, fileVersion, release )
-               && DotNetTest( monitor, runTest )
-               && DotNetPack( monitor, version, release, outputPath );
+        return DotNetBuild( monitor,
+                            buildInfo.Version,
+                            buildInfo.InformationalVersion,
+                            buildInfo.FileVersion,
+                            buildInfo.ReleaseConfiguration )
+               && (!runTest || DotNetTest( monitor ))
+               && DotNetPack( monitor, buildInfo.Version, buildInfo.ReleaseConfiguration, packOutputPath );
     }
 
     /// <summary>
@@ -246,24 +239,20 @@ public class RepoBuilder : RepoInfo
     }
 
     /// <summary>
-    /// Helper that calls "dotnet test" and handles the <paramref name="runTest"/> to skip the
-    /// tests if they have already run.
+    /// Helper that calls "dotnet test".
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
-    /// <param name="runTest">Whether tests should be run or not.</param>
-    /// <returns>True on success, false otherwise.</returns>
-    protected bool DotNetTest( IActivityMonitor monitor, bool? runTest )
+    /// <returns>True on tests success, false otherwise.</returns>
+    protected bool DotNetTest( IActivityMonitor monitor )
     {
-        string testKey = Repo.GitRepository.Repository.Head.Tip.Tree.Sha;
-        runTest ??= !_shaTestRunCache.Contains( monitor, testKey );
-        if( runTest is true )
+        if( !BuildPlugin.RunDotnet( monitor, Repo, $"test -tl:off --nologo --no-build" ) )
         {
-            if( !BuildPlugin.RunDotnet( monitor, Repo, $"test -tl:off --nologo --no-build" ) )
-            {
-                return false;
-            }
-            _shaTestRunCache.Add( monitor, testKey );
+            return false;
         }
+        Throw.DebugAssert( _repositoryBuilder._shaTestRunCache != null );
+        var testCache = _repositoryBuilder._shaTestRunCache;
+        string testKey = Repo.GitRepository.Repository.Head.Tip.Tree.Sha;
+        testCache.Add( monitor, testKey );
         return true;
     }
 
@@ -272,6 +261,7 @@ public class RepoBuilder : RepoInfo
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The version to pack.</param>
+    /// <param name="release">Whether the build is in debug or in release.</param>
     /// <param name="outputPath">Destination folder where the artifact files must be created.</param>
     /// <returns>True on success, false otherwise.</returns>
     protected bool DotNetPack( IActivityMonitor monitor, SVersion version, bool release, string outputPath )

@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CSemVer;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -391,6 +392,29 @@ sealed class ReleaseDB
         }
         return exists;
     }
+
+    internal void DestroyAllLocalFixRelease( IActivityMonitor monitor )
+    {
+        Throw.DebugAssert( IsLocal );
+        EnsureLoad( monitor );
+        var toRemove = _data.Keys.Where( k => k.Version.IsLocalFix() ).ToList();
+        if( toRemove.Count > 0 )
+        {
+            monitor.Info( $"Removing {toRemove.Count} local fix versions from local release database." );
+            foreach( var fix in toRemove )
+            {
+                if( _data.Remove( fix, out var exists ) && _producedIndex != null )
+                {
+                    foreach( var id in exists.Produced )
+                    {
+                        _producedIndex.Remove( new NuGetPackageInstance( id, fix.Version ) );
+                    }
+                }
+            }
+            OnChanged( monitor );
+        }
+    }
+
 
     internal void Destroy( IActivityMonitor monitor, bool createBackup )
     {

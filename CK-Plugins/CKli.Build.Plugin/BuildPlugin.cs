@@ -11,6 +11,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.Build.Plugin;
@@ -144,26 +145,25 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return true;
     }
 
-    BuildResult? CoreBuild( IActivityMonitor monitor,
-                            CKliEnv context,
-                            VersionTagInfo versionInfo,
-                            Commit buildCommit,
-                            SVersion targetVersion,
-                            bool? runTest,
-                            bool forceRebuild = false )
+    async Task<BuildResult?> CoreBuildAsync( IActivityMonitor monitor,
+                                             CKliEnv context,
+                                             VersionTagInfo versionInfo,
+                                             Commit buildCommit,
+                                             SVersion targetVersion,
+                                             bool? runTest,
+                                             bool forceRebuild = false )
     {
         // Obtain the RepoBuilder for the Repo.
         var repoBuilder = _repoBuilder.Get( monitor, versionInfo.Repo );
+        // Should we run the tests?
+        runTest ??= !repoBuilder.HasTestRun( monitor, buildCommit );
+
         if( !forceRebuild )
         {
             var existingRelease = _releaseDatabase.GetReleaseInfo( monitor, versionInfo.Repo, targetVersion );
             if( existingRelease != null && existingRelease.HasAllLocalArtifacts( monitor, out var assetsFolder ) )
             {
                 // build is not required... But may be running tests is required.
-                if( runTest is null )
-                {
-                    runTest = !repoBuilder.HasTestRun( monitor, buildCommit );
-                }
                 if( !runTest.Value )
                 {
                     monitor.Info( $"Useless build for '{versionInfo.Repo.DisplayPath}/{targetVersion}' skipped." );
@@ -198,7 +198,13 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             monitor.Trace( $"Current working folder content is not the same as the commit '{buildCommit.Sha}' to build. Checking out a detached head." );
             Commands.Checkout( git.Repository, buildCommit );
         }
-        var result = DoCoreBuild( monitor, context, repoBuilder, _releaseDatabase, versionInfo, buildInfo, runTest );
+        var result = await DoCoreBuildAsync( monitor,
+                                             context,
+                                             repoBuilder,
+                                             _releaseDatabase,
+                                             versionInfo,
+                                             buildInfo,
+                                             runTest.Value ).ConfigureAwait( false );
         if( mustCheckOut )
         {
             try
@@ -215,16 +221,15 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         return result;
 
-        static BuildResult? DoCoreBuild( IActivityMonitor monitor,
-                                         CKliEnv context,
-                                         RepoBuilder repoBuilder,
-                                         ReleaseDatabasePlugin releaseDatabase,
-                                         VersionTagInfo versionInfo,
-                                         CommitBuildInfo buildInfo,
-                                         bool? runTest )
+        static async Task<BuildResult?> DoCoreBuildAsync( IActivityMonitor monitor,
+                                                          CKliEnv context,
+                                                          RepoBuilder repoBuilder,
+                                                          ReleaseDatabasePlugin releaseDatabase,
+                                                          VersionTagInfo versionInfo,
+                                                          CommitBuildInfo buildInfo,
+                                                          bool runTest )
         {
-            var buildResult = repoBuilder.Build( monitor, buildInfo, runTest );
-
+            var buildResult = await repoBuilder.BuildAsync( monitor, buildInfo, runTest ).ConfigureAwait( false );
             if( buildResult != null )
             {
                 var content = buildResult.Content;

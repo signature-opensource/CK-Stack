@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.Core;
 using CSemVer;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -144,6 +145,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The source repository.</param>
     /// <param name="version">The release to destroy.</param>
+    /// <param name="buildContentInfo">The build content.</param>
     /// <returns>True on success, false if deleting some artifacts failed.</returns>
     public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version, BuildContentInfo buildContentInfo )
     {
@@ -159,5 +161,51 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         var assetsFolder = GetAssetsFolder( repo, version );
         success &= FileHelper.DeleteFolder( monitor, assetsFolder );
         return success;
+    }
+
+    /// <summary>
+    /// Removes all NuGet packages and artifacts that are from a <see cref="SVersionExtensions.IsLocalFix(SVersion)"/>.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    public void DestroyAllLocalFixRelease( IActivityMonitor monitor )
+    {
+        foreach( var packagePath in Directory.EnumerateFiles( _localNuGetPath ) )
+        {
+            var name = Path.GetFileName( packagePath.AsSpan() );
+            if( NuGetPackageInstance.TryParseNupkgFileName( name, out var version, out int packageLength ) )
+            {
+                if( version.IsLocalFix() )
+                {
+                    FileHelper.DeleteFile( monitor, packagePath );
+                    string packageId = new( name.Slice( 0, packageLength ) );
+                    NuGetHelper.ClearGlobalCache( monitor, packageId, version.ToString() );
+                    monitor.Trace( $"Deleted local fix package '{name}'." );
+                }
+            }
+            else
+            {
+                monitor.Warn( ActivityMonitor.Tags.ToBeInvestigated, $"Found file name '{name}' in '{_localNuGetPath}' that is not a valid NuGet package name." );
+            }
+        }
+        foreach( var repo in Directory.EnumerateDirectories( _localAssetsPath ) )
+        {
+            foreach( var version in Directory.EnumerateDirectories( repo ) )
+            {
+                var name = Path.GetFileName( version ).AsSpan();
+                if( SVersion.TryParse( Path.GetFileName( version ), out var v ) )
+                {
+                    if( v.IsLocalFix() )
+                    {
+                        FileHelper.DeleteFolder( monitor, version );
+                        monitor.Trace( $"Deleted local fix assets '{Path.GetFileName( repo.AsSpan() )}/{name}'." );
+                    }
+                }
+                else
+                {
+                    monitor.Warn( ActivityMonitor.Tags.ToBeInvestigated, $"Found directory name '{name}' in '{repo}' that is not a valid version." );
+                }
+            }
+
+        }
     }
 }

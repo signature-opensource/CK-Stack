@@ -31,7 +31,6 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         _branchModel = branchModel;
         branchModel.OnFixStart.Sync += OnFixStart;
         _build = build;
-
     }
 
     void OnFixStart( IActivityMonitor monitor, FixWorkflowStartEventArgs e )
@@ -40,25 +39,28 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         if( e.RestartingWorkflow )
         {
             return;
-        }
-
+        } 
+        using var _ = monitor.OpenInfo( "Applying Net8 migrations." );
         foreach( var target in e.Targets )
         {
-            var repo = target.Repo;
-            var b = repo.GitRepository.Repository.Branches[target.BranchName];
-            Throw.CheckState( "The branch necessarily exists.", b != null );
-            // If the branch has a CodeCakeBuilder or RepositoryInfo.xml entry, it needs
-            // to be updated: this quick check avoids useless work.
-            if( b.Tip["CodeCakeBuilder"] != null || b.Tip["RepositoryInfo.xml"] != null )
+            using( monitor.OpenInfo( $"On '{target}'." ) )
             {
-                if( repo.GitRepository.Checkout( monitor, b )
-                    && RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( monitor, repo ) )
+                var repo = target.Repo;
+                var b = repo.GitRepository.Repository.Branches[target.BranchName];
+                Throw.CheckState( "The branch necessarily exists.", b != null );
+                // If the branch has a CodeCakeBuilder or RepositoryInfo.xml entry, it needs
+                // to be updated: this quick check avoids useless work.
+                if( b.Tip["CodeCakeBuilder"] != null || b.Tip["RepositoryInfo.xml"] != null )
                 {
-                    repo.GitRepository.Commit( monitor, "Net8 migration applied." );
-                }
-                else
-                {
-                    monitor.Error( $"Error while normalizing files and folders for '{repo.DisplayPath}/{target.BranchName}'." );
+                    if( repo.GitRepository.Checkout( monitor, b )
+                        && RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( monitor, repo ) )
+                    {
+                        repo.GitRepository.Commit( monitor, "Net8 migration applied." );
+                    }
+                    else
+                    {
+                        monitor.Error( $"Error while normalizing files and folders for '{repo.DisplayPath}/{target.BranchName}'." );
+                    }
                 }
             }
         }

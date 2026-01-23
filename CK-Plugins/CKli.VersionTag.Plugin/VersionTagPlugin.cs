@@ -95,7 +95,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         if( info == null ) return false;
         using( monitor.OpenInfo( $"Deleting local release '{repo.DisplayPath}/{version}'." ) )
         {
-            // Take no risk: delete every possible traces.
+            // Take no risk: delete every possible traces (but avoids calling twice the same destroy).
             var tag = info.RemoveTag( version )?.BuildContentInfo;
             var db = _releaseDatabase.DestroyLocalRelease( monitor, repo, version );
             if( tag != null && db != null && db != tag )

@@ -36,7 +36,6 @@ public class InitializationTests
 
     /// <summary>
     /// <see cref="CKli.Net8Migration.Plugin.Net8MigrationPlugin.Migrate"/>
-    /// <see cref="CKli.Build.Plugin.BuildPlugin.FixVersionTagIssues"/>
     /// <see cref="CKli.VersionTag.Plugin.VersionTagPlugin.RebuildReleaseDatabases"/>
     /// </summary>
     /// <returns></returns>
@@ -73,7 +72,7 @@ public class InitializationTests
     /// <summary>
     /// <see cref="CKli.BranchModel.Plugin.BranchModelPlugin.FixStart"/>
     /// <see cref="CKli.BranchModel.Plugin.BranchModelPlugin.FixInfo"/>
-    /// <see cref="CKli.Build.Plugin.BuildPlugin.FixBuild"/>
+    /// <see cref="CKli.Build.Plugin.BuildPlugin.FixBuildAsync"/>
     /// </summary>
     /// <returns></returns>
     [Test]

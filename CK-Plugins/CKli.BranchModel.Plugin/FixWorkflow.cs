@@ -11,8 +11,9 @@ namespace CKli.BranchModel.Plugin;
 
 /// <summary>
 /// A FixWorkflow is initiated by "ckli fix start" command.
-/// It contains the ordered list of <see cref="Repo"/> and versions to build and the
-/// state of the last build.
+/// It contains the ordered list of <see cref="Repo"/> and target versions to build and is immutable
+/// because  it is up to "ckli fix publish" and "ckli fix build" to manage and control the state: the
+/// actual state of this workflow depends on the repositories and local states.
 /// <para>
 /// This workflow works on a stable dependency graph: at the end of each build, the builder checks
 /// that:
@@ -79,6 +80,8 @@ public sealed class FixWorkflow
         /// </summary>
         public int Rank => _rank;
 
+        public override string ToString() => $"{_repo.DisplayPath} ({_branchName})";
+
         internal TargetRepo( Repo repo, string branchName, string toFixCommitSha, SVersion targetVersion, int rank )
         {
             _repo = repo;
@@ -109,7 +112,7 @@ public sealed class FixWorkflow
             var repo = world.FindByCKliRepoId( monitor, id );
             if( repo == null )
             {
-                monitor.Error( $"Unable to find RepoId = {id} in current world. Current Fix Workflow is invalid and will be cancelled." );
+                monitor.Error( $"Unable to find RepoId = {id} in current world. Current Fix Workflow is invalid and will be deleted." );
                 return null;
             }
             var t = new TargetRepo( repo, branchName, toFixCommitSha, SVersion.Parse( targetVersion ), rank );
@@ -180,28 +183,30 @@ public sealed class FixWorkflow
     {
         NormalizedPath path = GetFilePath( world );
         workflow = null;
-        if( File.Exists( path ) )
+        if( !File.Exists( path ) )
         {
-            try
-            {
-                using( var s = new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.None ) )
-                using( var r = new CKBinaryReader( s ) )
-                {
-                    workflow = DoRead( monitor, r, world );
-                }
-                if( workflow == null )
-                {
-                    CancelCurrent( monitor, world, path );
-                    return false;
-                }
-            }
-            catch( Exception ex )
-            {
-                monitor.Error( $"While loading '{path}'.", ex );
-                return false;
-            }
+            return true;
         }
-        return true;
+        try
+        {
+            using( var s = new FileStream( path, FileMode.Open, FileAccess.Read, FileShare.None ) )
+            using( var r = new CKBinaryReader( s ) )
+            {
+                workflow = DoRead( monitor, r, world );
+            }
+            if( workflow != null )
+            {
+                return true;
+            }
+            DeleteCurrent( monitor, world, path );
+        }
+        catch( Exception ex )
+        {
+            monitor.Error( ActivityMonitor.Tags.ToBeInvestigated, $"While loading '{path}'.", ex );
+        }
+        monitor.Error( ScreenType.CKliScreenTag,
+                       "An error occurred while loading current workflow. See logs." );
+        return false;
     }
 
     /// <summary>
@@ -234,13 +239,13 @@ public sealed class FixWorkflow
     }
 
     /// <summary>
-    /// Cancels the current fix workflow for the world if it exists.
+    /// Deletes the current fix workflow for the world if it exists.
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="world">The world.</param>
-    public static void CancelCurrent( IActivityMonitor monitor, World world )
+    internal static void DeleteCurrent( IActivityMonitor monitor, World world )
     {
-        CancelCurrent( monitor, world, GetFilePath( world ) );
+        DeleteCurrent( monitor, world, GetFilePath( world ) );
     }
 
     /// <summary>
@@ -268,11 +273,11 @@ public sealed class FixWorkflow
         return new FixWorkflow( world, targets.MoveToImmutable() );
     }
 
-    static void CancelCurrent( IActivityMonitor monitor, World world, NormalizedPath fileWorkflowPath )
+    static void DeleteCurrent( IActivityMonitor monitor, World world, NormalizedPath fileWorkflowPath )
     {
         if( File.Exists( fileWorkflowPath ) )
         {
-            monitor.Info( ScreenType.CKliScreenTag, $"Cancelling current Fix Workflow for world '{world.Name}'." );
+            monitor.Info( ScreenType.CKliScreenTag, $"Deleting current Fix Workflow for world '{world.Name}'." );
             FileHelper.DeleteFile( monitor, fileWorkflowPath );
         }
     }
