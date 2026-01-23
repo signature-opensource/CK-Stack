@@ -168,12 +168,12 @@ public class InitializationTests
         // There is no change in the code base: there's nothing to fix.
         using( TestHelper.Monitor.CollectTexts( out var logs ) )
         {
-            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeFalse();
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
             logs.ShouldContain( "Useless build for 'CKt-Core/1.0.1-local.fix.2' skipped." );
             logs.ShouldContain( "Useless build for 'CKt-ActivityMonitor/0.1.1-local.fix.3' skipped." );
             logs.ShouldContain( "Useless build for 'CKt-PerfectEvent/0.2.2-local.fix.4' skipped." );
-            logs.ShouldContain( "Useless build for 'CKt.PerfectEvent/0.3.3-local.fix.4' skipped." );
-            logs.ShouldContain( "Useless build for 'CKt.Monitoring/0.2.4-local.fix.3' skipped." );
+            logs.ShouldContain( "Useless build for 'CKt-PerfectEvent/0.3.3-local.fix.4' skipped." );
+            logs.ShouldContain( "Useless build for 'CKt-Monitoring/0.2.4-local.fix.3' skipped." );
         }
 
         // ckli fix cancel

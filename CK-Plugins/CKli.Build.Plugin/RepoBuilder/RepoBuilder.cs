@@ -14,8 +14,10 @@ namespace CKli.Build.Plugin;
 
 /// <summary>
 /// Concrete base class that can be specialized.
+/// <para>
 /// The <see cref="RepositoryBuilderPlugin.Create(IActivityMonitor, Repo)"/> acts as an abstract factory:
-/// the actual RepoBuilder can differ for each Repo.
+/// the actual RepoBuilder may differ for each Repo one day.
+/// </para>
 /// </summary>
 public class RepoBuilder : RepoInfo
 {

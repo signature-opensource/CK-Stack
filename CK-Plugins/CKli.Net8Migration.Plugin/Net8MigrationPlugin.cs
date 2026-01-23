@@ -210,6 +210,16 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                                                  || e.Attribute( "Path" )?.Value == "Common/SharedKey.snk" ).Remove();
         XmlHelper.SaveWithoutXmlDeclaration( d, slnxPath );
 
+        var nugetConfigPath = repo.WorkingFolder.AppendPart( "nuget.config" );
+        if( File.Exists( nugetConfigPath ) )
+        {
+            var nuget = XDocument.Load( nugetConfigPath );
+            // This doesn't remove the "local-feed" (that shouldn't exist) but initializes
+            // the <packageSourceMapping> from the existing <packageSources>.
+            NuGetHelper.SetOrRemoveNuGetSource( monitor, nuget, "local-feed", null );
+            XmlHelper.SaveWithoutXmlDeclaration( nuget, nugetConfigPath );
+        }
+
         // Loads and saves the .csproj, .props and .targets to "normalize" them (no Xml declaration, no BOM)
         // once for all.
         foreach( var f in Directory.EnumerateFiles( repo.WorkingFolder, "*", SearchOption.AllDirectories ) )
@@ -219,7 +229,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             {
                 try
                 {
-                    XmlHelper.SaveWithoutXmlDeclaration( XDocument.Load( f ), f );
+                    XmlHelper.SaveWithoutXmlDeclaration( XDocument.Load( f, LoadOptions.PreserveWhitespace ), f );
                 }
                 catch { }
             }

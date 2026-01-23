@@ -108,8 +108,6 @@ public sealed partial class BuildPlugin
         }
         return true;
 
-
-
         static bool CommitUpdatedPackages( IActivityMonitor monitor,
                                            PackageMapper? reusableUpdated,
                                            FixWorkflow.TargetRepo target,
