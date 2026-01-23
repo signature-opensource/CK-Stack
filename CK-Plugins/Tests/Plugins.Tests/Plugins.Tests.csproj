@@ -17,7 +17,7 @@
 
 
   <ItemGroup>
-    <PackageReference Include="CKli.Testing" Version="0.0.8--0159-dev" />
+    <PackageReference Include="CKli.Testing" Version="0.0.8--0166-dev" />
     <ProjectReference Include="..\..\CKli.Plugins\CKli.Plugins.csproj" />
   </ItemGroup>
   <ItemGroup>

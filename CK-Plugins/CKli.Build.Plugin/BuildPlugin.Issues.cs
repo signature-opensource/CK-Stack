@@ -103,7 +103,7 @@ public sealed partial class BuildPlugin
             using var gLog = monitor.OpenInfo( $"Fixing {_tagsToRebuild.Length} tags content info in '{Repo.DisplayPath}'." );
             foreach( var tc in _tagsToRebuild )
             {
-                if( _buildPlugin.CoreBuild( monitor, context, _versionTagInfo, tc.Commit, tc.Version, runTest: false, allowRebuild: true ) == null )
+                if( _buildPlugin.CoreBuild( monitor, context, _versionTagInfo, tc.Commit, tc.Version, runTest: false, forceRebuild: true ) == null )
                 {
                     return false;
                 }

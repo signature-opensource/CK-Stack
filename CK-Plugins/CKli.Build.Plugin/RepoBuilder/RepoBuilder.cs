@@ -3,6 +3,7 @@ using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
 using CSemVer;
+using LibGit2Sharp;
 using System;
 using System.Collections.Immutable;
 using System.IO;
@@ -29,6 +30,18 @@ public class RepoBuilder : RepoInfo
     }
 
     /// <summary>
+    /// Checks whether tests has already successfully run on the commit.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="commit">The commit.</param>
+    /// <returns>True if the tests have already successfully run, false otherwise.</returns>
+    public bool HasTestRun( IActivityMonitor monitor, Commit commit )
+    {
+        string testKey = commit.Tree.Sha;
+        return _shaTestRunCache.Contains( monitor, testKey );
+    }
+
+    /// <summary>
     /// Build, test, package and generate the optional Deployment assets of the repository.
     /// On success, the <see cref="BuildResult"/> contains the consumed and produced NuGet packages
     /// and the files to deploy.
@@ -45,7 +58,6 @@ public class RepoBuilder : RepoInfo
                           !Repo.GitRepository.GetSimpleStatusInfo().IsDirty );
         Throw.CheckArgument( buildInfo.Repo == Repo );
 
-        monitor.Trace( "Add the '$Local/Feed/NuGet' local feed to the 'nuget.config' file." );
         // Calling "dotnet build --source <localFeed>" fails with:
         //      error NU1100: Unable to resolve 'CKt.Core (>= 1.0.0)' for 'net8.0'.
         //      PackageSourceMapping is enabled, the following source( s ) were not considered: <localFeed>
@@ -55,6 +67,7 @@ public class RepoBuilder : RepoInfo
         // Before building, we modify the nuget.config (this helper ensures that <packageSourceMapping> exists
         // with all the existing sources plus the one we add).
         //
+        monitor.Trace( "Add the local feed to the 'nuget.config' file." );
         var localFeed = _repoArtifact.LocalFeedNuGetPath;
         var nugetConfigPath = Repo.WorkingFolder.AppendPart( "nuget.config" );
         var nugetConfig = XDocument.Load( nugetConfigPath );

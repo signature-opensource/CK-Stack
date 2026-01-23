@@ -8,7 +8,7 @@ namespace CKli.ReleaseDatabase.Plugin;
 
 public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
 {
-    readonly ArtifactHandlerPlugin _artifactHandler;
+    internal readonly ArtifactHandlerPlugin _artifactHandler;
     readonly ReleaseDB _local;
     readonly ReleaseDB _published;
     readonly Dictionary<RepoKey, RepoReleaseInfo> _releaseInfo;
@@ -37,11 +37,6 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         if( content == null )
         {
             monitor.Error( $"No release exist for '{repo.DisplayPath}/{key.Version}'." );
-            return null;
-        }
-        // To compute RepoReleaseInfo we need to resolve the Repo.CKliRepoId. All the Repo must be loaded.
-        if( World.GetAllDefinedRepo( monitor ) == null )
-        {
             return null;
         }
         return GetReleasedInfo( monitor, repo, key, content, isLocal );

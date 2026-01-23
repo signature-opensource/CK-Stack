@@ -19,9 +19,9 @@ public sealed class RepoArtifactInfo : RepoInfo
     }
 
     /// <summary>
-    /// Gets the <see cref="ArtifactHandlerPlugin.LocalFeedNuGetPath"/>.
+    /// Gets the <see cref="ArtifactHandlerPlugin.LocalNuGetPath"/>.
     /// </summary>
-    public NormalizedPath LocalFeedNuGetPath => _artifactHandler.LocalFeedNuGetPath;
+    public NormalizedPath LocalFeedNuGetPath => _artifactHandler.LocalNuGetPath;
 
     /// <summary>
     /// Moves the ".nupkg" in <paramref name="buildOutputPath"/> folder to the NuGet local feed.
@@ -47,7 +47,7 @@ public sealed class RepoArtifactInfo : RepoInfo
                 var ext = Path.GetExtension( fileName );
                 if( ext.Equals( ".nupkg", StringComparison.Ordinal ) )
                 {
-                    var p = MoveNuGetPackage( monitor, _artifactHandler.LocalFeedNuGetPath, a, versionString, fileName, ext );
+                    var p = MoveNuGetPackage( monitor, _artifactHandler.LocalNuGetPath, a, versionString, fileName, ext );
                     if( p == null )
                     {
                         packageIdentifiers = default;
@@ -114,12 +114,12 @@ public sealed class RepoArtifactInfo : RepoInfo
 
     /// <summary>
     /// Handles the files in the Repo "<see cref="ArtifactHandlerPlugin.DeployFolderName"/>/<see cref="ArtifactHandlerPlugin.DeployAssetsName"/>/"
-    /// folder by copying them to "<see cref="ArtifactHandlerPlugin.LocalFeedAssetsPath"/>/<see cref="ArtifactHandlerPlugin.DeployAssetsName"/>/<paramref name="version"/>"
+    /// folder by copying them to "<see cref="ArtifactHandlerPlugin.LocalAssetsPath"/>/<see cref="ArtifactHandlerPlugin.DeployAssetsName"/>/<paramref name="version"/>"
     /// folder and zipping any directories.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="version">The built version.</param>
-    /// <param name="assetsFolder">The resulting folder in <see cref="ArtifactHandlerPlugin.LocalFeedAssetsPath"/> that contains the files.</param>
+    /// <param name="assetsFolder">The resulting folder in <see cref="ArtifactHandlerPlugin.LocalAssetsPath"/> that contains the files.</param>
     /// <param name="fileNames">The sorted file names in the <paramref name="assetsFolder"/>. Can be empty if no files nor directories have been generated.</param>
     /// <returns>True on success, false on error.</returns>
     public bool PublishGeneratedAssets( IActivityMonitor monitor,

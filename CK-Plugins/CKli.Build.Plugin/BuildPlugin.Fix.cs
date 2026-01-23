@@ -49,6 +49,7 @@ public sealed partial class BuildPlugin
         }
         var results = new (BuildResult Result, bool NewCommit)[workflow.Targets.Length];
         var packageMapper = new PackageMapper();
+        var packageMapping = new FixPackageMapping( packageMapper );
         var reusableUpdated = new PackageMapper();
         foreach( var target in workflow.Targets )
         {
@@ -57,7 +58,7 @@ public sealed partial class BuildPlugin
                 var versionInfo = _versionTags.Get( monitor, target.Repo );
 
                 if( !CheckoutFixTargetBranch( monitor, target, versionInfo, out var toFix, out int commitDepth )
-                    || !UpdatePackages( monitor, target.Repo, packageMapper, ref reusableUpdated )
+                    || !UpdatePackages( monitor, target.Repo, packageMapping, ref reusableUpdated )
                     || !Commit( monitor, reusableUpdated, target, out bool hasNewCommit ) )
                 {
                     return false;
@@ -73,20 +74,13 @@ public sealed partial class BuildPlugin
                 {
                     targetVersion = SVersion.Create( targetVersion.Major, targetVersion.Minor, targetVersion.Patch, $"local.fix.{commitDepth}" );
                 }
-                //var alreadyBuilt = _releaseDatabase.GetReleaseInfo( monitor, target.Repo, targetVersion );
-                //if( alreadyBuilt != null )
-                //{
-                //    bool isBuildUseless = _artifactHandler.HasAllArtifacts( monitor, target.Repo, targetVersion, alreadyBuilt.Content );
-
-                //}
 
                 var result = CoreBuild( monitor,
                                         context,
                                         versionInfo,
                                         target.Repo.GitRepository.Repository.Head.Tip,
                                         targetVersion,
-                                        runTest,
-                                        allowRebuild: true );
+                                        runTest );
                 if( result == null )
                 {
                     return false;
@@ -121,7 +115,7 @@ public sealed partial class BuildPlugin
         {
             Throw.DebugAssert( reusableUpdated != null );
             hasNewCommit = false;
-            if( reusableUpdated.Count > 0 )
+            if( !reusableUpdated.IsEmpty )
             {
                 var b = new StringBuilder( "Updates: " );
                 reusableUpdated.Write( b.AppendLine() );
@@ -242,9 +236,9 @@ public sealed partial class BuildPlugin
                 foreach( var e in doc.Root.Descendants( "PackageVersion" ) )
                 {
                     var name = GetIncludedName( monitor, path, e );
-                    if( name != null && mapping.TryGetMapping( name, out var map ) ) 
+                    if( name != null && mapping.HasMapping( name ) ) 
                     {
-                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version", map, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version", mapping, ref updated ) )
                         {
                             return false;
                         }
@@ -256,13 +250,13 @@ public sealed partial class BuildPlugin
                 foreach( var e in doc.Root.Descendants( "PackageReference" ) )
                 {
                     var name = GetIncludedName( monitor, path, e );
-                    if( name != null && mapping.TryGetMapping( name, out var map ) )
+                    if( name != null && mapping.HasMapping( name ) )
                     {
-                        if( !UpdateVersion( monitor, path, e, name, "VersionOverride", null, map, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "VersionOverride", null, mapping, ref updated ) )
                         {
                             return false;
                         }
-                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version or VersionOverride", map, ref updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version or VersionOverride", mapping, ref updated ) )
                         {
                             return false;
                         }
@@ -292,7 +286,7 @@ public sealed partial class BuildPlugin
                                        string packageId,
                                        XName attributeName,
                                        string? attributeRequiredMessage,
-                                       IPackageVersionMapping map,
+                                       IPackageMapping map,
                                        ref PackageMapper? updated )
             {
                 var a = e.Attribute( attributeName );
@@ -320,7 +314,7 @@ public sealed partial class BuildPlugin
                         """ );
                     return false;
                 }
-                if( map.TryGet( from, out var to ) )
+                if( map.TryGetMappedVersion( packageId, from, out var to ) )
                 {
                     a.SetValue( to.ToString() );
                     updated ??= new PackageMapper();

@@ -35,6 +35,18 @@ public sealed partial class BuildResult
         _version = version;
     }
 
+    internal BuildResult( Repo repo,
+                          SVersion version,
+                          BuildContentInfo content,
+                          NormalizedPath assetsFolder )
+    {
+        _repo = repo;
+        _version = version;
+        _buildContentInfo = content;
+        _assetsFolder = assetsFolder;
+    }
+
+
     /// <summary>
     /// Gets the repository.
     /// </summary>
@@ -51,8 +63,8 @@ public sealed partial class BuildResult
     public BuildContentInfo Content => _buildContentInfo;
 
     /// <summary>
-    /// Gets the assets folder in "$Local/Assets". <see cref="NormalizedPath.IsEmptyPath"/>
-    /// if there is no assets.
+    /// Gets the assets folder in ""$Local/&lt;world name&gt;/Assets/&lt;repo name&gt;/&lt;version&gt;".
+    /// <see cref="NormalizedPath.IsEmptyPath"/> if there is no assets.
     /// </summary>
     public NormalizedPath AssetsFolder => _assetsFolder;
 

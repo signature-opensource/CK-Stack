@@ -8,6 +8,7 @@ using CKli.VSSolution.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using LogLevel = CK.Core.LogLevel;
@@ -149,9 +150,29 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                             Commit buildCommit,
                             SVersion targetVersion,
                             bool? runTest,
-                            bool allowRebuild )
+                            bool forceRebuild = false )
     {
-        var buildInfo = versionInfo.TryGetCommitBuildInfo( monitor, buildCommit, targetVersion, allowRebuild );
+        // Obtain the RepoBuilder for the Repo.
+        var repoBuilder = _repoBuilder.Get( monitor, versionInfo.Repo );
+        if( !forceRebuild )
+        {
+            var existingRelease = _releaseDatabase.GetReleaseInfo( monitor, versionInfo.Repo, targetVersion );
+            if( existingRelease != null && existingRelease.HasAllLocalArtifacts( monitor, out var assetsFolder ) )
+            {
+                // build is not required... But may be running tests is required.
+                if( runTest is null )
+                {
+                    runTest = !repoBuilder.HasTestRun( monitor, buildCommit );
+                }
+                if( !runTest.Value )
+                {
+                    monitor.Info( $"Useless build for '{versionInfo.Repo.DisplayPath}/{targetVersion}' skipped." );
+                    return new BuildResult( versionInfo.Repo, targetVersion, existingRelease.Content, assetsFolder );
+                }
+            }
+        }
+
+        var buildInfo = versionInfo.TryGetCommitBuildInfo( monitor, buildCommit, targetVersion, allowRebuild: forceRebuild );
         if( buildInfo == null )
         {
             return null;
@@ -168,6 +189,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return null;
         }
+
+        
         Branch currentHead = git.Repository.Head;
         bool mustCheckOut = currentHead.Tip.Tree.Sha != buildCommit.Tree.Sha;
         if( mustCheckOut )
@@ -175,7 +198,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             monitor.Trace( $"Current working folder content is not the same as the commit '{buildCommit.Sha}' to build. Checking out a detached head." );
             Commands.Checkout( git.Repository, buildCommit );
         }
-        var result = DoCoreBuild( monitor, context, _repoBuilder, _releaseDatabase, versionInfo, buildInfo, runTest );
+        var result = DoCoreBuild( monitor, context, repoBuilder, _releaseDatabase, versionInfo, buildInfo, runTest );
         if( mustCheckOut )
         {
             try
@@ -194,25 +217,30 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
 
         static BuildResult? DoCoreBuild( IActivityMonitor monitor,
                                          CKliEnv context,
-                                         RepositoryBuilderPlugin repoBuilder,
+                                         RepoBuilder repoBuilder,
                                          ReleaseDatabasePlugin releaseDatabase,
                                          VersionTagInfo versionInfo,
                                          CommitBuildInfo buildInfo,
                                          bool? runTest )
         {
-            var buildResult = repoBuilder.Get( monitor, versionInfo.Repo ).Build( monitor, buildInfo, runTest );
+            var buildResult = repoBuilder.Build( monitor, buildInfo, runTest );
 
-            // Local fix builds are not tracked: they don't appear in the release database and have no release tag.
-            if( buildResult != null && !buildResult.Version.IsLocalFix() )
+            if( buildResult != null )
             {
                 var content = buildResult.Content;
                 if( !releaseDatabase.OnLocalBuild( monitor, buildResult.Repo, buildResult.Version, buildInfo.Rebuilding, content ) )
                 {
                     return null;
                 }
-                if( !buildInfo.ApplyReleaseBuildTag( monitor, context, content.ToString() ) )
+                // Local fix builds have no release tag. If the release local database is reset, we lose them
+                // but this is not issue, this is used as an optimization that avoids rebuilding origins when
+                // an impacted repo needs to be rebuilt.
+                if( !buildResult.Version.IsLocalFix() )
                 {
-                    return null;
+                    if( !buildInfo.ApplyReleaseBuildTag( monitor, context, content.ToString() ) )
+                    {
+                        return null;
+                    }
                 }
             }
             return buildResult;

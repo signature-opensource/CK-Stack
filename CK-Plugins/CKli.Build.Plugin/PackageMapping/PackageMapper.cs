@@ -1,79 +1,51 @@
 using CK.Core;
 using CSemVer;
 using Microsoft.VisualBasic;
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 
 namespace CKli.Build.Plugin;
 
+[DebuggerDisplay( "{ToString(),nq}" )]
 sealed class PackageMapper : IPackageMapping
 {
-    Dictionary<string, VersionMap> _mapping;
-    int _count;
-
-    sealed class VersionMap : IPackageVersionMapping
-    {
-        readonly List<(SVersion From, SVersion To)> _map;
-
-        public VersionMap( SVersion from, SVersion to )
-        {
-            _map = new List<(SVersion From, SVersion To)> { (from, to) };
-        }
-
-        public bool TryAdd( SVersion from, SVersion to )
-        {
-            var already = _map.FirstOrDefault( m => m.From == from );
-            if( already.To != null )
-            {
-                return false;
-            }
-            _map.Add( (from, to) );
-            return true;
-        }
-
-        public SVersion? Get( SVersion from ) => _map.FirstOrDefault( m => m.From == from ).To;
-
-        public StringBuilder Write( StringBuilder b )
-        {
-            bool atLeastOne = false;
-            foreach( var m in _map )
-            {
-                if( atLeastOne ) b.Append( ", " );
-                atLeastOne = true;
-                b.Append( m.From ).Append( " -> " ).Append( m.To ).AppendLine();
-            }
-            return b;
-        }
-
-        public override string ToString() => Write( new StringBuilder() ).ToString();
-
-    }
+    readonly Dictionary<string, object> _mapping;
 
     public PackageMapper()
     {
-        _mapping = new Dictionary<string, VersionMap>();
+        _mapping = new Dictionary<string, object>();
     }
 
-    public bool IsEmpty => _count != 0;
+    public bool IsEmpty => _mapping.Count == 0;
 
-    public int Count => _count;
+    public bool HasMapping( string packageId ) => _mapping.ContainsKey( packageId );
 
     public bool TryAdd( string packageId, SVersion from, SVersion to )
     {
-        if( _mapping.TryGetValue( packageId, out var map ) )
+        if( _mapping.TryGetValue( packageId, out var o ) )
         {
-            if( !map.TryAdd( from, to ) )
+            if( o is Tuple<SVersion, SVersion> one )
             {
-                return false;
+                _mapping[packageId] = new List<(SVersion, SVersion)> { (one.Item1, one.Item2), (from, to) };
+            }
+            else
+            {
+                var list = (List<(SVersion From, SVersion To)>)o;
+                if( list.Any( m => m.From == from ) )
+                {
+                    return false;
+                }
+                list.Add( (from, to) );
             }
         }
         else
         {
-            _mapping.Add( packageId, new VersionMap( from, to ) );
+            _mapping.Add( packageId, Tuple.Create( from, to ) );
         }
-        _count++;
         return true;
     }
 
@@ -85,40 +57,48 @@ sealed class PackageMapper : IPackageMapping
         }
     }
 
-    public bool TryGetMapping( string packageId, [NotNullWhen( true )] out IPackageVersionMapping? map )
-    {
-        if( _mapping.TryGetValue( packageId, out var cmap ) )
-        {
-            map = cmap;
-            return true;
-        }
-        map = null;
-        return false;
-    }
-
     public SVersion? GetMappedVersion( string packageId, SVersion from )
     {
-        return _mapping.TryGetValue( packageId, out var map )
-                ? map.Get( from )
-                : null;
+        if( _mapping.TryGetValue( packageId, out var o ) )
+        {
+            if( o is Tuple<SVersion, SVersion> one )
+            {
+                if( one.Item1 == from ) return one.Item2;
+            }
+            else
+            {
+                var list = (List<(SVersion From, SVersion To)>)o;
+                return list.FirstOrDefault( m => m.From == from ).To;
+            }
+        }
+        return null;
     }
 
     public void Clear()
     {
         _mapping.Clear();
-        _count = 0;
     }
 
     public StringBuilder Write( StringBuilder b )
     {
-        foreach( var (name, map) in _mapping )
+        foreach( var (name, o) in _mapping )
         {
             b.Append( name ).Append( ": " ).AppendLine();
-            map.Write( b ).AppendLine();
+            if( o is Tuple<SVersion, SVersion> one )
+            {
+                b.Append( one.Item1 ).Append( " -> " ).Append( one.Item2 ).AppendLine();
+            }
+            else
+            {
+                var list = (List<(SVersion From, SVersion To)>)o;
+                foreach( var m in list )
+                {
+                    b.Append( m.From ).Append( " -> " ).Append( m.To ).AppendLine();
+                }
+            }
         }
         return b;
     }
 
     public override string ToString() => Write( new StringBuilder() ).ToString();
-
 }

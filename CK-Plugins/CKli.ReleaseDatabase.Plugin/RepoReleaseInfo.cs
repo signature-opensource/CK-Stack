@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CSemVer;
+using Microsoft.VisualBasic;
 using System.Collections.Generic;
 
 namespace CKli.ReleaseDatabase.Plugin;
@@ -66,6 +67,21 @@ public sealed class RepoReleaseInfo
     /// Gets whether this is a local, not yet published release.
     /// </summary>
     public bool IsLocal => _isLocal;
+
+    /// <summary>
+    /// Gets whether all <see cref="BuildContentInfo.Produced"/> NuGet packages are in "$Local/&lt;world name&gt;/NuGet"
+    /// and all <see cref="BuildContentInfo.AssetFileNames"/> are in their folder.
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="assetsFolder">
+    /// Outputs the "$Local/&lt;world name&gt;/Assets/&lt;repo name&gt;/&lt;version&gt;" where artifacts are.
+    /// This is <see cref="NormalizedPath.IsEmptyPath"/> if <see cref="BuildContentInfo.AssetFileNames"/> is empty.
+    /// </param>
+    /// <returns>True if all the assets are locally available.</returns>
+    public bool HasAllLocalArtifacts( IActivityMonitor monitor, out NormalizedPath assetsFolder )
+    {
+        return _releaseDatabase._artifactHandler.HasAllArtifacts( monitor, Repo, Version, Content, out assetsFolder );
+    }
 
     /// <summary>
     /// Gets the direct consumers of this release.

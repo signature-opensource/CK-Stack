@@ -1,9 +1,11 @@
+using CSemVer;
 using System.Diagnostics.CodeAnalysis;
 
 namespace CKli.Build.Plugin;
 
 /// <summary>
-/// Primary package mapping interface.
+/// Primary package mapping interface. This is a read only view of <see cref="PackageMapper"/>
+/// or a wrapper that can adapt version mapping.
 /// </summary>
 interface IPackageMapping
 {
@@ -13,10 +15,17 @@ interface IPackageMapping
     bool IsEmpty { get; }
 
     /// <summary>
-    /// Gets the mapping for the package.
+    /// Gets whether a package has at least one mapping.
     /// </summary>
     /// <param name="packageId">The package identifier.</param>
-    /// <param name="map">The version map.</param>
-    /// <returns>Whether the mapping exists.</returns>
-    bool TryGetMapping( string packageId, [NotNullWhen( true )] out IPackageVersionMapping? map );
+    /// <returns>True if the package has version mapping, false otherwise.</returns>
+    bool HasMapping( string packageId );
+
+    /// <summary>
+    /// Gets the mapped version.
+    /// </summary>
+    /// <param name="packageId">The package identifier.</param>
+    /// <param name="from">The origin version.</param>
+    /// <returns>Null when not mapped.</returns>
+    SVersion? GetMappedVersion( string packageId, SVersion from );
 }

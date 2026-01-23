@@ -4,6 +4,7 @@ using CSemVer;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
 
 namespace CKli.ArtifactHandler.Plugin;
 
@@ -13,34 +14,34 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     public const string DeployAssetsName = "Assets";
 
 
-    readonly NormalizedPath _localFeedPath;
-    readonly NormalizedPath _localFeedNuGetPath;
-    readonly NormalizedPath _localFeedAssetsPath;
+    readonly NormalizedPath _localPath;
+    readonly NormalizedPath _localNuGetPath;
+    readonly NormalizedPath _localAssetsPath;
 
     public ArtifactHandlerPlugin( PrimaryPluginContext context )
         : base( context )
     {
-        _localFeedPath = World.StackRepository.StackWorkingFolder.Combine( "$Local/Feed" );
-        _localFeedNuGetPath = _localFeedPath.AppendPart( "NuGet" );
-        _localFeedAssetsPath = _localFeedPath.AppendPart( DeployAssetsName );
-        Directory.CreateDirectory( _localFeedNuGetPath );
-        Directory.CreateDirectory( _localFeedAssetsPath );
+        _localPath = World.StackRepository.StackWorkingFolder.AppendPart( "$Local" ).AppendPart( World.Name.FullName );
+        _localNuGetPath = _localPath.AppendPart( "NuGet" );
+        _localAssetsPath = _localPath.AppendPart( DeployAssetsName );
+        Directory.CreateDirectory( _localNuGetPath );
+        Directory.CreateDirectory( _localAssetsPath );
     }
 
     /// <summary>
-    /// Gets the root "<see cref="StackRepository.StackWorkingFolder"/>/$Local/Feed" folder.
+    /// Gets the root "$Local/&lt;world name&gt;" folder.
     /// </summary>
-    public NormalizedPath LocalFeedPath => _localFeedPath;
+    public NormalizedPath LocalPath => _localPath;
 
     /// <summary>
-    /// Gets the "<see cref="LocalFeedPath">$Local/Feed</see>/NuGet" folder.
+    /// Gets the "$Local/&lt;world name&gt;/NuGet" folder.
     /// </summary>
-    public NormalizedPath LocalFeedNuGetPath => _localFeedNuGetPath;
+    public NormalizedPath LocalNuGetPath => _localNuGetPath;
 
     /// <summary>
-    /// Gets the "<see cref="LocalFeedPath">$Local/Feed</see>/<see cref="DeployAssetsName"/>" folder.
+    /// Gets the "$Local/&lt;world name&gt;/Assets" folder.
     /// </summary>
-    public NormalizedPath LocalFeedAssetsPath => _localFeedAssetsPath;
+    public NormalizedPath LocalAssetsPath => _localAssetsPath;
 
     /// <summary>
     /// Gets the local folder for assets.
@@ -50,7 +51,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     /// <returns>The assets local folder (may not exist).</returns>
     public NormalizedPath GetAssetsFolder( Repo repo, SVersion version )
     {
-        return _localFeedAssetsPath.AppendPart( repo.DisplayPath.LastPart ).AppendPart( version.ToString() );
+        return _localAssetsPath.AppendPart( repo.DisplayPath.LastPart ).AppendPart( version.ToString() );
     }
 
     protected override RepoArtifactInfo Create( IActivityMonitor monitor, Repo repo )
@@ -58,7 +59,23 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         return new RepoArtifactInfo( this, repo );
     }
 
-    public bool HasAllArtifacts( IActivityMonitor monitor, Repo repo, SVersion version, BuildContentInfo buildContentInfo )
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The released repository.</param>
+    /// <param name="version">The released version.</param>
+    /// <param name="buildContentInfo">The release info.</param>
+    /// <param name="assetsFolder">
+    /// Outputs the "$Local/&lt;world name&gt;/Assets/&lt;repo name&gt;/&lt;version&gt;" where artifacts are.
+    /// This is <see cref="NormalizedPath.IsEmptyPath"/> if <see cref="BuildContentInfo.AssetFileNames"/> is empty.
+    /// </param>
+    /// <returns>True if the release's packages and asset files are locally available, false otherwise.</returns>
+    public bool HasAllArtifacts( IActivityMonitor monitor,
+                                 Repo repo,
+                                 SVersion version,
+                                 BuildContentInfo buildContentInfo,
+                                 out NormalizedPath assetsFolder )
     {
         List<string>? missingPackages = null;
         List<string>? missingAssetFileNames = null;
@@ -66,7 +83,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         {
             foreach( var p in buildContentInfo.Produced )
             {
-                if( !File.Exists( Path.Combine( _localFeedNuGetPath, $"{p}.{version}.nupkg" ) ) )
+                if( !File.Exists( Path.Combine( _localNuGetPath, $"{p}.{version}.nupkg" ) ) )
                 {
                     missingPackages ??= new List<string>();
                     missingPackages.Add( p );
@@ -75,7 +92,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         }
         if( buildContentInfo.AssetFileNames.Length > 0 )
         {
-            var assetsFolder = GetAssetsFolder( repo, version );
+            assetsFolder = GetAssetsFolder( repo, version );
             if( !Directory.Exists( assetsFolder ) )
             {
                 missingAssetFileNames = [.. buildContentInfo.AssetFileNames];
@@ -92,6 +109,10 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
 
                 }
             }
+        }
+        else
+        {
+            assetsFolder = default;
         }
         if( missingPackages == null && missingAssetFileNames == null )
         {
@@ -132,7 +153,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
             foreach( var p in buildContentInfo.Produced )
             {
                 NuGetHelper.ClearGlobalCache( monitor, p, version.ToString() );
-                success &= FileHelper.DeleteFile( monitor, Path.Combine( _localFeedNuGetPath, $"{p}.{version}.nupkg" ) );
+                success &= FileHelper.DeleteFile( monitor, Path.Combine( _localNuGetPath, $"{p}.{version}.nupkg" ) );
             }
         }
         var assetsFolder = GetAssetsFolder( repo, version );
