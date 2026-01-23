@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.PerfectEvent;
 using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
@@ -7,19 +8,31 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CKli.BranchModel.Plugin;
 
 public sealed partial class BranchModelPlugin
 {
+
+    /// <summary>
+    /// Event raised when a <see cref="FixWorkflow"/> is started (or restarted).
+    /// <para>
+    /// This enables other plugins to check prepare the commits of the targets' <see cref="FixWorkflow.TargetRepo.BranchName"/>
+    /// if needed.
+    /// </para>
+    /// </summary>
+    public PerfectEvent<FixWorkflowStartEventArgs> OnFixStart => _onFixStart.PerfectEvent;
+
+
     [Description( "Starts a Fix Workflow. This Repo 'fix/vMajor.Minor' branch is checked out." )]
     [CommandPath( "fix start" )]
-    public bool FixStart( IActivityMonitor monitor,
-                          CKliEnv context,
-                          [Description( "The Major or Major.Minor version to fix." )]
-                          string version,
-                          [Description( "Allow 'fix/' branches to be moved on the commit to fix if they are not already on it." )]
-                          bool moveBranch )
+    public async Task<bool> FixStartAsync( IActivityMonitor monitor,
+                                           CKliEnv context,
+                                           [Description( "The Major or Major.Minor version to fix." )]
+                                           string version,
+                                           [Description( "Allow 'fix/' branches to be moved on the commit to fix if they are not already on it." )]
+                                           bool moveBranch )
     {
         // Parses the Major.Minor. Minor is -1 if only Major is specified (we'll consider the max Minor).
         if( !ParseMajorMinor( version, out int major, out int minor ) )
@@ -50,7 +63,8 @@ public sealed partial class BranchModelPlugin
         {
             return false;
         }
-        // Now that the tags of the vMajor have been fetched, we can obtain the VersionTagInfo to find the commit that must be fixed.
+        // Now that the tags of the vMajor have been fetched, we can obtain the VersionTagInfo to find the commit that
+        // must be fixed.
         var versionInfo = _versionTags.GetWithoutIssue( monitor, repo, "starting a fix" );
         if( versionInfo == null )
         {
@@ -84,19 +98,25 @@ public sealed partial class BranchModelPlugin
         {
             return false;
         }
+        bool restartingWorkflow = false;
         if( exists != null )
         {
             var o = exists.OriginRepo;
             if( o.Repo == repo && o.TargetVersion == targetVersion )
             {
-                // TODO: Restarting. What does it mean? It must resynchronizes the workflow with the remote branches.
-                //       Is it exactly the same as a "cancel+start"?
-                //       This "resync" may also be done at the start of 'ckli publish' to detect fix already existing
-                //       on the remotes...
+                // Restarting.
+                // This must resynchronizes the workflow with the remote branches.
+                // It is exactly the same as a "cancel+start".
+                // This "resync" may also be done at the start of 'ckli publish' to detect fix already existing
+                // (and may be conflicting) on the remotes...
+                restartingWorkflow = true;
             }
-            monitor.Error( $"A fix workflow already exists for world '{World.Name}'. It must be canceled first." );
-            context.Screen.Display( exists.ToRenderable );
-            return false;
+            else
+            {
+                monitor.Error( $"A fix workflow already exists for world '{World.Name}'. It must be canceled first." );
+                context.Screen.Display( exists.ToRenderable );
+                return false;
+            }
         }
         // Defensive programming here: the RepoReleaseInfo must exist.
         // This is the origin of the FixWorkflow.
@@ -117,6 +137,23 @@ public sealed partial class BranchModelPlugin
         if( !CreateTargets( monitor, context, _versionTags, origin, moveBranch, originReleaseInfo, out var targets ) )
         {
             return false;
+        }
+        if( _onFixStart.HasHandlers )
+        {
+            using( monitor.OpenInfo( "Raising OnFixStart event." ) )
+            {
+                bool eventError = false;
+                using( monitor.OnError( () => eventError = true ) )
+                {
+                    var e = new FixWorkflowStartEventArgs( monitor, targets, restartingWorkflow );
+                    if( !await _onFixStart.SafeRaiseAsync( monitor, e ).ConfigureAwait( false )
+                        || eventError )
+                    {
+                        monitor.Error( $"StarEvent handling failed. Cancelling." );
+                        return false;
+                    }
+                }
+            }
         }
         var workflow = new FixWorkflow( World, targets );
         if( !workflow.Save( monitor ) )
@@ -372,7 +409,7 @@ public sealed partial class BranchModelPlugin
             // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
             if( bFix != null )
             {
-                // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the nominal case:
+                // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the initial nominal case:
                 // the commit referenced by the /fix branch contains the code to fix.
                 if( bFix.Tip.Tree.Sha != toFix.ContentSha )
                 {

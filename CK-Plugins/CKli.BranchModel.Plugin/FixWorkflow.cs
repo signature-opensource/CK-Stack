@@ -63,7 +63,7 @@ public sealed class FixWorkflow
         public string ToFixCommitSha => _toFixCommitSha;
 
         /// <summary>
-        /// Gets the commit Sha to be fixed.
+        /// Gets the version to be fixed.
         /// </summary>
         public SVersion ToFixVersion => _toFixVersion ??= SVersion.Create( _targetVersion.Major, _targetVersion.Minor, _targetVersion.Patch - 1 );
 

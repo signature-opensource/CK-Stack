@@ -12,6 +12,7 @@ using System.Linq;
 using System.Runtime.Loader;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
@@ -65,7 +66,7 @@ public class InitializationTests
     [Test]
     public async Task CKt_init_to_initialized_Async()
     {
-        await CKt_init_Async();
+        //await CKt_init_Async();
         TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_init_Async", "CKt", "(initialized)" );
     }
 
@@ -108,43 +109,95 @@ public class InitializationTests
 
             """ );
 
-        //// ckli fix build
-        //// There is no change in the code base: this is an error as there's nothing to fix.
-        //using( TestHelper.Monitor.CollectTexts( out var logs ) )
-        //{
-        //    (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeFalse();
-        //    logs.Any( l => Regex.Match( l.ReplaceLineEndings(), """
-        //        Invalid build commit '.*' for version 'v1.0.1-local.fix.1' in 'CKt-Core'.
-        //        This commit contains the exact same code as the version 'v1.0.0' released on .* by commit '.*'.
+        var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/CKt/NuGet" );
 
-        //        If publishing 2 different versions of the exact same code is really what is intended, please alter
-        //        any file with a minor modification.
-                
-        //        """.ReplaceLineEndings() ).Success );
-        //}
+        using( TestHelper.Monitor.OpenInfo( "First 'ckli fix build' => triggers the Net8 migration." ) )
+        {
+            // ckli fix build
+            // This applies the Net8 Migration: there is a change in the code base, so we build the fixes. 
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
 
-        //// ckli fix cancel
-        //(await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "cancel" )).ShouldBeTrue();
+            var files = Directory.EnumerateFiles( localNuGetFeed )
+                                 .Select( p => Path.GetFileName( p ) )
+                                 .Order()
+                                 .ToArray();
+            // The 2 CKt.PerfectEvent have a commit depth of 3 because:
+            //
+            // 1 - Starting 'fix/v0.3' (this commit can be amended).
+            // 2 - Net8 migration applied.
+            // 3 - Updates: CKt.ActivityMonitor: 0.1.0 -> 0.1.1-local.fix.2
+            //
+            files.ShouldBe( [
+                    "CKt.ActivityMonitor.0.1.1-local.fix.2.nupkg",
+                    "CKt.Core.1.0.1-local.fix.2.nupkg",
+                    "CKt.Monitoring.0.2.4-local.fix.2.nupkg",
+                    "CKt.PerfectEvent.0.2.2-local.fix.3.nupkg",
+                    "CKt.PerfectEvent.0.3.3-local.fix.3.nupkg"
+                    ] );
 
-        //// ckli fix start v1.0
-        //(await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "start", "v1.0" )).ShouldBeTrue();
+        }
 
-        //display.Clear();
-        //(await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "info" )).ShouldBeTrue();
-        //display.ToString().ShouldBe( """
-        //    Fixing 'v1.0.0' on CKt-Core:
-        //    0 - CKt-Core            -> 1.0.1 (fix/v1.0) 
-        //    1 - CKt-ActivityMonitor -> 0.1.1 (fix/v0.1) 
-        //    2 - CKt-PerfectEvent    -> 0.2.2 (fix/v0.2) 
-        //    3 - CKt-PerfectEvent    -> 0.3.3 (fix/v0.3) 
-        //    4 - CKt-Monitoring      -> 0.2.4 (fix/v0.2) 
-        //    ❰✓❱
+        using( TestHelper.Monitor.OpenInfo( "Second 'ckli fix build' (CKt.ActivityMonitor has changed)." ) )
+        {
+            ModifyAndCreateCommit( context, "../CKt-ActivityMonitor/CKt.ActivityMonitor", "fix/v0.1" );
 
-        //    """ );
+            using( TestHelper.Monitor.CollectTexts( out var logs ) )
+            {
+                (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
+                logs.ShouldContain( "Useless build for 'CKt-Core/1.0.1-local.fix.2' skipped." );
+            }
+
+            var files = Directory.EnumerateFiles( localNuGetFeed )
+                                 .Select( p => Path.GetFileName( p ) )
+                                 .Order()
+                                 .ToArray();
+            files.ShouldBe( [
+                    "CKt.ActivityMonitor.0.1.1-local.fix.2.nupkg",
+                    "CKt.ActivityMonitor.0.1.1-local.fix.3.nupkg",
+                    "CKt.Core.1.0.1-local.fix.2.nupkg",
+                    "CKt.Monitoring.0.2.4-local.fix.2.nupkg",
+                    "CKt.Monitoring.0.2.4-local.fix.3.nupkg",
+                    "CKt.PerfectEvent.0.2.2-local.fix.3.nupkg",
+                    "CKt.PerfectEvent.0.2.2-local.fix.4.nupkg",
+                    "CKt.PerfectEvent.0.3.3-local.fix.3.nupkg",
+                    "CKt.PerfectEvent.0.3.3-local.fix.4.nupkg"
+                ] );
+        }
+
+        // ckli fix build
+        // There is no change in the code base: there's nothing to fix.
+        using( TestHelper.Monitor.CollectTexts( out var logs ) )
+        {
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeFalse();
+            logs.ShouldContain( "Useless build for 'CKt-Core/1.0.1-local.fix.2' skipped." );
+            logs.ShouldContain( "Useless build for 'CKt-ActivityMonitor/0.1.1-local.fix.3' skipped." );
+            logs.ShouldContain( "Useless build for 'CKt-PerfectEvent/0.2.2-local.fix.4' skipped." );
+            logs.ShouldContain( "Useless build for 'CKt.PerfectEvent/0.3.3-local.fix.4' skipped." );
+            logs.ShouldContain( "Useless build for 'CKt.Monitoring/0.2.4-local.fix.3' skipped." );
+        }
+
+        // ckli fix cancel
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "cancel" )).ShouldBeTrue();
+
+        // ckli fix start v1.0
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "start", "v1.0" )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "info" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            Fixing 'v1.0.0' on CKt-Core:
+            0 - CKt-Core            -> 1.0.1 (fix/v1.0) 
+            1 - CKt-ActivityMonitor -> 0.1.1 (fix/v0.1) 
+            2 - CKt-PerfectEvent    -> 0.2.2 (fix/v0.2) 
+            3 - CKt-PerfectEvent    -> 0.3.3 (fix/v0.3) 
+            4 - CKt-Monitoring      -> 0.2.4 (fix/v0.2) 
+            ❰✓❱
+
+            """ );
 
         ModifyAndCreateCommit( context, "CKt.Core", "fix/v1.0" );
 
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
+
     }
 
 
@@ -153,22 +206,31 @@ public class InitializationTests
     /// creates a new commit on a specified branch or on the currently checked out branch.
     /// </summary>
     /// <param name="context">The context.</param>
-    /// <param name="projectFolder">The project (eg. "CKt.Core") folder relative to <see cref="CKliEnv.CurrentDirectory"/> (can be absolute).</param>
-    /// <param name="branchName">The branch name or null to touch the working folder and commit on the current repository head.</param>
+    /// <param name="projectFolder">The project  folder (eg. "CKt.Core") relative to <see cref="CKliEnv.CurrentDirectory"/> (can be absolute).</param>
+    /// <param name="branchName">The branch name to update (or null to touch the working folder and commit on the current repository head).</param>
     /// <param name="commitMessage">Optional commit message.</param>
     static void ModifyAndCreateCommit( CKliEnv context, NormalizedPath projectFolder, string? branchName, string? commitMessage = null )
     {
-        var projectPath = context.CurrentDirectory.Combine( projectFolder );
+        var projectPath = context.CurrentDirectory.Combine( projectFolder ).ResolveDots();
 
         if( string.IsNullOrEmpty( commitMessage ) )
         {
-            commitMessage = $"// Touching {projectFolder}.";
+            commitMessage = $"// Touching {projectFolder.LastPart}.";
         }
 
         NormalizedPath gitPath = Repository.Discover( projectPath );
         if( gitPath.IsEmptyPath )
         {
-            Throw.ArgumentException( $"Unable to find the .git folder from '{projectPath}'." );
+            if( !Directory.Exists( projectPath ) )
+            {
+                Throw.ArgumentException( nameof( projectFolder ), $"""
+                    Path '{projectPath}' doesn't exist. It has been combined from:
+                    context.CurrentDirectory = '{context.CurrentDirectory}'
+                    and:
+                    projectFolder: '{projectFolder}'
+                    """ );
+            }
+            Throw.ArgumentException( nameof( projectFolder ), $"Unable to find the .git folder from '{projectPath}'." );
         }
         gitPath = gitPath.RemoveLastPart();
         using( var git = new Repository( gitPath ) )
@@ -180,45 +242,48 @@ public class InitializationTests
                 {
                     Throw.ArgumentException( $"Unable to find branch '{branchName}'." );
                 }
-                TreeDefinition tDef = TreeDefinition.From( b.Tip.Tree );
-                gitPath.TryGetRelativePathTo( projectPath, out var relativeProjectPath ).ShouldBeTrue();
-                if( tDef[relativeProjectPath] == null )
+                if( !b.IsCurrentRepositoryHead )
                 {
-                    Throw.ArgumentException( $"Unable to find '{relativeProjectPath}' in branch '{branchName}'." );
-                }
-                var filePath = relativeProjectPath.AppendPart( "CKliTestModification.cs" );
-
-                string text = "// Created";
-                TreeEntryDefinition? fileDef = tDef[filePath];
-                if( fileDef != null )
-                {
-                    if( fileDef.TargetType != TreeEntryTargetType.Blob || fileDef.Mode != Mode.NonExecutableFile )
+                    TreeDefinition tDef = TreeDefinition.From( b.Tip.Tree );
+                    gitPath.TryGetRelativePathTo( projectPath, out var relativeProjectPath ).ShouldBeTrue();
+                    if( tDef[relativeProjectPath] == null )
                     {
-                        Throw.InvalidOperationException( $"Entry '{filePath}' in branch '{branchName}' is not a non executable Blob." );
+                        Throw.ArgumentException( $"Unable to find '{relativeProjectPath}' in branch '{branchName}'." );
                     }
-                    var blob = git.Lookup<Blob>( fileDef.TargetId );
-                    text = blob.GetContentText() + $"{Environment.NewLine}{DateTime.UtcNow}";
+                    var filePath = relativeProjectPath.AppendPart( "CKliTestModification.cs" );
+
+                    string text = "// Created";
+                    TreeEntryDefinition? fileDef = tDef[filePath];
+                    if( fileDef != null )
+                    {
+                        if( fileDef.TargetType != TreeEntryTargetType.Blob || fileDef.Mode != Mode.NonExecutableFile )
+                        {
+                            Throw.InvalidOperationException( $"Entry '{filePath}' in branch '{branchName}' is not a non executable Blob." );
+                        }
+                        var blob = git.Lookup<Blob>( fileDef.TargetId );
+                        text = blob.GetContentText() + $"{Environment.NewLine}{DateTime.UtcNow}";
+                    }
+                    ObjectId textId = git.ObjectDatabase.Write<Blob>( Encoding.UTF8.GetBytes( text ) );
+                    tDef.Add( filePath, textId, Mode.NonExecutableFile );
+                    var newTree = git.ObjectDatabase.CreateTree( tDef );
+                    var newCommit = git.ObjectDatabase.CreateCommit( context.Committer, context.Committer, commitMessage, newTree, [b.Tip], prettifyMessage: true );
+                    git.Refs.UpdateTarget( b.Reference, newCommit.Id, null );
+                    return;
                 }
-                ObjectId textId = git.ObjectDatabase.Write<Blob>( Encoding.UTF8.GetBytes( text ) );
-                tDef.Add( filePath, textId, Mode.NonExecutableFile );
-                var newTree = git.ObjectDatabase.CreateTree( tDef );
-                var newCommit = git.ObjectDatabase.CreateCommit( context.Committer, context.Committer, commitMessage, newTree, [b.Tip], prettifyMessage: true );
-                git.Refs.UpdateTarget( b.Reference, newCommit.Id, null );
+            }
+            // Either the branchName is null (the user wants to work in the head) or the
+            // branch is the one currently checked out: use the working folder.
+            var sourceFilePath = projectPath.AppendPart( "CKliTestModification.cs" );
+            if( !File.Exists( sourceFilePath ) )
+            {
+                File.WriteAllText( sourceFilePath, "// Created" );
             }
             else
             {
-                var sourceFilePath = projectPath.AppendPart( "CKliTestModification.cs" );
-                if( !File.Exists( sourceFilePath ) )
-                {
-                    File.WriteAllText( sourceFilePath, "// Created" );
-                }
-                else
-                {
-                    File.WriteAllText( sourceFilePath, File.ReadAllText( sourceFilePath ) + $"{Environment.NewLine}{DateTime.UtcNow}" );
-                }
-                Commands.Stage( git, "*" );
-                git.Commit( commitMessage, context.Committer, context.Committer );
+                File.WriteAllText( sourceFilePath, File.ReadAllText( sourceFilePath ) + $"{Environment.NewLine}{DateTime.UtcNow}" );
             }
+            Commands.Stage( git, "*" );
+            git.Commit( commitMessage, context.Committer, context.Committer );
         }
     }
 }

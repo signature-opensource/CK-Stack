@@ -16,6 +16,7 @@ public sealed partial class BuildResult
     readonly NormalizedPath _assetsFolder;
     readonly Repo _repo;
     readonly SVersion _version;
+    readonly bool _skippedBuild;
 
     internal BuildResult( Repo repo,
                           SVersion version,
@@ -44,6 +45,7 @@ public sealed partial class BuildResult
         _version = version;
         _buildContentInfo = content;
         _assetsFolder = assetsFolder;
+        _skippedBuild = true;
     }
 
 
@@ -56,6 +58,12 @@ public sealed partial class BuildResult
     /// Gets the version built.
     /// </summary>
     public SVersion Version => _version;
+
+    /// <summary>
+    /// Gets whether the build has been skipped (the release database
+    /// knows this release and all artifacts are already available locally).
+    /// </summary>
+    public bool SkippedBuild => _skippedBuild;
 
     /// <summary>
     /// Gets the build content.

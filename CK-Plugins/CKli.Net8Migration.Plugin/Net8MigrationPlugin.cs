@@ -1,9 +1,11 @@
 using CK.Core;
+using CKli.BranchModel.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -16,15 +18,50 @@ namespace CKli.Net8Migration.Plugin;
 public sealed class Net8MigrationPlugin : PrimaryPluginBase
 {
     readonly VersionTagPlugin _versionTag;
+    readonly BranchModelPlugin _branchModel;
     readonly BuildPlugin _build;
 
     public Net8MigrationPlugin( PrimaryPluginContext primaryContext,
                                 VersionTagPlugin versionTag,
+                                BranchModelPlugin branchModel,
                                 BuildPlugin build )
         : base( primaryContext )
     {
         _versionTag = versionTag;
+        _branchModel = branchModel;
+        branchModel.OnFixStart.Sync += OnFixStart;
         _build = build;
+
+    }
+
+    void OnFixStart( IActivityMonitor monitor, FixWorkflowStartEventArgs e )
+    {
+        // Skip restarts (done on the initial start).
+        if( e.RestartingWorkflow )
+        {
+            return;
+        }
+
+        foreach( var target in e.Targets )
+        {
+            var repo = target.Repo;
+            var b = repo.GitRepository.Repository.Branches[target.BranchName];
+            Throw.CheckState( "The branch necessarily exists.", b != null );
+            // If the branch has a CodeCakeBuilder or RepositoryInfo.xml entry, it needs
+            // to be updated: this quick check avoids useless work.
+            if( b.Tip["CodeCakeBuilder"] != null || b.Tip["RepositoryInfo.xml"] != null )
+            {
+                if( repo.GitRepository.Checkout( monitor, b )
+                    && RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( monitor, repo ) )
+                {
+                    repo.GitRepository.Commit( monitor, "Net8 migration applied." );
+                }
+                else
+                {
+                    monitor.Error( $"Error while normalizing files and folders for '{repo.DisplayPath}/{target.BranchName}'." );
+                }
+            }
+        }
     }
 
     [Description( "Migrate Net8 stack." )]
@@ -81,7 +118,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         bool success = true;
         foreach( var repo in repos )
         {
-            // This does nothing when no change.
+            // This does nothing when no change (no new commit).
             success &= repo.GitRepository.Commit( monitor,
                                                   "Initialize stable branch with slnx and no RepositoryInfo.xml nor CodeCakeBuilder.",
                                                   CommitBehavior.CreateNewCommit ) is not CommitResult.Error;
@@ -136,35 +173,57 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         bool success = true;
         foreach( var repo in repos )
         {
-            var repoXml = repo.WorkingFolder.AppendPart( "RepositoryInfo.xml" );
-            success &= FileHelper.DeleteFile( monitor, repoXml );
-            var slnPath = repo.WorkingFolder.AppendPart( repo.WorkingFolder.LastPart + ".sln" );
-            if( File.Exists( slnPath ) )
-            {
-                if( ProcessRunner.RunProcess( monitor.ParallelLogger, "dotnet", "sln migrate", repo.WorkingFolder ) == 0 )
-                {
-                    FileHelper.DeleteFile( monitor, slnPath );
-                }
-                else
-                {
-                    success = false;
-                }
-            }
-            // Idempotent.
-            success &= ProcessRunner.RunProcess( monitor.ParallelLogger,
-                                                 "dotnet",
-                                                 "sln remove CodeCakeBuilder/CodeCakeBuilder.csproj",
-                                                 repo.WorkingFolder ) == 0;
-            var ccbPath = repo.WorkingFolder.AppendPart( "CodeCakeBuilder" );
-            success &= FileHelper.DeleteFolder( monitor, ccbPath );
-            //
-            var slnxPath = slnPath + 'x';
-            var d = XDocument.Load( slnxPath );
-            d.Root!.Descendants( "File" ).Where( e => e.Attribute( "Path" )?.Value == "RepositoryInfo.xml"
-                                                     || e.Attribute( "Path" )?.Value == "Common/SharedKey.snk" ).Remove();
-            XmlHelper.SaveWithoutXmlDeclaration( d, slnxPath );
+            success &= RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( monitor, repo );
         }
+        return success;
+    }
 
+    static bool RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( IActivityMonitor monitor, Repo repo )
+    {
+        bool success = true;
+        var repoXml = repo.WorkingFolder.AppendPart( "RepositoryInfo.xml" );
+        success &= FileHelper.DeleteFile( monitor, repoXml );
+        var slnPath = repo.WorkingFolder.AppendPart( repo.WorkingFolder.LastPart + ".sln" );
+        if( File.Exists( slnPath ) )
+        {
+            if( ProcessRunner.RunProcess( monitor.ParallelLogger, "dotnet", "sln migrate", repo.WorkingFolder ) == 0 )
+            {
+                FileHelper.DeleteFile( monitor, slnPath );
+            }
+            else
+            {
+                success = false;
+            }
+        }
+        // Idempotent.
+        success &= ProcessRunner.RunProcess( monitor.ParallelLogger,
+                                             "dotnet",
+                                             "sln remove CodeCakeBuilder/CodeCakeBuilder.csproj",
+                                             repo.WorkingFolder ) == 0;
+        var ccbPath = repo.WorkingFolder.AppendPart( "CodeCakeBuilder" );
+        success &= FileHelper.DeleteFolder( monitor, ccbPath );
+
+        // Remove legacy Common/SharedKey.snk if it exists.
+        var slnxPath = slnPath + 'x';
+        var d = XDocument.Load( slnxPath );
+        d.Root!.Descendants( "File" ).Where( e => e.Attribute( "Path" )?.Value == "RepositoryInfo.xml"
+                                                 || e.Attribute( "Path" )?.Value == "Common/SharedKey.snk" ).Remove();
+        XmlHelper.SaveWithoutXmlDeclaration( d, slnxPath );
+
+        // Loads and saves the .csproj, .props and .targets to "normalize" them (no Xml declaration, no BOM)
+        // once for all.
+        foreach( var f in Directory.EnumerateFiles( repo.WorkingFolder, "*", SearchOption.AllDirectories ) )
+        {
+            var ext = Path.GetExtension( f );
+            if( ext == ".csproj" || ext == ".props" || ext == ".targets" )
+            {
+                try
+                {
+                    XmlHelper.SaveWithoutXmlDeclaration( XDocument.Load( f ), f );
+                }
+                catch { }
+            }
+        }
         return success;
     }
 

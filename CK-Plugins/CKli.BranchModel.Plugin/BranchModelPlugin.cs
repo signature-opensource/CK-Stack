@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.PerfectEvent;
 using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
@@ -16,6 +17,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     readonly BranchNamespace _namespace;
     readonly VersionTagPlugin _versionTags;
     readonly ReleaseDatabasePlugin _releaseDatabase;
+    readonly PerfectEventSender<FixWorkflowStartEventArgs> _onFixStart;
 
     /// <summary>
     /// This is a primary plugin.
@@ -27,6 +29,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         World.Events.Issue += IssueRequested;
         _versionTags = versionTags;
         _releaseDatabase = releaseDatabase;
+        _onFixStart = new PerfectEventSender<FixWorkflowStartEventArgs>();
     }
 
     void IssueRequested( IssueEvent e )

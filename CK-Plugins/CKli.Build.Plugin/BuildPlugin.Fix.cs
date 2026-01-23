@@ -47,7 +47,7 @@ public sealed partial class BuildPlugin
         {
             return false;
         }
-        var results = new (BuildResult Result, bool NewCommit)[workflow.Targets.Length];
+        var results = new BuildResult[workflow.Targets.Length];
         var packageMapper = new PackageMapper();
         var packageMapping = new FixPackageMapping( packageMapper );
         var reusableUpdated = new PackageMapper();
@@ -59,7 +59,7 @@ public sealed partial class BuildPlugin
 
                 if( !CheckoutFixTargetBranch( monitor, target, versionInfo, out var toFix, out int commitDepth )
                     || !UpdatePackages( monitor, target.Repo, packageMapping, ref reusableUpdated )
-                    || !Commit( monitor, reusableUpdated, target, out bool hasNewCommit ) )
+                    || !CommitUpdatedPackages( monitor, reusableUpdated, target, out bool hasNewCommit ) )
                 {
                     return false;
                 }
@@ -88,7 +88,7 @@ public sealed partial class BuildPlugin
                 // We introduce a check here: we demand that the produced package identifiers are the same as the release
                 // we are fixing: changing the produced packages that are structural/architectural artifacts is
                 // everything but fixing.
-                if( !result.Content.Produced.SequenceEqual( toFix.BuildContentInfo.Produced ) )
+                if( !result.SkippedBuild && !result.Content.Produced.SequenceEqual( toFix.BuildContentInfo.Produced ) )
                 {
                     monitor.Error( $"""
                             Forbidden change in produced packages for a fix in '{target.Repo.DisplayPath}':
@@ -103,15 +103,17 @@ public sealed partial class BuildPlugin
                 {
                     packageMapper.Add( p, target.ToFixVersion, targetVersion );
                 }
-                results[target.Index] = (result, hasNewCommit);
+                results[target.Index] = result;
             }
         }
         return true;
 
-        static bool Commit( IActivityMonitor monitor,
-                            PackageMapper? reusableUpdated,
-                            FixWorkflow.TargetRepo target,
-                            out bool hasNewCommit )
+
+
+        static bool CommitUpdatedPackages( IActivityMonitor monitor,
+                                           PackageMapper? reusableUpdated,
+                                           FixWorkflow.TargetRepo target,
+                                           out bool hasNewCommit )
         {
             Throw.DebugAssert( reusableUpdated != null );
             hasNewCommit = false;
