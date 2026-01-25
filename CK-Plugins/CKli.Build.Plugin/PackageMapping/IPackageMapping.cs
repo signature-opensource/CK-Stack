@@ -1,5 +1,4 @@
 using CSemVer;
-using System.Diagnostics.CodeAnalysis;
 
 namespace CKli.Build.Plugin;
 

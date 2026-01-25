@@ -2,7 +2,6 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CSemVer;
-using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -16,7 +15,7 @@ sealed class ReleaseDB
     readonly Dictionary<RepoKey, BuildContentInfo> _data;
     readonly ReleaseDB? _published;
     readonly NormalizedPath _filePath;
-    Dictionary<NuGetPackageInstance, RepoKey>? _producedIndex;
+    Dictionary<PackageInstance, RepoKey>? _producedIndex;
     bool _isLoaded;
 
     internal ReleaseDB( ReleaseDB? published, NormalizedPath filePath )
@@ -51,7 +50,7 @@ sealed class ReleaseDB
     }
 
     internal bool FindProducer( IActivityMonitor monitor,
-                                NuGetPackageInstance p,
+                                PackageInstance p,
                                 [NotNullWhen(true)] out RepoKey? repo,
                                 [NotNullWhen( true )] out BuildContentInfo? content,
                                 out bool isLocal )
@@ -75,17 +74,17 @@ sealed class ReleaseDB
         return false;
     }
 
-    Dictionary<NuGetPackageInstance, RepoKey> EnsureProducedIndex()
+    Dictionary<PackageInstance, RepoKey> EnsureProducedIndex()
     {
         Throw.DebugAssert( _isLoaded );
         if( _producedIndex == null )
         {
-            _producedIndex = new Dictionary<NuGetPackageInstance, RepoKey>();
+            _producedIndex = new Dictionary<PackageInstance, RepoKey>();
             foreach( var e in _data )
             {
                 foreach( var id in e.Value.Produced )
                 {
-                    _producedIndex.Add( new NuGetPackageInstance( id, e.Key.Version ), e.Key );
+                    _producedIndex.Add( new PackageInstance( id, e.Key.Version ), e.Key );
                 }
             }
         }
@@ -93,7 +92,7 @@ sealed class ReleaseDB
     }
 
     internal void CollectConsumers( IActivityMonitor monitor,
-                                    in NuGetPackageInstance p,
+                                    in PackageInstance p,
                                     Dictionary<RepoKey, (BuildContentInfo Content, bool IsLocal)> collector )
     {
         EnsureLoad( monitor );
@@ -271,7 +270,7 @@ sealed class ReleaseDB
         {
             foreach( var id in info.Produced )
             {
-                _producedIndex.Add( new NuGetPackageInstance( id, key.Version ), key );
+                _producedIndex.Add( new PackageInstance( id, key.Version ), key );
             }
         }
     }
@@ -284,11 +283,11 @@ sealed class ReleaseDB
         {
             foreach( var id in exists.Produced )
             {
-                _producedIndex.Remove( new NuGetPackageInstance( id, key.Version ) );
+                _producedIndex.Remove( new PackageInstance( id, key.Version ) );
             }
             foreach( var id in info.Produced )
             {
-                _producedIndex.Add( new NuGetPackageInstance( id, key.Version ), key );
+                _producedIndex.Add( new PackageInstance( id, key.Version ), key );
             }
         }
     }
@@ -300,7 +299,7 @@ sealed class ReleaseDB
         {
             foreach( var id in exists.Produced )
             {
-                _producedIndex.Remove( new NuGetPackageInstance( id, key.Version ) );
+                _producedIndex.Remove( new PackageInstance( id, key.Version ) );
             }
         }
     }
@@ -385,7 +384,7 @@ sealed class ReleaseDB
             {
                 foreach( var id in exists.Produced )
                 {
-                    _producedIndex.Remove( new NuGetPackageInstance( id, version ) );
+                    _producedIndex.Remove( new PackageInstance( id, version ) );
                 }
             }
             OnChanged( monitor );
@@ -407,7 +406,7 @@ sealed class ReleaseDB
                 {
                     foreach( var id in exists.Produced )
                     {
-                        _producedIndex.Remove( new NuGetPackageInstance( id, fix.Version ) );
+                        _producedIndex.Remove( new PackageInstance( id, fix.Version ) );
                     }
                 }
             }

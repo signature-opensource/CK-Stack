@@ -5,7 +5,6 @@ using CK.Core;
 using System.IO;
 using System;
 using System.Linq;
-using LibGit2Sharp;
 
 namespace CKli.BranchModel.Plugin;
 

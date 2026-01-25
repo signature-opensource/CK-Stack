@@ -4,14 +4,12 @@ using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
 using CSemVer;
-using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
-using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -74,20 +72,7 @@ public sealed partial class BuildPlugin
         }
         context.Screen.Display( s => s.Text( "Publishing fix:" )
                                       .AddBelow( RenderBuildResults( s, results ) ) );
-        // TODO:
-        // Introduce a "$Local/Pub" folder?
-        //  - /NuGet
-        //    - One folder per remote NuGet feed that contains the pending packages to push.
-        //      - Can packages be pushed in the background until the folder is empty?
-        //        Don't think so or we must implement a Service. No go.
-        //  - /Assets
-        // 1 - Push the NuGet packages to the remote feeds (this requires a World configuration).
-        // 2 - Push the branches and tags.
-        // 2 - Create the Release as a draft on GitHub (seems that the tag must first exist)
-        //     Upload the assets.
-        // 3 - Undraft the release.
-        // 
-        return true;
+        return await _artifactHandler.PublishFixAsync( monitor, results );
     }
 
     static IRenderable RenderBuildResults( ScreenType s, ImmutableArray<BuildResult> results )
@@ -211,9 +196,9 @@ public sealed partial class BuildPlugin
         return true;
 
         static bool CommitUpdatedPackages( IActivityMonitor monitor,
-                        PackageMapper? reusableUpdated,
-                        FixWorkflow.TargetRepo target,
-                        out bool hasNewCommit )
+                                           PackageMapper? reusableUpdated,
+                                           FixWorkflow.TargetRepo target,
+                                           out bool hasNewCommit )
         {
             Throw.DebugAssert( reusableUpdated != null );
             hasNewCommit = false;
@@ -233,10 +218,10 @@ public sealed partial class BuildPlugin
         }
 
         static bool CheckoutFixTargetBranch( IActivityMonitor monitor,
-                                                FixWorkflow.TargetRepo target,
-                                                VersionTagInfo versionInfo,
-                                                [NotNullWhen( true )] out TagCommit? toFix,
-                                                out int commitDepth )
+                                             FixWorkflow.TargetRepo target,
+                                             VersionTagInfo versionInfo,
+                                             [NotNullWhen( true )] out TagCommit? toFix,
+                                             out int commitDepth )
         {
             commitDepth = 0;
             // We must be able to retrieve the TagCommit to fix.

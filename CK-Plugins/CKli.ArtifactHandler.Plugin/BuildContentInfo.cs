@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -11,17 +12,40 @@ namespace CKli.ArtifactHandler.Plugin;
 
 public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 {
-    readonly ImmutableArray<NuGetPackageInstance> _consumed;
+    readonly ImmutableArray<PackageInstance> _consumed;
     readonly ImmutableArray<string> _produced;
     readonly ImmutableArray<string> _assetFileNames;
     string? _toString;
 
-    public BuildContentInfo( ImmutableArray<NuGetPackageInstance> consumed,
+    /// <summary>
+    /// Initializes a new build content.
+    /// </summary>
+    /// <param name="consumed">The consumed sorted packages. Must be unique and sorted.</param>
+    /// <param name="produced">
+    /// The produced package identifiers.
+    /// Must be unique, lexicographically sorted, have no <see cref="Path.GetInvalidFileNameChars()"/>, no comma and space characters.
+    /// </param>
+    /// <param name="assetFileNames">
+    /// The asset file names.
+    /// Must be unique, lexicographically sorted, have no <see cref="Path.GetInvalidFileNameChars()"/>, no comma and space characters.
+    /// </param>
+    public BuildContentInfo( ImmutableArray<PackageInstance> consumed,
                              ImmutableArray<string> produced,
                              ImmutableArray<string> assetFileNames )
     {
-        Throw.DebugAssert( !produced.Any( p => p.Contains( ' ' ) || p.Contains( ',' ) ) );
-        Throw.DebugAssert( !assetFileNames.Any( p => p.Contains( ' ' ) || p.Contains( ',' ) ) );
+        Throw.CheckArgument( !consumed.IsDefault && consumed.IsSortedStrict() );
+
+        Throw.CheckArgument( !produced.IsDefault
+                             && produced.IsSortedStrict( StringComparer.Ordinal.Compare )
+                             && !produced.Any( p => p.Contains( ' ' )
+                                                    || p.Contains( ',' )
+                                                    || FileUtil.IndexOfInvalidFileNameChars( p ) >= 0 ) );
+
+        Throw.CheckArgument( !assetFileNames.IsDefault
+                             && assetFileNames.IsSortedStrict( StringComparer.Ordinal.Compare )
+                             && !assetFileNames.Any( p => p.Contains( ' ' )
+                                                          || p.Contains( ',' )
+                                                          || FileUtil.IndexOfInvalidFileNameChars( p ) >= 0 ) );
 
         _consumed = consumed;
         _produced = produced;
@@ -30,10 +54,10 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 
     public BuildContentInfo( CKBinaryReader r )
     {
-        var b = ImmutableArray.CreateBuilder<NuGetPackageInstance>( r.ReadNonNegativeSmallInt32() );
+        var b = ImmutableArray.CreateBuilder<PackageInstance>( r.ReadNonNegativeSmallInt32() );
         for( int i = 0; i < b.Capacity; ++i )
         {
-            b.Add( new NuGetPackageInstance( r.ReadSharedString()!, SVersion.Parse( r.ReadSharedString() ) ) );
+            b.Add( new PackageInstance( r.ReadSharedString()!, SVersion.Parse( r.ReadSharedString() ) ) );
         }
         _consumed = b.MoveToImmutable();
         _produced = Read( r );
@@ -79,7 +103,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
     /// <summary>
     /// Gets the consumed packages. These are sorted.
     /// </summary>
-    public ImmutableArray<NuGetPackageInstance> Consumed => _consumed;
+    public ImmutableArray<PackageInstance> Consumed => _consumed;
 
     /// <summary>
     /// Gets the produced packages identifiers. These are lexicographically sorted.
@@ -148,16 +172,16 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         info = null;
         return false;
 
-        static bool TryReadConsumedList( ref ReadOnlySpan<char> s, int count, out ImmutableArray<NuGetPackageInstance> packages )
+        static bool TryReadConsumedList( ref ReadOnlySpan<char> s, int count, out ImmutableArray<PackageInstance> packages )
         {
             if( count == 0 )
             {
                 packages = [];
                 return true;
             }
-            NuGetPackageInstance previous = default;
-            var b = ImmutableArray.CreateBuilder<NuGetPackageInstance>( count );
-            while( NuGetPackageInstance.TryMatch( ref s, out var p ) )
+            PackageInstance previous = default;
+            var b = ImmutableArray.CreateBuilder<PackageInstance>( count );
+            while( PackageInstance.TryMatch( ref s, out var p ) )
             {
                 if( previous.CompareTo( p ) >= 0 )
                 {

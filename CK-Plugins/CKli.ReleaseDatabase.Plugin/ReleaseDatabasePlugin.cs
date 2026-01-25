@@ -2,7 +2,6 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CSemVer;
-using System;
 using System.Collections.Generic;
 
 namespace CKli.ReleaseDatabase.Plugin;
@@ -89,7 +88,7 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         var consumers = new Dictionary<RepoKey, (BuildContentInfo Content, bool IsLocal)>();
         foreach( var id in info.Content.Produced )
         {
-            var consumed = new NuGetPackageInstance( id, info.Version );
+            var consumed = new PackageInstance( id, info.Version );
             _local.CollectConsumers( monitor, consumed, consumers );
             if( !info.IsLocal ) _published.CollectConsumers( monitor, consumed, consumers );
         }

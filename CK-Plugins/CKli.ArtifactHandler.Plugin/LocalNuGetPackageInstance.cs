@@ -9,17 +9,17 @@ public sealed record LocalNuGetPackageInstance( NormalizedPath LocalPath, string
     /// <summary>
     /// Gets the package instance.
     /// </summary>
-    public NuGetPackageInstance PackageInstance => new NuGetPackageInstance( PackageId, Version );
+    public PackageInstance PackageInstance => new PackageInstance( PackageId, Version );
 
-    /// <inheritdoc cref="NuGetPackageInstance.CompareTo(NuGetPackageInstance)"/>
+    /// <inheritdoc cref="PackageInstance.CompareTo(PackageInstance)"/>
     public int CompareTo( LocalNuGetPackageInstance? other )
     {
         return other == null ? 1 : PackageInstance.CompareTo( other.PackageInstance );
     }
 
     /// <summary>
-    /// Returns <see cref="NuGetPackageInstance.ToString()"/>.
-    /// Can be parsed back by <see cref="NuGetPackageInstance.TryMatch(ref System.ReadOnlySpan{char}, out NuGetPackageInstance)"/>.
+    /// Returns <see cref="PackageInstance.ToString()"/>.
+    /// Can be parsed back by <see cref="PackageInstance.TryMatch(ref System.ReadOnlySpan{char}, out PackageInstance)"/>.
     /// </summary>
     /// <returns>The "package/version" string.</returns>
     public override string ToString() => PackageInstance.ToString();

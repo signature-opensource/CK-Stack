@@ -2,7 +2,6 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CSemVer;
-using Microsoft.VisualBasic;
 using System.Collections.Generic;
 
 namespace CKli.ReleaseDatabase.Plugin;

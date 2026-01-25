@@ -5,7 +5,6 @@ using CKli.Core;
 using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;

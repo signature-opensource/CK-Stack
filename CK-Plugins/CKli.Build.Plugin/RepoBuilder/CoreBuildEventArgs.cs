@@ -1,6 +1,5 @@
 using CK.Core;
 using CKli.VersionTag.Plugin;
-using CSemVer;
 
 namespace CKli.Build.Plugin;
 

@@ -3,9 +3,11 @@ using CKli.Core;
 using CSemVer;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.IO;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace CKli.ArtifactHandler.Plugin;
 
@@ -18,6 +20,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     readonly NormalizedPath _localPath;
     readonly NormalizedPath _localNuGetPath;
     readonly NormalizedPath _localAssetsPath;
+    ImmutableArray<NuGetFeed> _feeds;
 
     public ArtifactHandlerPlugin( PrimaryPluginContext context )
         : base( context )
@@ -45,6 +48,35 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     public NormalizedPath LocalAssetsPath => _localAssetsPath;
 
     /// <summary>
+    /// Gets the &lt;ArtifactHandler&gt;/&lt;Feed&gt;/&lt;NuGet&gt; configurations.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="feeds">The configured feeds.</param>
+    /// <returns>True on success, false on error.</returns>
+    public bool GetConfiguredNuGetFeeds( IActivityMonitor monitor, out ImmutableArray<NuGetFeed> feeds )
+    {
+        feeds = _feeds;
+        if( feeds.IsDefault )
+        {
+            try
+            {
+                feeds = PrimaryPluginContext.Configuration.XElement.Elements( "NuGet" )
+                                                           .Elements( "Feed" )
+                                                           .Select( NuGetFeed.Create )
+                                                           .ToImmutableArray();
+                _feeds = feeds;
+            }
+            catch( Exception ex )
+            {
+                monitor.Error( $"Error while reading <ArtifactHandler>. This must be fixed manually.", ex );
+                feeds = default;
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /// <summary>
     /// Gets the local folder for assets.
     /// </summary>
     /// <param name="repo">The repository.</param>
@@ -61,7 +93,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     }
 
     /// <summary>
-    /// 
+    /// Analyzes "$Local" folder to check whether all produced packages and files are locally available.
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The released repository.</param>
@@ -172,7 +204,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         foreach( var packagePath in Directory.EnumerateFiles( _localNuGetPath ) )
         {
             var name = Path.GetFileName( packagePath.AsSpan() );
-            if( NuGetPackageInstance.TryParseNupkgFileName( name, out var version, out int packageLength ) )
+            if( PackageInstance.TryParseNupkgFileName( name, out var version, out int packageLength ) )
             {
                 if( version.IsLocalFix() )
                 {
@@ -207,5 +239,60 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
             }
 
         }
+    }
+
+    /// <summary>
+    /// Publishes a fix.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="results">The build results of the fix.</param>
+    /// <returns>True on success, false on error.</returns>
+    public async Task<bool> PublishFixAsync( IActivityMonitor monitor, ImmutableArray<BuildResult> results )
+    {
+        Throw.CheckArgument( results.All( r => r.Version.IsStable && r.Version.Patch > 0 ) );
+
+        if( !PushHomogeneousQualityPackages( monitor, results, PackageQuality.Stable ) )
+        {
+            return false;
+        }
+        throw new NotImplementedException();
+        return true;
+    }
+
+    bool PushHomogeneousQualityPackages( IActivityMonitor monitor, ImmutableArray<BuildResult> results, PackageQuality quality )
+    {
+        if( !GetConfiguredNuGetFeeds( monitor, out var feeds ) )
+        {
+            return false;
+        }
+        var actualFeeds = feeds.Where( f => f.PushCredentials != null && f.PushQualityFilter.Accepts( quality ) );
+        if( !actualFeeds.Any() )
+        {
+            monitor.Error( $"Unable to find at least one configured feed to push '{quality}' quality packages to." );
+            return false;
+        }
+        var folder = NuGetPushFolder.Create( monitor, _localNuGetPath, results );
+        if( folder == null )
+        {
+            return false;
+        }
+        try
+        {
+            if( folder.Count != 0 )
+            {
+                foreach( var f in actualFeeds )
+                {
+                    if( !f.Push( monitor, folder.PushFolder, World.StackRepository.SecretsStore ) )
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+        finally
+        {
+            FileHelper.DeleteFolder( monitor, folder.PushFolder );
+        }
+        return true;
     }
 }

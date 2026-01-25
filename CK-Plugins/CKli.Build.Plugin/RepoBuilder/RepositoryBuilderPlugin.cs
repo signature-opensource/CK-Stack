@@ -1,11 +1,8 @@
 using CK.Core;
 using CK.PerfectEvent;
 using CKli.ArtifactHandler.Plugin;
-using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
-using CSemVer;
-using System;
 using System.Threading.Tasks;
 
 namespace CKli.Build.Plugin;

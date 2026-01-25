@@ -8,8 +8,6 @@ using CKli.VSSolution.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LogLevel = CK.Core.LogLevel;
@@ -250,24 +248,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             }
             return buildResult;
         }
-    }
-
-    internal static bool RunDotnet( IActivityMonitor monitor, Repo repo, string args, StringBuilder? stdOut = null )
-    {
-        using( monitor.OpenInfo( $"Executing 'dotnet {args}' in '{repo.DisplayPath}'." ) )
-        {
-            var e = ProcessRunner.RunProcess( monitor.ParallelLogger,
-                                              "dotnet",
-                                              args,
-                                              repo.WorkingFolder,
-                                              stdOut: stdOut );
-            if( e != 0 )
-            {
-                monitor.CloseGroup( $"Failed with code '{e}'." );
-                return false;
-            }
-        }
-        return true;
     }
 
 }

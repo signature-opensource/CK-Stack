@@ -7,7 +7,6 @@ using LibGit2Sharp;
 using System;
 using System.Collections.Immutable;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
@@ -96,7 +95,7 @@ public class RepoBuilder : RepoInfo
                     return null;
                 }
                 resetHardDone = true;
-                if( BuildResult.GetConsumedPackages( monitor, buildInfo, out var consumedPackages ) )
+                if( BuildResult.GetConsumedPackages( monitor, Repo, buildInfo.ToString(), out var consumedPackages ) )
                 {
                     var deploymentFolder = Repo.WorkingFolder.AppendPart( ArtifactHandlerPlugin.DeployFolderName );
                     if( HandleDeployAssets( monitor, deploymentFolder, buildInfo.Version, out var assetsFolder, out var assetFileNames )
@@ -233,7 +232,7 @@ public class RepoBuilder : RepoInfo
                                 string fileVersion,
                                 bool release )
     {
-        return BuildPlugin.RunDotnet( monitor, Repo, $"""
+        return Repo.RunDotnet( monitor, $"""
             build -tl:off --nologo --no-incremental -c {(release ? "Release" : "Debug")} /p:Version={version};InformationalVersion="{informationalVersion}";FileVersion="{fileVersion}"
             """ );
     }
@@ -245,7 +244,7 @@ public class RepoBuilder : RepoInfo
     /// <returns>True on tests success, false otherwise.</returns>
     protected bool DotNetTest( IActivityMonitor monitor )
     {
-        if( !BuildPlugin.RunDotnet( monitor, Repo, $"test -tl:off --nologo --no-build" ) )
+        if( !Repo.RunDotnet( monitor, $"test -tl:off --nologo --no-build" ) )
         {
             return false;
         }
@@ -266,7 +265,9 @@ public class RepoBuilder : RepoInfo
     /// <returns>True on success, false otherwise.</returns>
     protected bool DotNetPack( IActivityMonitor monitor, SVersion version, bool release, string outputPath )
     {
-        return BuildPlugin.RunDotnet( monitor, Repo, $"""pack -tl:off /p:Version={version} -c {(release ? "Release" : "Debug")} --nologo --no-build -o "{outputPath}" """ );
+        return Repo.RunDotnet( monitor, $"""
+            pack -tl:off /p:Version={version} -c {(release ? "Release" : "Debug")} --nologo --no-build -o "{outputPath}" 
+            """ );
     }
 
 

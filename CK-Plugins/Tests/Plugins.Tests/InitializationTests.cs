@@ -2,17 +2,12 @@ using CK.Core;
 using CKli;
 using CKli.Core;
 using LibGit2Sharp;
-using Microsoft.Extensions.Primitives;
 using NUnit.Framework;
 using Shouldly;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Runtime.Loader;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
