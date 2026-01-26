@@ -188,7 +188,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return null;
         }
 
-        
         Branch currentHead = git.Repository.Head;
         bool mustCheckOut = currentHead.Tip.Tree.Sha != buildCommit.Tree.Sha;
         if( mustCheckOut )

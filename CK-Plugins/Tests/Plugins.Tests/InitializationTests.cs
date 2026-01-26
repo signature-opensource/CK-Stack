@@ -24,7 +24,7 @@ public class InitializationTests
         // good to not make an exception for this case.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets set FILESYSTEM_GIT_WRITE_PAT "don't care" --id CKli-CK""",
+                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
     }
@@ -37,6 +37,15 @@ public class InitializationTests
     [Test]
     public async Task CKt_init_Async()
     {
+        // Because we are pushing here, we need the Write PAT for the "FILESYSTEM"
+        // That is useless (credentials are not used on local file system) but it's
+        // good to not make an exception for this case.
+        ProcessRunner.RunProcess( TestHelper.Monitor,
+                                  "dotnet",
+                                  """user-secrets set FILESYSTEM_GIT_WRITE_PAT "don't care" --id CKli-CK""",
+                                  Environment.CurrentDirectory )
+                     .ShouldBe( 0 );
+
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(init)" );
         var context = remotes.Clone( clonedFolder );
@@ -58,9 +67,9 @@ public class InitializationTests
 
     [Explicit]
     [Test]
-    public async Task CKt_init_to_initialized_Async()
+    public async Task REMOTES_CKt_init_to_initialized_Async()
     {
-        //await CKt_init_Async();
+        await CKt_init_Async();
         TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_init_Async", "CKt", "(initialized)" );
     }
 
@@ -71,11 +80,22 @@ public class InitializationTests
     /// </summary>
     /// <returns></returns>
     [Test]
-    public async Task CKt_create_fix_Async()
+    public async Task CKt_local_fix_Async()
     {
+        // Because we are NOT pushing here, we remove the secret: this ensures
+        // that this test doesn't push anything.
+        // "ckli fix build" is purely local, it has no impacts on the remotes.
+        ProcessRunner.RunProcess( TestHelper.Monitor,
+                                  "dotnet",
+                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
+                                  Environment.CurrentDirectory )
+                     .ShouldBe( 0 );
+
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
         var context = remotes.Clone( clonedFolder );
+
+        
 
         // cd CK-Core.
         context = context.ChangeDirectory( "CKt-Core" );
@@ -131,10 +151,10 @@ public class InitializationTests
 
         }
 
+        TestHelper.ModifyAndCreateCommit( context, "../CKt-ActivityMonitor/CKt.ActivityMonitor", "fix/v0.1" );
+
         using( TestHelper.Monitor.OpenInfo( "Second 'ckli fix build' (CKt.ActivityMonitor has changed)." ) )
         {
-            ModifyAndCreateCommit( context, "../CKt-ActivityMonitor/CKt.ActivityMonitor", "fix/v0.1" );
-
             using( TestHelper.Monitor.CollectTexts( out var logs ) )
             {
                 (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
@@ -158,16 +178,18 @@ public class InitializationTests
                 ] );
         }
 
-        // ckli fix build
-        // There is no change in the code base: there's nothing to fix.
-        using( TestHelper.Monitor.CollectTexts( out var logs ) )
+        using( TestHelper.Monitor.OpenInfo( "Third 'ckli fix build' (no change in the code base: there's nothing to fix)." ) )
         {
-            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
-            logs.ShouldContain( "Useless build for 'CKt-Core/1.0.1-local.fix.2' skipped." );
-            logs.ShouldContain( "Useless build for 'CKt-ActivityMonitor/0.1.1-local.fix.3' skipped." );
-            logs.ShouldContain( "Useless build for 'CKt-PerfectEvent/0.2.2-local.fix.4' skipped." );
-            logs.ShouldContain( "Useless build for 'CKt-PerfectEvent/0.3.3-local.fix.4' skipped." );
-            logs.ShouldContain( "Useless build for 'CKt-Monitoring/0.2.4-local.fix.3' skipped." );
+            // ckli fix build
+            using( TestHelper.Monitor.CollectTexts( out var logs ) )
+            {
+                (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "fix", "build" )).ShouldBeTrue();
+                logs.ShouldContain( "Useless build for 'CKt-Core/1.0.1-local.fix.2' skipped." );
+                logs.ShouldContain( "Useless build for 'CKt-ActivityMonitor/0.1.1-local.fix.3' skipped." );
+                logs.ShouldContain( "Useless build for 'CKt-PerfectEvent/0.2.2-local.fix.4' skipped." );
+                logs.ShouldContain( "Useless build for 'CKt-PerfectEvent/0.3.3-local.fix.4' skipped." );
+                logs.ShouldContain( "Useless build for 'CKt-Monitoring/0.2.4-local.fix.3' skipped." );
+            }
         }
 
         // ckli fix cancel
@@ -188,96 +210,14 @@ public class InitializationTests
             ❰✓❱
 
             """ );
-
-        ModifyAndCreateCommit( context, "CKt.Core", "fix/v1.0" );
-
-
     }
 
-
-    /// <summary>
-    /// Create or modify a "CKliTestModification.cs" file in the <paramref name="projectFolder"/> and
-    /// creates a new commit on a specified branch or on the currently checked out branch.
-    /// </summary>
-    /// <param name="context">The context.</param>
-    /// <param name="projectFolder">The project  folder (eg. "CKt.Core") relative to <see cref="CKliEnv.CurrentDirectory"/> (can be absolute).</param>
-    /// <param name="branchName">The branch name to update (or null to touch the working folder and commit on the current repository head).</param>
-    /// <param name="commitMessage">Optional commit message.</param>
-    static void ModifyAndCreateCommit( CKliEnv context, NormalizedPath projectFolder, string? branchName, string? commitMessage = null )
+    [Explicit]
+    [Test]
+    public async Task REMOTES_CKt_initialized_to_localFixed_Async()
     {
-        var projectPath = context.CurrentDirectory.Combine( projectFolder ).ResolveDots();
-
-        if( string.IsNullOrEmpty( commitMessage ) )
-        {
-            commitMessage = $"// Touching {projectFolder.LastPart}.";
-        }
-
-        NormalizedPath gitPath = Repository.Discover( projectPath );
-        if( gitPath.IsEmptyPath )
-        {
-            if( !Directory.Exists( projectPath ) )
-            {
-                Throw.ArgumentException( nameof( projectFolder ), $"""
-                    Path '{projectPath}' doesn't exist. It has been combined from:
-                    context.CurrentDirectory = '{context.CurrentDirectory}'
-                    and:
-                    projectFolder: '{projectFolder}'
-                    """ );
-            }
-            Throw.ArgumentException( nameof( projectFolder ), $"Unable to find the .git folder from '{projectPath}'." );
-        }
-        gitPath = gitPath.RemoveLastPart();
-        using( var git = new Repository( gitPath ) )
-        {
-            if( branchName != null )
-            {
-                var b = git.Branches[branchName];
-                if( b == null )
-                {
-                    Throw.ArgumentException( $"Unable to find branch '{branchName}'." );
-                }
-                if( !b.IsCurrentRepositoryHead )
-                {
-                    TreeDefinition tDef = TreeDefinition.From( b.Tip.Tree );
-                    gitPath.TryGetRelativePathTo( projectPath, out var relativeProjectPath ).ShouldBeTrue();
-                    if( tDef[relativeProjectPath] == null )
-                    {
-                        Throw.ArgumentException( $"Unable to find '{relativeProjectPath}' in branch '{branchName}'." );
-                    }
-                    var filePath = relativeProjectPath.AppendPart( "CKliTestModification.cs" );
-
-                    string text = "// Created";
-                    TreeEntryDefinition? fileDef = tDef[filePath];
-                    if( fileDef != null )
-                    {
-                        if( fileDef.TargetType != TreeEntryTargetType.Blob || fileDef.Mode != Mode.NonExecutableFile )
-                        {
-                            Throw.InvalidOperationException( $"Entry '{filePath}' in branch '{branchName}' is not a non executable Blob." );
-                        }
-                        var blob = git.Lookup<Blob>( fileDef.TargetId );
-                        text = blob.GetContentText() + $"{Environment.NewLine}{DateTime.UtcNow}";
-                    }
-                    ObjectId textId = git.ObjectDatabase.Write<Blob>( Encoding.UTF8.GetBytes( text ) );
-                    tDef.Add( filePath, textId, Mode.NonExecutableFile );
-                    var newTree = git.ObjectDatabase.CreateTree( tDef );
-                    var newCommit = git.ObjectDatabase.CreateCommit( context.Committer, context.Committer, commitMessage, newTree, [b.Tip], prettifyMessage: true );
-                    git.Refs.UpdateTarget( b.Reference, newCommit.Id, null );
-                    return;
-                }
-            }
-            // Either the branchName is null (the user wants to work in the head) or the
-            // branch is the one currently checked out: use the working folder.
-            var sourceFilePath = projectPath.AppendPart( "CKliTestModification.cs" );
-            if( !File.Exists( sourceFilePath ) )
-            {
-                File.WriteAllText( sourceFilePath, "// Created" );
-            }
-            else
-            {
-                File.WriteAllText( sourceFilePath, File.ReadAllText( sourceFilePath ) + $"{Environment.NewLine}{DateTime.UtcNow}" );
-            }
-            Commands.Stage( git, "*" );
-            git.Commit( commitMessage, context.Committer, context.Committer );
-        }
+        //await CKt_local_fix_Async();
+        TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_local_fix_Async", "CKt", "(localFixed)" );
     }
+
 }

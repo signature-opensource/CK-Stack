@@ -138,7 +138,8 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         List<HotBranch>? unrelated = null;
         CreateChildren( monitor, root, repo, git, index, ref removable, ref desynchronized, ref unrelated );
         Throw.DebugAssert( index.Count == _namespace.Branches.Count );
-        // Traversal has been done top-down. If branches can be removed this must be done bottom-up.
+        // Traversal has been done top-down. If branches can be removed this must be done bottom-up
+        // so we reverse the list?
         if( removable != null ) removable.Reverse();
         // Currently we consider that removable branches is an issue.
         // This is clearly a bit too strong but simplifies the build initialization.
@@ -192,19 +193,16 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     }
 
     /// <summary>
-    /// Tries to parse "v<paramref name="major"/>.<paramref name="minor"/>/fix".
+    /// Tries to parse "fix/v<paramref name="major"/>.<paramref name="minor"/>".
     /// </summary>
-    /// <param name="branchName">The name to parse.</param>
-    /// <param name="dev">Whether the branch is the "dev/" branch.</param>
+    /// <param name="s">The name to parse.</param>
     /// <param name="major">The major version to fix.</param>
     /// <param name="minor">The minor version to fix.</param>
     /// <returns>True on success, false otherwise.</returns>
-    public static bool TryParseBranchFixName( string branchName, out bool dev, out int major, out int minor )
+    public static bool TryParseBranchFixName( ReadOnlySpan<char> s, int major, out int minor )
     {
         major = 0;
         minor = 0;
-        var s = branchName.AsSpan();
-        dev = s.TryMatch( "dev/" );
         return s.TryMatch( "fix/" )
                && s.TryMatch( 'v' )
                && s.TryMatchInteger( out major )

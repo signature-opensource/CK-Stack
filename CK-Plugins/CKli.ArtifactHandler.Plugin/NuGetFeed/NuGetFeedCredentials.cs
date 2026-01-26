@@ -26,7 +26,6 @@ public sealed class NuGetFeedCredentials
         _secretKey = secretKey;
     }
 
-
     /// <summary>
     /// Optional user name to lookup in the <see cref="ISecretsStore"/> (unless used directly).
     /// Null when the secret to use is an API key.
