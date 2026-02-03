@@ -19,11 +19,6 @@ public class RemoteTests
         var remotes = TestHelper.OpenRemotes( "CKt(localFixed)" );
         var context = remotes.Clone( clonedFolder );
 
-        //var local = TestHelper.CKliRemotesPath.AppendPart( remotes.FullName )
-        //                          .AppendPart( remotes.StackName + "-Stack" )
-        //                          .AppendPart( "$Local" );
-        //FileUtil.CopyDirectory( new DirectoryInfo( local ), new DirectoryInfo( context.CurrentStackPath.AppendPart( "$Local" ) ) );
-
         // This has impact on the repositories if and only if the source name is not "NuGet"
         // (then it is normalized) because the source already exists in all "nuget.config" files.
         // 

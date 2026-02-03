@@ -2,8 +2,8 @@
 # The simplest (?) possible workflow.
 Every build starts with a branch in a Repo. The UX is minimalist:
 - Checkout the branch to build: `ckli branch stable`.
-- Create commits in the branch (or its "dev/" associated branch, see below).
-- Call the build: `ckli build`.
+- Create commits in the "dev/" associated branch, see below.
+- Use `ckli build` to produce CI builds from the "dev/" branches or `ckli publish` to merge "dev/" into their associated branch.
 
 # Database-less approach.
 Commits that have been built are tagged with the produced version. These tags are annotated with the "build content":
@@ -41,12 +41,11 @@ There's two parts in the "CK workflow", the "hot zone" is based on the root, req
 - Then come the `beta`, `delta`, `epsilon`, `gamma`, `kappa` and `pre` branches that must contain increasingly "better", "more stable" code.
 - The `rc` branch is the "best" pre release branch. It aims to be merged in `stable` sooner or later.
 
-The "cold zone" is somehow optional: it is based on "fix/" branches that are created on **Major.Minor** released versions ("fix/v1.0", "fix/v2.4", etc.)
-when a fix of an old release needs to be produced. To prepare the release of a fix, the command `ckli branch fix 1.2` creates the branch if needed
-and checks out it on the appropriate commit (that is the last fix of the v1.2.x family).
+The "cold zone" is somehow optional: it is based on "fix/" branches that are created on **Major.Minor** released versions ("fix/v1.0",
+"fix/v2.4", etc.). This is handled by the Fix Workflow.
 
 An optional "dev/" branch can be associated to each of these branches. This introduces another "dimension" in the system: from "dev/" branches,
-"post release" packages can be produced. Regular development should be done in the "dev/" branch but this is not required. When `ckli build` is
+"post release" packages can be produced. Regular development should be done in the "dev/" branch but this is not required. When `ckli publish` is
 executed, one of its first task is to merge the "/dev" branch, if it exists, into the current branch.
 
 __Important:__: From now on, we'll forget the 8 prerelease branches and focus on the "stable" one because:
@@ -72,8 +71,8 @@ Instead, the "dev/" branch must be based on its primary branch:
 + [stable]
 |\
 ```
-CKli is rather aggressive here: once merged (by `ckli build`), the "/dev" branch is deleted. To initiate a new "/dev" branch,
-the command `ckli branch dev stable` can be used create it and this does a little bit more than you may expect:
+CKli is rather aggressive here: once merged (by `ckli publish`), the "/dev" branch is deleted. To initiate a new "/dev" branch,
+the command `ckli branch dev stable` can be used to create it and this does a little bit more than you may expect:
 - The "/dev" branch is created on the source commit.
 - Its dependencies are read (the consumed packages of the build content) and if a post release build exists for a dependency in the World,
   the package is upgraded: a "/dev" branch must always rely on the very last available artifacts of it dependencies.

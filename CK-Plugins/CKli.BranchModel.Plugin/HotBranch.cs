@@ -110,10 +110,10 @@ public sealed class HotBranch
         Throw.DebugAssert( _gitBranch == null );
         // When the "stable" branch doesn't exist, no other HotBranch are instantiated.
         Throw.CheckState( "The root \"stable\" branch cannot be created by this method.", ExistingBaseBranch != null );
-        Throw.DebugAssert( _existingBaseBranch!._gitBranch != null );
+        Throw.DebugAssert( _existingBaseBranch?._gitBranch != null );
         var git = ((IBelongToARepository)_existingBaseBranch!._gitBranch).Repository;
 
-        var baseCommit = _existingBaseBranch!._gitBranch.Tip;
+        var baseCommit = _existingBaseBranch._gitBranch.Tip;
         var c = git.ObjectDatabase.CreateCommit( committer,
                                                  committer,
                                                  $"""
