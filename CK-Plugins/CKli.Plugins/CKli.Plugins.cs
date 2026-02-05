@@ -14,8 +14,7 @@ public static class Plugins
                typeof( ReleaseDatabase.Plugin.ReleaseDatabasePlugin ),
                 typeof( ArtifactHandler.Plugin.ArtifactHandlerPlugin ),
                  typeof( Net8Migration.Plugin.Net8MigrationPlugin ),
-                  typeof( VSSolution.Plugin.VSSolutionPlugin ),
-                   typeof( ShallowSolution.Plugin.ShallowSolutionPlugin ),
+                  typeof( ShallowSolution.Plugin.ShallowSolutionPlugin ),
                     // </AutoSection>
         ] );
     }

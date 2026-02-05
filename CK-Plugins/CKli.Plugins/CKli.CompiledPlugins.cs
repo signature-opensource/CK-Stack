@@ -19,7 +19,7 @@ namespace CKli.Plugins;
 [GeneratedCode("CKli", "0.0.8--0180-dev")]
 public static class CompiledPlugins
 {
-    static ReadOnlySpan<byte> _configSignature => [3,173,21,238,68,33,20,153,65,196,247,186,22,113,238,225,50,98,93,76];
+    static ReadOnlySpan<byte> _configSignature => [211,62,171,226,161,88,216,13,219,96,12,24,217,98,210,185,84,225,242,227];
 
     public static IPluginFactory Get( PluginCollectorContext ctx )
     {
@@ -35,7 +35,6 @@ public static class CompiledPlugins
             new PluginInfo( "CKli.ReleaseDatabase.Plugin", "ReleaseDatabase", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.ArtifactHandler.Plugin", "ArtifactHandler", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.Net8Migration.Plugin", "Net8Migration", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
-            new PluginInfo( "CKli.VSSolution.Plugin", "VSSolution", (PluginStatus)0, "0.0.8--0180-dev/7b7e679638292b03e2d5437cd74268d1357c338f/2026-02-05 13:14:19Z", new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.ShallowSolution.Plugin", "ShallowSolution", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
         };
         PluginInfo plugin;
@@ -60,9 +59,6 @@ public static class CompiledPlugins
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.Net8Migration.Plugin.Net8MigrationPlugin", true, 0, 7 );
         plugin = infos[6];
-        types = (IPluginTypeInfo[])plugin.PluginTypes;
-        types[0] = new PluginTypeInfo( plugin, "CKli.VSSolution.Plugin.VSSolutionPlugin", true, 0, 8 );
-        plugin = infos[7];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.ShallowSolution.Plugin.ShallowSolutionPlugin", true, 0, 5 );
         var pluginCommands = new PluginCommand[]{
@@ -119,16 +115,15 @@ sealed class Generated : IPluginFactory
     {
         var configs = world.DefinitionFile.ReadPluginsConfiguration( monitor );
         Throw.CheckState( "Plugins configurations have already been loaded.", configs != null );
-        var objects = new object[9];
+        var objects = new object[8];
         objects[0] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
         objects[1] = new CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin( new PrimaryPluginContext( _plugins[3], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[2] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ), (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[3] = new CKli.BranchModel.Plugin.BranchModelPlugin( new PrimaryPluginContext( _plugins[0], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[4] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
-        objects[5] = new CKli.ShallowSolution.Plugin.ShallowSolutionPlugin( new PrimaryPluginContext( _plugins[7], configs, world ) );
+        objects[5] = new CKli.ShallowSolution.Plugin.ShallowSolutionPlugin( new PrimaryPluginContext( _plugins[6], configs, world ) );
         objects[6] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[3], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[4], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0], (CKli.ShallowSolution.Plugin.ShallowSolutionPlugin)objects[5] );
         objects[7] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[3], (CKli.Build.Plugin.BuildPlugin)objects[6] );
-        objects[8] = new CKli.VSSolution.Plugin.VSSolutionPlugin( new PrimaryPluginContext( _plugins[6], configs, world ) );
         return PluginCollectionImpl.CreateAndBindCommands( objects, _plugins, _commands, _pluginCommands );
     }
 

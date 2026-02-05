@@ -13,7 +13,7 @@
     <ProjectReference Include="..\CKli.ReleaseDatabase.Plugin\CKli.ReleaseDatabase.Plugin.csproj" />
     <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
     <ProjectReference Include="..\CKli.Net8Migration.Plugin\CKli.Net8Migration.Plugin.csproj" />
-    <PackageReference Include="CKli.VSSolution.Plugin" />
+    
     <ProjectReference Include="..\CKli.ShallowSolution.Plugin\CKli.ShallowSolution.Plugin.csproj" />
   </ItemGroup>
 
