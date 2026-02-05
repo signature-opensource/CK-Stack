@@ -5,7 +5,6 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
-using CKli.VSSolution.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
