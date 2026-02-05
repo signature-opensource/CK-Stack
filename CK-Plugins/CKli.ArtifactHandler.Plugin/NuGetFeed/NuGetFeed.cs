@@ -88,10 +88,10 @@ public sealed class NuGetFeed
     /// <para>
     /// Notes to developers/testers of CKli: This also applies to a local folder feed.
     /// To allow write to the local folder, you can use the same key as the one required
-    /// to push to a local git repository (that is "FILESYSTEM_GIT_WRITE_PAT") and register
+    /// to push to a local git repository (that is "FILESYSTEM_GIT") and register
     /// a "don't care" value in the secret store:
     /// <code>
-    /// dotnet user-secrets set FILESYSTEM_GIT_WRITE_PAT "don't care" --id CKli-Test
+    /// dotnet user-secrets set FILESYSTEM_GIT "don't care" --id CKli-Test
     /// </code>
     /// Note: the <c>CKli-Test</c> depends on the test host that is running.
     /// </para>

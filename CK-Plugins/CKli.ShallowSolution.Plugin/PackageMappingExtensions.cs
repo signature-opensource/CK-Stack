@@ -1,9 +1,9 @@
 using CSemVer;
 using System.Diagnostics.CodeAnalysis;
 
-namespace CKli.Build.Plugin;
+namespace CKli.ShallowSolution.Plugin;
 
-static class PackageMappingExtensions
+public static class PackageMappingExtensions
 {
     /// <summary>
     /// Gets the mapped version.

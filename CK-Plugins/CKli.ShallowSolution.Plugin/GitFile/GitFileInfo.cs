@@ -20,7 +20,7 @@ sealed class GitFileInfo : IFileInfo, IDirectoryContents
 
     internal GitFileInfo( TreeEntry e, TreeFolder c )
     {
-        Debug.Assert( e.TargetType == TreeEntryTargetType.Blob || e.TargetType == TreeEntryTargetType.Tree );
+        Throw.DebugAssert( e.TargetType == TreeEntryTargetType.Blob || e.TargetType == TreeEntryTargetType.Tree );
         _e = e;
         _c = c;
     }

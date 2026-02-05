@@ -3,6 +3,7 @@ using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
+using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using CKli.VSSolution.Plugin;
 using CSemVer;
@@ -21,7 +22,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     readonly RepositoryBuilderPlugin _repoBuilder;
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
-    readonly VSSolutionPlugin _solutionPlugin;
+    readonly ShallowSolutionPlugin _solutionPlugin;
 
     public BuildPlugin( PrimaryPluginContext primaryContext,
                         VersionTagPlugin versionTags,
@@ -29,7 +30,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                         RepositoryBuilderPlugin repoBuilder,
                         ReleaseDatabasePlugin releaseDatabase,
                         ArtifactHandlerPlugin artifactHandler,
-                        VSSolutionPlugin solutionPlugin )
+                        ShallowSolutionPlugin solutionPlugin )
         : base( primaryContext )
     {
         _versionTags = versionTags;

@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace CKli.ShallowSolution.Plugin;
 
-sealed class TreeFolder : IDirectoryContents
+sealed class TreeFolder : IDirectoryContents, INormalizedFileProvider
 {
     readonly Tree _t;
 
@@ -31,7 +31,7 @@ sealed class TreeFolder : IDirectoryContents
         return null;
     }
 
-    public IDirectoryContents GetDirectoryContents( NormalizedPath sub )
+    public IDirectoryContents? GetDirectoryContents( NormalizedPath sub )
     {
         if( sub.IsEmptyPath ) return this;
         TreeEntry e = _t[sub];
@@ -39,7 +39,7 @@ sealed class TreeFolder : IDirectoryContents
         {
             return new GitFileInfo( e, this );
         }
-        return NotFoundDirectoryContents.Singleton;
+        return null;
     }
 
     public IEnumerator<IFileInfo> GetEnumerator()

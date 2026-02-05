@@ -1,12 +1,12 @@
 using CSemVer;
 
-namespace CKli.Build.Plugin;
+namespace CKli.ShallowSolution.Plugin;
 
 /// <summary>
 /// Primary package mapping interface. This is a read only view of <see cref="PackageMapper"/>
 /// or a wrapper that can adapt version mapping.
 /// </summary>
-interface IPackageMapping
+public interface IPackageMapping
 {
     /// <summary>
     /// Gets whether there is at least one mapping.

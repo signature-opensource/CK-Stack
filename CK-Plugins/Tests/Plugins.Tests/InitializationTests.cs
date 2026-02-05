@@ -24,7 +24,7 @@ public class InitializationTests
         // good to not make an exception for this case.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
+                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
     }
@@ -42,7 +42,7 @@ public class InitializationTests
         // good to not make an exception for this case.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets set FILESYSTEM_GIT_WRITE_PAT "don't care" --id CKli-CK""",
+                                  """user-secrets set FILESYSTEM_GIT "don't care" --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
 
@@ -87,15 +87,13 @@ public class InitializationTests
         // "ckli fix build" is purely local, it has no impacts on the remotes.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
+                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
 
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
         var context = remotes.Clone( clonedFolder );
-
-        
 
         // cd CK-Core.
         context = context.ChangeDirectory( "CKt-Core" );

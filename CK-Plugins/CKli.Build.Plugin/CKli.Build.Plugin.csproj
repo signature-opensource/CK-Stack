@@ -1,10 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
     <ItemGroup>
         <PackageReference Include="CKli.Plugins.Core" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
       <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
+      <ProjectReference Include="..\CKli.ShallowSolution.Plugin\CKli.ShallowSolution.Plugin.csproj" />
       <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
       <PackageReference Include="CKli.VSSolution.Plugin" />
     </ItemGroup>

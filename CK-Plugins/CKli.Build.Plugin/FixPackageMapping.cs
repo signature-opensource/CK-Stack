@@ -1,3 +1,4 @@
+using CKli.ShallowSolution.Plugin;
 using CSemVer;
 
 namespace CKli.Build.Plugin;
