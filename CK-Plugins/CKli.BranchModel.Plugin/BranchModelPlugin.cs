@@ -3,6 +3,7 @@ using CK.PerfectEvent;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
+using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System;
@@ -13,12 +14,14 @@ using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;
 
+
 public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
 {
     readonly BranchNamespace _namespace;
     readonly VersionTagPlugin _versionTags;
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
+    readonly ShallowSolutionPlugin _shallowSolution;
     readonly PerfectEventSender<FixWorkflowStartEventArgs> _onFixStart;
 
     /// <summary>
@@ -27,7 +30,8 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     public BranchModelPlugin( PrimaryPluginContext primaryContext,
                               VersionTagPlugin versionTags,
                               ReleaseDatabasePlugin releaseDatabase,
-                              ArtifactHandlerPlugin artifactHandler )
+                              ArtifactHandlerPlugin artifactHandler,
+                              ShallowSolutionPlugin shallowSolution )
         : base( primaryContext )
     {
         _namespace = new BranchNamespace( World.Name.LTSName );
@@ -35,6 +39,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         _versionTags = versionTags;
         _releaseDatabase = releaseDatabase;
         _artifactHandler = artifactHandler;
+        _shallowSolution = shallowSolution;
         _onFixStart = new PerfectEventSender<FixWorkflowStartEventArgs>();
     }
 
@@ -116,6 +121,76 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             return success;
         }
     }
+
+    /// <summary>
+    /// Gets the <see cref="HotGraph"/> for a <see cref="BranchName"/>.
+    /// <para>
+    /// This calls <see cref="CheckBasicPreconditions(IActivityMonitor, string, out IReadOnlyList{Repo}?)"/>.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The required monitor.</param>
+    /// <param name="pivot">Optional pivot of the graph.</param>
+    /// <param name="branchName">The branch name.</param>
+    /// <returns>The graph or null on error.</returns>
+    public HotGraph? GetHotGraph( IActivityMonitor monitor, Repo? pivot, BranchName branchName )
+    {
+        using( monitor.OpenTrace( pivot != null
+                                    ? $"Computing Hot graph for '{branchName}' from '{pivot.DisplayPath}'."
+                                    : $"Computing Hot graph for '{branchName}'.") )
+        {
+            var allRepos = World.GetAllDefinedRepo( monitor );
+            if( allRepos == null ) return null;
+            using( monitor.OpenTrace( $"Checking Branch Model issues." ) )
+            {
+                bool success = true;
+                foreach( var repo in allRepos )
+                {
+                    success &= !Get( monitor, repo ).HasIssues;
+                }
+                if( !success )
+                {
+                    monitor.Error( $"Please fix any issue before continuing." );
+                }
+            }
+            // If we have a pivot, we align the requested branch name on the actual
+            // best branch that this pivot contains.
+            if( pivot != null )
+            {
+                var branchInfo = Get( monitor, pivot );
+                var b = branchInfo.FindClosestGitBranch( branchName );
+                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b != null );
+                var actual = _namespace.Branches[b.FriendlyName];
+                if( actual != branchName )
+                {
+                    monitor.Info( $"Repository '{pivot.DisplayPath}' has no branch '{branchName}', considering the closest on that is '{actual}'." );
+                    branchName = actual;
+                }
+            }
+            // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
+            // instances.
+            var graph = new HotGraph( this, branchName, allRepos.Count, pivot );
+            foreach( var repo in allRepos )
+            {
+                var branchInfo = Get( monitor, repo );
+                var b = branchInfo.FindClosestGitBranch( branchName );
+                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b != null );
+                var actual = _namespace.Branches[b.FriendlyName];
+                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b );
+                if( shallow == null ) return null;
+                if( !graph.AddSolution( monitor, repo, branchInfo, actual, shallow ) )
+                {
+                    return null;
+                }
+            }
+            // The solutions have been successfully added. The mappings from "package name" (that are the project names)
+            // to the solutions are non ambiguous. We can start the topological sort.
+            // The sort starts with the pivot if it exits (this will walk all the dependencies and sets the IsPivotUpstream).
+            return graph.Sort( monitor ) ? graph : null;
+        }
+    }
+
+
+
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
     {
         var git = repo.GitRepository.Repository;
@@ -139,7 +214,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         CreateChildren( monitor, root, repo, git, index, ref removable, ref desynchronized, ref unrelated );
         Throw.DebugAssert( index.Count == _namespace.Branches.Count );
         // Traversal has been done top-down. If branches can be removed this must be done bottom-up
-        // so we reverse the list?
+        // so we reverse the list.
         if( removable != null ) removable.Reverse();
         // Currently we consider that removable branches is an issue.
         // This is clearly a bit too strong but simplifies the build initialization.

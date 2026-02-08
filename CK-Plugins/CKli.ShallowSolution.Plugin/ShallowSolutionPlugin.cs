@@ -14,15 +14,9 @@ using System.Xml.Linq;
 namespace CKli.ShallowSolution.Plugin;
 
 /// <summary>
-/// Provides a shallow analysis of the content regarding projects and dependencies in any commit.
+/// Provides shallow analysis of the content regarding projects and dependencies in any commit.
 /// <para>
-/// This starts from a root .slnx file (.sln is not supported) with the same name as the repository (the last part
-/// of the <see cref="Repo.DisplayPath"/>). Only .csproj referenced by the root .slnx are considered as well as
-/// all "Directory.Packages.props" and "Directory.Build.props" that can be found from the .csproj folders up to
-/// the repository root.
-/// </para>
-/// <para>
-/// This is simple, rather "brutal" but covers our current needs.
+/// This is simple (rather "brutal") but covers our current needs.
 /// </para>
 /// </summary>
 public sealed class ShallowSolutionPlugin : PrimaryPluginBase
@@ -57,14 +51,6 @@ public sealed class ShallowSolutionPlugin : PrimaryPluginBase
     }
 
     /// <summary>
-    /// Gets the content of the commit.
-    /// </summary>
-    /// <param name="commit">The commit.</param>
-    /// <returns>The commit's content.</returns>
-    public INormalizedFileProvider GetFiles( Commit commit ) => GetFiles( commit.Tree );
-
-
-    /// <summary>
     /// Gets the content of a <see cref="Tree"/>.
     /// </summary>
     /// <param name="tree">The Tree.</param>
@@ -77,6 +63,62 @@ public sealed class ShallowSolutionPlugin : PrimaryPluginBase
             _gitContents.Add( tree.Sha, content );
         }
         return content;
+    }
+
+    /// <summary>
+    /// Creates a <see cref="GitSolution"/> from a root ".slnx" file that must be conventionally named
+    /// with the current repository name: this is used in the "Hot Zone", we don't handles renaming or
+    /// legacy .sln format here as the "Hot Zone" is up-to-date by design.
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The repository.</param>
+    /// <param name="branch">The branch from which a the solution must be read.</param>
+    /// <returns>The solution or null on error.</returns>
+    public GitSolution? GetShallowSolution( IActivityMonitor monitor, Repo repo, Branch branch )
+    {
+        Throw.CheckArgument( !branch.IsRemote );
+        var (files,doc) = GetSolutionXDocument( monitor, repo, branch );
+        if( doc == null )
+        {
+            return null;
+        }
+        var s = new GitSolution( repo, branch.Tip );
+        if( !CommonSolution.LoadAllProjectFiles( monitor,
+                                                 files,
+                                                 doc.Root!,
+                                                 LoadOptions.PreserveWhitespace,
+                                                 s.AddProjectFile ) )
+        {
+            return null;
+        }
+        return s;
+    }
+
+    (INormalizedFileProvider, XDocument?) GetSolutionXDocument( IActivityMonitor monitor, Repo repo, Branch branch )
+    {
+        var gitFromBranch = ((IBelongToARepository)branch).Repository;
+        Throw.CheckArgument( repo.GitRepository.Repository == gitFromBranch );
+        var root = GetFiles( branch.Tip );
+        var expectedName = repo.DisplayPath.LastPart + ".slnx";
+
+        var solutionInfo = root.GetFileInfo( expectedName );
+        if( solutionInfo == null )
+        {
+            monitor.Error( $"Expecting file '{expectedName}' in '{repo.DisplayPath}', branch '{branch.FriendlyName}'." );
+            return (root, null);
+        }
+        try
+        {
+            using var stream = solutionInfo.CreateReadStream();
+            var doc = XDocument.Load( stream, LoadOptions.PreserveWhitespace );
+            Throw.CheckData( "A .slnx file must contain a <Solution> root element.", doc.Root?.Name.LocalName == "Solution" );
+            return (root, doc);
+        }
+        catch( Exception ex )
+        {
+            monitor.Error( $"While loading '{repo.DisplayPath}/{expectedName}' solution in branch '{branch.FriendlyName}'.", ex );
+        }
+        return (root, null);
     }
 
     /// <summary>

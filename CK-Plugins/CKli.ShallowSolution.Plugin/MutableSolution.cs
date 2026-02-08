@@ -1,7 +1,6 @@
 using CK.Core;
 using CKli.Core;
 using CSemVer;
-using Microsoft.Extensions.FileProviders;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,19 +11,13 @@ using System.Xml.Linq;
 namespace CKli.ShallowSolution.Plugin;
 
 /// <summary>
+/// Encapsulates a .slnx solution in file system directory (a checked out commit).
 /// <para>
-/// Updating packages references is not that easy. "dotnet package update" is rather useless (it works only on a single project and
-/// when packages to update are not found, it "Updating outdated packages in ..." and we absolutely don't want this).
+/// This handles migration from legacy .sln and change of solution name (if one and only
+/// one .sln or .slnx exists at the root).
 /// </para>
 /// <para>
-/// More complex solutions exist but... https://github.com/dotnet-outdated use msbuild and lockfile (project.assets.json)
-/// with NuGet.ProjectModel, https://github.com/RicoSuter/DNT use msbuild (and a bit of BuildAlyzer)
-/// and https://github.com/Buildalyzer/Buildalyzer is not really needed here.
-/// </para>
-/// <para>
-/// This implementation is brutal: we consider all the projects in the solution (that must be a .slnx: this automatically calls
-/// "dotnet sln migrate" on a legacy sln) and any Directory.Package.props or Directory.Build.props files from their folder to
-/// the solution root and updates the PackageVersion or PackageReference elements.
+/// The only currently supported operation is <see cref="UpdatePackages"/>.
 /// </para>
 /// </summary>
 public sealed class MutableSolution
@@ -39,7 +32,7 @@ public sealed class MutableSolution
     }
 
     /// <summary>
-    /// Updating packages references is not that easy. dotnet package update" is rather useless (it works only on a
+    /// Updating packages references is not that easy. "dotnet package update" is rather useless (it works only on a
     /// single project and when packages to update are not found, it "Updating outdated packages in ..." and we absolutely
     /// don't want this).
     /// <para>
@@ -61,11 +54,16 @@ public sealed class MutableSolution
     {
         if( !mapping.IsEmpty )
         {
-            var projectFiles = LoadAllProjectFiles( monitor,
-                                                    new CheckedOutFileProvider( _repo.WorkingFolder ),
-                                                    _solution.Root!,
-                                                    LoadOptions.PreserveWhitespace );
-            if( projectFiles == null )
+            var projectFiles = new List<(NormalizedPath Path, XElement Project)>();
+            if( !CommonSolution.LoadAllProjectFiles( monitor,
+                                                     new CheckedOutFileProvider( _repo.WorkingFolder ),
+                                                     _solution.Root!,
+                                                     LoadOptions.PreserveWhitespace,
+                                                     ( monitor, path, project ) =>
+                                                     {
+                                                         projectFiles.Add( (path, project) );
+                                                         return true;
+                                                     } ) )
             {
                 return false;
             }
@@ -73,14 +71,14 @@ public sealed class MutableSolution
             {
                 foreach( var p in projectFiles )
                 {
-                    if( !UpdateVersions( monitor, p.Path, p.Doc, mapping, updated ) )
+                    if( !UpdateVersions( monitor, p.Path, p.Project, mapping, updated ) )
                     {
                         return false;
                     }
                 }
                 foreach( var p in projectFiles )
                 {
-                    XmlHelper.SaveWithoutXmlDeclaration( p.Doc, p.Path );
+                    XmlHelper.SaveWithoutXmlDeclaration( p.Project.Document!, _repo.WorkingFolder.Combine( p.Path ) );
                 }
             }
         }
@@ -88,20 +86,15 @@ public sealed class MutableSolution
 
         static bool UpdateVersions( IActivityMonitor monitor,
                                     string path,
-                                    XDocument doc,
+                                    XElement projectRoot,
                                     IPackageMapping mapping,
                                     PackageMapper updated )
         {
-            if( doc.Root == null )
-            {
-                monitor.Error( $"Invalid Xml document in '{path}'." );
-                return false;
-            }
             if( Path.GetFileName( path.AsSpan() ).Equals( "Directory.Package.props", StringComparison.OrdinalIgnoreCase ) )
             {
-                foreach( var e in doc.Root.Descendants( "PackageVersion" ) )
+                foreach( var e in projectRoot.Descendants( "PackageVersion" ) )
                 {
-                    var name = GetIncludedName( monitor, path, e );
+                    var name = CommonSolution.GetIncludedName( monitor, path, e, LogLevel.Warn );
                     if( name != null && mapping.HasMapping( name ) )
                     {
                         if( !UpdateVersion( monitor, path, e, name, "Version", "Version", mapping, updated ) )
@@ -113,16 +106,16 @@ public sealed class MutableSolution
             }
             else
             {
-                foreach( var e in doc.Root.Descendants( "PackageReference" ) )
+                foreach( var e in projectRoot.Descendants( "PackageReference" ) )
                 {
-                    var name = GetIncludedName( monitor, path, e );
+                    var name = CommonSolution.GetIncludedName( monitor, path, e, LogLevel.Warn );
                     if( name != null && mapping.HasMapping( name ) )
                     {
                         if( !UpdateVersion( monitor, path, e, name, "VersionOverride", null, mapping, updated ) )
                         {
                             return false;
                         }
-                        if( !UpdateVersion( monitor, path, e, name, "Version", "Version or VersionOverride", mapping, updated ) )
+                        if( !UpdateVersion( monitor, path, e, name, "Version", null, mapping, updated ) )
                         {
                             return false;
                         }
@@ -130,21 +123,6 @@ public sealed class MutableSolution
                 }
             }
             return true;
-
-            static string? GetIncludedName( IActivityMonitor monitor, string path, XElement e )
-            {
-                var name = e.Attribute( "Include" )?.Value;
-                if( string.IsNullOrEmpty( name ) )
-                {
-                    monitor.Warn( $"""
-                            Missing Include attribute in:
-                            {e}
-                            in '{path}'.
-                            """ );
-                    return null;
-                }
-                return name;
-            }
 
             static bool UpdateVersion( IActivityMonitor monitor,
                                        string path,
@@ -155,44 +133,36 @@ public sealed class MutableSolution
                                        IPackageMapping map,
                                        PackageMapper updated )
             {
-                var a = e.Attribute( attributeName );
-                if( a == null )
+               if( !CommonSolution.ReadVersionAttribute( monitor,
+                                                         path,
+                                                         e,
+                                                         attributeName,
+                                                         attributeRequiredMessage,
+                                                         out XAttribute? a,
+                                                         out SVersion? from ) )
                 {
-                    if( attributeRequiredMessage != null )
-                    {
-                        monitor.Error( $"""
-                        Expected {attributeRequiredMessage} in:
-                        {e}
-                        In file '{path}'.
-                        """ );
-                        return false;
-                    }
-                    return true;
-                }
-                var from = SVersion.TryParse( a.Value );
-                if( !from.IsValid )
-                {
-                    monitor.Error( $"""
-                        Unable to parse {attributeName.LocalName} in:
-                        {e}
-                        Error: {from.ErrorMessage}
-                        In file '{path}'.
-                        """ );
                     return false;
                 }
-                if( map.TryGetMappedVersion( packageId, from, out var to ) )
+                if( from != null )
                 {
-                    a.SetValue( to.ToString() );
-                    updated.TryAdd( packageId, from, to );
-                }
-                else
-                {
-                    monitor.Warn( $"""
+                    Throw.DebugAssert( a != null );
+                    if( map.TryGetMappedVersion( packageId, from, out var to ) )
+                    {
+                        if( from != to )
+                        {
+                            a.SetValue( to.ToString() );
+                            updated.TryAdd( packageId, from, to );
+                        }
+                    }
+                    else
+                    {
+                        monitor.Warn( $"""
                         Unhandled version in:
                         {e}
                         The package '{packageId}'' version map is: {map.ToString()}.
                         In file '{path}'.
                         """ );
+                    }
                 }
                 return true;
             }
@@ -220,9 +190,8 @@ public sealed class MutableSolution
         }
         try
         {
-            var doc = XDocument.Load( slnOrSlnxPath );
-            Throw.CheckData( "A .slnx file must contain a <Solution> root element.",
-                              doc.Root?.Name.LocalName == "Solution" );
+            var doc = XDocument.Load( slnOrSlnxPath, LoadOptions.PreserveWhitespace );
+            Throw.CheckData( "A .slnx file must contain a <Solution> root element.", doc.Root?.Name.LocalName == "Solution" );
             return new MutableSolution( repo, doc );
         }
         catch( Exception ex )
@@ -238,27 +207,46 @@ public sealed class MutableSolution
         {
             return false;
         }
-        if( isLegacySln )
-        {
-            Throw.DebugAssert( mustRenameFile );
-            var args = $"""sln migrate "{path.LastPart}" """;
-            var e = ProcessRunner.RunProcess( monitor.ParallelLogger, "dotnet", args, repo.WorkingFolder );
-            if( e != 0 )
-            {
-                monitor.Error( $"Running 'dotnet {args}' failed with code '{e}'." );
-                return false;
-            }
-        }
-        if( mustRenameFile )
+        if( isLegacySln || mustRenameFile )
         {
             var target = repo.WorkingFolder.AppendPart( repo.DisplayPath.LastPart + ".slnx" );
-            File.Move( path, target );
-            path = target;
+            Throw.DebugAssert( "Or we won't be here.", !File.Exists( target ) );
+            if( isLegacySln )
+            {
+                using( monitor.OpenInfo( $"Migrating '{path.LastPart}'." ) )
+                {
+                    Throw.DebugAssert( mustRenameFile );
+                    var args = $"""sln migrate "{path.LastPart}" """;
+                    var e = ProcessRunner.RunProcess( monitor.ParallelLogger, "dotnet", args, repo.WorkingFolder );
+                    if( e != 0 )
+                    {
+                        monitor.Error( $"Running 'dotnet {args}' failed with code '{e}'." );
+                        return false;
+                    }
+                    // Successful migration:
+                    // - The old .sln file can be deleted.
+                    // - The path is now a .slnx file.
+                    FileHelper.DeleteFile( monitor, path );
+                    path = path.Path + 'x';
+                    // This may be our target. Rather than testing path == target (case insensitive?), challenge the
+                    // file system.
+                    mustRenameFile = !File.Exists( target );
+                }
+            }
+            if( mustRenameFile )
+            {
+                monitor.Info( $"Renaming '{path.LastPart}' to '{target.LastPart}'." );
+                File.Move( path, target );
+                path = target;
+            }
         }
         return true;
     }
 
-    static void WarnOnCaseIssue( IActivityMonitor monitor, NormalizedPath folder, string expectedName, string? displayFolder = null )
+    static void WarnOnCaseIssue( IActivityMonitor monitor,
+                                 NormalizedPath folder,
+                                 string expectedName,
+                                 string? displayFolder = null )
     {
         // Lookup from the parent with the name as a pattern.
         var actualFileName = Path.GetFileName( Directory.EnumerateFileSystemEntries( folder, expectedName ).First().AsSpan() );
@@ -349,19 +337,21 @@ public sealed class MutableSolution
             path = default;
             return false;
         }
+        // First: the exact .sln name (regular legacy case).
+        if( foundExactSln != null )
+        {
+            monitor.Warn( $"Found legacy solution file '{Path.GetFileName( foundExactSln.AsSpan() )}'." );
+            path = foundExactSln;
+            isLegacySln = true;
+            return true;
+        }
+        // Now we should have at least a .sln or a .slnx, otherwise we cannot do anything.
         if( foundSln1 == null && foundSlnx1 == null )
         {
             // No candidate.
             monitor.Error( $"Unable to find any .slnx or .sln file in '{repo.DisplayPath}'." );
             path = default;
             return false;
-        }
-        // First: the exact .sln name.
-        if( foundExactSln != null )
-        {
-            path = foundExactSln;
-            isLegacySln = true;
-            return true;
         }
         // Second: the .slnx file (unless there are more than one).
         if( foundSlnx1 != null )
@@ -376,6 +366,7 @@ public sealed class MutableSolution
                 path = default;
                 return false;
             }
+            monitor.Warn( $"Expecting '{expectedName}'. Considering single '{Path.GetFileName( foundSlnx1.AsSpan() )}' file." );
             path = foundSlnx1;
             return true;
         }
@@ -391,99 +382,11 @@ public sealed class MutableSolution
             path = default;
             return false;
         }
+        monitor.Warn( $"Expecting '{expectedName}'. Considering single legacy '{Path.GetFileName( foundSln1.AsSpan() )}' file." );
         path = foundSln1;
         return true;
     }
 
-    static List<(NormalizedPath Path, XDocument Doc)>? LoadAllProjectFiles( IActivityMonitor monitor,
-                                                                            INormalizedFileProvider files,
-                                                                            XElement solution,
-                                                                            LoadOptions loadOptions )
-    {
-        var dedupFolders = new HashSet<string>();
-        var projectFiles = new List<(NormalizedPath Path, XDocument Doc)>();
-        foreach( var xmlProject in solution.Elements( "Project" ) )
-        {
-            NormalizedPath path = (string?)xmlProject.Attribute( "Path" );
-            if( !path.IsEmptyPath )
-            {
-                var fInfo = files.GetFileInfo( path );
-                if( fInfo == null )
-                {
-                    monitor.Warn( $"Missing file '{path}' declared by '{xmlProject}'." );
-                }
-                else
-                {
-                    if( !LoadProjectFile( monitor, files, projectFiles, fInfo, path, loadOptions )
-                        || !LoadDirectoryFiles( monitor, files, projectFiles, path.RemoveLastPart(), dedupFolders, loadOptions ) )
-                    {
-                        return null;
-                    }
-                }
-            }
-        }
-        return projectFiles;
-
-        static bool LoadProjectFile( IActivityMonitor monitor,
-                                     INormalizedFileProvider files,
-                                     List<(NormalizedPath Path, XDocument Doc)> projectFiles,
-                                     IFileInfo fInfo,
-                                     NormalizedPath path,
-                                     LoadOptions loadOptions )
-        {
-            try
-            {
-                using var stream = fInfo.CreateReadStream();
-                var d = XDocument.Load( stream, loadOptions );
-                projectFiles.Add( (path, d) );
-            }
-            catch( Exception ex )
-            {
-                monitor.Error( $"Unable to load file '{path}'.", ex );
-                return false;
-            }
-            return true;
-        }
-
-        static bool LoadDirectoryFiles( IActivityMonitor monitor,
-                                        INormalizedFileProvider files,
-                                        List<(NormalizedPath Path, XDocument Doc)> projectFiles,
-                                        NormalizedPath path,
-                                        HashSet<string> dedupFolders,
-                                        LoadOptions loadOptions )
-        {
-            if( path.IsEmptyPath || !dedupFolders.Add( path ) )
-            {
-                return true;
-            }
-            if( !LoadOptional( monitor, files, projectFiles, path, loadOptions, "Directory.Packages.props" ) )
-            {
-                return false;
-            }
-            if( !LoadOptional( monitor, files, projectFiles, path, loadOptions, "Directory.Build.props" ) )
-            {
-                return false;
-            }
-            return LoadDirectoryFiles( monitor, files, projectFiles, path.RemoveLastPart(), dedupFolders, loadOptions );
-
-            static bool LoadOptional( IActivityMonitor monitor,
-                                        INormalizedFileProvider files,
-                                        List<(NormalizedPath Path, XDocument Doc)> projectFiles,
-                                        NormalizedPath path,
-                                        LoadOptions loadOptions,
-                                        string fName )
-            {
-                var packageProps = path.AppendPart( fName );
-                var fPackageProps = files.GetFileInfo( packageProps );
-                if( fPackageProps != null && !LoadProjectFile( monitor, files, projectFiles, fPackageProps, packageProps, loadOptions ) )
-                {
-                    return false;
-                }
-                return true;
-            }
-        }
-
-    }
 }
 
 

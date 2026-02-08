@@ -72,7 +72,7 @@ Instead, the "dev/" branch must be based on its primary branch:
 |\
 ```
 CKli is rather aggressive here: once merged (by `ckli publish`), the "/dev" branch is deleted. To initiate a new "/dev" branch,
-the command `ckli branch dev stable` can be used to create it and this does a little bit more than you may expect:
+the command `ckli branch dev/stable` can be used to create it and this does a little bit more than you may expect:
 - The "/dev" branch is created on the source commit.
 - Its dependencies are read (the consumed packages of the build content) and if a post release build exists for a dependency in the World,
   the package is upgraded: a "/dev" branch must always rely on the very last available artifacts of it dependencies.

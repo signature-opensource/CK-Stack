@@ -10,6 +10,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
+using static System.Net.WebRequestMethods;
 
 namespace Plugins.Tests;
 
@@ -24,7 +25,7 @@ public class InitializationTests
         // good to not make an exception for this case.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
+                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
     }
@@ -42,7 +43,7 @@ public class InitializationTests
         // good to not make an exception for this case.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets set FILESYSTEM_GIT "don't care" --id CKli-CK""",
+                                  """user-secrets set FILESYSTEM_GIT_WRITE_PAT "don't care" --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
 
@@ -69,6 +70,7 @@ public class InitializationTests
     [Test]
     public async Task REMOTES_CKt_init_to_initialized_Async()
     {
+        FileHelper.DeleteFolder( TestHelper.Monitor, TestHelper.CKliRemotesPath.AppendPart( "CKt(initialized)" ) );
         await CKt_init_Async();
         TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_init_Async", "CKt", "(initialized)" );
     }
@@ -87,7 +89,7 @@ public class InitializationTests
         // "ckli fix build" is purely local, it has no impacts on the remotes.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
+                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
 
@@ -98,6 +100,23 @@ public class InitializationTests
         // cd CK-Core.
         context = context.ChangeDirectory( "CKt-Core" );
         var display = (StringScreen)context.Screen;
+
+        // From CKt_init:
+        var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/CKt/NuGet" );
+        var initialPackages = Directory.EnumerateFiles( localNuGetFeed )
+                                     .Select( p => Path.GetFileName( p ) )
+                                     .Order()
+                                     .ToArray();
+        initialPackages.ShouldBe( [
+                    "CKt.ActivityMonitor.0.1.0.nupkg",
+                    "CKt.Core.1.0.0.nupkg",
+                    "CKt.Monitoring.0.2.3.nupkg",
+                    "CKt.PerfectEvent.0.2.0.nupkg",
+                    "CKt.PerfectEvent.0.2.1.nupkg",
+                    "CKt.PerfectEvent.0.3.0.nupkg",
+                    "CKt.PerfectEvent.0.3.2.nupkg"
+                    ] );
+
 
         using( TestHelper.Monitor.CollectTexts( out var logs ) )
         {
@@ -121,7 +140,6 @@ public class InitializationTests
 
             """ );
 
-        var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/CKt/NuGet" );
 
         using( TestHelper.Monitor.OpenInfo( "First 'ckli fix build' => triggers the Net8 migration." ) )
         {
@@ -131,6 +149,7 @@ public class InitializationTests
 
             var files = Directory.EnumerateFiles( localNuGetFeed )
                                  .Select( p => Path.GetFileName( p ) )
+                                 .Except( initialPackages )
                                  .Order()
                                  .ToArray();
             // The 2 CKt.PerfectEvent have a commit depth of 3 because:
@@ -161,6 +180,7 @@ public class InitializationTests
 
             var files = Directory.EnumerateFiles( localNuGetFeed )
                                  .Select( p => Path.GetFileName( p ) )
+                                 .Except( initialPackages )
                                  .Order()
                                  .ToArray();
             files.ShouldBe( [
@@ -214,7 +234,8 @@ public class InitializationTests
     [Test]
     public async Task REMOTES_CKt_initialized_to_localFixed_Async()
     {
-        //await CKt_local_fix_Async();
+        FileHelper.DeleteFolder( TestHelper.Monitor, TestHelper.CKliRemotesPath.AppendPart( "CKt(localFixed)" ) );
+        await CKt_local_fix_Async();
         TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_local_fix_Async", "CKt", "(localFixed)" );
     }
 

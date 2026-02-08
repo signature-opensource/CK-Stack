@@ -123,7 +123,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return true;
     }
 
-
     static bool HandleForceSkipTests( IActivityMonitor monitor, bool skipTests, bool forceTests, out bool? runTest )
     {
         runTest = null;

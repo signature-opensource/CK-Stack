@@ -1,4 +1,6 @@
+using CK.Core;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 
 namespace CKli.BranchModel.Plugin;
@@ -6,6 +8,7 @@ namespace CKli.BranchModel.Plugin;
 /// <summary>
 /// Branch in the <see cref="BranchModelPlugin.BranchNamespace"/>.
 /// </summary>
+[DebuggerDisplay( "{ToString(),nq}" )]
 public sealed class BranchName
 {
     readonly string _name;
@@ -84,6 +87,47 @@ public sealed class BranchName
     [MemberNotNullWhen( false, nameof( DevBranch ) )]
     [MemberNotNullWhen( true, nameof( Base ) )]
     public bool IsDevBranch => _devBranch == null;
+
+    /// <summary>
+    /// Gets the branch names from this one up to the stable one.
+    /// <para>
+    /// When <see cref="IsDevBranch"/> is true, this returns the interleaved base dev/ branches.
+    /// For instance, fallbacks of "dev/pre" branch are:
+    /// <c>dev/pre, pre, dev/rc, rc, dev/stable, stable</c>.  
+    /// </para>
+    /// </summary>
+    public IEnumerable<BranchName> Fallbacks
+    {
+        get
+        {
+            return _devBranch != null ? RegularFallbacks( this ) : DevFallbacks( this );
+
+            static IEnumerable<BranchName> DevFallbacks( BranchName from )
+            {
+                var b = from;
+                do
+                {
+                    Throw.DebugAssert( "We are on a dev/XXX branch.", b._base != null );
+                    yield return b; // dev/XXX
+                    b = b._base;
+                    yield return b; // XXX
+                    b = b._base;
+                }
+                while( b != null );
+            }
+
+            static IEnumerable<BranchName> RegularFallbacks( BranchName from )
+            {
+                var b = from;
+                do
+                {
+                    yield return b;
+                    b = b._base;
+                }
+                while( b != null );
+            }
+        }
+    }
 
     /// <summary>
     /// Returns the <see cref="Name"/>.

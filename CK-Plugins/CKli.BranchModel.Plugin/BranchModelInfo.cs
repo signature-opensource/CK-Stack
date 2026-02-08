@@ -4,6 +4,7 @@ using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using LogLevel = CK.Core.LogLevel;
 
@@ -50,12 +51,23 @@ public sealed partial class BranchModelInfo : RepoInfo
     /// <summary>
     /// Gets all the <see cref="HotBranch"/> indexed by their name.
     /// Their git <see cref="HotBranch.GitBranch"/> may be null.
-    /// <para>
-    /// When <see cref="HasIssues"/> is true there may be only the <see cref="Root"/> in this dictionary:
-    /// the "stable" root branch is missing.
-    /// </para>
     /// </summary>
     public IReadOnlyDictionary<string, HotBranch> Branches => _branches;
+
+    /// <summary>
+    /// Finds the "closest" existing branch in this Repo according to <see cref="BranchName.Fallbacks"/>.
+    /// <para>
+    /// This never returns null if <see cref="HasIssues"/> is false: the ultimate branch is the "stable" one.
+    /// </para>
+    /// </summary>
+    /// <param name="name">The branch name.</param>
+    /// <returns>The git branch or null (only if the "stable" branch doesn't exist).</returns>
+    public Branch? FindClosestGitBranch( BranchName name )
+    {
+        return name.Fallbacks.Select( n => _branches.GetValueOrDefault( n.Name )?.GitBranch )
+                             .Where( b => b != null )
+                             .FirstOrDefault();
+    }
 
     /// <summary>
     /// Gets the root branch.
@@ -67,6 +79,8 @@ public sealed partial class BranchModelInfo : RepoInfo
     /// Gets whether one or more issues must be resolved before anything serious can be done with this repository.
     /// </summary>
     public bool HasIssues => _hasIssues;
+
+
 
     internal void CollectIssues( IActivityMonitor monitor,
                                  VersionTagInfo tags,
