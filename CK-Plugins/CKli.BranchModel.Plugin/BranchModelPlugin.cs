@@ -131,14 +131,16 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// </para>
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
-    /// <param name="pivot">Optional pivot of the graph.</param>
     /// <param name="branchName">The branch name.</param>
+    /// <param name="pivots">Optional pivots of the graph.</param>
     /// <returns>The graph or null on error.</returns>
-    public HotGraph? GetHotGraph( IActivityMonitor monitor, Repo? pivot, BranchName branchName )
+    public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, params IEnumerable<Repo> pivots )
     {
-        using( monitor.OpenTrace( pivot != null
-                                    ? $"Computing Hot graph for '{branchName}' from '{pivot.DisplayPath}'."
-                                    : $"Computing Hot graph for '{branchName}'.") )
+        var pivotSet = new HashSet<Repo>( pivots );
+        var displayPivots = pivotSet.Count != 0
+                                ? $"'{pivotSet.OrderBy( r => r.Index ).Select( r => r.DisplayPath.Path ).Concatenate( "', '" )}'"
+                                : "all repositories";
+        using( monitor.OpenTrace( $"Computing Hot Graph from '{branchName}' for {displayPivots}." ) )
         {
             var allRepos = World.GetAllDefinedRepo( monitor );
             if( allRepos == null ) return null;
@@ -155,23 +157,12 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                     return null;
                 }
             }
-            // If we have a pivot, we align the requested branch name on the actual
-            // best branch that this pivot contains.
-            if( pivot != null )
-            {
-                var branchInfo = Get( monitor, pivot );
-                var b = branchInfo.FindClosestGitBranch( branchName );
-                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b != null );
-                var actual = _namespace.Branches[b.FriendlyName];
-                if( actual != branchName )
-                {
-                    monitor.Info( $"Repository '{pivot.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{actual}'." );
-                    branchName = actual;
-                }
-            }
+            // Finds the most instable existing branch among the pivots (or among all the repositories).
+            branchName = FindMostInstableBranchFrom( monitor, branchName, pivotSet.Count > 0 ? pivotSet : allRepos );
+
             // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
             // instances.
-            var graph = new HotGraph( this, branchName, allRepos.Count, pivot );
+            var graph = new HotGraph( this, branchName, allRepos.Count, pivotSet );
             foreach( var repo in allRepos )
             {
                 var branchInfo = Get( monitor, repo );
@@ -192,7 +183,38 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         }
     }
 
+    BranchName FindMostInstableBranchFrom( IActivityMonitor monitor, BranchName branchName, IEnumerable<Repo> pivots )
+    {
+        BranchName? mostInstable = null;
+        foreach( var p in pivots )
+        {
+            var b = Get( monitor, p ).FindClosestGitBranch( branchName );
+            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b != null );
+            var actual = _namespace.Branches[b.FriendlyName];
+            if( actual != branchName )
+            {
+                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{actual}'." );
+            }
+            // Finding the most instable branch.
+            if( mostInstable == null || mostInstable.InstabilityRank < actual.InstabilityRank )
+            {
+                mostInstable = actual;
+            }
+        }
+        // Finalizing: if the existing branch is a non dev/ branch, fix this if the requested branch name was a dev/ one. 
+        Throw.DebugAssert( mostInstable != null );
+        if( branchName.IsDevBranch && !mostInstable.IsDevBranch )
+        {
+            mostInstable = mostInstable.DevBranch;
+        }
+        if( mostInstable != branchName )
+        {
+            monitor.Info( $"Eventually considering branch '{mostInstable}'." );
+            branchName = mostInstable;
+        }
 
+        return branchName;
+    }
 
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
     {

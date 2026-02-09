@@ -18,16 +18,16 @@ public sealed class HotGraph
 {
     readonly BranchModelPlugin _branchModel;
     readonly BranchName _branchName;
-    readonly Repo? _pivot;
+    readonly HashSet<Repo> _pivots;
     readonly Solution[] _solutions;
     readonly Dictionary<string, Solution> _p2s;
     int _maxRank;
 
-    internal HotGraph( BranchModelPlugin branchModel, BranchName branchName, int count, Repo? pivot )
+    internal HotGraph( BranchModelPlugin branchModel, BranchName branchName, int count, HashSet<Repo> pivots )
     {
         _branchModel = branchModel;
         _branchName = branchName;
-        _pivot = pivot;
+        _pivots = pivots;
         _p2s = new Dictionary<string, Solution>();
         _solutions = new Solution[count];
     }
@@ -42,9 +42,9 @@ public sealed class HotGraph
     public BranchName BranchName => _branchName;
 
     /// <summary>
-    /// Gets the pivot repository if it has been specified.
+    /// Gets the pivots repositories if some has been specified.
     /// </summary>
-    public Repo? Pivot => _pivot;
+    public IReadOnlySet<Repo> Pivots => _pivots;
 
     /// <summary>
     /// Gets the ordered list of solutions.
@@ -98,17 +98,17 @@ public sealed class HotGraph
         public int Rank => _rank;
 
         /// <summary>
-        /// Gets whether this solution is the <see cref="HotGraph.Pivot"/>.
+        /// Gets whether this solution is the <see cref="HotGraph.Pivots"/>.
         /// </summary>
-        public bool IsPivot => _solution.Repo == _graph._pivot;
+        public bool IsPivot => _graph._pivots.Contains( _solution.Repo );
 
         /// <summary>
-        /// Gets whether this solution is a predecessor (a producer of packages) of the specified <see cref="HotGraph.Pivot"/>.
+        /// Gets whether this solution is a predecessor (a producer of packages) of one of the specified <see cref="HotGraph.Pivots"/>.
         /// </summary>
         public bool IsPivotUpstream => _isPivotUpstream;
 
         /// <summary>
-        /// Gets whether this solution is a successor (a consumer) of the specified <see cref="HotGraph.Pivot"/>.
+        /// Gets whether this solution is a successor (a consumer) of one of the specified <see cref="HotGraph.Pivots"/>.
         /// </summary>
         public bool IsPivotDownstream => _isPivotDownstream;
 
@@ -143,7 +143,7 @@ public sealed class HotGraph
             {
                 if( _graph._p2s.TryGetValue( c.PackageId, out Solution? required ) )
                 {
-                    _isPivotDownstream |= required.Repo == _graph._pivot;
+                    _isPivotDownstream |= _graph._pivots.Contains( required.Repo );
                     if( !required.UpdateRank( monitor, out int reqRank, ref cycle, isPivotUpstream, out bool isThisPivotDownstream ) )
                     {
                         Throw.DebugAssert( cycle != null );
@@ -242,9 +242,9 @@ public sealed class HotGraph
         // that s filled while rewinding the stack.
         // This should barely happen.
         List<string>? cycle = null;
-        if( _pivot != null )
+        foreach( var pivot in _pivots )
         {
-            var sPivot = _solutions[_pivot.Index];
+            var sPivot = _solutions[pivot.Index];
             if( !sPivot.UpdateRank( monitor, out _, ref cycle, isPivotUpstream: true, out _ ) )
             {
                 monitor.Error( $"Cycle detected between solutions: {cycle.Concatenate()}." );

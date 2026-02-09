@@ -8,6 +8,8 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using LogLevel = CK.Core.LogLevel;
@@ -41,41 +43,13 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         World.Events.Issue += IssueRequested;
     }
 
-    [Description( "Build-Test-Package and propagates the current Repo/branch if needed." )]
+    [Description( "Build-Test-Package and propagates local packages across the repositories." )]
     [CommandPath( "build" )]
-    public bool Build( IActivityMonitor monitor,
-                       CKliEnv context,
-                       [Description( "Specify the branch to build." )]
-                       string branchName,
-                       [Description( "Don't run tests even if they have never locally run on this commit." )]
-                       bool skipTests = false,
-                       [Description( "Run tests even if they have already run successfully on this commit." )]
-                       bool forceTests = false,
-                       [Description( "Build even if a version tag exists and its artifacts already exist locally." )]
-                       bool rebuild = false )
-    {
-        BranchName? namedBranch;
-        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
-            || (namedBranch = _branchModel.GetValidBranchName( monitor, branchName )) == null
-            || !_branchModel.CheckBasicPreconditions( monitor, "building", out var allRepos ) )
-        {
-            return false;
-        }
-        bool success = true;
-        foreach( var repo in allRepos )
-        {
-        }
-        return success;
-
-    }
-
-    [Description( "Build-Test-Package and propagates the current Repo/branch if needed." )]
-    [CommandPath( "repo build" )]
     public bool RepoBuild( IActivityMonitor monitor,
                            CKliEnv context,
                            [Description( "Specify the branch to build. By default, the current head is considered." )]
                            [OptionName( "--branch" )]
-                           string? branchName = null,
+                           string? branch = null,
                            [Description( "Build all the Repos, not only the ones that consume or produce the current repository." )]
                            bool all = false,
                            [Description( "Don't run tests even if they have never locally run on this commit." )]
@@ -87,46 +61,58 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     {
         if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
-            return false; 
+            return false;
         }
-        var repo = World.GetDefinedRepo( monitor, context.CurrentDirectory );
-        if( repo == null )
+        // Consider the repositories selected by current path as the Pivots.
+        var pivots = World.GetAllDefinedRepo( monitor, context.CurrentDirectory );
+        if( pivots == null || pivots.Count == 0 )
         {
             return false;
         }
-        Throw.DebugAssert( "Preconditions fulfilled.", !repo.GitStatus.IsDirty );
-        var r = repo.GitRepository.Repository;
-        Branch? branch;
-        if( branchName != null )
+        if( branch == null )
         {
-            branch = repo.GitRepository.GetBranch( monitor, branchName, CK.Core.LogLevel.Error );
-            if( branch == null )
+            if( all )
             {
+                monitor.Error( "When 'ckli build --all' is specified, the --branch <name> must be specified." );
                 return false;
             }
+            if( pivots.Count > 1 )
+            {
+                monitor.Error( $"""
+                    More than one Repo are below path '{context.CurrentDirectory}'.
+                    The --branch <name> must be specified.
+                    """ );
+                return false;
+            }
+            var r = pivots.Single();
+            branch = r.GitStatus.CurrentBranchName;
+            monitor.Trace( $"Considering current branch '{branch}' from '{r.DisplayPath}' as the --branch <name> to build." );
         }
-        else
-        {
-            branch = r.Head;
-        }
-        branchName = branch.FriendlyName;
-
-        // We must be on a branch defined in the Branch Model.
-        var branchInfo = _branchModel.Get( monitor, repo );
-        Throw.DebugAssert( "There's no branch issue.", branchInfo.Root.GitBranch != null );
         // If we are not on a known branch (defined by the Branch Model), give up.
-        var namedBranch = _branchModel.GetValidBranchName( monitor, branchName );
-        if( namedBranch == null )
+        var branchName = _branchModel.GetValidBranchName( monitor, branch );
+        if( branchName == null )
         {
             return false;
         }
-
-        var hotGraph = _branchModel.GetHotGraph( monitor, repo, namedBranch );
+        // build is for "dev" builds. Otherwise it's called "publish".
+        if( !branchName.IsDevBranch )
+        {
+            branchName = branchName.DevBranch;
+        }
+        // When --all is specified, ignores any pivots: all the repositories are somehow pivots and the
+        // actual branch name considered by the hot graph will be the most instable one of
+        // all the repositories (but at least as stable as the branchName resolved above of course).
+        var hotGraph = _branchModel.GetHotGraph( monitor, branchName, all ? [] : pivots );
         if( hotGraph == null )
         {
             return false;
         }
-
+        // We must now superpose the versions to build onto the graph.
+        // This also setups the dev/ branches that may be missing.
+        // This must propagates the changes through the instability branches
+        // or at least ensure that the branches are up to date.
+        // Are the upstream concerned?
+        // 
 
         Throw.NotSupportedException( "Not implemented yet." );
         return true;

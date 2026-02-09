@@ -94,11 +94,11 @@ public sealed class BranchName
     /// Gets a value that ranks this branch name in terms of the "instability":
     /// this starts with 0 for "stable", this is odd for "dev/" branches and even for regular names:
     /// <list type="bullet">
-    ///     <item><term>0</term><description>stable</description></item>
-    ///     <item><term>1</term><description>dev/stable</description></item>
-    ///     <item><term>2</term><description>rc</description></item>
-    ///     <item><term>3</term><description>dev/rc</description></item>
-    ///     <item><term>4</term><description>pre</description></item>
+    ///     <item><term>0</term><description>"stable"</description></item>
+    ///     <item><term>1</term><description>"dev/stable"</description></item>
+    ///     <item><term>2</term><description>"rc"</description></item>
+    ///     <item><term>3</term><description>"dev/rc"</description></item>
+    ///     <item><term>4</term><description>"pre"</description></item>
     ///     <item><term>...</term><description>(depends on the number of branch names defined)</description></item>
     /// </list>
     /// </summary>
