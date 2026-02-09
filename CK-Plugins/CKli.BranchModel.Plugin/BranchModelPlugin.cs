@@ -125,7 +125,9 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// <summary>
     /// Gets the <see cref="HotGraph"/> for a <see cref="BranchName"/>.
     /// <para>
-    /// This calls <see cref="CheckBasicPreconditions(IActivityMonitor, string, out IReadOnlyList{Repo}?)"/>.
+    /// This requires that no true <see cref="BranchModelInfo.HasIssues"/> exist. This can handle
+    /// dirty working folders: if the specified branch is currently checked out in a repository,
+    /// the working folder will be analyzed.
     /// </para>
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
@@ -150,6 +152,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 if( !success )
                 {
                     monitor.Error( $"Please fix any issue before continuing." );
+                    return null;
                 }
             }
             // If we have a pivot, we align the requested branch name on the actual
@@ -162,7 +165,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 var actual = _namespace.Branches[b.FriendlyName];
                 if( actual != branchName )
                 {
-                    monitor.Info( $"Repository '{pivot.DisplayPath}' has no branch '{branchName}', considering the closest on that is '{actual}'." );
+                    monitor.Info( $"Repository '{pivot.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{actual}'." );
                     branchName = actual;
                 }
             }
@@ -177,7 +180,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 var actual = _namespace.Branches[b.FriendlyName];
                 var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b );
                 if( shallow == null ) return null;
-                if( !graph.AddSolution( monitor, repo, branchInfo, actual, shallow ) )
+                if( !graph.AddSolution( monitor, repo, actual, shallow ) )
                 {
                     return null;
                 }

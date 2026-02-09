@@ -76,6 +76,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            [Description( "Specify the branch to build. By default, the current head is considered." )]
                            [OptionName( "--branch" )]
                            string? branchName = null,
+                           [Description( "Build all the Repos, not only the ones that consume or produce the current repository." )]
+                           bool all = false,
                            [Description( "Don't run tests even if they have never locally run on this commit." )]
                            bool skipTests = false,
                            [Description( "Run tests even if they have already run successfully on this commit." )]
@@ -83,8 +85,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            [Description( "Build even if a version tag exists and its artifacts already exist locally." )]
                            bool rebuild = false )
     {
-        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
-            || !_branchModel.CheckBasicPreconditions( monitor, "building", out var allRepos ) )
+        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
             return false; 
         }
@@ -119,6 +120,14 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return false;
         }
+
+        var hotGraph = _branchModel.GetHotGraph( monitor, repo, namedBranch );
+        if( hotGraph == null )
+        {
+            return false;
+        }
+
+
         Throw.NotSupportedException( "Not implemented yet." );
         return true;
     }

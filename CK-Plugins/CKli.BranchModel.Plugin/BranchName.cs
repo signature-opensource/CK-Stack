@@ -16,6 +16,7 @@ public sealed class BranchName
     readonly BranchName? _devBranch;
     BranchName? _firstChild;
     BranchName? _nextSibling;
+    readonly int _instabilityRank;
 
     internal BranchName( BranchName? baseBranch, string name, bool dev = false )
     {
@@ -28,6 +29,7 @@ public sealed class BranchName
                 _nextSibling = baseBranch._firstChild;
                 baseBranch._firstChild = this;
             }
+            _instabilityRank = baseBranch._instabilityRank + (dev ? 1 : 2);
         }
         _name = name;
         if( !dev )
@@ -89,11 +91,27 @@ public sealed class BranchName
     public bool IsDevBranch => _devBranch == null;
 
     /// <summary>
-    /// Gets the branch names from this one up to the stable one.
+    /// Gets a value that ranks this branch name in terms of the "instability":
+    /// this starts with 0 for "stable", this is odd for "dev/" branches and even for regular names:
+    /// <list type="bullet">
+    ///     <item><term>0</term><description>stable</description></item>
+    ///     <item><term>1</term><description>dev/stable</description></item>
+    ///     <item><term>2</term><description>rc</description></item>
+    ///     <item><term>3</term><description>dev/rc</description></item>
+    ///     <item><term>4</term><description>pre</description></item>
+    ///     <item><term>...</term><description>(depends on the number of branch names defined)</description></item>
+    /// </list>
+    /// </summary>
+    public int InstabilityRank => _instabilityRank;
+
+    /// <summary>
+    /// Gets the branch names from this one up to the stable one (in decreasing <see cref="InstabilityRank"/>).
     /// <para>
     /// When <see cref="IsDevBranch"/> is true, this returns the interleaved base dev/ branches.
     /// For instance, fallbacks of "dev/pre" branch are:
-    /// <c>dev/pre, pre, dev/rc, rc, dev/stable, stable</c>.  
+    /// <code>dev/pre, pre, dev/rc, rc, dev/stable, stable</code>
+    /// For the regular branch "pre", this is:  
+    /// <code>pre, rc, stable</code>
     /// </para>
     /// </summary>
     public IEnumerable<BranchName> Fallbacks

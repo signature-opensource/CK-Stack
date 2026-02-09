@@ -11,6 +11,9 @@ using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
+/// <summary>
+/// Models a global dependency graph across all repositories.
+/// </summary>
 public sealed class HotGraph
 {
     readonly BranchModelPlugin _branchModel;
@@ -170,7 +173,7 @@ public sealed class HotGraph
         public override string ToString() => _toString ??= $"{_solution.Repo.DisplayPath}/branch/{_actual}";
     }
 
-    internal bool AddSolution( IActivityMonitor monitor, Repo repo, BranchModelInfo branchInfo, BranchName actual, GitSolution shallow )
+    internal bool AddSolution( IActivityMonitor monitor, Repo repo, BranchName actual, GitSolution shallow )
     {
         Throw.DebugAssert( _solutions[repo.Index] == null );
         var s = new Solution( this, actual, shallow );
