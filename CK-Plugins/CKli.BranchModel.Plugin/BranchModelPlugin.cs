@@ -137,7 +137,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, params IEnumerable<Repo> pivots )
     {
         var pivotSet = new HashSet<Repo>( pivots );
-        var displayPivots = pivotSet.Count != 0
+        var displayPivots = pivotSet.Count != 0 && pivotSet.Count != World.Layout.Count
                                 ? $"'{pivotSet.OrderBy( r => r.Index ).Select( r => r.DisplayPath.Path ).Concatenate( "', '" )}'"
                                 : "all repositories";
         using( monitor.OpenTrace( $"Computing Hot Graph from '{branchName}' for {displayPivots}." ) )
@@ -157,12 +157,17 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                     return null;
                 }
             }
+            // No pivot => all repositories are pivots.
+            if( pivotSet.Count == 0 )
+            {
+                pivotSet.AddRange( allRepos );
+            }
             // Finds the most instable existing branch among the pivots (or among all the repositories).
-            branchName = FindMostInstableBranchFrom( monitor, branchName, pivotSet.Count > 0 ? pivotSet : allRepos );
+            branchName = FindMostInstableBranchFrom( monitor, branchName, pivotSet );
 
             // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
             // instances.
-            var graph = new HotGraph( this, branchName, allRepos.Count, pivotSet );
+            var graph = new HotGraph( this, branchName, allRepos, pivotSet );
             foreach( var repo in allRepos )
             {
                 var branchInfo = Get( monitor, repo );
@@ -178,7 +183,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             }
             // The solutions have been successfully added. The mappings from "package name" (that are the project names)
             // to the solutions are non ambiguous. We can start the topological sort.
-            // The sort starts with the pivot if it exits (this will walk all the dependencies and sets the IsPivotUpstream).
+            // The sort starts with the pivots (this will walk all the dependencies and sets the IsPivotUpstream).
             return graph.Sort( monitor ) ? graph : null;
         }
     }

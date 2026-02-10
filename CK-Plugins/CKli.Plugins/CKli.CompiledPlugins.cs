@@ -67,7 +67,6 @@ public static class CompiledPlugins
             new Cmd_fix＿info( infos[0].PluginTypes[0] ),
             new Cmd_fix＿cancel( infos[0].PluginTypes[0] ),
             new Cmd_build( infos[2].PluginTypes[1] ),
-            new Cmd_repo＿build( infos[2].PluginTypes[1] ),
             new Cmd_fix＿build( infos[2].PluginTypes[1] ),
             new Cmd_fix＿publish( infos[2].PluginTypes[1] ),
             new Cmd_repo＿rebuild＿old( infos[2].PluginTypes[1] ),
@@ -231,38 +230,7 @@ sealed class Cmd_build : PluginCommand
     internal Cmd_build( IPluginTypeInfo typeInfo )
         : base( typeInfo,
                 "build",
-                "Build-Test-Package and propagates the current Repo/branch if needed.",
-                1,
-                -1,
-                arguments: [
-                    ("branchName", "Specify the branch to build."),
-                ],
-                options: [
-                ],
-                flags: [
-                    (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
-                    (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
-                    (["--rebuild",], "Build even if a version tag exists and its artifacts already exist locally." ),
-                ],
-                "Build", MethodAsyncReturn.None ) {}
-    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
-    {
-        var a0 = cmdLine.EatArgument();
-        var f0 = cmdLine.EatFlag( Flags[0].Names );
-        var f1 = cmdLine.EatFlag( Flags[1].Names );
-        var f2 = cmdLine.EatFlag( Flags[2].Names );
-        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).Build(
-                                           monitor, context, a0, f0, f1, f2 ) );
-    }
-}
-[GeneratedCode("CKli", "0.0.8--0180-dev")]
-sealed class Cmd_repo＿build : PluginCommand
-{
-    internal Cmd_repo＿build( IPluginTypeInfo typeInfo )
-        : base( typeInfo,
-                "repo build",
-                "Build-Test-Package and propagates the current Repo/branch if needed.",
+                "Build-Test-Package and propagates local packages across the repositories.",
                 1,
                 -1,
                 arguments: [
@@ -271,6 +239,7 @@ sealed class Cmd_repo＿build : PluginCommand
                     (["--branch",], "Specify the branch to build. By default, the current head is considered.", false ),
                 ],
                 flags: [
+                    (["--all",], "Build all the Repos, not only the ones that consume or produce the current repository." ),
                     (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
                     (["--rebuild",], "Build even if a version tag exists and its artifacts already exist locally." ),
@@ -282,9 +251,10 @@ sealed class Cmd_repo＿build : PluginCommand
         var f0 = cmdLine.EatFlag( Flags[0].Names );
         var f1 = cmdLine.EatFlag( Flags[1].Names );
         var f2 = cmdLine.EatFlag( Flags[2].Names );
+        var f3 = cmdLine.EatFlag( Flags[3].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
         return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).RepoBuild(
-                                           monitor, context, o0, f0, f1, f2 ) );
+                                           monitor, context, o0, f0, f1, f2, f3 ) );
     }
 }
 [GeneratedCode("CKli", "0.0.8--0180-dev")]

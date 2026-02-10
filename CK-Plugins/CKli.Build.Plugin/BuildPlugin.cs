@@ -99,22 +99,17 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             branchName = branchName.DevBranch;
         }
-        // When --all is specified, ignores any pivots: all the repositories are somehow pivots and the
-        // actual branch name considered by the hot graph will be the most instable one of
-        // all the repositories (but at least as stable as the branchName resolved above of course).
+        // When --all is specified, all the repositories are pivots and the actual branch name considered by
+        // the hot graph will be the most instable one of all the repositories (but at least as stable as the
+        // branchName resolved above of course).
         var hotGraph = _branchModel.GetHotGraph( monitor, branchName, all ? [] : pivots );
         if( hotGraph == null )
         {
             return false;
         }
-        // We must now superpose the versions to build onto the graph.
-        // This also setups the dev/ branches that may be missing.
-        // This must propagates the changes through the instability branches
-        // or at least ensure that the branches are up to date.
-        // Are the upstream concerned?
-        // 
+        var roadmap = new Roadmap( hotGraph );
+        context.Screen.Display( roadmap.ToRenderable );
 
-        Throw.NotSupportedException( "Not implemented yet." );
         return true;
     }
 

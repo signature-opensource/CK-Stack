@@ -1,16 +1,13 @@
 using CK.Core;
 using CKli;
 using CKli.Core;
-using LibGit2Sharp;
 using NUnit.Framework;
 using Shouldly;
 using System;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
-using static System.Net.WebRequestMethods;
 
 namespace Plugins.Tests;
 
@@ -239,4 +236,56 @@ public class InitializationTests
         TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_local_fix_Async", "CKt", "(localFixed)" );
     }
 
+
+    [Test]
+    public async Task CKt_build_Async()
+    {
+        // Because we are NOT pushing here, we remove the secret: this ensures
+        // that this test doesn't push anything.
+        // "ckli build" is purely local, it has no impacts on the remotes.
+        ProcessRunner.RunProcess( TestHelper.Monitor,
+                                  "dotnet",
+                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
+                                  Environment.CurrentDirectory )
+                     .ShouldBe( 0 );
+
+        var clonedFolder = TestHelper.InitializeClonedFolder();
+        var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
+        var context = remotes.Clone( clonedFolder );
+
+        // From CKt_init:
+        var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/CKt/NuGet" );
+        var initialPackages = Directory.EnumerateFiles( localNuGetFeed )
+                                     .Select( p => Path.GetFileName( p ) )
+                                     .Order()
+                                     .ToArray();
+        initialPackages.ShouldBe( [
+                    "CKt.ActivityMonitor.0.1.0.nupkg",
+                    "CKt.Core.1.0.0.nupkg",
+                    "CKt.Monitoring.0.2.3.nupkg",
+                    "CKt.PerfectEvent.0.2.0.nupkg",
+                    "CKt.PerfectEvent.0.2.1.nupkg",
+                    "CKt.PerfectEvent.0.3.0.nupkg",
+                    "CKt.PerfectEvent.0.3.2.nupkg"
+                    ] );
+
+        // cd CK-Core.
+        context = context.ChangeDirectory( "CKt-Core" );
+        var display = (StringScreen)context.Screen;
+
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            > Rank 0 (1)
+            │   CKt-Core 
+            > Rank 1 (1)
+            │   CKt-ActivityMonitor 
+            > Rank 2 (2)
+            │   CKt-PerfectEvent 
+            │   CKt-Monitoring 
+            ❰✓❱
+
+            """ );
+
+
+    }
 }

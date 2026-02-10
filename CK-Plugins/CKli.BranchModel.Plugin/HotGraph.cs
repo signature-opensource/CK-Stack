@@ -18,18 +18,20 @@ public sealed class HotGraph
 {
     readonly BranchModelPlugin _branchModel;
     readonly BranchName _branchName;
+    readonly IReadOnlyList<Repo> _allRepos;
     readonly HashSet<Repo> _pivots;
     readonly Solution[] _solutions;
     readonly Dictionary<string, Solution> _p2s;
     int _maxRank;
 
-    internal HotGraph( BranchModelPlugin branchModel, BranchName branchName, int count, HashSet<Repo> pivots )
+    internal HotGraph( BranchModelPlugin branchModel, BranchName branchName, IReadOnlyList<Repo> allRepos, HashSet<Repo> pivots )
     {
         _branchModel = branchModel;
         _branchName = branchName;
+        _allRepos = allRepos;
         _pivots = pivots;
         _p2s = new Dictionary<string, Solution>();
-        _solutions = new Solution[count];
+        _solutions = new Solution[allRepos.Count];
     }
 
     /// <summary>
@@ -43,11 +45,17 @@ public sealed class HotGraph
 
     /// <summary>
     /// Gets the pivots repositories if some has been specified.
+    /// This is never empty: no pivot means all solutions are pivot.
     /// </summary>
     public IReadOnlySet<Repo> Pivots => _pivots;
 
     /// <summary>
-    /// Gets the ordered list of solutions.
+    /// Gets whether not all solutions are pivots.
+    /// </summary>
+    public bool HasPivots => _pivots.Count != _allRepos.Count;
+
+    /// <summary>
+    /// Gets the ordered list of solutions by <see cref="Solution.Rank"/> and then by <see cref="Repo.Index"/>.
     /// </summary>
     public IReadOnlyCollection<Solution> Solutions => _solutions;
 
@@ -98,7 +106,7 @@ public sealed class HotGraph
         public int Rank => _rank;
 
         /// <summary>
-        /// Gets whether this solution is the <see cref="HotGraph.Pivots"/>.
+        /// Gets whether this solution is one of the <see cref="HotGraph.Pivots"/>.
         /// </summary>
         public bool IsPivot => _graph._pivots.Contains( _solution.Repo );
 
@@ -111,12 +119,6 @@ public sealed class HotGraph
         /// Gets whether this solution is a successor (a consumer) of one of the specified <see cref="HotGraph.Pivots"/>.
         /// </summary>
         public bool IsPivotDownstream => _isPivotDownstream;
-
-        internal void Finalize( int maxRank )
-        {
-            _rank = maxRank - _rank;
-            Throw.DebugAssert( _rank >= 0 && _rank < maxRank );
-        }
 
         internal bool UpdateRank( IActivityMonitor monitor,
                                   out int rank,
@@ -151,6 +153,7 @@ public sealed class HotGraph
                         cycle.Add( $"{c.PackageId} ({required.Repo.DisplayPath.LastPart})" );
                         return false;
                     }
+                    ++reqRank;
                     _isPivotDownstream |= isThisPivotDownstream;
                     if( rank < reqRank )
                     {
@@ -239,10 +242,14 @@ public sealed class HotGraph
         Throw.DebugAssert( _solutions.All( s => s != null && _solutions[s.Repo.Index] == s ) );
         // Cycle detection is done by setting the _rank to -2 AND checking that it is
         // not -2 when entering a node: when it happens this instantiates the cycles collector
-        // that s filled while rewinding the stack.
+        // that is filled while rewinding the stack.
         // This should barely happen.
         List<string>? cycle = null;
-        foreach( var pivot in _pivots )
+        // Sorts the pivots by index to be stable.
+        IEnumerable<Repo> pivots = _pivots.Count == _solutions.Length
+                                    ? _allRepos
+                                    : _pivots.OrderBy( r => r.Index );
+        foreach( var pivot in pivots )
         {
             var sPivot = _solutions[pivot.Index];
             if( !sPivot.UpdateRank( monitor, out _, ref cycle, isPivotUpstream: true, out _ ) )
@@ -252,18 +259,18 @@ public sealed class HotGraph
             }
 
         }
-        foreach( var s in _solutions )
+        if( _pivots.Count != _solutions.Length )
         {
-            if( !s.UpdateRank( monitor, out _, ref cycle, isPivotUpstream: false, out _ ) )
+            foreach( var s in _solutions )
             {
-                monitor.Error( $"Cycle detected between solutions: {cycle.Concatenate()}." );
-                return false;
+                if( !s.UpdateRank( monitor, out _, ref cycle, isPivotUpstream: false, out _ ) )
+                {
+                    monitor.Error( $"Cycle detected between solutions: {cycle.Concatenate()}." );
+                    return false;
+                }
             }
         }
-        foreach( var s in _solutions )
-        {
-            s.Finalize( _maxRank );
-        }
+        Throw.DebugAssert( _solutions.All( s => s.Rank >= 0 && s.Rank <= _maxRank ) );
         _solutions.Sort( (s1,s2) =>
         {
             int cmp = s1.Rank.CompareTo( s2.Rank );
@@ -273,4 +280,3 @@ public sealed class HotGraph
         return true;
     }
 }
-
