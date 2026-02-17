@@ -11,7 +11,7 @@ namespace CKli.ShallowSolution.Plugin;
 
 /// <summary>
 /// Read only model of a solution as a consumer/producer of packages.
-/// This can only obtained for a <see cref="Commit"/> in a <see cref="Repo"/> and only
+/// This can only obtained for a <see cref="Branch"/> in a <see cref="Repo"/> and only
 /// exposes the <see cref="Projects"/> and the <see cref="Consumed"/> packages.
 /// </para>
 /// </summary>
@@ -19,7 +19,7 @@ namespace CKli.ShallowSolution.Plugin;
 public sealed class GitSolution
 {
     readonly Repo _repo;
-    readonly Commit _commit;
+    readonly Branch _branch;
     readonly HashSet<PackageInstance> _consumed;
     readonly List<Project> _projects;
 
@@ -40,9 +40,9 @@ public sealed class GitSolution
     public Repo Repo => _repo;
 
     /// <summary>
-    /// Gets the commit from which this solution has been read.
+    /// Gets the Branch from which this solution has been read.
     /// </summary>
-    public Commit Commit => _commit;
+    public Branch Branch => _branch;
 
     /// <summary>
     /// Minimal project file.
@@ -63,6 +63,11 @@ public sealed class GitSolution
         }
 
         /// <summary>
+        /// Gets the path to the ".csproj" file in the solution.
+        /// </summary>
+        public NormalizedPath Path => _path;
+
+        /// <summary>
         /// Gets the project name.
         /// </summary>
         public string Name => _name;
@@ -80,17 +85,20 @@ public sealed class GitSolution
                 if( !_packableKnown )
                 {
                     _packableKnown = true;
-                    _isPackable = (bool?)_root.Elements( "PropertyGroup" ).FirstOrDefault( e => e.Name.LocalName == "IsPackable" );
+                    _isPackable = (bool?)_root.Elements( "PropertyGroup" )
+                                              .SelectMany( g => g.Elements( "IsPackable" ) )
+                                              .FirstOrDefault();
                 }
                 return _isPackable; 
             }
         }
+
     }
 
-    internal GitSolution( Repo repo, Commit commit )
+    internal GitSolution( Repo repo, Branch branch )
     {
         _repo = repo;
-        _commit = commit;
+        _branch = branch;
         _consumed = new HashSet<PackageInstance>();
         _projects = new List<Project>();
     }
@@ -153,6 +161,6 @@ public sealed class GitSolution
         }
     }
 
-    public override string ToString() => $"{_repo.DisplayPath}/commit/{_commit.Id}";
+    public override string ToString() => $"{_repo.DisplayPath}/branch/{_branch.FriendlyName}";
 }
 

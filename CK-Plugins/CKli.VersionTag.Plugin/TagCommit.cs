@@ -56,7 +56,7 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
     public bool IsDeprecatedVersion => _isDeprecatedVersion;
 
     /// <summary>
-    /// Gets whether this version tag is nor a "+fake" nor a "+deprecated" one.
+    /// Gets whether this version tag is not a "+fake" nor a "+deprecated" one.
     /// </summary>
     public bool IsRegularVersion => !_isDeprecatedVersion && !_isFakeVersion;
 

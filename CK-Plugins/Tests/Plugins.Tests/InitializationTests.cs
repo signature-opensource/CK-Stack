@@ -238,6 +238,17 @@ public class InitializationTests
 
 
     [Test]
+    [Explicit]
+    public async Task on_CK_Async()
+    {
+        TestHelper.Monitor.Info( $"Initializing '{TestHelper.CKliDefaultWorldName}', test instance name: '{CKliRootEnv.InstanceName}'." );
+        var context = CKliRootEnv.DefaultCKliEnv.ChangeDirectory( TestHelper.SolutionFolder.RemoveLastPart() );
+        await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable" );
+        var display = (StringScreen)context.Screen;
+
+    }
+
+    [Test]
     public async Task CKt_build_Async()
     {
         // Because we are NOT pushing here, we remove the secret: this ensures

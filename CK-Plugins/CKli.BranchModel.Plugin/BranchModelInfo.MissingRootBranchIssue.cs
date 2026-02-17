@@ -24,7 +24,6 @@ public sealed partial class BranchModelInfo
 
         public static World.Issue Create( IActivityMonitor monitor,
                                           HotBranch root,
-                                          VersionTagInfo tags,
                                           Branch? startingD,
                                           Branch? startingM,
                                           ScreenType screenType,

@@ -48,8 +48,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         var monitor = e.Monitor;
         foreach( var r in e.Repos )
         {
-            var tags = _versionTags.Get( monitor, r );
-            Get( monitor, r ).CollectIssues( monitor, tags, e.ScreenType, e.Add );
+            Get( monitor, r ).CollectIssues( monitor, e.ScreenType, e.Add );
         }
     }
 
@@ -167,16 +166,15 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
 
             // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
             // instances.
-            var graph = new HotGraph( this, branchName, allRepos, pivotSet );
+            var graph = new HotGraph( this, _versionTags, branchName, allRepos, pivotSet );
             foreach( var repo in allRepos )
             {
                 var branchInfo = Get( monitor, repo );
                 var b = branchInfo.FindClosestGitBranch( branchName );
-                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b != null );
-                var actual = _namespace.Branches[b.FriendlyName];
-                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b );
+                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b?.GitBranch != null );
+                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitBranch );
                 if( shallow == null ) return null;
-                if( !graph.AddSolution( monitor, repo, actual, shallow ) )
+                if( !graph.AddSolution( monitor, repo, b, shallow ) )
                 {
                     return null;
                 }
@@ -194,16 +192,15 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         foreach( var p in pivots )
         {
             var b = Get( monitor, p ).FindClosestGitBranch( branchName );
-            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b != null );
-            var actual = _namespace.Branches[b.FriendlyName];
-            if( actual != branchName )
+            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b?.GitBranch != null );
+            if( b.BranchName != branchName )
             {
-                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{actual}'." );
+                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{b.BranchName}'." );
             }
             // Finding the most instable branch.
-            if( mostInstable == null || mostInstable.InstabilityRank < actual.InstabilityRank )
+            if( mostInstable == null || mostInstable.InstabilityRank < b.BranchName.InstabilityRank )
             {
-                mostInstable = actual;
+                mostInstable = b.BranchName;
             }
         }
         // Finalizing: if the existing branch is a non dev/ branch, fix this if the requested branch name was a dev/ one. 

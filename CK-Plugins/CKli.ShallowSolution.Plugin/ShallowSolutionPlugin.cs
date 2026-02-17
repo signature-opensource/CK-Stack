@@ -72,7 +72,7 @@ public sealed class ShallowSolutionPlugin : PrimaryPluginBase
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The repository.</param>
-    /// <param name="branch">The branch from which a the solution must be read.</param>
+    /// <param name="branch">The branch from which the solution must be read.</param>
     /// <returns>The solution or null on error.</returns>
     public GitSolution? GetShallowSolution( IActivityMonitor monitor, Repo repo, Branch branch )
     {
@@ -82,7 +82,7 @@ public sealed class ShallowSolutionPlugin : PrimaryPluginBase
         {
             return null;
         }
-        var s = new GitSolution( repo, branch.Tip );
+        var s = new GitSolution( repo, branch );
         if( !CommonSolution.LoadAllProjectFiles( monitor,
                                                  files,
                                                  doc.Root!,

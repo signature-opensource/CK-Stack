@@ -78,13 +78,16 @@ public sealed class VersionTagInfo : RepoInfo
     /// <summary>
     /// Gets the last stable versions from the <see cref="LastStable"/> one to the oldest one.
     /// <para>
-    /// <see cref="TagCommit.IsRegularVersion"/> is always true (no "+fake" nor "+deprecated" here).
+    /// <see cref="TagCommit.IsRegularVersion"/> may be false ("+fake" and "+deprecated" appear here).
     /// </para>
     /// </summary>
     public IReadOnlyList<TagCommit> LastStables => _lastStables;
 
     /// <summary>
     /// Gets the filtered set of <see cref="LastStables"/> with the maximal <see cref="SVersion.Patch"/>.
+    /// <para>
+    /// <see cref="TagCommit.IsRegularVersion"/> may be false ("+fake" and "+deprecated" appear here).
+    /// </para>
     /// </summary>
     public ImmutableArray<TagCommit> LastMajorMinorStables
     {
@@ -120,6 +123,9 @@ public sealed class VersionTagInfo : RepoInfo
 
     /// <summary>
     /// Gets the last stable version: this is the common ancestor of the "hot zone" where branch model applies.
+    /// <para>
+    /// This can be a "+fake" or a "+deprecated" version (<see cref="TagCommit.IsRegularVersion"/> can be false).
+    /// </para>
     /// </summary>
     public TagCommit? LastStable => _lastStable;
 

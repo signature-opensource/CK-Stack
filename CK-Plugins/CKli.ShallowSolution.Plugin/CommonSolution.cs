@@ -31,7 +31,7 @@ static class CommonSolution
                                               Func<IActivityMonitor, NormalizedPath, XElement,bool> collector )
     {
         var dedupFolders = new HashSet<string>();
-        foreach( var xmlProject in solution.Elements( "Project" ) )
+        foreach( var xmlProject in solution.Descendants( "Project" ) )
         {
             NormalizedPath path = (string?)xmlProject.Attribute( "Path" );
             if( !path.IsEmptyPath )

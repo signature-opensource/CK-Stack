@@ -1,22 +1,20 @@
 using CK.Core;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
-using LibGit2Sharp;
+using CKli.VersionTag.Plugin;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
 /// <summary>
 /// Models a global dependency graph across all repositories.
 /// </summary>
-public sealed class HotGraph
+public sealed partial class HotGraph
 {
     readonly BranchModelPlugin _branchModel;
+    readonly VersionTagPlugin _versionTag;
     readonly BranchName _branchName;
     readonly IReadOnlyList<Repo> _allRepos;
     readonly HashSet<Repo> _pivots;
@@ -24,9 +22,14 @@ public sealed class HotGraph
     readonly Dictionary<string, Solution> _p2s;
     int _maxRank;
 
-    internal HotGraph( BranchModelPlugin branchModel, BranchName branchName, IReadOnlyList<Repo> allRepos, HashSet<Repo> pivots )
+    internal HotGraph( BranchModelPlugin branchModel,
+                       VersionTagPlugin versionTag,
+                       BranchName branchName,
+                       IReadOnlyList<Repo> allRepos,
+                       HashSet<Repo> pivots )
     {
         _branchModel = branchModel;
+        _versionTag = versionTag;
         _branchName = branchName;
         _allRepos = allRepos;
         _pivots = pivots;
@@ -64,121 +67,17 @@ public sealed class HotGraph
     /// </summary>
     public int MaxRank => _maxRank;
 
-    /// <summary>
-    /// Models a solution to build.
-    /// </summary>
-    public sealed class Solution
-    {
-        readonly HotGraph _graph;
-        readonly BranchName _actual;
-        readonly GitSolution _solution;
-        string? _toString;
-        int _rank;
-        bool _isPivotUpstream;
-        bool _isPivotDownstream;
-
-        internal Solution( HotGraph graph, BranchName actual, GitSolution solution )
-        {
-            _graph = graph;
-            _actual = actual;
-            _solution = solution;
-            _rank = -1;
-        }
-
-        /// <summary>
-        /// Gets the repository.
-        /// </summary>
-        public Repo Repo => _solution.Repo;
-
-        /// <summary>
-        /// Gets the branch name from which this solution has been read.
-        /// </summary>
-        public BranchName BranchName => _actual;
-
-        /// <summary>
-        /// Gets the projects that are potentially packages produced by this solution.
-        /// </summary>
-        public IReadOnlyList<GitSolution.Project> Projects => _solution.Projects;
-
-        /// <summary>
-        /// Gets the build rank. From 0 (the first solution to build) to <see cref="HotGraph.MaxRank"/>.
-        /// </summary>
-        public int Rank => _rank;
-
-        /// <summary>
-        /// Gets whether this solution is one of the <see cref="HotGraph.Pivots"/>.
-        /// </summary>
-        public bool IsPivot => _graph._pivots.Contains( _solution.Repo );
-
-        /// <summary>
-        /// Gets whether this solution is a predecessor (a producer of packages) of one of the specified <see cref="HotGraph.Pivots"/>.
-        /// </summary>
-        public bool IsPivotUpstream => _isPivotUpstream;
-
-        /// <summary>
-        /// Gets whether this solution is a successor (a consumer) of one of the specified <see cref="HotGraph.Pivots"/>.
-        /// </summary>
-        public bool IsPivotDownstream => _isPivotDownstream;
-
-        internal bool UpdateRank( IActivityMonitor monitor,
-                                  out int rank,
-                                  [NotNullWhen(false)] ref List<string>? cycle,
-                                  bool isPivotUpstream,
-                                  out bool isPivotDownstream )
-        {
-            isPivotDownstream = _isPivotDownstream;
-            rank = _rank;
-            if( _rank >= 0 )
-            {
-                return true;
-            }
-            if( _rank == -2 )
-            {
-                cycle = new List<string>();
-                return false;
-            }
-            Throw.DebugAssert( rank == -1 );
-            _rank = -2;
-            rank = 0;
-            _isPivotUpstream = isPivotUpstream;
-            foreach( var c in _solution.Consumed )
-            {
-                if( _graph._p2s.TryGetValue( c.PackageId, out Solution? required ) )
-                {
-                    _isPivotDownstream |= _graph._pivots.Contains( required.Repo );
-                    if( !required.UpdateRank( monitor, out int reqRank, ref cycle, isPivotUpstream, out bool isThisPivotDownstream ) )
-                    {
-                        Throw.DebugAssert( cycle != null );
-                        cycle ??= new List<string>();
-                        cycle.Add( $"{c.PackageId} ({required.Repo.DisplayPath.LastPart})" );
-                        return false;
-                    }
-                    ++reqRank;
-                    _isPivotDownstream |= isThisPivotDownstream;
-                    if( rank < reqRank )
-                    {
-                        rank = reqRank;
-                        if( _graph._maxRank < rank )
-                        {
-                            _graph._maxRank = rank;
-                        }
-                    }
-                }
-            }
-            _rank = rank;
-            return true;
-        }
-
-        /// <summary>
-        /// Returns the repository and branch name.
-        /// </summary>
-        /// <returns>The logical path of this solution.</returns>
-        public override string ToString() => _toString ??= $"{_solution.Repo.DisplayPath}/branch/{_actual}";
-    }
-
-    internal bool AddSolution( IActivityMonitor monitor, Repo repo, BranchName actual, GitSolution shallow )
+    internal bool AddSolution( IActivityMonitor monitor, Repo repo, HotBranch actual, GitSolution shallow )
     {
         Throw.DebugAssert( _solutions[repo.Index] == null );
+        Throw.DebugAssert( actual.GitBranch != null );
+        var versionInfo = _versionTag.GetWithoutIssue( monitor, repo );
+        if( versionInfo == null )
+        {
+            return false;
+        }
+        var closestVersion = versionInfo.FindFirst( actual.GitBranch.Commits, out _ );
+
         var s = new Solution( this, actual, shallow );
         _solutions[shallow.Repo.Index] = s;
         foreach( var p in shallow.Projects )
@@ -200,9 +99,10 @@ public sealed class HotGraph
                     return false;
                 }
                 // Find the homonym project in the other solution (it necessarily exists).
-                var pConflict = exists.Projects.First( pC => pC.Name == p.Name );
+                var pConflict = exists.GitSolution.Projects.First( pC => pC.Name == p.Name );
 
-                // If both are null or true, we are in trouble. Otherwise it is the  
+                // If both are null or true, we are in trouble.
+                // (We cannot be here if p.IsPackable is false!)
                 if( p.IsPackable == pConflict.IsPackable )
                 {
                     if( p.IsPackable is true )
@@ -213,7 +113,9 @@ public sealed class HotGraph
                     {
                         monitor.Error( $"""
                             Projects named '{p.Name}' in '{exists}' and '{s}' don't specify <IsPackable /> value.
-                            One of them must be specified to be packable (or not).
+                            One of them must be specified to be packable (or not) in project files:
+                            {exists}: {pConflict.Path}
+                            {s}: {p.Path}
                             """ );
                     }
                     return false;
@@ -240,11 +142,6 @@ public sealed class HotGraph
     internal bool Sort( IActivityMonitor monitor )
     {
         Throw.DebugAssert( _solutions.All( s => s != null && _solutions[s.Repo.Index] == s ) );
-        // Cycle detection is done by setting the _rank to -2 AND checking that it is
-        // not -2 when entering a node: when it happens this instantiates the cycles collector
-        // that is filled while rewinding the stack.
-        // This should barely happen.
-        List<string>? cycle = null;
         // Sorts the pivots by index to be stable.
         IEnumerable<Repo> pivots = _pivots.Count == _solutions.Length
                                     ? _allRepos
@@ -252,9 +149,8 @@ public sealed class HotGraph
         foreach( var pivot in pivots )
         {
             var sPivot = _solutions[pivot.Index];
-            if( !sPivot.UpdateRank( monitor, out _, ref cycle, isPivotUpstream: true, out _ ) )
+            if( !UpdateRank( monitor, sPivot, isPivotUpstream: true ) )
             {
-                monitor.Error( $"Cycle detected between solutions: {cycle.Concatenate()}." );
                 return false;
             }
 
@@ -263,9 +159,8 @@ public sealed class HotGraph
         {
             foreach( var s in _solutions )
             {
-                if( !s.UpdateRank( monitor, out _, ref cycle, isPivotUpstream: false, out _ ) )
+                if( !UpdateRank( monitor, s, isPivotUpstream: false ) )
                 {
-                    monitor.Error( $"Cycle detected between solutions: {cycle.Concatenate()}." );
                     return false;
                 }
             }
@@ -278,5 +173,20 @@ public sealed class HotGraph
             return s1.Repo.Index.CompareTo( s2.Repo.Index );
         } );
         return true;
+
+        static bool UpdateRank( IActivityMonitor monitor, Solution sPivot, bool isPivotUpstream )
+        {
+            // Cycle detection is done by setting the _rank to -2 AND checking that it is
+            // not -2 when entering a node: when it happens this instantiates the cycles collector
+            // that is filled while rewinding the stack.
+            // This should barely happen.
+            List<string>? cycle = null;
+            if( !sPivot.UpdateRank( monitor, out _, ref cycle, isPivotUpstream, out _ ) )
+            {
+                monitor.Error( $"Cycle detected between solutions: {cycle.Concatenate()}." );
+                return false;
+            }
+            return true;
+        }
     }
 }

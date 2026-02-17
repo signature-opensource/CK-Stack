@@ -64,8 +64,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return false;
         }
         // Consider the repositories selected by current path as the Pivots.
-        var pivots = World.GetAllDefinedRepo( monitor, context.CurrentDirectory );
-        if( pivots == null || pivots.Count == 0 )
+        var pivots = World.GetAllDefinedRepo( monitor, context.CurrentDirectory, allowEmpty: false );
+        if( pivots == null )
         {
             return false;
         }
@@ -107,7 +107,11 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return false;
         }
-        var roadmap = new Roadmap( hotGraph );
+        var roadmap = new Roadmap( hotGraph, Roadmap.Mode.PullBuildPush );
+        //if( !roadmap.Initialize( monitor ) )
+        //{
+        //    return false;
+        //}
         context.Screen.Display( roadmap.ToRenderable );
 
         return true;

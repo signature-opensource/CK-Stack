@@ -61,11 +61,11 @@ public sealed partial class BranchModelInfo : RepoInfo
     /// </para>
     /// </summary>
     /// <param name="name">The branch name.</param>
-    /// <returns>The git branch or null (only if the "stable" branch doesn't exist).</returns>
-    public Branch? FindClosestGitBranch( BranchName name )
+    /// <returns>The hot branch or null (only if the "stable" branch doesn't exist).</returns>
+    public HotBranch? FindClosestGitBranch( BranchName name )
     {
-        return name.Fallbacks.Select( n => _branches.GetValueOrDefault( n.Name )?.GitBranch )
-                             .Where( b => b != null )
+        return name.Fallbacks.Select( n => _branches.GetValueOrDefault( n.Name ) )
+                             .Where( b => b?.GitBranch != null )
                              .FirstOrDefault();
     }
 
@@ -83,7 +83,6 @@ public sealed partial class BranchModelInfo : RepoInfo
 
 
     internal void CollectIssues( IActivityMonitor monitor,
-                                 VersionTagInfo tags,
                                  ScreenType screenType,
                                  Action<World.Issue> collector )
     {
@@ -98,7 +97,7 @@ public sealed partial class BranchModelInfo : RepoInfo
                 startingM = Repo.GitRepository.GetBranch( monitor, "master", LogLevel.Info )
                             ?? Repo.GitRepository.GetBranch( monitor, "main", LogLevel.Info );
             }
-            collector( MissingRootBranchIssue.Create( monitor, _root, tags, startingD, startingM, screenType, Repo ) );
+            collector( MissingRootBranchIssue.Create( monitor, _root, startingD, startingM, screenType, Repo ) );
             return;
         }
         if( _unrelated != null )

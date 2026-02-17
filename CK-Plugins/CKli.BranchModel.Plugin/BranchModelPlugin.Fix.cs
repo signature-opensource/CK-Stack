@@ -374,7 +374,7 @@ public sealed partial class BranchModelPlugin
                         // has been built, the v1.2.3 must be skipped.
                         // Note that if the v1.2.4 doesn't consume origin anymore, this is a violation of the
                         // "fix policy" but is not an error: we just ignore this.
-                        var commit = tags.LastMajorMinorStables.FirstOrDefault( tc => tc.Version == next.Version );
+                        var commit = tags.LastMajorMinorStables.FirstOrDefault( tc => tc.IsRegularVersion && tc.Version == next.Version );
                         if( commit != null )
                         {
                             all.Add( next, (commit, rank) );
