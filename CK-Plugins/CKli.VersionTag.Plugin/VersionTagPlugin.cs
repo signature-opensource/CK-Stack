@@ -437,7 +437,6 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Second pass: filters out the invalid tags and produces the v2C index
         //              along with potential tag conflicts.
         var v2c = new Dictionary<SVersion, TagCommit>();
-        int regularStableCount = 0;
         foreach( var newOne in validTags )
         {
             // This filters out any version (regular, +fake or +deprecated).
@@ -475,7 +474,6 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     // The collected tag is replaced with the deprecated one.
                     // The regular tag can be removed.
                     v2c[newOne.Version] = newOne;
-                    if( newOne.Version.IsStable ) --regularStableCount;
                     removableTags ??= new List<Tag>();
                     removableTags.Add( exists.Tag );
                     continue;
@@ -499,23 +497,11 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
             else
             {
-                if( newOne.IsRegularVersion && newOne.Version.IsStable ) ++regularStableCount;
                 v2c.Add( newOne.Version, newOne );
             }
         }
 
-        var allLastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
-
-        var lastStables = new TagCommit[regularStableCount];
-        int i = 0;
-        foreach( var t in allLastStables )
-        {
-            if( t.IsRegularVersion && t.Version.IsStable )
-            {
-                lastStables[i++] = t;
-            }
-        }
-        Throw.DebugAssert( i == regularStableCount );
+        var lastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
 
         if( hasBadTagNames )
         {
@@ -563,7 +549,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         return new VersionTagInfo( repo,
                                    minVersion,
                                    maxVersion,
-                                   allLastStables,
+                                   lastStables,
                                    v2c,
                                    removableTags,
                                    invalidTags,
