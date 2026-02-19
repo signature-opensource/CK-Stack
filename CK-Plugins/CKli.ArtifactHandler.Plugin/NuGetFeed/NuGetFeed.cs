@@ -38,7 +38,7 @@ public sealed class NuGetFeed
     {
         Throw.CheckNotNullOrWhiteSpaceArgument( name );
         Throw.CheckArgument( !url.IsEmptyPath );
-        Throw.CheckArgument( "The fake credentials must not be an AIP key.",
+        Throw.CheckArgument( "The fake credentials must not be an API key.",
                               fakeReadCredentials == null || fakeReadCredentials.UserNameKey != null );
         _name = name;
         _url = url;
@@ -77,7 +77,7 @@ public sealed class NuGetFeed
     /// <para>
     /// This workarounds NuGet servers that even for public feeds (of public packages) require
     /// an authentication.
-    /// This is the case of <see href="https://docs.github.com/fr/packages/working-with-a-github-packages-registry/working-with-the-nuget-registry#authenticating-with-a-personal-access-token">GitHub</see>
+    /// This is the case of <see href="https://docs.github.com/fr/packages/working-with-a-github-packages-registry/working-with-the-nuget-registry#authenticating-with-a-personal-access-token">GitHub</see>.
     /// </para>
     /// </summary>
     public NuGetFeedCredentials? FakeReadCredentials => _fakeReadCredentials;

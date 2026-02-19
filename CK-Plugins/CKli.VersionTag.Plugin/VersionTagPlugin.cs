@@ -437,9 +437,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Second pass: filters out the invalid tags and produces the v2C index
         //              along with potential tag conflicts.
         var v2c = new Dictionary<SVersion, TagCommit>();
+        TagCommit? topHot = null;
         foreach( var newOne in validTags )
         {
-            // This filters out any version (regular, +fake or +deprecated).
+            // This filters out any version tags (regular, +fake or +deprecated).
             if( invalidTags != null && invalidTags.TryGetValue( newOne.Version, out var invalid ) )
             {
                 if( newOne.Commit.Sha != invalid.T.Target.Sha )
@@ -452,6 +453,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
             if( v2c.TryGetValue( newOne.Version, out var exists ) )
             {
+                Throw.DebugAssert( topHot != null );
                 // If the version is on different commit, this is a tag conflict.
                 if( newOne.Commit.Sha != exists.Sha )
                 {
@@ -460,13 +462,14 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     continue;
                 }
                 // But this is not the only conflict...
-                // Actually, the only "valid" conflict is between a Deprecated and regular version.
+                // Actually, the only "valid" (expected) conflict is between a Deprecated and regular version.
                 if( exists.IsDeprecatedVersion && newOne.IsRegularVersion )
                 {
                     // The collected tag is the deprecated one. We have nothing to do except that the regular
                     // version can be deleted.
                     removableTags ??= new List<Tag>();
                     removableTags.Add( newOne.Tag );
+                    Throw.DebugAssert( "The topHot cannot be the newOne (it may be exists).", topHot != newOne );
                     continue;
                 }
                 if( newOne.IsDeprecatedVersion && exists.IsRegularVersion )
@@ -476,6 +479,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     v2c[newOne.Version] = newOne;
                     removableTags ??= new List<Tag>();
                     removableTags.Add( exists.Tag );
+                    if( topHot == exists ) topHot = newOne;
                     continue;
                 }
                 // 2 regular tags: we must be able to chose a best one or this is
@@ -487,8 +491,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     // - over an annotated tag with invalid content info
                     // - over a lightweight tag.
                     // - On "equality", a tag that starts with 'v' over a tag without 'v' prefix.
-                    if( ResolveConflict( v2c, exists, newOne, ref removableTags ) )
+                    var best = ResolveConflict( v2c, exists, newOne, ref removableTags );
+                    if( best != null )
                     {
+                        if( topHot == exists && best == newOne ) topHot = newOne;
                         continue;
                     }
                 }
@@ -497,11 +503,18 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
             else
             {
+                if( topHot == null || topHot.Version < newOne.Version )
+                {
+                    topHot = newOne;
+                }
                 v2c.Add( newOne.Version, newOne );
             }
         }
 
         var lastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
+        var lastStable = lastStables.Count > 0 ? lastStables[0] : null;
+
+        Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
 
         if( hasBadTagNames )
         {
@@ -527,6 +540,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // cost much.
         //
         bool hasMissingContentInfo = false;
+        bool hotZoneIssue = false;
+        if( topHot != lastStable )
+        {
+            Throw.DebugAssert( topHot != null && lastStable != null );
+            var hotSupremum = SVersion.Create( topHot.Version.Major + 1, 0, 0 );
+            hotZoneIssue = topHot.Version >= hotSupremum;
+        }
         World.Issue? publishedReleaseContentIssue = null;
         if( tagConflicts == null )
         {
@@ -550,17 +570,19 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                                    minVersion,
                                    maxVersion,
                                    lastStables,
+                                   lastStable,
+                                   topHot,
                                    v2c,
                                    removableTags,
                                    invalidTags,
                                    tagConflicts,
                                    publishedReleaseContentIssue,
-                                   hasMissingContentInfo );
+                                   hasMissingContentInfo,
+                                   hotZoneIssue );
 
-        static bool ResolveConflict( Dictionary<SVersion, TagCommit> v2c, TagCommit exists, TagCommit newOne, ref List<Tag>? removableTags )
+        static TagCommit? ResolveConflict( Dictionary<SVersion, TagCommit> v2c, TagCommit exists, TagCommit newOne, ref List<Tag>? removableTags )
         {
             Throw.DebugAssert( newOne.Sha == exists.Sha );
-            bool resolved = true;
             // Annotated is better than lightweight, if both are annotated,
             // a parsable content info is better.
             var bestOnAnnotation = newOne.Tag.IsAnnotated
@@ -586,11 +608,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                                                 : null));
             // No one is better: BuildMetaData difference.
             // Gives up.
-            if( best == null )
-            {
-                resolved = false;
-            }
-            else
+            if( best != null )
             {
                 removableTags ??= new List<Tag>();
                 if( best != exists )
@@ -603,7 +621,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     removableTags.Add( newOne.Tag );
                 }
             }
-            return resolved;
+            return best;
         }
     }
 

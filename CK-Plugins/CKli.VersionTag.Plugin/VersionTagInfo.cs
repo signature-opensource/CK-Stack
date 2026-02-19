@@ -14,13 +14,20 @@ public sealed class VersionTagInfo : RepoInfo
 {
     readonly List<TagCommit> _lastStables;
     readonly TagCommit? _lastStable;
+    readonly TagCommit? _topHot;
     readonly Dictionary<SVersion, TagCommit> _v2C;
     readonly IReadOnlyList<Tag> _removableTags;
+    //
+    // The +invalid tags are already handled, kept here but not used anymore:
+    // one day, may be, we'll remove them but before, we must ensure that the hidden
+    // version tags are removed in other repositories...
+    //
     readonly Dictionary<SVersion, (SVersion V, Tag T)>? _invalidTags;
     readonly List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? _tagConflicts;
     readonly World.Issue? _publishedReleaseContentIssue;
     readonly SVersion _minVersion;
     readonly SVersion? _maxVersion;
+    readonly bool _hotZoneIssue;
     readonly bool _hasIssues;
     Dictionary<string, TagCommit>? _sha2C;
     ImmutableArray<TagCommit> _lastMajorMinorStables;
@@ -29,16 +36,20 @@ public sealed class VersionTagInfo : RepoInfo
                              SVersion minVersion,
                              SVersion? maxVersion,
                              List<TagCommit> lastStables,
+                             TagCommit? lastStable,
+                             TagCommit? topHot,
                              Dictionary<SVersion, TagCommit> v2c,
                              List<Tag>? removableTags,
                              Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags,
                              List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts,
                              World.Issue? publishedReleaseContentIssue,
-                             bool hasMissingContentInfo )
+                             bool hasMissingContentInfo,
+                             bool hotZoneIssue )
         : base( repo )
     {
         _lastStables = lastStables;
-        if( lastStables.Count > 0 ) _lastStable = lastStables[0];
+        _lastStable = lastStable;
+        _topHot = topHot;
         _v2C = v2c;
         _minVersion = minVersion;
         _maxVersion = maxVersion;
@@ -46,7 +57,8 @@ public sealed class VersionTagInfo : RepoInfo
         _invalidTags = invalidTags;
         _tagConflicts = tagConflicts;
         _publishedReleaseContentIssue = publishedReleaseContentIssue;
-        _hasIssues = hasMissingContentInfo || tagConflicts != null || publishedReleaseContentIssue != null;
+        _hotZoneIssue = hotZoneIssue;
+        _hasIssues = hotZoneIssue || hasMissingContentInfo || tagConflicts != null || publishedReleaseContentIssue != null;
     }
 
     /// <summary>
@@ -86,7 +98,7 @@ public sealed class VersionTagInfo : RepoInfo
     /// <summary>
     /// Gets the filtered set of <see cref="LastStables"/> with the maximal <see cref="SVersion.Patch"/>.
     /// <para>
-    /// <see cref="TagCommit.IsRegularVersion"/> may be false ("+fake" and "+deprecated" appear here).
+    /// <see cref="TagCommit.IsRegularVersion"/> may be false ("+fake" and "+deprecated" versions appear here).
     /// </para>
     /// </summary>
     public ImmutableArray<TagCommit> LastMajorMinorStables
@@ -128,6 +140,11 @@ public sealed class VersionTagInfo : RepoInfo
     /// </para>
     /// </summary>
     public TagCommit? LastStable => _lastStable;
+
+    /// <summary>
+    /// Gets the top tag commit. When not null, then this TopHot is greater or equal to <see cref="LastStable"/> (that is not null).
+    /// </summary>
+    public TagCommit? TopHot => _topHot;
 
     /// <summary>
     /// Gets the versioned tag commits indexed by their version.
@@ -610,7 +627,17 @@ public sealed class VersionTagInfo : RepoInfo
                                 Repo,
                                 _removableTags ) );
         }
-
+        if( _hotZoneIssue )
+        {
+            Throw.DebugAssert( _topHot != null && _lastStable != null );
+            collector( World.Issue.CreateManual( "Hot zone issue detected.",
+                                                 screenType.Text( $"""
+                The greatest version tag '{_topHot.Version.ParsedText}' cannot be greater or equal to 'v{_lastStable.Version.Major+1
+                }.0.0' because the last stable version is '{_lastStable.Version.ParsedText}'.
+                This should be fixed manually.
+                """ ),
+                                                 Repo ) );
+        }
         static string ToString( (SVersion V, Tag T) t ) => $"'{t.V.ParsedText}' on '{t.T.Target.Sha}'";
     }
 

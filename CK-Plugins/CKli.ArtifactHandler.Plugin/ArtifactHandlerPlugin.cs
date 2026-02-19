@@ -256,7 +256,6 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
             return false;
         }
         throw new NotImplementedException();
-        return true;
     }
 
     bool PushHomogeneousQualityPackages( IActivityMonitor monitor, ImmutableArray<BuildResult> results, PackageQuality quality )
