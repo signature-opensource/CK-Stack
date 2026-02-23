@@ -19,7 +19,7 @@ namespace CKli.Plugins;
 [GeneratedCode("CKli", "0.0.8--0194-dev")]
 public static class CompiledPlugins
 {
-    static ReadOnlySpan<byte> _configSignature => [211,62,171,226,161,88,216,13,219,96,12,24,217,98,210,185,84,225,242,227];
+    static ReadOnlySpan<byte> _configSignature => [234,0,128,254,64,50,63,236,167,173,130,204,144,48,86,17,116,17,155,229];
 
     public static IPluginFactory Get( PluginCollectorContext ctx )
     {
@@ -36,6 +36,7 @@ public static class CompiledPlugins
             new PluginInfo( "CKli.ArtifactHandler.Plugin", "ArtifactHandler", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.Net8Migration.Plugin", "Net8Migration", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
             new PluginInfo( "CKli.ShallowSolution.Plugin", "ShallowSolution", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
+            new PluginInfo( "CKli.CommonFiles.Plugin", "CommonFiles", (PluginStatus)0, null, new IPluginTypeInfo[1] ),
         };
         PluginInfo plugin;
         IPluginTypeInfo[] types;
@@ -61,6 +62,9 @@ public static class CompiledPlugins
         plugin = infos[6];
         types = (IPluginTypeInfo[])plugin.PluginTypes;
         types[0] = new PluginTypeInfo( plugin, "CKli.ShallowSolution.Plugin.ShallowSolutionPlugin", true, 0, 3 );
+        plugin = infos[7];
+        types = (IPluginTypeInfo[])plugin.PluginTypes;
+        types[0] = new PluginTypeInfo( plugin, "CKli.CommonFiles.Plugin.CommonFilesPlugin", true, 0, 8 );
         var pluginCommands = new PluginCommand[]{
             new Cmd_maintenance＿release_database＿rebuild( infos[1].PluginTypes[0] ),
             new Cmd_fix＿start( infos[0].PluginTypes[0] ),
@@ -114,7 +118,7 @@ sealed class Generated : IPluginFactory
     {
         var configs = world.DefinitionFile.ReadPluginsConfiguration( monitor );
         Throw.CheckState( "Plugins configurations have already been loaded.", configs != null );
-        var objects = new object[8];
+        var objects = new object[9];
         objects[0] = new CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin( new PrimaryPluginContext( _plugins[4], configs, world ) );
         objects[1] = new CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin( new PrimaryPluginContext( _plugins[3], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[2] = new CKli.VersionTag.Plugin.VersionTagPlugin( new PrimaryPluginContext( _plugins[1], configs, world ), (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
@@ -123,6 +127,7 @@ sealed class Generated : IPluginFactory
         objects[5] = new CKli.Build.Plugin.RepositoryBuilderPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0] );
         objects[6] = new CKli.Build.Plugin.BuildPlugin( new PrimaryPluginContext( _plugins[2], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[4], (CKli.Build.Plugin.RepositoryBuilderPlugin)objects[5], (CKli.ReleaseDatabase.Plugin.ReleaseDatabasePlugin)objects[1], (CKli.ArtifactHandler.Plugin.ArtifactHandlerPlugin)objects[0], (CKli.ShallowSolution.Plugin.ShallowSolutionPlugin)objects[3] );
         objects[7] = new CKli.Net8Migration.Plugin.Net8MigrationPlugin( new PrimaryPluginContext( _plugins[5], configs, world ), (CKli.VersionTag.Plugin.VersionTagPlugin)objects[2], (CKli.BranchModel.Plugin.BranchModelPlugin)objects[4], (CKli.Build.Plugin.BuildPlugin)objects[6] );
+        objects[8] = new CKli.CommonFiles.Plugin.CommonFilesPlugin( new PrimaryPluginContext( _plugins[7], configs, world ) );
         return PluginCollectionImpl.CreateAndBindCommands( objects, _plugins, _commands, _pluginCommands );
     }
 

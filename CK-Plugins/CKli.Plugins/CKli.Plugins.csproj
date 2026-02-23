@@ -15,6 +15,6 @@
     <ProjectReference Include="..\CKli.Net8Migration.Plugin\CKli.Net8Migration.Plugin.csproj" />
     
     <ProjectReference Include="..\CKli.ShallowSolution.Plugin\CKli.ShallowSolution.Plugin.csproj" />
-  </ItemGroup>
+  <ProjectReference Include="..\CKli.CommonFiles.Plugin\CKli.CommonFiles.Plugin.csproj" /></ItemGroup>
 
 </Project>

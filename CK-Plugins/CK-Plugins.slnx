@@ -12,6 +12,7 @@
   <Project Path="CKli.ArtifactHandler.Plugin/CKli.ArtifactHandler.Plugin.csproj" />
   <Project Path="CKli.BranchModel.Plugin/CKli.BranchModel.Plugin.csproj" />
   <Project Path="CKli.Build.Plugin/CKli.Build.Plugin.csproj" />
+  <Project Path="CKli.CommonFiles.Plugin/CKli.CommonFiles.Plugin.csproj" />
   <Project Path="CKli.Net8Migration.Plugin/CKli.Net8Migration.Plugin.csproj" />
   <Project Path="CKli.Plugins/CKli.Plugins.csproj" />
   <Project Path="CKli.ReleaseDatabase.Plugin/CKli.ReleaseDatabase.Plugin.csproj" />

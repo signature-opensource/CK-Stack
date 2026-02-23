@@ -15,7 +15,8 @@ public static class Plugins
                 typeof( ArtifactHandler.Plugin.ArtifactHandlerPlugin ),
                  typeof( Net8Migration.Plugin.Net8MigrationPlugin ),
                   typeof( ShallowSolution.Plugin.ShallowSolutionPlugin ),
-                    // </AutoSection>
+                    typeof( CommonFiles.Plugin.CommonFilesPlugin ),
+                     // </AutoSection>
         ] );
     }
 }                
