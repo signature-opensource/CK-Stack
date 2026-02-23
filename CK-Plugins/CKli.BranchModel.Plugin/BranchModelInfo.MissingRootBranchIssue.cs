@@ -11,45 +11,33 @@ public sealed partial class BranchModelInfo
     sealed class MissingRootBranchIssue : World.Issue
     {
         readonly HotBranch _root;
-        readonly Branch _starting;
-        readonly bool _isRootDev;
+        readonly Branch _mainOrMaster;
 
-        MissingRootBranchIssue( string title, IRenderable body, HotBranch root, Branch starting, bool isRootDev, Repo repo )
+        MissingRootBranchIssue( string title, IRenderable body, HotBranch root, Branch mainOrMaster, Repo repo )
             : base( title, body, repo )
         {
             _root = root;
-            _starting = starting;
-            _isRootDev = isRootDev;
+            _mainOrMaster = mainOrMaster;
         }
 
         public static World.Issue Create( IActivityMonitor monitor,
                                           HotBranch root,
-                                          Branch? startingD,
-                                          Branch? startingM,
+                                          Branch? mainOrMaster,
                                           ScreenType screenType,
                                           Repo repo )
         {
             var title = $"Missing root branch '{root.BranchName.Name}'.";
-            bool isRootDev = false;
-            Branch start;
-            if( startingD == null )
+            if( mainOrMaster == null )
             {
-                if( startingM == null )
-                {
-                    return CreateManual( title, screenType.Text( "No 'master' nor 'main' branch found." ), repo );
-                }
-                start = startingM;
-            }
-            else
-            {
-                isRootDev = true;
-                start = startingD;
+                return CreateManual( title, screenType.Text( $"""
+                    No 'master' nor 'main' branch found.
+                    The '{root.BranchName.Name}' should be created manually.
+                    """ ), repo );
             }
             return new MissingRootBranchIssue( title,
-                                               screenType.Text( $"Can be fixed by creating it from '{start.FriendlyName}'." ),
+                                               screenType.Text( $"Can be fixed by creating it from '{mainOrMaster.FriendlyName}'." ),
                                                root,
-                                               start,
-                                               isRootDev,
+                                               mainOrMaster,
                                                repo );
         }
 
@@ -59,17 +47,8 @@ public sealed partial class BranchModelInfo
             Throw.DebugAssert( !_root.BranchName.IsDevBranch );
 
             var r = Repo.GitRepository.Repository;
-            Branch dev;
-            if( _isRootDev )
-            {
-                dev = _starting;
-            }
-            else
-            {
-                dev = CreateInitialBranch( r, context.Committer, _starting.Tip, _root.BranchName.DevBranch );
-            }
             // Creating the root.
-            CreateInitialBranch( r, context.Committer, dev.Tip, _root.BranchName );
+            CreateInitialBranch( r, context.Committer, _mainOrMaster.Tip, _root.BranchName );
 
             return ValueTask.FromResult( true );
         }
@@ -82,8 +61,7 @@ public sealed partial class BranchModelInfo
                                                    fromCommit.Tree,
                                                    [fromCommit],
                                                    prettifyMessage: false );
-            var bDev = r.CreateBranch( b.Name, c );
-            return bDev;
+            return r.CreateBranch( b.Name, c );
         }
     }
 

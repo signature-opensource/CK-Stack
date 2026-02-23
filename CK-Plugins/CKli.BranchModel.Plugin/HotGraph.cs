@@ -76,13 +76,6 @@ public sealed partial class HotGraph
         {
             return false;
         }
-        var hotBase = versionInfo.LastStable;
-        if( hotBase == null )
-        {
-            monitor.Error( $"Unable to find any stable version tags in '{repo.DisplayPath}'." );
-            return false;
-        }
-
         var s = new Solution( this, actual, shallow );
         _solutions[shallow.Repo.Index] = s;
         foreach( var p in shallow.Projects )

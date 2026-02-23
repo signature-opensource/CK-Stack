@@ -14,15 +14,32 @@ namespace Plugins.Tests;
 [TestFixture]
 public class InitializationTests
 {
-    [SetUp]
-    public void Setup()
+    /// <summary>
+    /// When a test DOESN'T push (it has no impact on the remotes), we remove
+    /// the secret: this ensures that the test doesn't push anything.
+    /// </summary>
+    void RemoveFileSystemWritePAT()
     {
-        // Because we are pushing here, we need the Write PAT for the "FILESYSTEM"
-        // That is useless (credentials are not used on local file system) but it's
-        // good to not make an exception for this case.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
+                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
+                                  Environment.CurrentDirectory )
+                     .ShouldBe( 0 );
+    }
+
+    /// <summary>
+    /// When a test pushes (from git local to remotes), we need the Write PAT
+    /// for the "FILESYSTEM".
+    /// <para>
+    /// That is useless (credentials are not used on local file system) but it's
+    /// good to not make an exception for this case.
+    /// </para> 
+    /// </summary>
+    void SetFileSystemWritePAT()
+    {
+        ProcessRunner.RunProcess( TestHelper.Monitor,
+                                  "dotnet",
+                                  """user-secrets set FILESYSTEM_GIT "don't care" --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
     }
@@ -35,14 +52,7 @@ public class InitializationTests
     [Test]
     public async Task CKt_init_Async()
     {
-        // Because we are pushing here, we need the Write PAT for the "FILESYSTEM"
-        // That is useless (credentials are not used on local file system) but it's
-        // good to not make an exception for this case.
-        ProcessRunner.RunProcess( TestHelper.Monitor,
-                                  "dotnet",
-                                  """user-secrets set FILESYSTEM_GIT_WRITE_PAT "don't care" --id CKli-CK""",
-                                  Environment.CurrentDirectory )
-                     .ShouldBe( 0 );
+        SetFileSystemWritePAT();
 
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(init)" );
@@ -72,6 +82,85 @@ public class InitializationTests
         TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_init_Async", "CKt", "(initialized)" );
     }
 
+    [Test]
+    public async Task CKt_add_sample_Async()
+    {
+        SetFileSystemWritePAT();
+        var clonedFolder = TestHelper.InitializeClonedFolder();
+        var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
+        var context = remotes.Clone( clonedFolder );
+        var display = (StringScreen)context.Screen;
+
+        var newRepo = TestHelper.CKliRemotesPath.AppendPart( "bare" ).Combine( "CKt(initialized)/CKt-Sample-Monitoring" );
+        var newRepoUrl = $"file://{newRepo}";
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "hosting", "create", newRepoUrl )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "repo", "add", newRepoUrl )).ShouldBeTrue();
+
+        context = context.ChangeDirectory( "CKt-Sample-Monitoring" );
+        Directory.Exists( context.CurrentDirectory ).ShouldBeTrue();
+        var path = context.CurrentDirectory.AppendPart( "CKt.Sample.Monitoring" );
+        Directory.CreateDirectory( path );
+        File.WriteAllText( path.AppendPart( "CKt.Sample.Monitoring.csproj" ), """
+            <Project Sdk="Microsoft.NET.Sdk">
+
+                <PropertyGroup>
+                    <TargetFramework>net8.0</TargetFramework>
+                    <Nullable>enable</Nullable>
+                    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+                </PropertyGroup>
+
+                <ItemGroup>
+                    <PackageReference Include="CKt.Monitoring" Version="0.2.3" />
+                    <PackageReference Include="CKt.PerfectEvent" Version="0.3.2" />
+                </ItemGroup>
+
+            </Project>
+            
+            """ );
+        File.WriteAllText( path.AppendPart( "PreserveAssemblyReference.cs" ), """
+            using System;
+
+            namespace CKt.Sample.Monitoring;
+
+            public record PreserveAssemblyReference( CKt.Monitoring.PreserveAssemblyReference Monitoring,
+                                                     CKt.PerfectEvent.PreserveAssemblyReference PerfectEvent );
+                        
+            """ );
+
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "exec", "dotnet", "sln", "add", "CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" )).ShouldBeTrue();
+
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            > CKt-Sample-Monitoring (1)
+            │ > Missing root branch 'stable'.
+            │ │ Can be fixed by creating it from 'master'.
+            ❰✓❱
+
+            """ );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            > CKt-Sample-Monitoring (1)
+            │ > Missing initial version.
+            │ │ This can be fixed by building the 'v0.0.0' version from 'stable' branch.
+            ❰✓❱
+
+            """ );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            ❰✓❱
+
+            """ );
+
+    }
+
+
     /// <summary>
     /// <see cref="CKli.BranchModel.Plugin.BranchModelPlugin.FixStart"/>
     /// <see cref="CKli.BranchModel.Plugin.BranchModelPlugin.FixInfo"/>
@@ -81,15 +170,7 @@ public class InitializationTests
     [Test]
     public async Task CKt_local_fix_Async()
     {
-        // Because we are NOT pushing here, we remove the secret: this ensures
-        // that this test doesn't push anything.
-        // "ckli fix build" is purely local, it has no impacts on the remotes.
-        ProcessRunner.RunProcess( TestHelper.Monitor,
-                                  "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
-                                  Environment.CurrentDirectory )
-                     .ShouldBe( 0 );
-
+        RemoveFileSystemWritePAT();
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
         var context = remotes.Clone( clonedFolder );
@@ -256,7 +337,7 @@ public class InitializationTests
         // "ckli build" is purely local, it has no impacts on the remotes.
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT_WRITE_PAT --id CKli-CK""",
+                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
 

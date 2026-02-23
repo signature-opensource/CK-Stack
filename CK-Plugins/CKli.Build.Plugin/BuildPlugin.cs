@@ -9,6 +9,7 @@ using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -192,7 +193,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                              context,
                                              repoBuilder,
                                              _releaseDatabase,
-                                             versionInfo,
                                              buildInfo,
                                              runTest.Value ).ConfigureAwait( false );
         if( mustCheckOut )
@@ -201,7 +201,36 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             {
                 monitor.Trace( "Restoring working folder to its previous head." );
                 Commands.Checkout( git.Repository, currentHead, new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force } );
-                FileHelper.DeleteEmptyFoldersBelow( monitor, versionInfo.Repo.WorkingFolder, LogLevel.Warn );
+
+                // When rebuilding old commit points, ignored artifacts may remains on the file system.
+                // We are rather aggressive here and try to cleanup the file system. 
+                git.ResetHard( monitor, out var remainingUntrackedFiles, tryDeleteUntrackedFiles: true );
+
+                // It may seem logical here to not include untracked files here (and ask only for ignored ones)
+                // but when setting IncludeUntracked and RecurseUntrackedDirs to false here and building CKt-Core/v1.0.0,
+                // this removes CKt.Core/bin and /obj but leaves CodeCakeBuilder/bin and /obj...
+                // That is PRECISELY what we want to remove :-(.
+                // So let IncludeUntracked be true here.
+                var status = git.Repository.RetrieveStatus( new StatusOptions
+                {
+                    DetectRenamesInIndex = false,
+                    IncludeIgnored = true
+                } );
+                foreach( var e in status.Ignored )
+                {
+                    var eName = e.FilePath;
+                    var fullPath = Path.Combine( git.WorkingFolder, eName );
+                    if( eName[^1] == '/' )
+                    {
+                        FileHelper.DeleteFolder( monitor, fullPath );
+                    }
+                    else
+                    {
+                        FileHelper.DeleteFile( monitor, fullPath );
+                    }
+                }
+
+                FileHelper.DeleteEmptyFoldersBelow( monitor, git.WorkingFolder, LogLevel.Warn );
             }
             catch( Exception ex )
             {
@@ -215,7 +244,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                                           CKliEnv context,
                                                           RepoBuilder repoBuilder,
                                                           ReleaseDatabasePlugin releaseDatabase,
-                                                          VersionTagInfo versionInfo,
                                                           CommitBuildInfo buildInfo,
                                                           bool runTest )
         {
@@ -228,7 +256,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                     return null;
                 }
                 // Local fix builds have no release tag. If the release local database is reset, we lose them
-                // but this is not issue, this is used as an optimization that avoids rebuilding origins when
+                // but this is not an issue, this is used as an optimization that avoids rebuilding origins when
                 // an impacted repo needs to be rebuilt.
                 if( !buildResult.Version.IsLocalFix() )
                 {

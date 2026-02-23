@@ -511,10 +511,6 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
         }
 
-        var lastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
-        var lastStable = lastStables.Count > 0 ? lastStables[0] : null;
-
-        Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
 
         if( hasBadTagNames )
         {
@@ -539,14 +535,26 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // release database contains. This is odd and should almost never happen but this is a checkpoint that doesn't
         // cost much.
         //
-        bool hasMissingContentInfo = false;
-        bool hotZoneIssue = false;
-        if( topHot != lastStable )
+        var lastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
+        var lastStable = lastStables.Count > 0 ? lastStables[0] : null;
+
+        Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
+        // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is too much higher than the last
+        // stable (this is a strong signal of a bad tag that should be deleted).
+        VersionTagInfo.HotZoneInfo? hotZone = null;    
+        if( topHot != null )
         {
-            Throw.DebugAssert( topHot != null && lastStable != null );
-            var hotSupremum = SVersion.Create( topHot.Version.Major + 1, 0, 0 );
-            hotZoneIssue = topHot.Version >= hotSupremum;
+            Throw.DebugAssert( lastStable != null );
+            // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
+            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot );
         }
+        else
+        {
+            Throw.DebugAssert( lastStable == null );
+            // The build plugin will handle this.
+            monitor.Warn( $"No initial version found in '{repo.DisplayPath}'." );
+        }
+        bool hasMissingContentInfo = false;
         World.Issue? publishedReleaseContentIssue = null;
         if( tagConflicts == null )
         {
@@ -570,15 +578,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                                    minVersion,
                                    maxVersion,
                                    lastStables,
-                                   lastStable,
-                                   topHot,
+                                   hotZone,
                                    v2c,
                                    removableTags,
                                    invalidTags,
                                    tagConflicts,
                                    publishedReleaseContentIssue,
-                                   hasMissingContentInfo,
-                                   hotZoneIssue );
+                                   hasMissingContentInfo );
 
         static TagCommit? ResolveConflict( Dictionary<SVersion, TagCommit> v2c, TagCommit exists, TagCommit newOne, ref List<Tag>? removableTags )
         {

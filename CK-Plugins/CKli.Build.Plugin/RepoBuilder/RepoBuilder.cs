@@ -94,6 +94,7 @@ public class RepoBuilder : RepoInfo
                     monitor.Error( $"Unable to reset the working folder after build. This should not happen: failing the build." );
                     return null;
                 }
+                FileHelper.DeleteEmptyFoldersBelow( monitor, buildInfo.Repo.WorkingFolder, CK.Core.LogLevel.Warn );
                 resetHardDone = true;
                 if( BuildResult.GetConsumedPackages( monitor, Repo, buildInfo.ToString(), out var consumedPackages ) )
                 {
@@ -120,6 +121,7 @@ public class RepoBuilder : RepoInfo
             if( !resetHardDone )
             {
                 Repo.GitRepository.ResetHard( monitor, out var remainingUntrackedFiles, tryDeleteUntrackedFiles: true );
+                FileHelper.DeleteEmptyFoldersBelow( monitor, buildInfo.Repo.WorkingFolder, CK.Core.LogLevel.Warn );
             }
         }
         return null;

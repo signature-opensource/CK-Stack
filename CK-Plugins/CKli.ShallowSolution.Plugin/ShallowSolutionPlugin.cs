@@ -1,14 +1,8 @@
 using CK.Core;
 using CKli.Core;
-using CSemVer;
 using LibGit2Sharp;
-using Microsoft.Extensions.FileProviders;
-using Microsoft.Extensions.FileProviders.Internal;
-using Microsoft.Extensions.FileProviders.Physical;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Xml.Linq;
 
 namespace CKli.ShallowSolution.Plugin;

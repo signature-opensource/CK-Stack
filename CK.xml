@@ -41,7 +41,7 @@
     <Repository Url="https://github.com/signature-opensource/CK-Metrics">
       <VersionTag MinVersion="0.0.0" />
     </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-Mailer.git">
+    <Repository Url="https://github.com/signature-opensource/CK-Mailer">
       <VersionTag MinVersion="3.0.0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Globalization">

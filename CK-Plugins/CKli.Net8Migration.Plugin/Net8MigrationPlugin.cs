@@ -106,14 +106,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             Commands.Checkout( repo.GitRepository.Repository, stable );
         }
 
-        var snapshotStables = repos.ToDictionary( r => r, r =>
-        {
-            Throw.CheckState( !r.GitRepository.GetSimpleStatusInfo().IsDirty );
-            Throw.CheckState( r.GitRepository.Repository.Head.FriendlyName == "stable" );
-            return r.GitRepository.Repository.Head.Tip;
-        } );
-
-        // Here we should also update the DirectoryInfo.props...
+        // Here we should also update the Directory.Build.props...
         if( !RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( monitor, repos ) ) return false;
 
         bool success = true;
@@ -123,20 +116,9 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             success &= repo.GitRepository.Commit( monitor,
                                                   "Initialize stable branch with slnx and no RepositoryInfo.xml nor CodeCakeBuilder.",
                                                   CommitBehavior.CreateNewCommit ) is not CommitResult.Error;
-            // Fix the tags.
-            //success &= _build.FixVersionTagIssues( monitor, context, _versionTag.Get( monitor, repo ) );
         }
 
         // We are ready to work... Still in Net8 but on stable branch.
-
-        // Now we can fix the tags after having computed the MinVersion.
-
-        // Restore stable.
-        //foreach( var (repo, commit) in snapshotStables )
-        //{
-        //    Throw.CheckState( repo.GitRepository.Repository.Head.FriendlyName == "stable" );
-        //    repo.GitRepository.Repository.Reset( ResetMode.Hard, commit, new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force } );
-        //}
 
         return success;
     }

@@ -10,11 +10,10 @@ using System.Threading.Tasks;
 
 namespace CKli.VersionTag.Plugin;
 
-public sealed class VersionTagInfo : RepoInfo
+public sealed partial class VersionTagInfo : RepoInfo
 {
     readonly List<TagCommit> _lastStables;
-    readonly TagCommit? _lastStable;
-    readonly TagCommit? _topHot;
+    readonly HotZoneInfo? _hotZone;
     readonly Dictionary<SVersion, TagCommit> _v2C;
     readonly IReadOnlyList<Tag> _removableTags;
     //
@@ -27,7 +26,6 @@ public sealed class VersionTagInfo : RepoInfo
     readonly World.Issue? _publishedReleaseContentIssue;
     readonly SVersion _minVersion;
     readonly SVersion? _maxVersion;
-    readonly bool _hotZoneIssue;
     readonly bool _hasIssues;
     Dictionary<string, TagCommit>? _sha2C;
     ImmutableArray<TagCommit> _lastMajorMinorStables;
@@ -36,20 +34,17 @@ public sealed class VersionTagInfo : RepoInfo
                              SVersion minVersion,
                              SVersion? maxVersion,
                              List<TagCommit> lastStables,
-                             TagCommit? lastStable,
-                             TagCommit? topHot,
+                             HotZoneInfo? hotZone,
                              Dictionary<SVersion, TagCommit> v2c,
                              List<Tag>? removableTags,
                              Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags,
                              List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts,
                              World.Issue? publishedReleaseContentIssue,
-                             bool hasMissingContentInfo,
-                             bool hotZoneIssue )
+                             bool hasMissingContentInfo )
         : base( repo )
     {
         _lastStables = lastStables;
-        _lastStable = lastStable;
-        _topHot = topHot;
+        _hotZone = hotZone;
         _v2C = v2c;
         _minVersion = minVersion;
         _maxVersion = maxVersion;
@@ -57,8 +52,10 @@ public sealed class VersionTagInfo : RepoInfo
         _invalidTags = invalidTags;
         _tagConflicts = tagConflicts;
         _publishedReleaseContentIssue = publishedReleaseContentIssue;
-        _hotZoneIssue = hotZoneIssue;
-        _hasIssues = hotZoneIssue || hasMissingContentInfo || tagConflicts != null || publishedReleaseContentIssue != null;
+        _hasIssues = hotZone == null || hotZone.HotZoneIssue != null
+                     || hasMissingContentInfo
+                     || tagConflicts != null
+                     || publishedReleaseContentIssue != null;
     }
 
     /// <summary>
@@ -92,6 +89,11 @@ public sealed class VersionTagInfo : RepoInfo
     /// <para>
     /// <see cref="TagCommit.IsRegularVersion"/> may be false ("+fake" and "+deprecated" appear here).
     /// </para>
+    /// <para>
+    /// When this is empty, then <see cref="HotZone"/> is null and <see cref="HasIssues"/> is true: a first stable version of at
+    /// least <see cref="MinVersion"/> should be produced to fix this. This fix is handled by the Build plugin (if the root "stable"
+    /// branch exists).
+    /// </para>
     /// </summary>
     public IReadOnlyList<TagCommit> LastStables => _lastStables;
 
@@ -107,7 +109,7 @@ public sealed class VersionTagInfo : RepoInfo
         {
             if( _lastMajorMinorStables.IsDefault )
             {
-                var c = _lastStable;
+                var c = _hotZone?.LastStable;
                 if( c == null )
                 {
                     _lastMajorMinorStables = [];
@@ -134,17 +136,9 @@ public sealed class VersionTagInfo : RepoInfo
     }
 
     /// <summary>
-    /// Gets the last stable version: this is the common ancestor of the "hot zone" where branch model applies.
-    /// <para>
-    /// This can be a "+fake" or a "+deprecated" version (<see cref="TagCommit.IsRegularVersion"/> can be false).
-    /// </para>
+    /// Gets the hot zone information if there is no hot zone issue, null otherwise.
     /// </summary>
-    public TagCommit? LastStable => _lastStable;
-
-    /// <summary>
-    /// Gets the top tag commit. When not null, then this TopHot is greater or equal to <see cref="LastStable"/> (that is not null).
-    /// </summary>
-    public TagCommit? TopHot => _topHot;
+    public HotZoneInfo? HotZone => _hotZone;
 
     /// <summary>
     /// Gets the versioned tag commits indexed by their version.
@@ -278,7 +272,7 @@ public sealed class VersionTagInfo : RepoInfo
         // To handle exceptions, this is where the "+fake" build meta data is considered: we strictly enforce the rules
         // but a "+fake" tag on any commit circumvents the rule and de facto documents the exception. 
         //
-        if( _lastStable == null )
+        if( _lastStables.Count == 0 )
         {
             // There is no stable release at all in the (MinVersion,MaxVersion?) range.
 
@@ -627,17 +621,11 @@ public sealed class VersionTagInfo : RepoInfo
                                 Repo,
                                 _removableTags ) );
         }
-        if( _hotZoneIssue )
+        if( _hotZone != null && _hotZone.HotZoneIssue != null )
         {
-            Throw.DebugAssert( _topHot != null && _lastStable != null );
-            collector( World.Issue.CreateManual( "Hot zone issue detected.",
-                                                 screenType.Text( $"""
-                The greatest version tag '{_topHot.Version.ParsedText}' cannot be greater or equal to 'v{_lastStable.Version.Major+1
-                }.0.0' because the last stable version is '{_lastStable.Version.ParsedText}'.
-                This should be fixed manually.
-                """ ),
-                                                 Repo ) );
+            collector( _hotZone.HotZoneIssue );
         }
+
         static string ToString( (SVersion V, Tag T) t ) => $"'{t.V.ParsedText}' on '{t.T.Target.Sha}'";
     }
 

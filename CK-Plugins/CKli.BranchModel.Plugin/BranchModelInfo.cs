@@ -90,14 +90,9 @@ public sealed partial class BranchModelInfo : RepoInfo
         if( _root.GitBranch == null )
         {
             Throw.DebugAssert( _model.Root.DevBranch != null );
-            Branch? startingD = Repo.GitRepository.GetBranch( monitor, _model.Root.DevBranch.Name, LogLevel.Info );
-            Branch? startingM = null;
-            if( startingD == null )
-            {
-                startingM = Repo.GitRepository.GetBranch( monitor, "master", LogLevel.Info )
-                            ?? Repo.GitRepository.GetBranch( monitor, "main", LogLevel.Info );
-            }
-            collector( MissingRootBranchIssue.Create( monitor, _root, startingD, startingM, screenType, Repo ) );
+            Branch? mainOrMaster = Repo.GitRepository.GetBranch( monitor, "master", LogLevel.Info )
+                                ?? Repo.GitRepository.GetBranch( monitor, "main", LogLevel.Info );
+            collector( MissingRootBranchIssue.Create( monitor, _root, mainOrMaster, screenType, Repo ) );
             return;
         }
         if( _unrelated != null )
