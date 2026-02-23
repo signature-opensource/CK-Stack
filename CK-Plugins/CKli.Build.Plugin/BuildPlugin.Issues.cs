@@ -34,7 +34,7 @@ public sealed partial class BuildPlugin
                 // We have a root branch: let's fix this by building it with the MinVersion.
                 collector( new NoVersionTagIssue( this,
                                                   versionTagInfo,
-                                                  $"Missing initial version.",
+                                                  "Missing initial version.",
                                                   screenType.Text( $"""
                                                       This can be fixed by building the 'v{versionTagInfo.MinVersion}' version from '{branchModel.Root.BranchName}' branch.
                                                       """ ),

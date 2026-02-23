@@ -1,6 +1,5 @@
 using CK.Core;
 using CKli.Core;
-using CKli.ShallowSolution.Plugin;
 using CSemVer;
 using System;
 using System.Collections.Generic;
