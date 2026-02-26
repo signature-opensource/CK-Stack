@@ -26,7 +26,7 @@ public sealed partial class VersionTagInfo : RepoInfo
     readonly World.Issue? _publishedReleaseContentIssue;
     readonly SVersion _minVersion;
     readonly SVersion? _maxVersion;
-    readonly bool _hasIssues;
+    readonly bool _hasIssue;
     Dictionary<string, TagCommit>? _sha2C;
     ImmutableArray<TagCommit> _lastMajorMinorStables;
 
@@ -52,7 +52,7 @@ public sealed partial class VersionTagInfo : RepoInfo
         _invalidTags = invalidTags;
         _tagConflicts = tagConflicts;
         _publishedReleaseContentIssue = publishedReleaseContentIssue;
-        _hasIssues = hotZone == null || hotZone.HotZoneIssue != null
+        _hasIssue = hotZone == null || hotZone.HotZoneIssue != null
                      || hasMissingContentInfo
                      || tagConflicts != null
                      || publishedReleaseContentIssue != null;
@@ -76,13 +76,12 @@ public sealed partial class VersionTagInfo : RepoInfo
     public SVersion? MaxVersion => _maxVersion;
 
     /// <summary>
-    /// Gets whether this repository has "annoying" issues related to its version tags: it should be better to fix
-    /// these before taking any decision based on versions for this repository.
+    /// Gets whether this repository has "annoying" issues related to its version tags.
     /// <para>
     /// Non empty <see cref="RemovableTags"/> is not considered annoying.
     /// </para>
     /// </summary>
-    public bool HasIssues => _hasIssues;
+    public override bool HasIssue => _hasIssue;
 
     /// <summary>
     /// Gets the last stable versions from the <see cref="LastStable"/> one to the oldest one.
@@ -90,7 +89,7 @@ public sealed partial class VersionTagInfo : RepoInfo
     /// <see cref="TagCommit.IsRegularVersion"/> may be false ("+fake" and "+deprecated" appear here).
     /// </para>
     /// <para>
-    /// When this is empty, then <see cref="HotZone"/> is null and <see cref="HasIssues"/> is true: a first stable version of at
+    /// When this is empty, then <see cref="HotZone"/> is null and <see cref="HasIssue"/> is true: a first stable version of at
     /// least <see cref="MinVersion"/> should be produced to fix this. This fix is handled by the Build plugin (if the root "stable"
     /// branch exists).
     /// </para>

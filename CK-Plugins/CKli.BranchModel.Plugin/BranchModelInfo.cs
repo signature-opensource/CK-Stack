@@ -4,6 +4,7 @@ using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using LogLevel = CK.Core.LogLevel;
@@ -12,103 +13,114 @@ namespace CKli.BranchModel.Plugin;
 
 public sealed partial class BranchModelInfo : RepoInfo
 {
-    readonly HotBranch _root;
     readonly BranchNamespace _model;
-    readonly Dictionary<string, HotBranch> _branches;
+    readonly ImmutableArray<HotBranch> _branches;
     readonly List<HotBranch>? _removable;
     readonly List<HotBranch>? _desynchronized;
     readonly List<HotBranch>? _unrelated;
-    readonly bool _hasIssues;
+    readonly bool _hasIssue;
 
-    // Missing "stable" case.
+    // Missing "stable" case (this is the worst case that prevents almost any operation except fixing this
+    // by creating the root branch).
     internal BranchModelInfo( Repo repo, BranchNamespace model, HotBranch root )
         : base( repo )
     {
+        root._info = this;
         _model = model;
-        _root = root;
-        _branches = new Dictionary<string, HotBranch>( 1 ) { { root.BranchName.Name, root } };
-        _hasIssues = true;
+        _branches = [root];
+        _hasIssue = true;
     }
 
     internal BranchModelInfo( Repo repo,
-                              BranchNamespace model,
-                              HotBranch root,
-                              Dictionary<string, HotBranch> branches,
+                              BranchNamespace ns,
+                              ImmutableArray<HotBranch> branches,
                               List<HotBranch>? removable,
                               List<HotBranch>? desynchronized,
                               List<HotBranch>? unrelated )
         : base( repo )
     {
-        _model = model;
-        _root = root;
+        _model = ns;
         _branches = branches;
         _removable = removable;
         _desynchronized = desynchronized;
         _unrelated = unrelated;
-        _hasIssues = unrelated != null || desynchronized != null || removable != null;
+        _hasIssue = unrelated != null || desynchronized != null || removable != null;
     }
 
     /// <summary>
-    /// Gets all the <see cref="HotBranch"/> indexed by their name.
+    /// Gets all the <see cref="HotBranch"/> indexed by their <see cref="BranchName.InstabilityRank"/>.
     /// Their git <see cref="HotBranch.GitBranch"/> may be null.
     /// </summary>
-    public IReadOnlyDictionary<string, HotBranch> Branches => _branches;
+    public ImmutableArray<HotBranch> Branches => _branches;
 
     /// <summary>
-    /// Finds the "closest" existing branch in this Repo according to <see cref="BranchName.Fallbacks"/>.
+    /// Gets the "closest" active branch in this Repo for the branch.
     /// <para>
-    /// This never returns null if <see cref="HasIssues"/> is false: the ultimate branch is the "stable" one.
+    /// <list type="bullet">
+    ///     <item>
+    ///     For a regular branch it is its "dev/" branch if it exists. Otherwise, it
+    ///     is the closest instable branch above.
+    ///     </item>
+    ///     <item>
+    ///     For a "dev/" branch this considers the interleaved base "dev/" branches.
+    ///     </item>
+    /// </list>
     /// </para>
+    /// This is almost the same as using the <see cref="BranchName.Fallbacks"/> except that this ignores
+    /// disconnected branches: this can return null only if <see cref="HasIssue"/> is true because the ultimate branch is the
+    /// "stable" that is necessarily active when there's no branch issue.
     /// </summary>
     /// <param name="name">The branch name.</param>
-    /// <returns>The hot branch or null (only if the "stable" branch doesn't exist).</returns>
-    public HotBranch? FindClosestGitBranch( BranchName name )
+    /// <returns>The active hot branch or null if the "stable" git branch doesn't exist.</returns>
+    public HotBranch? GetActiveBranch( BranchName name )
     {
-        return name.Fallbacks.Select( n => _branches.GetValueOrDefault( n.Name ) )
-                             .Where( b => b?.GitBranch != null )
-                             .FirstOrDefault();
+        if( name.IsDevBranch )
+        {
+            for( int i = name.InstabilityRank; i >= 0; --i )
+            {
+                var b = _branches[ i ];
+                if( b.GitBranch != null ) 
+            }
+        }
+        return name.Fallbacks.Select( n => _branches[n.InstabilityRank] )
+                             .FirstOrDefault( b => b?.GitBranch != null );
     }
 
     /// <summary>
     /// Gets the root branch.
-    /// Its <see cref="HotBranch.GitBranch"/> can be null (this has to be fixed, <see cref="HasIssues"/> is true).  
+    /// Its <see cref="HotBranch.GitBranch"/> can be null (this has to be fixed, <see cref="HasIssue"/> is true).  
     /// </summary>
-    public HotBranch Root => _root;
+    public HotBranch Root => _branches[0];
 
-    /// <summary>
-    /// Gets whether one or more issues must be resolved before anything serious can be done with this repository.
-    /// </summary>
-    public bool HasIssues => _hasIssues;
-
-
+    /// <inheritdoc />
+    public override bool HasIssue => _hasIssue;
 
     internal void CollectIssues( IActivityMonitor monitor,
                                  ScreenType screenType,
                                  Action<World.Issue> collector )
     {
         // If the "stable" branch doesn't exist, no need to continue.
-        if( _root.GitBranch == null )
+        if( Root.GitBranch == null )
         {
             Throw.DebugAssert( _model.Root.DevBranch != null );
             Branch? mainOrMaster = Repo.GitRepository.GetBranch( monitor, "master", LogLevel.Info )
                                 ?? Repo.GitRepository.GetBranch( monitor, "main", LogLevel.Info );
-            collector( MissingRootBranchIssue.Create( monitor, _root, mainOrMaster, screenType, Repo ) );
+            collector( MissingRootBranchIssue.Create( monitor, Root, mainOrMaster, screenType ) );
             return;
         }
         if( _unrelated != null )
         {
             foreach( var branch in _unrelated )
             {
-                Throw.DebugAssert( branch.ExistingBaseBranch != null );
+                Throw.DebugAssert( branch.ActiveBase != null );
                 var issue = World.Issue.CreateManual( $"Unrelated branch.",
                                                       screenType.Text( $"""
-                                                              Branch '{branch.BranchName}' is independent of its base '{branch.ExistingBaseBranch.BranchName}' (no common ancestor).
+                                                              Branch '{branch.BranchName}' is independent of its base '{branch.ActiveBase.BranchName}' (no common ancestor).
                                                               This is an unexpected situation that must be fixed manually.
                                                               """ ), Repo );
                 collector( issue );
             }
         }
-
         if( _removable != null )
         {
             collector( RemovableBranchesIssue.Create( screenType, Repo, _removable ) );
@@ -123,8 +135,8 @@ public sealed partial class BranchModelInfo : RepoInfo
             {
                 Throw.DebugAssert( b.IsDesynchronizedBranch
                                    && b.Divergence.BehindBy != null
-                                   && b.ExistingBaseBranch.GitBranch != null );
-                if( git.ObjectDatabase.CanMergeWithoutConflict( b.GitBranch.Tip, b.ExistingBaseBranch.GitBranch.Tip ) )
+                                   && b.ActiveBase.GitBranch != null );
+                if( git.ObjectDatabase.CanMergeWithoutConflict( b.GitBranch.Tip, b.ActiveBase.GitBranch.Tip ) )
                 {
                     autos.Add( b );
                     AppendDetails( bAuto, b );
@@ -150,7 +162,7 @@ public sealed partial class BranchModelInfo : RepoInfo
 
             static void AppendDetails( StringBuilder text, HotBranch b )
             {
-                text.Append( "- Base branch '" ).Append( b.ExistingBaseBranch!.BranchName.Name ).Append( "' has " ).Append( b.Divergence!.BehindBy!.Value )
+                text.Append( "- Base branch '" ).Append( b.ActiveBase!.BranchName.Name ).Append( "' has " ).Append( b.Divergence!.BehindBy!.Value )
                     .Append( " commits that must be in '" ).Append( b.BranchName.Name ).Append( "'." )
                     .AppendLine();
             }

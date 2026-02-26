@@ -13,8 +13,8 @@ public sealed partial class BranchModelInfo
         readonly HotBranch _root;
         readonly Branch _mainOrMaster;
 
-        MissingRootBranchIssue( string title, IRenderable body, HotBranch root, Branch mainOrMaster, Repo repo )
-            : base( title, body, repo )
+        MissingRootBranchIssue( string title, IRenderable body, HotBranch root, Branch mainOrMaster )
+            : base( title, body, root.Repo )
         {
             _root = root;
             _mainOrMaster = mainOrMaster;
@@ -23,8 +23,7 @@ public sealed partial class BranchModelInfo
         public static World.Issue Create( IActivityMonitor monitor,
                                           HotBranch root,
                                           Branch? mainOrMaster,
-                                          ScreenType screenType,
-                                          Repo repo )
+                                          ScreenType screenType )
         {
             var title = $"Missing root branch '{root.BranchName.Name}'.";
             if( mainOrMaster == null )
@@ -32,13 +31,12 @@ public sealed partial class BranchModelInfo
                 return CreateManual( title, screenType.Text( $"""
                     No 'master' nor 'main' branch found.
                     The '{root.BranchName.Name}' should be created manually.
-                    """ ), repo );
+                    """ ), root.Repo );
             }
             return new MissingRootBranchIssue( title,
                                                screenType.Text( $"Can be fixed by creating it from '{mainOrMaster.FriendlyName}'." ),
                                                root,
-                                               mainOrMaster,
-                                               repo );
+                                               mainOrMaster );
         }
 
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )

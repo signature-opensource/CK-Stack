@@ -29,21 +29,21 @@ public sealed partial class BranchModelInfo
             foreach( var b in _desynchronized )
             {
                 Throw.DebugAssert( b.IsDesynchronizedBranch
-                                   && b.ExistingBaseBranch.GitBranch != null );
+                                   && b.ActiveBase.GitBranch != null );
                 try
                 {
-                    var result = git.ObjectDatabase.MergeCommits( b.GitBranch.Tip, b.ExistingBaseBranch.GitBranch.Tip, _mergeOptions );
+                    var result = git.ObjectDatabase.MergeCommits( b.GitBranch.Tip, b.ActiveBase.GitBranch.Tip, _mergeOptions );
                     var commit = git.ObjectDatabase.CreateCommit( author: context.Committer,
                                                                   committer: context.Committer,
-                                                                  message: $"Synchronizing '{b.BranchName}' on '{b.ExistingBaseBranch.BranchName}'.",
+                                                                  message: $"Synchronizing '{b.BranchName}' on '{b.ActiveBase.BranchName}'.",
                                                                   result.Tree,
-                                                                  [b.ExistingBaseBranch.GitBranch.Tip, b.GitBranch.Tip],
+                                                                  [b.ActiveBase.GitBranch.Tip, b.GitBranch.Tip],
                                                                   prettifyMessage: true );
                     git.Refs.UpdateTarget( b.GitBranch.Reference, commit.Id );
                 }
                 catch( Exception ex )
                 {
-                    monitor.Error( $"Unable to synchronize branch '{b.BranchName}' on '{b.ExistingBaseBranch.BranchName}'.", ex );
+                    monitor.Error( $"Unable to synchronize branch '{b.BranchName}' on '{b.ActiveBase.BranchName}'.", ex );
                     success = false;
                 }
             }

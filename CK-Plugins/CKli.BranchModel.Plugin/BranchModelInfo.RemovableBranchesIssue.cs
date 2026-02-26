@@ -21,7 +21,7 @@ public sealed partial class BranchModelInfo
 
         public static RemovableBranchesIssue Create( ScreenType screenType, Repo repo, List<HotBranch> removables )
         {
-            var names = removables.Select( b => $"- {b.BranchName.Name} is merged into '{b.ExistingBaseBranch!.BranchName}'." )
+            var names = removables.Select( b => $"- {b.BranchName.Name} is merged into '{b.ActiveBase!.BranchName}'." )
                                   .Concatenate( Environment.NewLine );
             var body = screenType.Text( $"""
                                         {names}
@@ -37,12 +37,12 @@ public sealed partial class BranchModelInfo
             bool success = true;
             foreach( var b in _removables )
             {
-                Throw.DebugAssert( b.GitBranch != null && b.ExistingBaseBranch != null && b.ExistingBaseBranch.GitBranch != null );
+                Throw.DebugAssert( b.GitBranch != null && b.ActiveBase != null && b.ActiveBase.GitBranch != null );
                 bool switchSuccess = true;
                 if( git.Head.Tip.Sha == b.GitBranch.Tip.Sha )
                 {
-                    monitor.Info( $"Branch to remove is the current head. Switching to its existing base branch '{b.ExistingBaseBranch.BranchName.Name}'." );
-                    success &= Repo.GitRepository.Checkout( monitor, b.ExistingBaseBranch.GitBranch );
+                    monitor.Info( $"Branch to remove is the current head. Switching to its existing base branch '{b.ActiveBase.BranchName.Name}'." );
+                    success &= Repo.GitRepository.Checkout( monitor, b.ActiveBase.GitBranch );
                     switchSuccess = false;
                 }
                 if( switchSuccess )

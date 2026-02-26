@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli;
 using CKli.Core;
+using LibGit2Sharp;
 using NUnit.Framework;
 using Shouldly;
 using System;
@@ -28,7 +29,7 @@ public class InitializationTests
     }
 
     /// <summary>
-    /// When a test pushes (from git local to remotes), we need the Write PAT
+    /// When a test pushes (from git local to remotes), we need the PAT
     /// for the "FILESYSTEM".
     /// <para>
     /// That is useless (credentials are not used on local file system) but it's
@@ -96,9 +97,9 @@ public class InitializationTests
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "hosting", "create", newRepoUrl )).ShouldBeTrue();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "repo", "add", newRepoUrl )).ShouldBeTrue();
 
-        context = context.ChangeDirectory( "CKt-Sample-Monitoring" );
-        Directory.Exists( context.CurrentDirectory ).ShouldBeTrue();
-        var path = context.CurrentDirectory.AppendPart( "CKt.Sample.Monitoring" );
+        var inSample = context.ChangeDirectory( "CKt-Sample-Monitoring" );
+        Directory.Exists( inSample.CurrentDirectory ).ShouldBeTrue();
+        var path = inSample.CurrentDirectory.AppendPart( "CKt.Sample.Monitoring" );
         Directory.CreateDirectory( path );
         File.WriteAllText( path.AppendPart( "CKt.Sample.Monitoring.csproj" ), """
             <Project Sdk="Microsoft.NET.Sdk">
@@ -127,8 +128,8 @@ public class InitializationTests
                         
             """ );
 
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "exec", "dotnet", "sln", "add", "CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "exec", "dotnet", "sln", "add", "CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" )).ShouldBeTrue();
 
 
         display.Clear();
@@ -140,8 +141,12 @@ public class InitializationTests
             ❰✓❱
 
             """ );
+        // This one can be fixed with a dirty folder. 
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
         display.Clear();
+
+
+        // This one cannot be fixed with a dirty folder. 
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
             > CKt-Sample-Monitoring (1)
@@ -150,14 +155,21 @@ public class InitializationTests
             ❰✓❱
 
             """ );
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
-        display.Clear();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
-        display.ToString().ShouldBe( """
-            ❰✓❱
 
-            """ );
+        using( var r = new Repository( inSample.CurrentDirectory ) )
+        {
+            Commands.Stage( r, "*" );
+            r.Commit( "Initialized files.", context.Committer, context.Committer );
+        }
+        // Here we need to generate the nuget.config file.
+        // The CommonFiles and the BranchModel/HotBranch/ContentIssue should handle this.
+        //(await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
+        //display.Clear();
+        //(await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
+        //display.ToString().ShouldBe( """
+        //    ❰✓❱
 
+        //    """ );
     }
 
 

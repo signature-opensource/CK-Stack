@@ -5,15 +5,14 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
-using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.InteropServices;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;
-
 
 public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInfo>
 {
@@ -34,7 +33,8 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                               ShallowSolutionPlugin shallowSolution )
         : base( primaryContext )
     {
-        _namespace = new BranchNamespace( World.Name.LTSName );
+        _namespace = new BranchNamespace( World.Name.LTSName,
+                                          primaryContext.Configuration.XElement.Attribute( "Branches" )?.Value );
         World.Events.Issue += IssueRequested;
         _versionTags = versionTags;
         _releaseDatabase = releaseDatabase;
@@ -46,16 +46,59 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     void IssueRequested( IssueEvent e )
     {
         var monitor = e.Monitor;
+        bool hasIssue = false;
         foreach( var r in e.Repos )
         {
-            Get( monitor, r ).CollectIssues( monitor, e.ScreenType, e.Add );
+            var info = Get( monitor, r );
+            if( info.HasIssue )
+            {
+                info.CollectIssues( monitor, e.ScreenType, e.Add );
+                hasIssue = true;
+            }
         }
+        if( !hasIssue && ContentIssue != null )
+        {
+            using( monitor.OpenInfo( "Raising ContentIssue event." ) )
+            {
+                foreach( var r in e.Repos )
+                {
+                    var info = Get( monitor, r );
+                    var issueBuilder = new DocumentIssueBuilder( info, RaiseContentIssue );
+                    if( !issueBuilder.CreateIssue( monitor, out var issue ) )
+                    {
+                        monitor.CloseGroup( $"ContentIssue event handling failed." );
+                        // Stop on the first error.
+                        break;
+                    }
+                    if( issue != null )
+                    {
+                        e.Add( issue );
+                    }
+                }
+            }
+        }
+    }
+
+    bool RaiseContentIssue( IActivityMonitor monitor, ContentIssueEvent e )
+    {
+        Throw.DebugAssert( ContentIssue != null );
+        bool success = true;
+        using( monitor.OnError( () => success = false ) )
+        {
+            ContentIssue( e );
+        }
+        return success;
     }
 
     /// <summary>
     /// Gets the branch model.
     /// </summary>
     public BranchNamespace BranchNamespace => _namespace;
+
+    /// <summary>
+    /// Gets the event that is raised when repository content issue must be detected.
+    /// </summary>
+    public event Action<ContentIssueEvent>? ContentIssue;
 
     /// <summary>
     /// Finds the <paramref name="branchName"/> in the <see cref="BranchNamespace"/> or emits an error
@@ -67,12 +110,11 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     public BranchName? GetValidBranchName( IActivityMonitor monitor, string branchName )
     {
         // If we are not on a known branch (defined by the Branch Model), give up.
-        if( !_namespace.Branches.TryGetValue( branchName, out var exists ) )
+        if( !_namespace.ByName.TryGetValue( branchName, out var exists ) )
         {
-            var branchNames = _namespace.Branches.Values.Select( b => b.Name );
             monitor.Error( $"""
                 Invalid branch '{branchName}'.
-                Supported branches are '{branchNames.Order().Concatenate( "', '" )}'.
+                Supported branches are '{_namespace.Branches.Select( b => b.Name ).Concatenate( "', '" )}'.
                 """ );
         }
         return exists;
@@ -108,9 +150,9 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 else
                 {
                     var tags = _versionTags.Get( monitor, repo );
-                    success &= !tags.HasIssues;
+                    success &= !tags.HasIssue;
                     var branch = Get( monitor, repo );
-                    success &= !branch.HasIssues;
+                    success &= !branch.HasIssue;
                 }
             }
             if( !success )
@@ -124,7 +166,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// <summary>
     /// Gets the <see cref="HotGraph"/> for a <see cref="BranchName"/>.
     /// <para>
-    /// This requires that no true <see cref="BranchModelInfo.HasIssues"/> exist. This can handle
+    /// This requires that no true <see cref="BranchModelInfo.HasIssue"/> exist. This can handle
     /// dirty working folders: if the specified branch is currently checked out in a repository,
     /// the working folder will be analyzed.
     /// </para>
@@ -148,7 +190,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 bool success = true;
                 foreach( var repo in allRepos )
                 {
-                    success &= !Get( monitor, repo ).HasIssues;
+                    success &= !Get( monitor, repo ).HasIssue;
                 }
                 if( !success )
                 {
@@ -170,7 +212,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             foreach( var repo in allRepos )
             {
                 var branchInfo = Get( monitor, repo );
-                var b = branchInfo.FindClosestGitBranch( branchName );
+                var b = branchInfo.GetActiveBranch( branchName );
                 Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b?.GitBranch != null );
                 var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitBranch );
                 if( shallow == null ) return null;
@@ -191,7 +233,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         BranchName? mostInstable = null;
         foreach( var p in pivots )
         {
-            var b = Get( monitor, p ).FindClosestGitBranch( branchName );
+            var b = Get( monitor, p ).GetActiveBranch( branchName );
             Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b?.GitBranch != null );
             if( b.BranchName != branchName )
             {
@@ -222,76 +264,89 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     {
         var git = repo.GitRepository.Repository;
         var gitRoot = repo.GitRepository.GetBranch( monitor, _namespace.Root.Name, missingLocalAndRemote: LogLevel.None );
-        var root = new HotBranch( _namespace.Root, null, null, gitRoot, null );
+        var root = new HotBranch( repo.GitRepository.Repository, _namespace.Root, null, gitRoot );
         if( gitRoot == null )
         {
             if( PrimaryPluginContext.Command is not CKliIssue )
             {
                 monitor.Warn( $"Missing '{root.BranchName}' branch in '{repo.DisplayPath}'. Use 'ckli issue' for details." );
             }
-            // The worst issue: no "stable" branch. This has to be resolved before doing anything else.
+            // The worst issue: no root "stable" branch. This has to be resolved before doing anything else.
             return new BranchModelInfo( repo, _namespace, root );
         }
         // We have our hot "stable".
-        var index = new Dictionary<string, HotBranch>( _namespace.Branches.Count );
-        index.Add( root.BranchName.Name, root );
+        Throw.DebugAssert( (_namespace.Branches.Length & 1) == 0 && _namespace.Branches.Length >= 2 );
+
         List<HotBranch>? removable = null;
         List<HotBranch>? desynchronized = null;
         List<HotBranch>? unrelated = null;
-        CreateChildren( monitor, root, repo, git, index, ref removable, ref desynchronized, ref unrelated );
-        Throw.DebugAssert( index.Count == _namespace.Branches.Count );
-        // Traversal has been done top-down. If branches can be removed this must be done bottom-up
-        // so we reverse the list.
-        if( removable != null ) removable.Reverse();
-        // Currently we consider that removable branches is an issue.
-        // This is clearly a bit too strong but simplifies the build initialization.
-        // To make this optional, The HotBranch.EnsureGitBranch() must be enhanced to reposition the
-        // branch tip.
-        if( (unrelated != null || desynchronized != null || removable != null) && PrimaryPluginContext.Command is not CKliIssue )
-        {
-            monitor.Warn( $"Repository '{repo.DisplayPath}' has branch related issues. Use 'ckli issue' for details." );
-        }
-        return new BranchModelInfo( repo, _namespace, root, index, removable, desynchronized, unrelated );
 
-        static void CreateChildren( IActivityMonitor monitor,
-                                    HotBranch parent,
-                                    Repo repo,
-                                    Repository git,
-                                    Dictionary<string, HotBranch> index,
-                                    ref List<HotBranch>? removable,
-                                    ref List<HotBranch>? desynchronized,
-                                    ref List<HotBranch>? unrelated )
+        var hotBranches = new HotBranch[_namespace.Branches.Length];
+        hotBranches[0] = root;
+        CheckIssues( AddDevBranch( monitor, repo.GitRepository, root, hotBranches ), ref removable, ref desynchronized, ref unrelated );
+        var previous = root;
+        for( int i = 2; i < hotBranches.Length; i += 2 )
         {
-            var baseBranch = parent.GitBranch != null ? parent : parent.ExistingBaseBranch;
-            foreach( var childName in parent.BranchName.Children )
+            var branchName = _namespace.Branches[i];
+            var gitBranch = repo.GitRepository.GetBranch( monitor, branchName.Name, missingLocalAndRemote: LogLevel.None );
+
+            HotBranch? baseBranch = null;
+            if( branchName.Base != null )
             {
-                var gitBranch = repo.GitRepository.GetBranch( monitor, childName.Name, missingLocalAndRemote: LogLevel.None );
-                HistoryDivergence? div = gitBranch != null && baseBranch?.GitBranch != null
-                                            ? git.ObjectDatabase.CalculateHistoryDivergence( gitBranch.Tip, baseBranch.GitBranch.Tip )
-                                            : null;
-                var b = new HotBranch( childName, parent, baseBranch, gitBranch, div );
-                index.Add( childName.Name, b );
-                if( div != null && div.CommonAncestor == null )
-                {
-                    unrelated ??= new List<HotBranch>();
-                    unrelated.Add( b );
-                }
-                else if( b.IsOrphanDevBranch || b.IsIntegratedBranch )
-                {
-                    removable ??= new List<HotBranch>();
-                    removable.Add( b );
-                }
-                else if( b.IsDesynchronizedBranch )
-                {
-                    desynchronized ??= new List<HotBranch>();
-                    desynchronized.Add( b );
-                }
-                if( childName.HasChild )
-                {
-                    CreateChildren( monitor, b, repo, git, index, ref removable, ref desynchronized, ref unrelated );
-                }
+                baseBranch = previous.GitBranch != null ? previous : previous.ActiveBase;
+            }
+            hotBranches[i] = previous = new HotBranch( repo.GitRepository.Repository, branchName, baseBranch, gitBranch );
+            CheckIssues( previous, ref removable, ref desynchronized, ref unrelated );
+            CheckIssues( AddDevBranch( monitor, repo.GitRepository, previous, hotBranches ), ref removable, ref desynchronized, ref unrelated );
+        }
+
+        static HotBranch AddDevBranch( IActivityMonitor monitor, GitRepository repo, HotBranch regular, HotBranch[] hotBranches )
+        {
+            Throw.DebugAssert( !regular.BranchName.IsDevBranch );
+            var devBranchName = regular.BranchName.DevBranch;
+            var gitBranch = repo.GetBranch( monitor, devBranchName.Name, missingLocalAndRemote: LogLevel.None );
+            // For a dev/ branch, the base branch is first its regular one (if a git branch exists) and
+            // then the dev/ branch of its base branch (if a Base exists, ie. the regular is not a disconnected branch).
+            HotBranch? baseBranch = null;
+            if( regular.GitBranch != null )
+            {
+                baseBranch = regular;
+            }
+            else if( regular.BranchName.Base != null )
+            {
+                var devAbove = hotBranches[regular.BranchName.Base.InstabilityRank + 1];
+                baseBranch = devAbove.GitBranch != null ? devAbove : devAbove.ActiveBase;
+            }
+            var dev = new HotBranch( repo.Repository, devBranchName, baseBranch, gitBranch );
+            hotBranches[devBranchName.InstabilityRank] = dev;
+            return dev;
+        }
+
+        static void CheckIssues( HotBranch b, ref List<HotBranch>? removable, ref List<HotBranch>? desynchronized, ref List<HotBranch>? unrelated )
+        {
+            if( b.Divergence != null && b.Divergence.CommonAncestor == null )
+            {
+                unrelated ??= new List<HotBranch>();
+                unrelated.Add( b );
+            }
+            else if( b.IsOrphanDevBranch || b.IsIntegratedBranch )
+            {
+                removable ??= new List<HotBranch>();
+                removable.Add( b );
+            }
+            else if( b.IsDesynchronizedBranch )
+            {
+                desynchronized ??= new List<HotBranch>();
+                desynchronized.Add( b );
             }
         }
+
+        return new BranchModelInfo( repo,
+                                    _namespace,
+                                    ImmutableCollectionsMarshal.AsImmutableArray( hotBranches ),
+                                    removable,
+                                    desynchronized,
+                                    unrelated );
     }
 
     /// <summary>

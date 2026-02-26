@@ -2,4 +2,7 @@
     <ItemGroup>
         <PackageReference Include="CKli.Plugins.Core" />
     </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
+    </ItemGroup>
 </Project>

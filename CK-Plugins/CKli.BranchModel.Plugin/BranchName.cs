@@ -2,6 +2,7 @@ using CK.Core;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -14,27 +15,18 @@ public sealed class BranchName
     readonly string _name;
     readonly BranchName? _base;
     readonly BranchName? _devBranch;
-    BranchName? _firstChild;
-    BranchName? _nextSibling;
     readonly int _instabilityRank;
 
-    internal BranchName( BranchName? baseBranch, string name, bool dev = false )
+    internal BranchName( BranchName? baseBranch, string? ltsName, string name, int instabilityRank )
     {
-        if( baseBranch != null )
+        _instabilityRank = instabilityRank;
+        _base = baseBranch;
+        _name = ltsName == null
+                    ? name
+                    : ltsName + '/' + name;
+        if( (instabilityRank & 1) == 0 )
         {
-            _base = baseBranch;
-            if( baseBranch._firstChild == null ) baseBranch._firstChild = this;
-            else
-            {
-                _nextSibling = baseBranch._firstChild;
-                baseBranch._firstChild = this;
-            }
-            _instabilityRank = baseBranch._instabilityRank + (dev ? 1 : 2);
-        }
-        _name = name;
-        if( !dev )
-        {
-            _devBranch = new BranchName( this, $"dev/{name}", true );
+            _devBranch = new BranchName( this, ltsName, $"dev/{name}", instabilityRank + 1 );
         }
     }
 
@@ -44,8 +36,8 @@ public sealed class BranchName
     public string Name => _name;
 
     /// <summary>
-    /// Gets the base branch. For a "dev/XXX" branch, this is the regular "XXX" branch.
-    /// Null for the "stable" branch.
+    /// Gets the base branch. For a "dev/XXX" branch, this is never null and always the regular "XXX" branch.
+    /// Null for the root "stable" branch or if this branch is disconnected.
     /// </summary>
     public BranchName? Base => _base;
 
@@ -62,26 +54,13 @@ public sealed class BranchName
     public BranchName RegularBranch => IsDevBranch ? Base : this;
 
     /// <summary>
-    /// Gets whether this branch name has at least one child.
+    /// Gets whether this branch is connected: its <see cref="Base"/> is not null.
+    /// <para>
+    /// A "dev/" branch is always connected to its <see cref="RegularBranch"/> (that is its <see cref="Base"/>).
+    /// The root "stable" branch is never connected (as it is the ultimate base).
+    /// </para>
     /// </summary>
-    public bool HasChild => _firstChild != null;
-
-    /// <summary>
-    /// Gets the children branch names including the <see cref="DevBranch"/> for a regular branch.
-    /// A "dev/XXX" branch has no child. 
-    /// </summary>
-    public IEnumerable<BranchName> Children
-    {
-        get
-        {
-            var c = _firstChild;
-            while( c != null )
-            {
-                yield return c;
-                c = c._nextSibling;
-            }
-        } 
-    }
+    public bool IsConnected => _base != null;
 
     /// <summary>
     /// Gets whether this is a "dev/XXX" branch.
@@ -98,14 +77,17 @@ public sealed class BranchName
     ///     <item><term>1</term><description>"dev/stable"</description></item>
     ///     <item><term>2</term><description>"rc"</description></item>
     ///     <item><term>3</term><description>"dev/rc"</description></item>
-    ///     <item><term>4</term><description>"pre"</description></item>
     ///     <item><term>...</term><description>(depends on the number of branch names defined)</description></item>
     /// </list>
+    /// This is the index in <see cref="BranchNamespace.Branches"/>.
+    /// This follows the same pattern as the <see cref="Repo.Index"/>: the <see cref="BranchModelInfo"/> uses this
+    /// to associate the corresponding <see cref="HotBranch"/> in each repo.
     /// </summary>
     public int InstabilityRank => _instabilityRank;
 
     /// <summary>
-    /// Gets the branch names from this one up to the stable one (in decreasing <see cref="InstabilityRank"/>).
+    /// Gets the branch names from this one up to the stable one (in decreasing <see cref="InstabilityRank"/>)
+    /// and stops on the first false <see cref="IsConnected"/> parent.
     /// <para>
     /// When <see cref="IsDevBranch"/> is true, this returns the interleaved base dev/ branches.
     /// For instance, fallbacks of "dev/pre" branch are:
