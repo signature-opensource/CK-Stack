@@ -1,6 +1,5 @@
 using CK.Core;
 using CKli.Core;
-using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System.Threading.Tasks;
 

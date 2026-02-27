@@ -28,7 +28,7 @@ public sealed partial class BranchModelInfo
         {
             var names = removables.Select( b => b.Base != null
                                                     ? $"- {b.Branch.FriendlyName} is merged into '{b.Base.FriendlyName}'."
-                                                    : $"- {b.Branch.FriendlyName} has no base '{b.BaseName}' branch." )
+                                                    : $"- {b.Branch.FriendlyName} lacks its base '{b.BaseName}' branch." )
                                   .Concatenate( Environment.NewLine );
             var body = screenType.Text( $"""
                                         {names}
