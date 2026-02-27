@@ -5,6 +5,7 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -240,7 +241,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{b.BranchName}'." );
             }
             // Finding the most instable branch.
-            if( mostInstable == null || mostInstable.InstabilityRank < b.BranchName.InstabilityRank )
+            if( mostInstable == null || mostInstable.Index < b.BranchName.Index )
             {
                 mostInstable = b.BranchName;
             }
@@ -263,9 +264,8 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
     {
         var git = repo.GitRepository.Repository;
-        var gitRoot = repo.GitRepository.GetBranch( monitor, _namespace.Root.Name, missingLocalAndRemote: LogLevel.None );
-        var root = new HotBranch( repo.GitRepository.Repository, _namespace.Root, null, gitRoot );
-        if( gitRoot == null )
+        var root = HotBranch.Create( monitor, repo.GitRepository, _namespace.Root );
+        if( root.GitBranch == null )
         {
             if( PrimaryPluginContext.Command is not CKliIssue )
             {
@@ -275,68 +275,44 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             return new BranchModelInfo( repo, _namespace, root );
         }
         // We have our hot "stable".
-        Throw.DebugAssert( (_namespace.Branches.Length & 1) == 0 && _namespace.Branches.Length >= 2 );
 
-        List<HotBranch>? removable = null;
-        List<HotBranch>? desynchronized = null;
+        List<BranchModelInfo.RemovableGitBranch>? removable = null;
+        List<(Branch Branch, Branch Base, int BehindBy)>? desynchronized = null;
         List<HotBranch>? unrelated = null;
 
+        CheckIssues( root, ref removable, ref desynchronized, ref unrelated );
         var hotBranches = new HotBranch[_namespace.Branches.Length];
         hotBranches[0] = root;
-        CheckIssues( AddDevBranch( monitor, repo.GitRepository, root, hotBranches ), ref removable, ref desynchronized, ref unrelated );
-        var previous = root;
-        for( int i = 2; i < hotBranches.Length; i += 2 )
+        for( int i = 1; i < hotBranches.Length; ++i )
         {
             var branchName = _namespace.Branches[i];
-            var gitBranch = repo.GitRepository.GetBranch( monitor, branchName.Name, missingLocalAndRemote: LogLevel.None );
-
-            HotBranch? baseBranch = null;
-            if( branchName.Base != null )
-            {
-                baseBranch = previous.GitBranch != null ? previous : previous.ActiveBase;
-            }
-            hotBranches[i] = previous = new HotBranch( repo.GitRepository.Repository, branchName, baseBranch, gitBranch );
-            CheckIssues( previous, ref removable, ref desynchronized, ref unrelated );
-            CheckIssues( AddDevBranch( monitor, repo.GitRepository, previous, hotBranches ), ref removable, ref desynchronized, ref unrelated );
+            var b = hotBranches[i] = HotBranch.Create( monitor, repo.GitRepository, branchName );
+            CheckIssues( b, ref removable, ref desynchronized, ref unrelated );
         }
 
-        static HotBranch AddDevBranch( IActivityMonitor monitor, GitRepository repo, HotBranch regular, HotBranch[] hotBranches )
+        static void CheckIssues( HotBranch b,
+                                 ref List<BranchModelInfo.RemovableGitBranch>? removable,
+                                 ref List<(Branch Branch, Branch Base, int BehindBy)>? desynchronized,
+                                 ref List<HotBranch>? unrelated )
         {
-            Throw.DebugAssert( !regular.BranchName.IsDevBranch );
-            var devBranchName = regular.BranchName.DevBranch;
-            var gitBranch = repo.GetBranch( monitor, devBranchName.Name, missingLocalAndRemote: LogLevel.None );
-            // For a dev/ branch, the base branch is first its regular one (if a git branch exists) and
-            // then the dev/ branch of its base branch (if a Base exists, ie. the regular is not a disconnected branch).
-            HotBranch? baseBranch = null;
-            if( regular.GitBranch != null )
-            {
-                baseBranch = regular;
-            }
-            else if( regular.BranchName.Base != null )
-            {
-                var devAbove = hotBranches[regular.BranchName.Base.InstabilityRank + 1];
-                baseBranch = devAbove.GitBranch != null ? devAbove : devAbove.ActiveBase;
-            }
-            var dev = new HotBranch( repo.Repository, devBranchName, baseBranch, gitBranch );
-            hotBranches[devBranchName.InstabilityRank] = dev;
-            return dev;
-        }
-
-        static void CheckIssues( HotBranch b, ref List<HotBranch>? removable, ref List<HotBranch>? desynchronized, ref List<HotBranch>? unrelated )
-        {
-            if( b.Divergence != null && b.Divergence.CommonAncestor == null )
+            if( b.HasUnrelatedDevBranch )
             {
                 unrelated ??= new List<HotBranch>();
                 unrelated.Add( b );
             }
-            else if( b.IsOrphanDevBranch || b.IsIntegratedBranch )
+            else if( b.HasOrphanDevBranch )
             {
-                removable ??= new List<HotBranch>();
-                removable.Add( b );
+                removable ??= new List<BranchModelInfo.RemovableGitBranch>();
+                removable.Add( new BranchModelInfo.RemovableGitBranch( b.GitDevBranch, null, b.BranchName.Name ) );
             }
-            else if( b.IsDesynchronizedBranch )
+            else if( b.HasIntegratedDevBranch )
             {
-                desynchronized ??= new List<HotBranch>();
+                removable ??= new List<BranchModelInfo.RemovableGitBranch>();
+                removable.Add( new BranchModelInfo.RemovableGitBranch( b.GitDevBranch, b.GitBranch, b.BranchName.Name ) );
+            }
+            else if( b.HasDesynchronizedDevBranch )
+            {
+                desynchronized ??= new List<(Branch Branch, Branch Base, int BehindBy)>();
                 desynchronized.Add( b );
             }
         }

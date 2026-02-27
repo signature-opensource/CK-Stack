@@ -36,7 +36,7 @@ sealed class DocumentIssueBuilder
             // We are on a non-dev branch that exists.
             // If the associated dev branch exists, we work on it: it replaces
             // the regular branch.
-            var dev = _info.Branches[b.BranchName.InstabilityRank + 1];
+            var dev = _info.Branches[b.BranchName.Index + 1];
             var actualBranch = dev.GitBranch != null ? dev : b;
 
             var ev = new ContentIssueEvent( monitor, actualBranch, docIssues );

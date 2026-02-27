@@ -2,11 +2,13 @@ using CK.Core;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace CKli.BranchModel.Plugin;
+
 
 /// <summary>
 /// Models a global dependency graph across all repositories.

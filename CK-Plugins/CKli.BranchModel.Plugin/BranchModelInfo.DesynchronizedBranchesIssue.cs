@@ -13,9 +13,9 @@ public sealed partial class BranchModelInfo
     {
         static readonly MergeTreeOptions _mergeOptions = new MergeTreeOptions() { FailOnConflict = true, SkipReuc = true };
 
-        readonly List<HotBranch> _desynchronized;
+        readonly List<(Branch Branch, Branch Base)> _desynchronized;
 
-        public DesynchronizedBranchesIssue( IRenderable body, List<HotBranch> desynchronized, Repo repo )
+        public DesynchronizedBranchesIssue( IRenderable body, List<(Branch Branch, Branch Base)> desynchronized, Repo repo )
             : base( "Desynchronized branches.", body, repo )
         {
             _desynchronized = desynchronized;
@@ -28,22 +28,20 @@ public sealed partial class BranchModelInfo
             bool success = true;
             foreach( var b in _desynchronized )
             {
-                Throw.DebugAssert( b.IsDesynchronizedBranch
-                                   && b.ActiveBase.GitBranch != null );
                 try
                 {
-                    var result = git.ObjectDatabase.MergeCommits( b.GitBranch.Tip, b.ActiveBase.GitBranch.Tip, _mergeOptions );
+                    var result = git.ObjectDatabase.MergeCommits( b.Base.Tip, b.Branch.Tip, _mergeOptions );
                     var commit = git.ObjectDatabase.CreateCommit( author: context.Committer,
                                                                   committer: context.Committer,
-                                                                  message: $"Synchronizing '{b.BranchName}' on '{b.ActiveBase.BranchName}'.",
+                                                                  message: $"Synchronizing '{b.Branch.FriendlyName}' on '{b.Base.FriendlyName}'.",
                                                                   result.Tree,
-                                                                  [b.ActiveBase.GitBranch.Tip, b.GitBranch.Tip],
+                                                                  [b.Base.Tip, b.Branch.Tip],
                                                                   prettifyMessage: true );
-                    git.Refs.UpdateTarget( b.GitBranch.Reference, commit.Id );
+                    git.Refs.UpdateTarget( b.Branch.Reference, commit.Id );
                 }
                 catch( Exception ex )
                 {
-                    monitor.Error( $"Unable to synchronize branch '{b.BranchName}' on '{b.ActiveBase.BranchName}'.", ex );
+                    monitor.Error( $"Unable to synchronize branch '{b.Branch.FriendlyName}' on '{b.Base.FriendlyName}'.", ex );
                     success = false;
                 }
             }

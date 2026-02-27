@@ -42,7 +42,6 @@ public sealed partial class BranchModelInfo
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null );
-            Throw.DebugAssert( !_root.BranchName.IsDevBranch );
 
             var r = Repo.GitRepository.Repository;
             // Creating the root.

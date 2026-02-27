@@ -7,12 +7,13 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Xml.Linq;
 using static System.Net.Mime.MediaTypeNames;
 
 namespace CKli.BranchModel.Plugin;
 
 /// <summary>
-/// "alpha", "beta", "delta", "epsilon", "gamma", "kappa", "pre", "rc" and "stable".
+/// Captures the branches that makes the hot zone.
 /// </summary>
 public sealed partial class BranchNamespace
 {
@@ -48,25 +49,13 @@ public sealed partial class BranchNamespace
         }
         // root branch.
         var b = new BranchName( null, ltsName, e.Current.BranchName, 0 );
-        Add( result, b );
+        result.Add( b );
         while( e.MoveNext() )
         {
-            b = Create( b, ltsName, e.Current.BranchName, !e.Current.IsDisconnected );
-            Add( result, b );
+            b = new BranchName( e.Current.IsDisconnected ? null : b, ltsName, e.Current.BranchName, b.Index + 1 );
+            result.Add( b );
         }
         return result.DrainToImmutable();
-
-        static BranchName Create( BranchName b, string? ltsName, string name, bool connected )
-        {
-            return new BranchName( connected ? b : null, ltsName, name, b.InstabilityRank + 2 );
-        }
-
-        static void Add( ImmutableArray<BranchName>.Builder result, BranchName b )
-        {
-            result.Add( b );
-            Throw.DebugAssert( b.DevBranch != null );
-            result.Add( b.DevBranch );
-        }
     }
 
     static List<(string BranchName, bool IsDisconnected)> Parse( string configuration )
@@ -120,7 +109,7 @@ public sealed partial class BranchNamespace
     public BranchName Root => _root;
 
     /// <summary>
-    /// Gets the branches in increasing <see cref="BranchName.InstabilityRank"/>.
+    /// Gets the branches in increasing <see cref="BranchName.Index"/>.
     /// </summary>
     public ImmutableArray<BranchName> Branches => _branches;
 

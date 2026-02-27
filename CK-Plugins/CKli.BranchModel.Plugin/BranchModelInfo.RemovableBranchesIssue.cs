@@ -1,5 +1,6 @@
 using CK.Core;
 using CKli.Core;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -7,21 +8,27 @@ using System.Threading.Tasks;
 
 namespace CKli.BranchModel.Plugin;
 
+
+
 public sealed partial class BranchModelInfo
 {
+    internal sealed record RemovableGitBranch( Branch Branch, Branch? Base, string BaseName );
+
     sealed class RemovableBranchesIssue : World.Issue
     {
-        readonly List<HotBranch> _removables;
+        readonly List<RemovableGitBranch> _removables;
 
-        RemovableBranchesIssue( IRenderable body, List<HotBranch> removables, Repo repo )
+        RemovableBranchesIssue( IRenderable body, List<RemovableGitBranch> removables, Repo repo )
             : base( "Removable branches.", body, repo )
         {
             _removables = removables;
         }
 
-        public static RemovableBranchesIssue Create( ScreenType screenType, Repo repo, List<HotBranch> removables )
+        public static RemovableBranchesIssue Create( ScreenType screenType, Repo repo, List<RemovableGitBranch> removables )
         {
-            var names = removables.Select( b => $"- {b.BranchName.Name} is merged into '{b.ActiveBase!.BranchName}'." )
+            var names = removables.Select( b => b.Base != null
+                                                    ? $"- {b.Branch.FriendlyName} is merged into '{b.Base.FriendlyName}'."
+                                                    : $"- {b.Branch.FriendlyName} has no base '{b.BaseName}' branch." )
                                   .Concatenate( Environment.NewLine );
             var body = screenType.Text( $"""
                                         {names}
@@ -37,23 +44,22 @@ public sealed partial class BranchModelInfo
             bool success = true;
             foreach( var b in _removables )
             {
-                Throw.DebugAssert( b.GitBranch != null && b.ActiveBase != null && b.ActiveBase.GitBranch != null );
                 bool switchSuccess = true;
-                if( git.Head.Tip.Sha == b.GitBranch.Tip.Sha )
+                if( git.Head.Tip.Sha == b.Branch.Tip.Sha )
                 {
-                    monitor.Info( $"Branch to remove is the current head. Switching to its existing base branch '{b.ActiveBase.BranchName.Name}'." );
-                    success &= Repo.GitRepository.Checkout( monitor, b.ActiveBase.GitBranch );
+                    monitor.Info( $"Branch to remove is the current head. Switching to its base branch '{b.Base.FriendlyName}'." );
+                    success &= Repo.GitRepository.Checkout( monitor, b.Base );
                     switchSuccess = false;
                 }
                 if( switchSuccess )
                 {
                     try
                     {
-                        git.Branches.Remove( b.GitBranch );
+                        git.Branches.Remove( b.Branch );
                     }
                     catch( Exception ex )
                     {
-                        monitor.Error( $"Unable to remove branch '{b.BranchName}'.", ex );
+                        monitor.Error( $"Unable to remove branch '{b.Branch.FriendlyName}'.", ex );
                         success = false;
                     }
                 }

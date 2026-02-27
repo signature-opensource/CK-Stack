@@ -8,29 +8,37 @@ namespace CKli.BranchModel.Plugin;
 /// <summary>
 /// Models a branch defined by a <see cref="BranchName"/> in a <see cref="BranchModelInfo"/> for a repository.
 /// <para>
-/// The actual <see cref="GitBranch"/> may not exist.
+/// The actual <see cref="GitBranch"/> and/or <see cref="GitDevBranch"/> may not exist.
 /// </para>
 /// </summary>
 public sealed class HotBranch
 {
     readonly BranchName _name;
-    readonly HotBranch? _activeBase;
-    readonly HistoryDivergence? _divergence;
     Branch? _gitBranch;
+    Branch? _gitDevBranch;
+    int? _devAheadBy;
+    int? _devBehindBy;
     [AllowNull]
     internal BranchModelInfo _info;
 
-    internal HotBranch( Repository repo,
-                        BranchName name,
-                        HotBranch? existingBaseBranch,
-                        Branch? branch )
+    HotBranch( Repository repo, BranchName name, Branch? gitBranch, Branch? gitDevBranch )
     {
         _name = name;
-        _activeBase = existingBaseBranch;
-        _gitBranch = branch;
-        _divergence = branch != null && existingBaseBranch?.GitBranch != null
-                               ? repo.ObjectDatabase.CalculateHistoryDivergence( branch.Tip, existingBaseBranch.GitBranch.Tip )
-                               : null;
+        _gitBranch = gitBranch;
+        _gitDevBranch = gitDevBranch;
+        if( gitBranch != null && gitDevBranch != null )
+        {
+            var d  = repo.ObjectDatabase.CalculateHistoryDivergence( gitDevBranch.Tip, gitBranch.Tip );
+            _devAheadBy = d.AheadBy;
+            _devBehindBy = d.BehindBy;
+        }
+    }
+
+    internal static HotBranch Create( IActivityMonitor monitor, GitRepository repo, BranchName name )
+    {
+        var gitBranch = repo.GetBranch( monitor, name.Name, missingLocalAndRemote: CK.Core.LogLevel.None );
+        var gitDevBranch = repo.GetBranch( monitor, name.DevName, missingLocalAndRemote: CK.Core.LogLevel.None );
+        return new HotBranch( repo.Repository, name, gitBranch, gitDevBranch );
     }
 
     /// <summary>
@@ -49,80 +57,80 @@ public sealed class HotBranch
     public BranchName BranchName => _name;
 
     /// <summary>
-    /// Gets whether this is a "dev/XXX" branch.
-    /// </summary>
-    public bool IsDevBranch => _name.IsDevBranch;
-
-    /// <summary>
-    /// Gets the base branch that exists in the repository (its <see cref="GitBranch"/> is not null).
-    /// <para>
-    /// This is null for the root "stable" branch, if the "stable" branch itself doesn't
-    /// exist in the repository or if this branch is disconnected.
-    /// </para>
-    /// </summary>
-    public HotBranch? ActiveBase => _activeBase;
-
-    /// <summary>
     /// Gets the repository's branch if it exists.
     /// </summary>
     public Branch? GitBranch => _gitBranch;
 
     /// <summary>
-    /// Gets the <see cref="HistoryDivergence"/> between this <see cref="GitBranch"/> and the <see cref="ActiveBase"/>
-    /// if they both exist in the repository.
+    /// Gets the repository's "dev/<see cref="GitBranch"/>" branch if it exists.
     /// </summary>
-    public HistoryDivergence? Divergence => _divergence;
+    public Branch? GitDevBranch => _gitDevBranch;
 
     /// <summary>
     /// Gets whether the <see cref="GitBranch"/> exists in the repository.
     /// </summary>
+    [MemberNotNullWhen( true, nameof(GitBranch) )]
     public bool IsActive => _gitBranch != null;
 
     /// <summary>
-    /// Gets whether this is an existing "dev/XXX" branch but its regular "XXX" branch doesn't exist in the repository.
+    /// Gets whether <see cref="GitDevBranch"/> exists without <see cref="GitBranch"/> in the repository.
     /// <para>
-    /// This branch should be deleted.
+    /// The <see cref="GitDevBranch"/> branch should be deleted.
     /// </para>
     /// </summary>
-    public bool IsOrphanDevBranch => _name.IsDevBranch && _gitBranch != null && _activeBase?.BranchName != _name.Base;
+    [MemberNotNullWhen( true, nameof( GitDevBranch ) )]
+    public bool HasOrphanDevBranch => _gitBranch == null && _gitDevBranch != null;
 
     /// <summary>
-    /// Gets whether this branch is active but doesn't bring anything to its <see cref="ActiveBase"/>:
-    /// this branch can be suppressed.
-    /// </summary>
-    [MemberNotNullWhen( true, nameof( Divergence ), nameof( GitBranch ), nameof( ActiveBase ) )]
-    public bool IsIntegratedBranch => _divergence != null && _divergence.AheadBy.HasValue && _divergence.AheadBy.Value == 0;
-
-    /// <summary>
-    /// Gets whether this branch is active but needs to be rebased on its <see cref="ActiveBase"/>.
+    /// Gets whether <see cref="GitDevBranch"/> and <see cref="GitBranch"/> exist but are unrelated.
     /// <para>
-    /// Rather than a rebase (that can lead to history troubles), the base branch should be merged into this branch.
+    /// This should barely happen and should be fixed manually.
     /// </para>
     /// </summary>
-    [MemberNotNullWhen( true, nameof( Divergence ), nameof( GitBranch ), nameof( ActiveBase ) )]
-    public bool IsDesynchronizedBranch
+    [MemberNotNullWhen( true, nameof( GitBranch ), nameof( GitDevBranch ) )]
+    public bool HasUnrelatedDevBranch => _gitBranch != null && _gitDevBranch != null && !_devAheadBy.HasValue;
+
+    /// <summary>
+    /// Gets whether the <see cref="GitDevBranch"/> is useless as it has been integrated in the <see cref="GitBranch"/>.
+    /// <para>
+    /// The <see cref="GitDevBranch"/> branch should be deleted.
+    /// </para>
+    /// </summary>
+    [MemberNotNullWhen( true, nameof( GitBranch ), nameof( GitDevBranch ) )]
+    public bool HasIntegratedDevBranch => _devAheadBy.HasValue && _devAheadBy.Value == 0;
+
+    /// <summary>
+    /// Gets whether the <see cref="GitDevBranch"/> needs to be rebased on its <see cref="GitBranch"/>.
+    /// <para>
+    /// Rather than a rebase (that can lead to history troubles),  should be merged into this branch.
+    /// </para>
+    /// </summary>
+    [MemberNotNullWhen( true, nameof( GitBranch ), nameof( GitDevBranch ) )]
+    public bool HasDesynchronizedDevBranch
     {
         get
         {
-            if( _divergence != null && _divergence.BehindBy.HasValue && _divergence.BehindBy.Value > 0 )
+            if( _devBehindBy.HasValue && _devBehindBy.Value > 0 )
             {
-                Throw.DebugAssert( _gitBranch != null && _activeBase != null && _activeBase._gitBranch != null );
+                Throw.DebugAssert( _gitBranch != null && _gitDevBranch != null );
+                // If the "dev/" branch is integrated, it can be suppressed, not merged. 
+                if( _devAheadBy.HasValue && _devAheadBy.Value == 0 )
+                {
+                    return false;
+                }
                 // Handle the edge case of an empty commit on the child branch (or a "magically" same content).
-                return _gitBranch.Tip.Tree.Sha != _activeBase._gitBranch.Tip.Tree.Sha;
+                return _gitDevBranch.Tip.Tree.Sha != _gitBranch.Tip.Tree.Sha;
             }
             return false;
         }
     }
 
-    internal void CreateGitBranch( Signature committer )
+    internal void CreateDevBranch( Signature committer )
     {
-        Throw.DebugAssert( _gitBranch == null );
-        // When the "stable" branch doesn't exist, no other HotBranch are instantiated.
-        Throw.CheckState( "The root \"stable\" branch cannot be created by this method.", ActiveBase != null );
-        Throw.DebugAssert( _activeBase?._gitBranch != null );
-        var git = ((IBelongToARepository)_activeBase!._gitBranch).Repository;
+        Throw.DebugAssert( _gitBranch != null && _gitDevBranch == null );
+        var git = ((IBelongToARepository)_gitBranch).Repository;
 
-        var baseCommit = _activeBase._gitBranch.Tip;
+        var baseCommit = _gitBranch.Tip;
         var c = git.ObjectDatabase.CreateCommit( committer,
                                                  committer,
                                                  $"""
@@ -132,7 +140,9 @@ public sealed class HotBranch
                                                  baseCommit.Tree,
                                                  [baseCommit],
                                                  prettifyMessage: false );
-        _gitBranch = git.Branches.Add( _name.Name, c );
+        _gitDevBranch = git.Branches.Add( _name.Name, c );
+        _devAheadBy = 0;
+        _devBehindBy = 0;
     }
 
     /// <summary>
