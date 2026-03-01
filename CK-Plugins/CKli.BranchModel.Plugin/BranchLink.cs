@@ -76,6 +76,29 @@ sealed partial class BranchLink
     }
 
     /// <summary>
+    /// Collects this link's issue if any.
+    /// </summary>
+    /// <param name="issues">The collector for issues.</param>
+    internal void Collect( IssueBuilder issues )
+    {
+        if( _ahead != null )
+        {
+            switch( Issue )
+            {
+                case IssueKind.Useless:
+                    issues.OnUselessBranch( _ahead, _branch );
+                    break;
+                case IssueKind.Unrelated:
+                    issues.OnUnrelated( _ahead, _branch );
+                    break;
+                case IssueKind.Desynchronized:
+                    issues.OnDesynchronized( _ahead, _branch, _behindBy );
+                    break;
+            }
+        }
+    }
+
+    /// <summary>
     /// Creates the <see cref="Ahead"/> branch on an empty commit.
     /// </summary>
     /// <param name="committer">The Git committer to use.</param>

@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace CKli.BranchModel.Plugin;
 
-public sealed partial class BranchModelInfo
+sealed partial class IssueBuilder
 {
     sealed class DesynchronizedBranchesIssue : World.Issue
     {
@@ -48,5 +48,6 @@ public sealed partial class BranchModelInfo
             return ValueTask.FromResult( success );
         }
     }
+
 
 }

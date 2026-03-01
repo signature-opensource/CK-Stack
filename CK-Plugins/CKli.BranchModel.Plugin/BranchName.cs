@@ -16,6 +16,7 @@ public sealed class BranchName
     string? _devName;
     readonly BranchName? _base;
     readonly int _index;
+    readonly BranchLinkType _linkType;
 
     internal BranchName( BranchName? baseBranch, string? ltsName, string name, int index )
     {

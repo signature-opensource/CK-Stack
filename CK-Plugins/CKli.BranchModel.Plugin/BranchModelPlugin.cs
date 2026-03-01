@@ -213,11 +213,11 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             foreach( var repo in allRepos )
             {
                 var branchInfo = Get( monitor, repo );
-                var b = branchInfo.GetActiveBranch( branchName );
-                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b?.GitBranch != null );
-                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitBranch );
+                var gitBranch = branchInfo.GetClosestGitBranch( branchName );
+                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", gitBranch.HasValue );
+                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, gitBranch.Value.GitBranch );
                 if( shallow == null ) return null;
-                if( !graph.AddSolution( monitor, repo, b, shallow ) )
+                if( !graph.AddSolution( monitor, repo, gitBranch.Value.Hot, shallow ) )
                 {
                     return null;
                 }
@@ -234,16 +234,16 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         BranchName? mostInstable = null;
         foreach( var p in pivots )
         {
-            var b = Get( monitor, p ).GetActiveBranch( branchName );
-            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", b?.GitBranch != null );
-            if( b.BranchName != branchName )
+            var closest = Get( monitor, p ).GetClosestGitBranch( branchName );
+            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", closest != null );
+            if( closest.Value.Hot.BranchName != branchName )
             {
-                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{b.BranchName}'." );
+                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{closest.Value.Hot.BranchName}'." );
             }
             // Finding the most instable branch.
-            if( mostInstable == null || mostInstable.Index < b.BranchName.Index )
+            if( mostInstable == null || mostInstable.Index < closest.Value.Hot.BranchName.Index )
             {
-                mostInstable = b.BranchName;
+                mostInstable = closest.Value.Hot.BranchName;
             }
         }
         // Finalizing: if the existing branch is a non dev/ branch, fix this if the requested branch name was a dev/ one. 
@@ -272,57 +272,24 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 monitor.Warn( $"Missing '{root.BranchName}' branch in '{repo.DisplayPath}'. Use 'ckli issue' for details." );
             }
             // The worst issue: no root "stable" branch. This has to be resolved before doing anything else.
-            return new BranchModelInfo( repo, _namespace, root );
+            return new BranchModelInfo( repo, _namespace, [root], hasIssue: true );
         }
-        // We have our hot "stable".
-
-        List<BranchModelInfo.RemovableGitBranch>? removable = null;
-        List<(Branch Branch, Branch Base, int BehindBy)>? desynchronized = null;
-        List<HotBranch>? unrelated = null;
-
-        CheckIssues( root, ref removable, ref desynchronized, ref unrelated );
+        // We have our hot root "stable" branch.
+        bool hasIssue = root.HasIssue;
         var hotBranches = new HotBranch[_namespace.Branches.Length];
         hotBranches[0] = root;
         for( int i = 1; i < hotBranches.Length; ++i )
         {
             var branchName = _namespace.Branches[i];
-            var b = hotBranches[i] = HotBranch.Create( monitor, repo.GitRepository, branchName );
-            CheckIssues( b, ref removable, ref desynchronized, ref unrelated );
-        }
-
-        static void CheckIssues( HotBranch b,
-                                 ref List<BranchModelInfo.RemovableGitBranch>? removable,
-                                 ref List<(Branch Branch, Branch Base, int BehindBy)>? desynchronized,
-                                 ref List<HotBranch>? unrelated )
-        {
-            if( b.HasUnrelatedDevBranch )
-            {
-                unrelated ??= new List<HotBranch>();
-                unrelated.Add( b );
-            }
-            else if( b.HasOrphanDevBranch )
-            {
-                removable ??= new List<BranchModelInfo.RemovableGitBranch>();
-                removable.Add( new BranchModelInfo.RemovableGitBranch( b.GitDevBranch, null, b.BranchName.Name ) );
-            }
-            else if( b.HasIntegratedDevBranch )
-            {
-                removable ??= new List<BranchModelInfo.RemovableGitBranch>();
-                removable.Add( new BranchModelInfo.RemovableGitBranch( b.GitDevBranch, b.GitBranch, b.BranchName.Name ) );
-            }
-            else if( b.HasDesynchronizedDevBranch )
-            {
-                desynchronized ??= new List<(Branch Branch, Branch Base, int BehindBy)>();
-                desynchronized.Add( b );
-            }
+            var b = HotBranch.Create( monitor, repo.GitRepository, branchName );
+            hasIssue |= b.HasIssue;
+            hotBranches[i] = b;
         }
 
         return new BranchModelInfo( repo,
                                     _namespace,
                                     ImmutableCollectionsMarshal.AsImmutableArray( hotBranches ),
-                                    removable,
-                                    desynchronized,
-                                    unrelated );
+                                    hasIssue );
     }
 
     /// <summary>
