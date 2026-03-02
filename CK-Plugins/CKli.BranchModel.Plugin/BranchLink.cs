@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.Core;
 using LibGit2Sharp;
 using System.Linq;
 
@@ -101,12 +102,14 @@ sealed partial class BranchLink
     /// <summary>
     /// Creates the <see cref="Ahead"/> branch on an empty commit.
     /// </summary>
+    /// <param name="repo">The repository.</param>
     /// <param name="committer">The Git committer to use.</param>
     /// <returns>An updated link (replaces this one).</returns>
-    internal BranchLink CreateAhead( Signature committer )
+    internal BranchLink CreateAhead( Repo repo, Signature committer )
     {
         Throw.DebugAssert( _ahead == null );
-        var git = ((IBelongToARepository)_branch).Repository;
+        Throw.DebugAssert( repo.GitRepository.Repository == ((IBelongToARepository)_branch).Repository );
+        var git = repo.GitRepository.Repository;
         var baseCommit = _branch.Tip;
         var c = git.ObjectDatabase.CreateCommit( committer,
                                                  committer,

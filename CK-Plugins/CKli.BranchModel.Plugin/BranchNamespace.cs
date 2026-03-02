@@ -23,23 +23,23 @@ public sealed partial class BranchNamespace
 
     internal BranchNamespace( string? ltsName, string? configuration )
     {
-        IEnumerable<(string BranchName, bool IsDisconnected)> b = configuration != null
+        IEnumerable<(string BranchName, BranchLinkType Link)> b = configuration != null
                                                                     ? Parse( configuration )
-                                                                    : [ ("stable", false),
-                                                                        ("rc", false),
-                                                                        ("pre", false),
-                                                                        ("kappa", false),
-                                                                        ("gamma", false ),
-                                                                        ("epsilon", false),
-                                                                        ("delta", false),
-                                                                        ("beta", false),
-                                                                        ("alpha", false) ];
+                                                                    : [ ("stable", BranchLinkType.None),
+                                                                        ("rc", BranchLinkType.PreRelease),
+                                                                        ("pre", BranchLinkType.PreRelease),
+                                                                        ("kappa", BranchLinkType.PreRelease),
+                                                                        ("gamma", BranchLinkType.PreRelease ),
+                                                                        ("epsilon", BranchLinkType.PreRelease),
+                                                                        ("delta", BranchLinkType.PreRelease),
+                                                                        ("beta", BranchLinkType.PreRelease),
+                                                                        ("alpha", BranchLinkType.PreRelease) ];
         _branches = Create( ltsName, b );
         _root = _branches[0];
     }
 
     static ImmutableArray<BranchName> Create( string? ltsName,
-                                              IEnumerable<(string BranchName, bool IsDisconnected)> configuration )
+                                              IEnumerable<(string BranchName, BranchLinkType Link)> configuration )
     {
         var result = ImmutableArray.CreateBuilder<BranchName>();
         var e = configuration.GetEnumerator();
@@ -48,26 +48,34 @@ public sealed partial class BranchNamespace
             throw new CKException( "Empty configuration." );
         }
         // root branch.
-        var b = new BranchName( null, ltsName, e.Current.BranchName, 0 );
+        var b = new BranchName( BranchLinkType.None, ltsName, e.Current.BranchName, 0 );
         result.Add( b );
         while( e.MoveNext() )
         {
-            b = new BranchName( e.Current.IsDisconnected ? null : b, ltsName, e.Current.BranchName, b.Index + 1 );
+            b = new BranchName( e.Current.Link, ltsName, e.Current.BranchName, b.Index + 1 );
             result.Add( b );
         }
         return result.DrainToImmutable();
     }
 
-    static List<(string BranchName, bool IsDisconnected)> Parse( string configuration )
+    static List<(string BranchName, BranchLinkType Link)> Parse( string configuration )
     {
-        var result = new List<(string BranchName, bool IsDisconnected)>();
+        var result = new List<(string BranchName, BranchLinkType Link)>();
         int count = 0;
         char initialChar = '\0';
         ReadOnlySpan<char> config = configuration;
         while( config.SkipWhiteSpaces() && config.Length > 0 )
         {
-            bool isDisconnected = config.TryMatch( '*' );
-            if( isDisconnected ) config.SkipWhiteSpaces();
+            BranchLinkType linkType = BranchLinkType.None;
+            if( count > 0 && !Match( ref config, out linkType ) )
+            {
+                throw new CKException( $"""
+                    Unable to parse link type in:
+                    {configuration}
+                    Expected '||' (None), '|' (Stable), '->' (Prerelease) or '=>' (CI), got:
+                    {config}
+                    """ );
+            }
             var e = ValidBranchName().EnumerateMatches( config );
             if( !e.MoveNext() )
             {
@@ -95,9 +103,32 @@ public sealed partial class BranchNamespace
                 initialChar = currentInitial;
             }
             ++count;
-            result.Add( (branchName, isDisconnected) );
+            result.Add( (branchName, linkType) );
         }
         return result;
+
+        static bool Match( ref ReadOnlySpan<char> h, out BranchLinkType t )
+        {
+            t = BranchLinkType.PreRelease;
+            if( h.TryMatch( '|' ) )
+            {
+                t = h.TryMatch( '|' )
+                        ? BranchLinkType.None
+                        : BranchLinkType.Stable;
+            }
+            else
+            {
+                bool full = h.TryMatch( '=' );
+                if( !full && !h.TryMatch( '-' )
+                    || !h.TryMatch( '>' ) )
+                {
+                    return false;
+                }
+                t = full ? BranchLinkType.Full : BranchLinkType.PreRelease;
+            }
+            h.SkipWhiteSpaces();
+            return true;
+        }
     }
 
     [GeneratedRegex( "^[a-z][0-9a-z_-]+", RegexOptions.CultureInvariant )]

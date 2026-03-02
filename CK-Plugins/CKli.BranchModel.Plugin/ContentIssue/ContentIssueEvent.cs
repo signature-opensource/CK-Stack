@@ -1,55 +1,67 @@
 using CK.Core;
 using CKli.Core;
+using CKli.ShallowSolution.Plugin;
 using LibGit2Sharp;
 using System.Collections.Generic;
 
 namespace CKli.BranchModel.Plugin;
 
 /// <summary>
-/// Raised by <see cref="BranchModelPlugin"/> on "ckli issue" command when no branch related issues
+/// Raised by <see cref="BranchModelPlugin.ContentIssue"/> on "ckli issue" command when no branch related issues
 /// exist: this is used to check the content of the repositories (more precisely, the content of the
 /// <see cref="HotBranch"/> that has a <see cref="HotBranch.GitBranch"/>).
 /// </summary>
 public sealed class ContentIssueEvent : EventMonitoredArgs
 {
-    readonly HotBranch _branch;
-    // We expose NormalizedPath API but use a string with a OrdinalIgnoreCase comparer.
-    readonly Dictionary<string, DocumentIssue> _alreadyHandled;
+    readonly Repo _repo;
+    readonly ShallowSolutionPlugin _shallowSolution;
+    HotBranch? _branch;
+    INormalizedFileProvider? _content;
+
 
     internal ContentIssueEvent( IActivityMonitor monitor,
-                                HotBranch branch,
-                                Dictionary<string, DocumentIssue> alreadyHandled )
+                                Repo repo,
+                                ShallowSolutionPlugin shallowSolution )
         : base( monitor )
+    {
+        _repo = repo;
+        _shallowSolution = shallowSolution;
+    }
+
+    internal void Initialize( HotBranch branch )
     {
         Throw.DebugAssert( branch.GitBranch != null );
         _branch = branch;
-        _alreadyHandled = alreadyHandled;
+        _content = null;
     }
 
     /// <summary>
-    /// Gets the hot branch that must be analyzed.
+    /// Gets the repository.
     /// </summary>
-    public HotBranch Branch => _branch;
+    public Repo Repo => _repo;
 
     /// <summary>
-    /// Gets the git branch.
+    /// Gets the hot branch that must be analyzed (<see cref="HotBranch.IsActive"/> is true).
     /// </summary>
-    public Branch GitBranch => _branch.GitBranch!;
+    public HotBranch Branch => _branch!;
 
     /// <summary>
-    /// Gets whether a document issue has already been generated in a parent connected branch.
+    /// Gets the non null <see cref="HotBranch.GitBranch"/> (because the branch is active).
     /// </summary>
-    /// <param name="path">The document path.</param>
-    /// <returns>True on success, false otherwise.</returns>
-    public bool HasAlreadyBeenHandled( NormalizedPath path ) => _alreadyHandled.ContainsKey( path );
+    public Branch GitBranch => _branch!.GitBranch!;
 
     /// <summary>
-    /// Adds a document issue.
+    /// Gets the content branch: if it exists, it's the <see cref="HotBranch.GitDevBranch"/> otherwise
+    /// the regular <see cref="HotBranch.GitBranch"/> is used.
     /// </summary>
-    /// <param name="issue">The issue associated to the document.</param>
-    public void AddIssue( DocumentIssue issue )
-    {
-        _alreadyHandled.Add( issue.Path, issue );
-    }
+    public Branch GitContentBranch => _branch!.GitDevBranch ?? _branch!.GitBranch!;
+
+    /// <summary>
+    /// Gets the content of the <see cref="Branch"/> from <see cref="GitContentBranch"/>.
+    /// </summary>
+    public INormalizedFileProvider Content => _content ??= _shallowSolution.GetFiles( GitContentBranch.Tip );
+
+
+
 }
 

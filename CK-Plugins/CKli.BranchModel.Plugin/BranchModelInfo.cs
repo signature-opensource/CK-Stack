@@ -1,5 +1,6 @@
 using CK.Core;
 using CKli.Core;
+using CKli.ShallowSolution.Plugin;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
@@ -13,16 +14,21 @@ namespace CKli.BranchModel.Plugin;
 public sealed partial class BranchModelInfo : RepoInfo
 {
     readonly BranchNamespace _namespace;
-    readonly ImmutableArray<HotBranch> _branches;
-    readonly bool _hasIssue;
+    readonly BranchModelPlugin _plugin;
 
-    internal BranchModelInfo( Repo repo,
-                              BranchNamespace ns,
-                              ImmutableArray<HotBranch> branches,
-                              bool hasIssue )
+    // Deferred initialization.
+    ImmutableArray<HotBranch> _branches;
+    bool _hasIssue;
+
+    internal BranchModelInfo( Repo repo, BranchNamespace ns, BranchModelPlugin plugin )
         : base( repo )
     {
         _namespace = ns;
+        _plugin = plugin;
+    }
+
+    internal void Initialize( ImmutableArray<HotBranch> branches, bool hasIssue )
+    {
         _branches = branches;
         _hasIssue = hasIssue;
     }
@@ -45,33 +51,26 @@ public sealed partial class BranchModelInfo : RepoInfo
     public HotBranch Root => _branches[0];
 
     /// <summary>
-    /// Gets the closest existing git branch in the <see cref="Namespace"/>.
+    /// Gets the closest <see cref="HotBranch"/> with a non null <see cref="HotBranch.GitBranch"/> in the <see cref="Namespace"/>.
     /// <para>
     /// This is null only if the root "stable" branch is missing.
     /// </para>
     /// </summary>
     /// <param name="name">The starting branch.</param>
-    /// <returns>The Git branch to consider.</returns>
-    public HotGitBranch? GetClosestGitBranch( BranchName name )
+    /// <returns>The branch to consider.</returns>
+    public HotBranch? GetClosestActiveBranch( BranchName name )
     {
         var b = _branches[name.Index];
-        if( b.GitDevBranch != null )
-        {
-            return new HotGitBranch( b, b.GitDevBranch );
-        }
-
         do
         {
-            if( b.GitBranch != null )
-            {
-                return new HotGitBranch( b, b.GitBranch );
-            }
-
+            if( b.GitBranch != null ) return b;
             b = b.Previous;
         }
         while( b != null );
         return null;
     }
+
+    internal ShallowSolutionPlugin ShallowSolutionPlugin => _plugin._shallowSolution;
 
     /// <inheritdoc />
     public override bool HasIssue => _hasIssue;

@@ -95,11 +95,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return false;
         }
-        // build is for "dev" builds. Otherwise it's called "publish".
-        if( !branchName.IsDevBranch )
-        {
-            branchName = branchName.DevBranch;
-        }
         // When --all is specified, all the repositories are pivots and the actual branch name considered by
         // the hot graph will be the most instable one of all the repositories (but at least as stable as the
         // branchName resolved above of course).

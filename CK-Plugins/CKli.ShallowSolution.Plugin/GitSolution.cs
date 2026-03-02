@@ -11,6 +11,7 @@ namespace CKli.ShallowSolution.Plugin;
 
 /// <summary>
 /// Read only model of a solution as a consumer/producer of packages.
+/// <para>
 /// This can only obtained for a <see cref="Branch"/> in a <see cref="Repo"/> and only
 /// exposes the <see cref="Projects"/> and the <see cref="Consumed"/> packages.
 /// </para>

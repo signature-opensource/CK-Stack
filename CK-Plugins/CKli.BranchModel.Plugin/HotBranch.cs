@@ -1,5 +1,6 @@
 using CK.Core;
 using CKli.Core;
+using CKli.ShallowSolution.Plugin;
 using LibGit2Sharp;
 using System.Diagnostics.CodeAnalysis;
 
@@ -14,14 +15,14 @@ namespace CKli.BranchModel.Plugin;
 public sealed class HotBranch
 {
     readonly BranchName _name;
+    readonly BranchModelInfo _info;
     BranchLink? _link;
     Branch? _gitDevBranch;
-    [AllowNull]
-    internal BranchModelInfo _info;
 
-    HotBranch( BranchName name, Branch? gitBranch, Branch? gitDevBranch )
+    HotBranch( BranchName name, BranchModelInfo info, Branch? gitBranch, Branch? gitDevBranch )
     {
         _name = name;
+        _info = info;
         _gitDevBranch = gitDevBranch;
         if( gitBranch != null )
         {
@@ -31,11 +32,11 @@ public sealed class HotBranch
         }
     }
 
-    internal static HotBranch Create( IActivityMonitor monitor, GitRepository repo, BranchName name )
+    internal static HotBranch Create( IActivityMonitor monitor, BranchModelInfo info, GitRepository repo, BranchName name )
     {
         var gitBranch = repo.GetBranch( monitor, name.Name, missingLocalAndRemote: CK.Core.LogLevel.None );
         var gitDevBranch = repo.GetBranch( monitor, name.DevName, missingLocalAndRemote: CK.Core.LogLevel.None );
-        return new HotBranch( name, gitBranch, gitDevBranch );
+        return new HotBranch( name, info, gitBranch, gitDevBranch );
     }
 
     /// <summary>
@@ -61,11 +62,11 @@ public sealed class HotBranch
     /// <summary>
     /// Gets whether the <see cref="GitBranch"/> exists in the repository.
     /// </summary>
-    [MemberNotNullWhen( true, nameof( GitBranch ) )]
+    [MemberNotNullWhen( true, nameof( GitBranch ), nameof( _link ) )]
     public bool IsActive => _link != null;
 
     /// <summary>
-    /// Gets whether <see cref="GitDevBranch"/> exists without <see cref="GitBranch"/> in the repository.
+    /// Gets whether <see cref="GitDevBranch"/> exists but this branch is not active.
     /// <para>
     /// The <see cref="GitDevBranch"/> branch should be deleted.
     /// </para>
@@ -74,7 +75,7 @@ public sealed class HotBranch
     public bool HasOrphanDevBranch => _link == null && _gitDevBranch != null;
 
     /// <summary>
-    /// Gets whether this branch has an issue that should be collected.
+    /// Gets whether this branch has an issue that should be collected and fixed.
     /// </summary>
     public bool HasIssue => _link != null
                                 ? _link.Issue != BranchLink.IssueKind.None
@@ -86,7 +87,8 @@ public sealed class HotBranch
         {
             // When _name.Index == 0, it is the "Missing root branch" case.
             // We don't handle it here but we avoid (if the "dev/stable" branch
-            // exist) to enlist the "orphan dev/" issue.
+            // exist) to enlist the "orphan dev/" issue: an existing "dev/" is used
+            // as the starting point (instead of main or master).
             if( _name.Index != 0 && _gitDevBranch != null )
             {
                 issues.OnMissingBaseBranch( _gitDevBranch, _name.Name );
@@ -115,6 +117,19 @@ public sealed class HotBranch
             int i = _name.Index + 1;
             return i < _info.Branches.Length ? _info.Branches[i] : null;
         }
+    }
+
+    [MemberNotNullWhen(true, nameof( GitDevBranch ) )]
+    internal bool CheckoutDevBranch( IActivityMonitor monitor, CKliEnv context )
+    {
+        Throw.DebugAssert( !HasIssue && IsActive );
+        if( _gitDevBranch == null )
+        {
+            _link = _link.CreateAhead( Repo, context.Committer );
+            _gitDevBranch = _link.Ahead;
+        }
+        Throw.DebugAssert( _gitDevBranch != null );
+        return Repo.GitRepository.Checkout( monitor, _gitDevBranch );
     }
 
     /// <summary>

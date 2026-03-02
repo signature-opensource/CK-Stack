@@ -21,6 +21,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     readonly NormalizedPath _localNuGetPath;
     readonly NormalizedPath _localAssetsPath;
     ImmutableArray<NuGetFeed> _feeds;
+    XDocument? _defaultNugetConfig;
 
     public ArtifactHandlerPlugin( PrimaryPluginContext context )
         : base( context )
@@ -74,6 +75,50 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Gets the content of a <c>nuget.config</c> file based on the configured feeds
+    /// (see <see cref="GetConfiguredNuGetFeeds(IActivityMonitor, out ImmutableArray{NuGetFeed})"/>).
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <returns>The NuGet configuration file content or null on error.</returns>
+    public XDocument? GetDefaultNuGetConfig( IActivityMonitor monitor )
+    {
+        if( _defaultNugetConfig == null )
+        {
+            if( !GetConfiguredNuGetFeeds( monitor, out var feeds ) )
+            {
+                return null;
+            }
+            var root = new XElement( "configuration",
+                            new XElement( "packageSources",
+                                    new XElement( "clear" ),
+                                    feeds.Select( f => new XElement( "add", new XAttribute( "key", f.Name ), new XAttribute( "value", f.Url ) ) ) ),
+                            new XElement( "packageSourceMapping",
+                                    feeds.Select( f => new XElement( "packageSource", new XAttribute( "key", f.Name ),
+                                                            new XElement( "package", new XAttribute( "pattern", "*" ) ) ) ) ),
+                            GetPackageSourceCredentials( feeds ) );
+
+            static XElement? GetPackageSourceCredentials( ImmutableArray<NuGetFeed> feeds )
+            {
+                if( feeds.Any( f => f.FakeReadCredentials != null ) )
+                {
+                    return new XElement( "packageSourceCredentials",
+                                         feeds.Where( f => f.FakeReadCredentials != null )
+                                              .Select( f => new XElement( f.Name.Replace( " ", "_x0020_" ),
+                                                                 new XElement( "add",
+                                                                    new XAttribute( "key", "Username" ),
+                                                                    new XAttribute( "value", f.FakeReadCredentials!.UserNameKey ?? "" ) ),
+                                                                 new XElement( "add",
+                                                                    new XAttribute( "key", "ClearTextPassword" ),
+                                                                    new XAttribute( "value", f.FakeReadCredentials!.SecretKey ) ) ) ) );
+                }
+                return null;
+            }
+            _defaultNugetConfig = new XDocument( root );
+        }
+        return _defaultNugetConfig;
     }
 
     /// <summary>

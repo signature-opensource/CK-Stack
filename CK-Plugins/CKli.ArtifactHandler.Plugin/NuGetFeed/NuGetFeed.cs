@@ -93,7 +93,7 @@ public sealed class NuGetFeed
     /// <code>
     /// dotnet user-secrets set FILESYSTEM_GIT "don't care" --id CKli-Test
     /// </code>
-    /// Note: the <c>CKli-Test</c> depends on the test host that is running.
+    /// Note: the name use here (<c>CKli-Test</c>) depends on the test host that is running.
     /// </para>
     /// </summary>
     public NuGetFeedCredentials? PushCredentials => _pushCredentials;

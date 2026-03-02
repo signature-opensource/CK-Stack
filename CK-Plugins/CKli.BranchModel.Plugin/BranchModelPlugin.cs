@@ -5,13 +5,11 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
-using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
-using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -21,7 +19,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     readonly VersionTagPlugin _versionTags;
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
-    readonly ShallowSolutionPlugin _shallowSolution;
+    internal readonly ShallowSolutionPlugin _shallowSolution;
     readonly PerfectEventSender<FixWorkflowStartEventArgs> _onFixStart;
 
     /// <summary>
@@ -64,7 +62,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 foreach( var r in e.Repos )
                 {
                     var info = Get( monitor, r );
-                    var issueBuilder = new DocumentIssueBuilder( info, RaiseContentIssue );
+                    var issueBuilder = new ContentIssueBuilder( info, RaiseContentIssue );
                     if( !issueBuilder.CreateIssue( monitor, out var issue ) )
                     {
                         monitor.CloseGroup( $"ContentIssue event handling failed." );
@@ -97,9 +95,9 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     public BranchNamespace BranchNamespace => _namespace;
 
     /// <summary>
-    /// Gets the event that is raised when repository content issue must be detected.
+    /// Raised when repository content issues must be detected in the hot zone.
     /// </summary>
-    public event Action<ContentIssueEvent>? ContentIssue;
+    public event Action<ContentIssueBuilder.Event>? ContentIssue;
 
     /// <summary>
     /// Finds the <paramref name="branchName"/> in the <see cref="BranchNamespace"/> or emits an error
@@ -213,11 +211,11 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             foreach( var repo in allRepos )
             {
                 var branchInfo = Get( monitor, repo );
-                var gitBranch = branchInfo.GetClosestGitBranch( branchName );
-                Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", gitBranch.HasValue );
-                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, gitBranch.Value.GitBranch );
+                var b = branchInfo.GetClosestActiveBranch( branchName );
+                Throw.DebugAssert( "There is no Branch Model issue: the closest branch necessarily exists.", b?.GitBranch != null );
+                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitDevBranch ?? b.GitBranch );
                 if( shallow == null ) return null;
-                if( !graph.AddSolution( monitor, repo, gitBranch.Value.Hot, shallow ) )
+                if( !graph.AddSolution( monitor, repo, b, shallow ) )
                 {
                     return null;
                 }
@@ -234,37 +232,32 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         BranchName? mostInstable = null;
         foreach( var p in pivots )
         {
-            var closest = Get( monitor, p ).GetClosestGitBranch( branchName );
-            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", closest != null );
-            if( closest.Value.Hot.BranchName != branchName )
+            var closest = Get( monitor, p ).GetClosestActiveBranch( branchName );
+            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", closest?.GitBranch != null );
+            if( closest.BranchName != branchName )
             {
-                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{closest.Value.Hot.BranchName}'." );
+                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{closest.BranchName}'." );
             }
             // Finding the most instable branch.
-            if( mostInstable == null || mostInstable.Index < closest.Value.Hot.BranchName.Index )
+            if( mostInstable == null || mostInstable.Index < closest.BranchName.Index )
             {
-                mostInstable = closest.Value.Hot.BranchName;
+                mostInstable = closest.BranchName;
             }
         }
-        // Finalizing: if the existing branch is a non dev/ branch, fix this if the requested branch name was a dev/ one. 
         Throw.DebugAssert( mostInstable != null );
-        if( branchName.IsDevBranch && !mostInstable.IsDevBranch )
-        {
-            mostInstable = mostInstable.DevBranch;
-        }
         if( mostInstable != branchName )
         {
             monitor.Info( $"Eventually considering branch '{mostInstable}'." );
             branchName = mostInstable;
         }
-
         return branchName;
     }
 
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )
     {
+        var info = new BranchModelInfo( repo, _namespace, this );
         var git = repo.GitRepository.Repository;
-        var root = HotBranch.Create( monitor, repo.GitRepository, _namespace.Root );
+        var root = HotBranch.Create( monitor, info, repo.GitRepository, _namespace.Root );
         if( root.GitBranch == null )
         {
             if( PrimaryPluginContext.Command is not CKliIssue )
@@ -272,7 +265,8 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 monitor.Warn( $"Missing '{root.BranchName}' branch in '{repo.DisplayPath}'. Use 'ckli issue' for details." );
             }
             // The worst issue: no root "stable" branch. This has to be resolved before doing anything else.
-            return new BranchModelInfo( repo, _namespace, [root], hasIssue: true );
+            info.Initialize( [root], hasIssue: true );
+            return info;
         }
         // We have our hot root "stable" branch.
         bool hasIssue = root.HasIssue;
@@ -281,15 +275,12 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         for( int i = 1; i < hotBranches.Length; ++i )
         {
             var branchName = _namespace.Branches[i];
-            var b = HotBranch.Create( monitor, repo.GitRepository, branchName );
+            var b = HotBranch.Create( monitor, info, repo.GitRepository, branchName );
             hasIssue |= b.HasIssue;
             hotBranches[i] = b;
         }
-
-        return new BranchModelInfo( repo,
-                                    _namespace,
-                                    ImmutableCollectionsMarshal.AsImmutableArray( hotBranches ),
-                                    hasIssue );
+        info.Initialize( ImmutableCollectionsMarshal.AsImmutableArray( hotBranches ), hasIssue: true );
+        return info;
     }
 
     /// <summary>
