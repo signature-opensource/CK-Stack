@@ -63,15 +63,11 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 {
                     var info = Get( monitor, r );
                     var issueBuilder = new ContentIssueBuilder( info, RaiseContentIssue );
-                    if( !issueBuilder.CreateIssue( monitor, out var issue ) )
+                    if( !issueBuilder.CreateIssue( monitor, e.ScreenType, e.Add ) )
                     {
                         monitor.CloseGroup( $"ContentIssue event handling failed." );
                         // Stop on the first error.
                         break;
-                    }
-                    if( issue != null )
-                    {
-                        e.Add( issue );
                     }
                 }
             }
@@ -97,7 +93,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// <summary>
     /// Raised when repository content issues must be detected in the hot zone.
     /// </summary>
-    public event Action<ContentIssueBuilder.Event>? ContentIssue;
+    public event Action<ContentIssueEvent>? ContentIssue;
 
     /// <summary>
     /// Finds the <paramref name="branchName"/> in the <see cref="BranchNamespace"/> or emits an error
@@ -279,7 +275,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             hasIssue |= b.HasIssue;
             hotBranches[i] = b;
         }
-        info.Initialize( ImmutableCollectionsMarshal.AsImmutableArray( hotBranches ), hasIssue: true );
+        info.Initialize( ImmutableCollectionsMarshal.AsImmutableArray( hotBranches ), hasIssue );
         return info;
     }
 
@@ -290,7 +286,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// <param name="major">The major version to fix.</param>
     /// <param name="minor">The minor version to fix.</param>
     /// <returns>True on success, false otherwise.</returns>
-    public static bool TryParseBranchFixName( ReadOnlySpan<char> s, int major, out int minor )
+    public static bool TryParseBranchFixName( ReadOnlySpan<char> s, out int major, out int minor )
     {
         major = 0;
         minor = 0;

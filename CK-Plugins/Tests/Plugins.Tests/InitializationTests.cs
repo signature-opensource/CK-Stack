@@ -97,8 +97,24 @@ public class InitializationTests
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "hosting", "create", newRepoUrl )).ShouldBeTrue();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "repo", "add", newRepoUrl )).ShouldBeTrue();
 
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            > CKt-Sample-Monitoring (1)
+            │ > Missing root branch 'stable'.
+            │ │ Can be fixed by creating it from 'master'.
+            ❰✓❱
+
+            """ );
+        // This one can be fixed with a dirty folder (no need to commit). 
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
+        display.Clear();
+
         var inSample = context.ChangeDirectory( "CKt-Sample-Monitoring" );
         Directory.Exists( inSample.CurrentDirectory ).ShouldBeTrue();
+
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "checkout", "dev/stable", "--create" )).ShouldBeTrue();
+
         var path = inSample.CurrentDirectory.AppendPart( "CKt.Sample.Monitoring" );
         Directory.CreateDirectory( path );
         File.WriteAllText( path.AppendPart( "CKt.Sample.Monitoring.csproj" ), """
@@ -132,44 +148,52 @@ public class InitializationTests
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "exec", "dotnet", "sln", "add", "CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" )).ShouldBeTrue();
 
 
+
+        // All the nuget.config can be fixed with a dirty folder (no need to commit).
+        //
+        // But the "Missing initial version." requires a clean working folder.
+        // 
         display.Clear();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            > CKt-Sample-Monitoring (1)
-            │ > Missing root branch 'stable'.
-            │ │ Can be fixed by creating it from 'master'.
-            ❰✓❱
-
-            """ );
-        // This one can be fixed with a dirty folder. 
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
-        display.Clear();
-
-
-        // This one cannot be fixed with a dirty folder. 
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
-        display.ToString().ShouldBe( """
-            > CKt-Sample-Monitoring (1)
+            > CKt-Core (1)
+            │ > Content issues.
+            │ │ > Branch: stable (1 content issue)
+            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
+            > CKt-ActivityMonitor (1)
+            │ > Content issues.
+            │ │ > Branch: stable (1 content issue)
+            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
+            > CKt-PerfectEvent (1)
+            │ > Content issues.
+            │ │ > Branch: stable (1 content issue)
+            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
+            > CKt-Monitoring (1)
+            │ > Content issues.
+            │ │ > Branch: stable (1 content issue)
+            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
+            > CKt-Sample-Monitoring (2)
+            │ > Content issues.
+            │ │ Branch: stable (1 content issue)
+            │ │ > File 'nuget.config' must be created.
             │ > Missing initial version.
             │ │ This can be fixed by building the 'v0.0.0' version from 'stable' branch.
             ❰✓❱
 
             """ );
+        // ... so we commit.
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "commit", "Initialized files." )).ShouldBeTrue();
 
-        using( var r = new Repository( inSample.CurrentDirectory ) )
-        {
-            Commands.Stage( r, "*" );
-            r.Commit( "Initialized files.", context.Committer, context.Committer );
-        }
-        // Here we need to generate the nuget.config file.
-        // The CommonFiles and the BranchModel/HotBranch/ContentIssue should handle this.
-        //(await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
-        //display.Clear();
-        //(await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
-        //display.ToString().ShouldBe( """
-        //    ❰✓❱
+        // This generated the missing nuget.config file (and fixed the case on the existing ones): this is 
+        // the work of the CommonFiles plugin and the BranchModel/HotBranch/ContentIssue.
+        //
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            ❰✓❱
 
-        //    """ );
+            """ );
     }
 
 

@@ -11,8 +11,6 @@ sealed partial class IssueBuilder
 {
     sealed class DesynchronizedBranchesIssue : World.Issue
     {
-        static readonly MergeTreeOptions _mergeOptions = new MergeTreeOptions() { FailOnConflict = true, SkipReuc = true };
-
         readonly List<(Branch Branch, Branch Base)> _desynchronized;
 
         public DesynchronizedBranchesIssue( IRenderable body, List<(Branch Branch, Branch Base)> desynchronized, Repo repo )
@@ -24,28 +22,13 @@ sealed partial class IssueBuilder
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null );
-            var git = Repo.GitRepository.Repository;
             bool success = true;
             foreach( var b in _desynchronized )
             {
-                try
-                {
-                    var result = git.ObjectDatabase.MergeCommits( b.Base.Tip, b.Branch.Tip, _mergeOptions );
-                    var commit = git.ObjectDatabase.CreateCommit( author: context.Committer,
-                                                                  committer: context.Committer,
-                                                                  message: $"Synchronizing '{b.Branch.FriendlyName}' on '{b.Base.FriendlyName}'.",
-                                                                  result.Tree,
-                                                                  [b.Base.Tip, b.Branch.Tip],
-                                                                  prettifyMessage: true );
-                    git.Refs.UpdateTarget( b.Branch.Reference, commit.Id );
-                }
-                catch( Exception ex )
-                {
-                    monitor.Error( $"Unable to synchronize branch '{b.Branch.FriendlyName}' on '{b.Base.FriendlyName}'.", ex );
-                    success = false;
-                }
+                success &= BranchLink.SynchronizeMerge( monitor, Repo.GitRepository, b.Branch, b.Base );
             }
             return ValueTask.FromResult( success );
+
         }
     }
 

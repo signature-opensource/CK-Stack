@@ -2,6 +2,8 @@ using CK.Core;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using LibGit2Sharp;
+using Microsoft.Extensions.FileProviders;
+using System;
 using System.Collections.Generic;
 
 namespace CKli.BranchModel.Plugin;
@@ -13,55 +15,48 @@ namespace CKli.BranchModel.Plugin;
 /// </summary>
 public sealed class ContentIssueEvent : EventMonitoredArgs
 {
-    readonly Repo _repo;
     readonly ShallowSolutionPlugin _shallowSolution;
-    HotBranch? _branch;
+    readonly BranchContentIssue _branchIssues;
     INormalizedFileProvider? _content;
 
-
     internal ContentIssueEvent( IActivityMonitor monitor,
-                                Repo repo,
+                                BranchContentIssue issues,
                                 ShallowSolutionPlugin shallowSolution )
         : base( monitor )
     {
-        _repo = repo;
+        Throw.DebugAssert( issues.Branch.GitBranch != null );
+        _branchIssues = issues;
         _shallowSolution = shallowSolution;
-    }
-
-    internal void Initialize( HotBranch branch )
-    {
-        Throw.DebugAssert( branch.GitBranch != null );
-        _branch = branch;
-        _content = null;
     }
 
     /// <summary>
     /// Gets the repository.
     /// </summary>
-    public Repo Repo => _repo;
+    public Repo Repo => _branchIssues.Branch.Repo;
 
     /// <summary>
     /// Gets the hot branch that must be analyzed (<see cref="HotBranch.IsActive"/> is true).
     /// </summary>
-    public HotBranch Branch => _branch!;
+    public HotBranch Branch => _branchIssues.Branch;
 
     /// <summary>
     /// Gets the non null <see cref="HotBranch.GitBranch"/> (because the branch is active).
     /// </summary>
-    public Branch GitBranch => _branch!.GitBranch!;
+    public Branch GitBranch => _branchIssues.Branch.GitBranch!;
 
     /// <summary>
     /// Gets the content branch: if it exists, it's the <see cref="HotBranch.GitDevBranch"/> otherwise
-    /// the regular <see cref="HotBranch.GitBranch"/> is used.
+    /// the regular <see cref="GitBranch"/> is used.
     /// </summary>
-    public Branch GitContentBranch => _branch!.GitDevBranch ?? _branch!.GitBranch!;
+    public Branch GitContentBranch => _branchIssues.Branch.GitDevBranch ?? GitBranch;
 
     /// <summary>
     /// Gets the content of the <see cref="Branch"/> from <see cref="GitContentBranch"/>.
     /// </summary>
     public INormalizedFileProvider Content => _content ??= _shallowSolution.GetFiles( GitContentBranch.Tip );
 
-
-
+    /// <summary>
+    /// Gets the issues collector where content issues must be signaled.
+    /// </summary>
+    public BranchContentIssue Issues => _branchIssues;
 }
-

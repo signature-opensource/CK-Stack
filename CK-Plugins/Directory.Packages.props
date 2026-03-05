@@ -4,7 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="CK.PerfectEvent" Version="26.0.2" />
-    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0195-dev" />
+    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0197-dev" />
     <PackageVersion Include="CSemVer" Version="13.0.0" />
     
   </ItemGroup>

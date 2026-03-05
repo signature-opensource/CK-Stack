@@ -28,30 +28,20 @@ public sealed class CommonFilesPlugin : PrimaryPluginBase
 
     void ContentIssueRequested( ContentIssueEvent ev )
     {
-        if( ev.Content.GetFileInfo( "nuget.config" ) == null )
+        NormalizedPath n = "nuget.config";
+        var nInfo = ev.Content.GetFileInfo( n );
+        if( nInfo == null )
         {
             var defaultConfig = _artifactHandler.GetDefaultNuGetConfig( ev.Monitor );
             if( defaultConfig != null )
             {
-                ev.AddIssue( new CreateNuGetConfigFileIssue( ev.Branch, defaultConfig ) );
+                ev.Issues.CreateFile( n, defaultConfig.ToString );
             }
         }
-    }
-}
-
-
-sealed class CreateNuGetConfigFileIssue : DocumentIssue
-{
-    readonly XDocument _defaultConfig;
-
-    public CreateNuGetConfigFileIssue( HotBranch branch, XDocument defaultConfig )
-        : base( "nuget.config", branch )
-    {
-        _defaultConfig = defaultConfig;
-    }
-
-    protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
-    {
-        throw new NotImplementedException();
+        else if( nInfo.Name != n )
+        {
+            Throw.DebugAssert( nInfo.Name.Equals( n, StringComparison.OrdinalIgnoreCase ) );
+            ev.Issues.MoveFile( nInfo.Name, n );
+        }
     }
 }

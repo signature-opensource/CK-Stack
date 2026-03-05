@@ -41,23 +41,8 @@ public sealed partial class BranchModelInfo
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null );
-
-            var r = Repo.GitRepository.Repository;
-            // Creating the root.
-            CreateInitialBranch( r, context.Committer, _mainOrMaster.Tip, _root.BranchName );
-
+            BranchLink.CreateAheadBranch( Repo.GitRepository, _mainOrMaster.Tip, _root.BranchName.Name );
             return ValueTask.FromResult( true );
-        }
-
-        static Branch CreateInitialBranch( Repository r, Signature committer, Commit fromCommit, BranchName b )
-        {
-            var c = r.ObjectDatabase.CreateCommit( fromCommit.Author,
-                                                   committer,
-                                                   $"Initial '{b.Name}'.",
-                                                   fromCommit.Tree,
-                                                   [fromCommit],
-                                                   prettifyMessage: false );
-            return r.CreateBranch( b.Name, c );
         }
     }
 

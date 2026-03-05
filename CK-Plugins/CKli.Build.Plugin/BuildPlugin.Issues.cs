@@ -137,15 +137,25 @@ public sealed partial class BuildPlugin
         protected override async ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null && _root.GitBranch != null );
-            using( monitor.OpenInfo( $"Fixing missing initial version in '{Repo.DisplayPath}' by creating 'v{_versionTagInfo.MinVersion}' from '{_root}'." ) )
+            if( _root.HasIssue )
             {
+                monitor.Warn( $"Issue on '{_root.BranchName.Name}' branch in '{Repo.DisplayPath}' must be fixed before building a initial 'v{_versionTagInfo.MinVersion}' version." );
+                return true;
+            }
+            else using( monitor.OpenInfo( $"Fixing missing initial version in '{Repo.DisplayPath}' by creating 'v{_versionTagInfo.MinVersion}' from '{_root}'." ) )
+            {
+                // If there is a "dev/stable" branch: integrates it.
+                if( _root.GitDevBranch != null && !_root.IntegrateDevBranch( monitor ) )
+                {
+                    return false;
+                }
                 return await _buildPlugin.CoreBuildAsync( monitor,
-                                                           context,
-                                                           _versionTagInfo,
-                                                           _root.GitBranch.Tip,
-                                                           _versionTagInfo.MinVersion,
-                                                           runTest: false,
-                                                           forceRebuild: true ) != null;
+                                                          context,
+                                                          _versionTagInfo,
+                                                          _root.GitBranch.Tip,
+                                                          _versionTagInfo.MinVersion,
+                                                          runTest: false,
+                                                          forceRebuild: true ) != null;
             }
         }
     }

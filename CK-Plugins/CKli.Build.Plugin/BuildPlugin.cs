@@ -51,7 +51,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            [Description( "Specify the branch to build. By default, the current head is considered." )]
                            [OptionName( "--branch" )]
                            string? branch = null,
-                           [Description( "Build all the Repos, not only the ones that consume or produce the current repository." )]
+                           [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
                            bool all = false,
                            [Description( "Don't run tests even if they have never locally run on this commit." )]
                            bool skipTests = false,

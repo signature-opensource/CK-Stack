@@ -3,6 +3,7 @@ using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using LibGit2Sharp;
 using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -43,6 +44,11 @@ public sealed class HotBranch
     /// Gets the repository.
     /// </summary>
     public Repo Repo => _info.Repo;
+
+    /// <summary>
+    /// Gets the branch information.
+    /// </summary>
+    public BranchModelInfo BranchModelInfo => _info;
 
     /// <summary>
     /// Gets the branch name from the branch namespace.
@@ -87,8 +93,8 @@ public sealed class HotBranch
         {
             // When _name.Index == 0, it is the "Missing root branch" case.
             // We don't handle it here but we avoid (if the "dev/stable" branch
-            // exist) to enlist the "orphan dev/" issue: an existing "dev/" is used
-            // as the starting point (instead of main or master).
+            // exist) to enlist the "orphan dev/" issue: the existing "dev/stable" is used
+            // as the starting point (instead of "main" or "master").
             if( _name.Index != 0 && _gitDevBranch != null )
             {
                 issues.OnMissingBaseBranch( _gitDevBranch, _name.Name );
@@ -119,17 +125,56 @@ public sealed class HotBranch
         }
     }
 
-    [MemberNotNullWhen(true, nameof( GitDevBranch ) )]
-    internal bool CheckoutDevBranch( IActivityMonitor monitor, CKliEnv context )
+    /// <summary>
+    /// Commits into this <see cref="BranchLink"/>. Development always takes place is the "dev/" branch,
+    /// only <see cref="IntegrateDevBranch(IActivityMonitor)"/> can commit in the <see cref="GitBranch"/>.
+    /// <list type="bullet">
+    ///     <item>The <see cref="GitDevBranch"/> must exists and be checked out.</item>
+    ///     <item>If there's nothing to commit, nothing is done (<paramref name="message"/> is ignored).</item>
+    ///     <item>On success, GitDevBranch is updated.</item>
+    /// </list>
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="message">The commit message.</param>
+    /// <returns>True on success, false on error.</returns>
+    public bool Commit( IActivityMonitor monitor, string message )
     {
-        Throw.DebugAssert( !HasIssue && IsActive );
+        Throw.CheckState( IsActive && GitDevBranch != null && GitDevBranch.IsCurrentRepositoryHead );
+        var newLink = _link.CommitAhead( monitor, Repo, message );
+        if( newLink == null ) return false;
+        _link = newLink;
+        _gitDevBranch = _link.Ahead;
+        return true;
+    }
+
+    /// <summary>
+    /// Integrates <see cref="GitDevBranch"/> (that must not be null) into <see cref="GitBranch"/> and deletes it.
+    /// On success, GitBranch is updated and GitDevBranch becomes null.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <returns>True on success, false on error.</returns>
+    public bool IntegrateDevBranch( IActivityMonitor monitor )
+    {
+        Throw.CheckState( IsActive && GitDevBranch != null );
+        var newLink = _link.IntegrateAhead( monitor, Repo );
+        if( newLink == null ) return false;
+        _link = newLink;
+        Throw.DebugAssert( _link.Ahead == null );
+        _gitDevBranch = null;
+        return true;
+    }
+
+    [MemberNotNullWhen( true, nameof( GitDevBranch ) )]
+    internal Branch EnsureDevBranch()
+    {
+        Throw.DebugAssert( IsActive );
         if( _gitDevBranch == null )
         {
-            _link = _link.CreateAhead( Repo, context.Committer );
+            _link = _link.CreateAhead( Repo );
             _gitDevBranch = _link.Ahead;
         }
         Throw.DebugAssert( _gitDevBranch != null );
-        return Repo.GitRepository.Checkout( monitor, _gitDevBranch );
+        return _gitDevBranch;
     }
 
     /// <summary>
