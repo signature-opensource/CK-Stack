@@ -110,7 +110,7 @@ public sealed partial class BranchLink
     /// </summary>
     /// <param name="repo">The repository.</param>
     /// <returns>An updated link (replaces this one).</returns>
-    public BranchLink CreateAhead( Repo repo )
+    internal BranchLink CreateAhead( Repo repo )
     {
         Throw.CheckState( Ahead == null );
         Branch ahead = CreateAheadBranch( repo.GitRepository, _branch.Tip, _aheadName );
@@ -129,7 +129,7 @@ public sealed partial class BranchLink
     /// <param name="repo">The repository.</param>
     /// <param name="message">The commit message.</param>
     /// <returns>An updated link (replaces this one) on success, null on error.</returns>
-    public BranchLink? CommitAhead( IActivityMonitor monitor, Repo repo, string message )
+    internal BranchLink? CommitAhead( IActivityMonitor monitor, Repo repo, string message )
     {
         Throw.CheckState( Ahead != null && Ahead.IsCurrentRepositoryHead );
         Throw.CheckArgument( repo.GitRepository.Repository == ((IBelongToARepository)Ahead).Repository );
@@ -147,7 +147,7 @@ public sealed partial class BranchLink
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The repository.</param>
     /// <returns>An updated link (replaces this one) on success, null on error.</returns>
-    public BranchLink? IntegrateAhead( IActivityMonitor monitor, Repo repo )
+    internal BranchLink? IntegrateAhead( IActivityMonitor monitor, Repo repo )
     {
         Throw.CheckState( Ahead != null );
         var newBase = IntegrateMerge( monitor, repo.GitRepository, _ahead!, _branch );
@@ -163,7 +163,7 @@ public sealed partial class BranchLink
     /// <param name="baseCommit">The base commit.</param>
     /// <param name="aheadBranchName">The name of the branch to create.</param>
     /// <returns>The git branch.</returns>
-    public static Branch CreateAheadBranch( GitRepository git, Commit baseCommit, string aheadBranchName )
+    internal static Branch CreateAheadBranch( GitRepository git, Commit baseCommit, string aheadBranchName )
     {
         Throw.DebugAssert( git.Repository == ((IBelongToARepository)baseCommit).Repository );
         var c = git.Repository.ObjectDatabase.CreateCommit( baseCommit.Author,
@@ -179,18 +179,19 @@ public sealed partial class BranchLink
 
     /// <summary>
     /// Tries to merge the <paramref name="baseBranch"/> in the <paramref name="branch"/> (the "ahead" branch).
+    /// On success, the updated ahead branch is returned.
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
     /// <param name="git">The repository.</param>
     /// <param name="branch">The (ahead) branch.</param>
     /// <param name="baseBranch">The base branch.</param>
     /// <param name="errorLevel">Log level to use on error.</param>
-    /// <returns>True on success, false on error.</returns>
-    public static bool SynchronizeMerge( IActivityMonitor monitor,
-                                         GitRepository git,
-                                         Branch branch,
-                                         Branch baseBranch,
-                                         LogLevel errorLevel = LogLevel.Error )
+    /// <returns>The updated ahead branch on success, null on error.</returns>
+    public static Branch? SynchronizeMerge( IActivityMonitor monitor,
+                                            GitRepository git,
+                                            Branch branch,
+                                            Branch baseBranch,
+                                            LogLevel errorLevel = LogLevel.Error )
     {
         Throw.CheckArgument( git.Repository == ((IBelongToARepository)branch).Repository
                              && git.Repository == ((IBelongToARepository)baseBranch).Repository );
@@ -204,7 +205,7 @@ public sealed partial class BranchLink
                     Unable to synchronize branch '{branch.FriendlyName}' on '{baseBranch.FriendlyName}' in '{git.DisplayPath}'.
                     Merge conflict must be manually resolved.
                     """ );
-                return false;
+                return null;
             }
             else
             {
@@ -215,6 +216,7 @@ public sealed partial class BranchLink
                                                             [baseBranch.Tip, branch.Tip],
                                                             prettifyMessage: true );
                 r.Refs.UpdateTarget( branch.Reference, commit.Id );
+                return r.Branches[branch.CanonicalName];
             }
         }
         catch( Exception ex )
@@ -223,9 +225,8 @@ public sealed partial class BranchLink
                 Error while synchronizing branch '{branch.FriendlyName}' on '{baseBranch.FriendlyName}'.
                 This must be manually fixed.
                 """, ex );
-            return false;
+            return null;
         }
-        return true;
     }
 
 

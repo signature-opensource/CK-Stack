@@ -50,11 +50,14 @@ public sealed partial class Roadmap
         /// </summary>
         public Repo Repo => _solution.Repo;
 
-
         internal IRenderable ToRenderable( ScreenType screen )
         {
-            return _solution.Repo.ToRenderable( screen );
+            var r = _solution.Repo.ToRenderable( screen );
+            if( _solution.IsPivot )
+            {
+                r = r.AddRight( screen.Text( "[P]" ).Box( marginLeft: 1, foreColor: System.ConsoleColor.Gray ) );
+            }
+            return r;
         }
-
     }
 }

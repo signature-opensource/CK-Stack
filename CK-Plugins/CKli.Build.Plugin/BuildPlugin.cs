@@ -8,10 +8,8 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using LogLevel = CK.Core.LogLevel;
 
@@ -57,8 +55,9 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            bool skipTests = false,
                            [Description( "Run tests even if they have already run successfully on this commit." )]
                            bool forceTests = false,
-                           [Description( "Build even if a version tag exists and its artifacts already exist locally." )]
-                           bool rebuild = false )
+                           [Description( "Only display the build order and the versions." )]
+                           [OptionName("--dry-run")]
+                           bool dryRun = false )
     {
         if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
@@ -87,7 +86,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             }
             var r = pivots.Single();
             branch = r.GitStatus.CurrentBranchName;
-            monitor.Trace( $"Considering current branch '{branch}' from '{r.DisplayPath}' as the --branch <name> to build." );
+            monitor.Info( ScreenType.CKliScreenTag,
+                          $"Considering current branch '{branch}' from '{r.DisplayPath}' as the --branch <name> to build." );
         }
         // If we are not on a known branch (defined by the Branch Model), give up.
         var branchName = _branchModel.GetValidBranchName( monitor, branch );

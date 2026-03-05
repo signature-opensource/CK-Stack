@@ -42,7 +42,7 @@ public sealed partial class HotGraph
     /// <summary>
     /// Gets the initial branch name of this graph.
     /// <para>
-    /// When <see cref="Pivot"/> has been specified, this branch necessarily exists in the Pivot.
+    /// When <see cref="Pivots"/> have been specified, this branch necessarily exists in the Pivots.
     /// When no pivot exists, this branch exists in at least one of the World's repositories.
     /// </para>
     /// </summary>
@@ -69,7 +69,7 @@ public sealed partial class HotGraph
     /// </summary>
     public int MaxRank => _maxRank;
 
-    internal bool AddSolution( IActivityMonitor monitor, Repo repo, HotBranch actual, GitSolution shallow )
+    internal bool AddSolution( IActivityMonitor monitor, Repo repo, HotBranch actual, GitSolution shallow, bool isPivot )
     {
         Throw.DebugAssert( _solutions[repo.Index] == null );
         Throw.DebugAssert( actual.GitBranch != null );
@@ -78,7 +78,7 @@ public sealed partial class HotGraph
         {
             return false;
         }
-        var s = new Solution( this, actual, shallow );
+        var s = new Solution( this, actual, shallow, isPivot );
         _solutions[shallow.Repo.Index] = s;
         foreach( var p in shallow.Projects )
         {
@@ -142,7 +142,7 @@ public sealed partial class HotGraph
     internal bool Sort( IActivityMonitor monitor )
     {
         Throw.DebugAssert( _solutions.All( s => s != null && _solutions[s.Repo.Index] == s ) );
-        // Sorts the pivots by index to be stable.
+        // Sorts the pivots by index to be deterministic.
         IEnumerable<Repo> pivots = _pivots.Count == _solutions.Length
                                     ? _allRepos
                                     : _pivots.OrderBy( r => r.Index );

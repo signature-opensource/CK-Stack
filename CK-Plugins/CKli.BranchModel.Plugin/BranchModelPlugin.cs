@@ -204,6 +204,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
             // instances.
             var graph = new HotGraph( this, _versionTags, branchName, allRepos, pivotSet );
+            bool hasPivots = graph.HasPivots;
             foreach( var repo in allRepos )
             {
                 var branchInfo = Get( monitor, repo );
@@ -211,7 +212,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 Throw.DebugAssert( "There is no Branch Model issue: the closest branch necessarily exists.", b?.GitBranch != null );
                 var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitDevBranch ?? b.GitBranch );
                 if( shallow == null ) return null;
-                if( !graph.AddSolution( monitor, repo, b, shallow ) )
+                if( !graph.AddSolution( monitor, repo, b, shallow, hasPivots ? pivotSet.Contains( repo ) : false ) )
                 {
                     return null;
                 }

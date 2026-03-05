@@ -25,7 +25,7 @@ sealed partial class IssueBuilder
             bool success = true;
             foreach( var b in _desynchronized )
             {
-                success &= BranchLink.SynchronizeMerge( monitor, Repo.GitRepository, b.Branch, b.Base );
+                success &= (BranchLink.SynchronizeMerge( monitor, Repo.GitRepository, b.Branch, b.Base ) != null);
             }
             return ValueTask.FromResult( success );
 

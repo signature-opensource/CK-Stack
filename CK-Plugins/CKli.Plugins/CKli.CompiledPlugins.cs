@@ -305,7 +305,7 @@ sealed class Cmd_build : PluginCommand
                     (["--all",], "Build all the Repos, not only the ones that consume or produce the current repositories." ),
                     (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
-                    (["--rebuild",], "Build even if a version tag exists and its artifacts already exist locally." ),
+                    (["--dry-run",], "Only display the build order and the versions." ),
                 ],
                 "RepoBuild", MethodAsyncReturn.None ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )

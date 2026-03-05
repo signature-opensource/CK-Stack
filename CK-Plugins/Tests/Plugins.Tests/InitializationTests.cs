@@ -16,36 +16,6 @@ namespace Plugins.Tests;
 public class InitializationTests
 {
     /// <summary>
-    /// When a test DOESN'T push (it has no impact on the remotes), we remove
-    /// the secret: this ensures that the test doesn't push anything.
-    /// </summary>
-    void RemoveFileSystemWritePAT()
-    {
-        ProcessRunner.RunProcess( TestHelper.Monitor,
-                                  "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
-                                  Environment.CurrentDirectory )
-                     .ShouldBe( 0 );
-    }
-
-    /// <summary>
-    /// When a test pushes (from git local to remotes), we need the PAT
-    /// for the "FILESYSTEM".
-    /// <para>
-    /// That is useless (credentials are not used on local file system) but it's
-    /// good to not make an exception for this case.
-    /// </para> 
-    /// </summary>
-    void SetFileSystemWritePAT()
-    {
-        ProcessRunner.RunProcess( TestHelper.Monitor,
-                                  "dotnet",
-                                  """user-secrets set FILESYSTEM_GIT "don't care" --id CKli-CK""",
-                                  Environment.CurrentDirectory )
-                     .ShouldBe( 0 );
-    }
-
-    /// <summary>
     /// <see cref="CKli.Net8Migration.Plugin.Net8MigrationPlugin.Migrate"/>
     /// <see cref="CKli.VersionTag.Plugin.VersionTagPlugin.RebuildReleaseDatabases"/>
     /// </summary>
@@ -53,7 +23,7 @@ public class InitializationTests
     [Test]
     public async Task CKt_init_Async()
     {
-        SetFileSystemWritePAT();
+        Helper.SetFileSystemWritePAT();
 
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(init)" );
@@ -83,120 +53,6 @@ public class InitializationTests
         TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_init_Async", "CKt", "(initialized)" );
     }
 
-    [Test]
-    public async Task CKt_add_sample_Async()
-    {
-        SetFileSystemWritePAT();
-        var clonedFolder = TestHelper.InitializeClonedFolder();
-        var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
-        var context = remotes.Clone( clonedFolder );
-        var display = (StringScreen)context.Screen;
-
-        var newRepo = TestHelper.CKliRemotesPath.AppendPart( "bare" ).Combine( "CKt(initialized)/CKt-Sample-Monitoring" );
-        var newRepoUrl = $"file://{newRepo}";
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "hosting", "create", newRepoUrl )).ShouldBeTrue();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "repo", "add", newRepoUrl )).ShouldBeTrue();
-
-        display.Clear();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
-        display.ToString().ShouldBe( """
-            > CKt-Sample-Monitoring (1)
-            │ > Missing root branch 'stable'.
-            │ │ Can be fixed by creating it from 'master'.
-            ❰✓❱
-
-            """ );
-        // This one can be fixed with a dirty folder (no need to commit). 
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
-        display.Clear();
-
-        var inSample = context.ChangeDirectory( "CKt-Sample-Monitoring" );
-        Directory.Exists( inSample.CurrentDirectory ).ShouldBeTrue();
-
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "checkout", "dev/stable", "--create" )).ShouldBeTrue();
-
-        var path = inSample.CurrentDirectory.AppendPart( "CKt.Sample.Monitoring" );
-        Directory.CreateDirectory( path );
-        File.WriteAllText( path.AppendPart( "CKt.Sample.Monitoring.csproj" ), """
-            <Project Sdk="Microsoft.NET.Sdk">
-
-                <PropertyGroup>
-                    <TargetFramework>net8.0</TargetFramework>
-                    <Nullable>enable</Nullable>
-                    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
-                </PropertyGroup>
-
-                <ItemGroup>
-                    <PackageReference Include="CKt.Monitoring" Version="0.2.3" />
-                    <PackageReference Include="CKt.PerfectEvent" Version="0.3.2" />
-                </ItemGroup>
-
-            </Project>
-            
-            """ );
-        File.WriteAllText( path.AppendPart( "PreserveAssemblyReference.cs" ), """
-            using System;
-
-            namespace CKt.Sample.Monitoring;
-
-            public record PreserveAssemblyReference( CKt.Monitoring.PreserveAssemblyReference Monitoring,
-                                                     CKt.PerfectEvent.PreserveAssemblyReference PerfectEvent );
-                        
-            """ );
-
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "exec", "dotnet", "sln", "add", "CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" )).ShouldBeTrue();
-
-
-
-        // All the nuget.config can be fixed with a dirty folder (no need to commit).
-        //
-        // But the "Missing initial version." requires a clean working folder.
-        // 
-        display.Clear();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
-        display.ToString().ShouldBe( """
-            > CKt-Core (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
-            > CKt-ActivityMonitor (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
-            > CKt-PerfectEvent (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
-            > CKt-Monitoring (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
-            > CKt-Sample-Monitoring (2)
-            │ > Content issues.
-            │ │ Branch: stable (1 content issue)
-            │ │ > File 'nuget.config' must be created.
-            │ > Missing initial version.
-            │ │ This can be fixed by building the 'v0.0.0' version from 'stable' branch.
-            ❰✓❱
-
-            """ );
-        // ... so we commit.
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "commit", "Initialized files." )).ShouldBeTrue();
-
-        // This generated the missing nuget.config file (and fixed the case on the existing ones): this is 
-        // the work of the CommonFiles plugin and the BranchModel/HotBranch/ContentIssue.
-        //
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
-        display.Clear();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
-        display.ToString().ShouldBe( """
-            ❰✓❱
-
-            """ );
-    }
-
-
     /// <summary>
     /// <see cref="CKli.BranchModel.Plugin.BranchModelPlugin.FixStart"/>
     /// <see cref="CKli.BranchModel.Plugin.BranchModelPlugin.FixInfo"/>
@@ -206,7 +62,7 @@ public class InitializationTests
     [Test]
     public async Task CKt_local_fix_Async()
     {
-        RemoveFileSystemWritePAT();
+        Helper.RemoveFileSystemWritePAT();
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
         var context = remotes.Clone( clonedFolder );

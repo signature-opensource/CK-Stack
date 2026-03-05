@@ -20,16 +20,19 @@ public sealed partial class HotGraph
         readonly HashSet<Solution> _allRequirements;
         string? _toString;
         int _rank;
+        readonly bool _isPivot;
         bool _isPivotUpstream;
         bool _isPivotDownstream;
 
         internal Solution( HotGraph graph,
                            HotBranch actual,
-                           GitSolution solution )
+                           GitSolution solution,
+                           bool isPivot )
         {
             _graph = graph;
             _actual = actual;
             _solution = solution;
+            _isPivot = isPivot;
             _directRequirements = new List<Solution>();
             _allRequirements = new HashSet<Solution>();
             _rank = -1;
@@ -68,7 +71,7 @@ public sealed partial class HotGraph
         /// <summary>
         /// Gets whether this solution is one of the <see cref="HotGraph.Pivots"/>.
         /// </summary>
-        public bool IsPivot => _graph._pivots.Contains( _solution.Repo );
+        public bool IsPivot => _isPivot;
 
         /// <summary>
         /// Gets whether this solution is a predecessor (a producer of packages) of one of the specified <see cref="HotGraph.Pivots"/>.
@@ -123,7 +126,7 @@ public sealed partial class HotGraph
                         // Trick: here the direct requirement is not added, only its closure is.
                         _allRequirements.AddRange( required._allRequirements );
 
-                        _isPivotDownstream |= _graph._pivots.Contains( required.Repo );
+                        _isPivotDownstream |= required.IsPivot;
                         ++reqRank;
                         _isPivotDownstream |= isThisPivotDownstream;
                         if( rank < reqRank )
