@@ -64,24 +64,22 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return false;
         }
         // Consider the repositories selected by current path as the Pivots.
-        var pivots = World.GetAllDefinedRepo( monitor, context.CurrentDirectory, allowEmpty: false );
+        var pivots = all
+                        ? World.GetAllDefinedRepo( monitor )
+                        : World.GetAllDefinedRepo( monitor, context.CurrentDirectory, allowEmpty: false );
         if( pivots == null )
         {
             return false;
         }
         if( branch == null )
         {
-            if( all )
-            {
-                monitor.Error( "When 'ckli build --all' is specified, the --branch <name> must be specified." );
-                return false;
-            }
             if( pivots.Count > 1 )
             {
-                monitor.Error( $"""
-                    More than one Repo are below path '{context.CurrentDirectory}'.
-                    The --branch <name> must be specified.
-                    """ );
+                monitor.Error( all ? "When 'ckli build --all' is specified, the --branch <name> must be specified."
+                                   : $"""
+                                     More than one Repo are below path '{context.CurrentDirectory}'.
+                                     The --branch <name> must be specified.
+                                     """ );
                 return false;
             }
             var r = pivots.Single();
@@ -98,7 +96,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // When --all is specified, all the repositories are pivots and the actual branch name considered by
         // the hot graph will be the most instable one of all the repositories (but at least as stable as the
         // branchName resolved above of course).
-        var hotGraph = _branchModel.GetHotGraph( monitor, branchName, all ? [] : pivots );
+        var hotGraph = _branchModel.GetHotGraph( monitor, branchName, pivots );
         if( hotGraph == null )
         {
             return false;

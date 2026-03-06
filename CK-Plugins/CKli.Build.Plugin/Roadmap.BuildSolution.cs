@@ -52,12 +52,44 @@ public sealed partial class Roadmap
 
         internal IRenderable ToRenderable( ScreenType screen )
         {
+            var prefix = Prefix( screen, _solution );
+
             var r = _solution.Repo.ToRenderable( screen );
-            if( _solution.IsPivot )
+            if( prefix != null )
             {
-                r = r.AddRight( screen.Text( "[P]" ).Box( marginLeft: 1, foreColor: System.ConsoleColor.Gray ) );
+                r = r.AddLeft( prefix );
+            }
+            else
+            {
+                r = r.Box( marginLeft: 7 );
             }
             return r;
+
+            static IRenderable? Prefix( ScreenType screen, HotGraph.Solution solution )
+            {
+                var prefixColor = new Color( System.ConsoleColor.Black, System.ConsoleColor.Yellow );
+                if( solution.IsPivot )
+                {
+                    return screen.Text( "[P]" ).Box( color: prefixColor, paddingLeft: 2, paddingRight: 2 );
+                }
+                else if( solution.IsPivotDownstream )
+                {
+                    if( solution.IsPivotUpstream )
+                    {
+                        return screen.Text( "=>[P]=>" ).Box( color: prefixColor );
+                    }
+                    else
+                    {
+                        return screen.Text( "[P]=>" ).Box( color: prefixColor, paddingLeft: 2 );
+                    }
+                }
+                else if( solution.IsPivotUpstream )
+                {
+                    return screen.Text( "=>[P]" ).Box( color: prefixColor, paddingRight: 2 );
+                }
+                return null;
+            }
+
         }
     }
 }

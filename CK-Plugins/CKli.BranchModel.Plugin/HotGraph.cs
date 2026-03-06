@@ -143,19 +143,20 @@ public sealed partial class HotGraph
     {
         Throw.DebugAssert( _solutions.All( s => s != null && _solutions[s.Repo.Index] == s ) );
         // Sorts the pivots by index to be deterministic.
-        IEnumerable<Repo> pivots = _pivots.Count == _solutions.Length
-                                    ? _allRepos
-                                    : _pivots.OrderBy( r => r.Index );
+        bool hasPivots = HasPivots;
+        IEnumerable<Repo> pivots = hasPivots
+                                    ? _pivots.OrderBy( r => r.Index )
+                                    : _allRepos;
         foreach( var pivot in pivots )
         {
             var sPivot = _solutions[pivot.Index];
-            if( !UpdateRank( monitor, sPivot, isPivotUpstream: true ) )
+            if( !UpdateRank( monitor, sPivot, isPivotUpstream: hasPivots ) )
             {
                 return false;
             }
 
         }
-        if( _pivots.Count != _solutions.Length )
+        if( hasPivots )
         {
             foreach( var s in _solutions )
             {

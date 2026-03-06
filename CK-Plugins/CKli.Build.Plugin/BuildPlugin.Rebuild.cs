@@ -13,7 +13,7 @@ public sealed partial class BuildPlugin
         Tries to rebuild the oldest releases until a success.
         Failing commits are tagged with a '+deprecated' tag.
         """ )]
-    [CommandPath( "repo rebuild old" )]
+    [CommandPath( "maintenance rebuild old" )]
     public async Task<bool> RebuildOldAsync( IActivityMonitor monitor,
                                              CKliEnv context,
                                              [Description( "Warns only: doesn't create a 'deprecated' tag on the failing commit." )]
@@ -62,7 +62,7 @@ public sealed partial class BuildPlugin
     }
 
     [Description( """Rebuild the specified version in the current repository.""" )]
-    [CommandPath( "repo rebuild version" )]
+    [CommandPath( "maintenance rebuild version" )]
     public async Task<bool> RebuildVersionAsync( IActivityMonitor monitor,
                                                  CKliEnv context,
                                                  [Description( "The version to rebuild." )]
