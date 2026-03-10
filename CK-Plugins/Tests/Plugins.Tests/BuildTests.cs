@@ -262,7 +262,8 @@ public class BuildTests
 
             """ );
 
-            // From CKt-PerfectEvent: the CKt-Monitoring, App sample and monitoring sample are "nothing".
+            // From CKt-PerfectEvent: the CKt-Monitoring and App sample are "nothing". CKt-Sample-Monitoring is a downstream repo
+            // that must be published.
             display.Clear();
             var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
@@ -425,7 +426,8 @@ public class BuildTests
 
             """ );
 
-            // From CKt-PerfectEvent: the CKt-Monitoring, App sample and monitoring sample are "nothing".
+            // From CKt-PerfectEvent: the CKt-Monitoring and App sample are "nothing". CKt-Sample-Monitoring is a downstream repo
+            // that must be built.
             display.Clear();
             var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
@@ -523,6 +525,34 @@ public class BuildTests
         }
         #endregion
 
+    }
+
+    [Test]
+    public async Task CKt_with_sample_build_PerfectEvent_Async()
+    {
+        var clonedFolder = TestHelper.InitializeClonedFolder();
+        var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
+        var context = remotes.Clone( clonedFolder );
+        var display = (StringScreen)context.Screen;
+
+        // From CKt-PerfectEvent (the NuGet.config has been renamed to nuget.config).
+        // The CKt-Monitoring and App sample are "nothing".
+        // CKt-Sample-Monitoring is a downstream repo that must be built.
+        var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--dry-run" )).ShouldBeTrue();
+
+        display.ToString().ShouldBe( """
+            =>[P]   CKt-Core 
+            =>[P]   CKt-ActivityMonitor 
+        0 -   [P]   CKt-PerfectEvent ▻ v0.3.2 → v0.3.3--ci.4
+                    CKt-Monitoring 
+        1 -   [P]=> Samples/CKt-Sample-Monitoring ▻ v0.0.0 → v0.0.1--ci.1
+                    Samples/CKt-App-Sample 
+        ❰✓❱
+        
+        """ );
+
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--dry-run" )).ShouldBeTrue();
     }
 
 }

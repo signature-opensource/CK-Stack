@@ -1,5 +1,6 @@
 using CK.Core;
 using CKli.Core;
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -33,7 +34,11 @@ public sealed partial class ContentIssueBuilder
                 // - On success, the working folder is committed.
                 if( Repo.GitRepository.Checkout( monitor, issues.Branch.EnsureDevBranch() )
                     && issues.Execute( monitor, context, Repo, Body )
-                    && issues.Branch.Commit( monitor, Body.RenderAsString() ) )
+                    && issues.Branch.Commit( monitor, $"""
+                    Fixed {_branchIssues.Count} issue(s).
+
+                    {Body.RenderAsString()}
+                    """  ) )
                 {
                     continue;
                 }
