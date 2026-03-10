@@ -191,17 +191,180 @@ public class BuildTests
     }
 
     [Test]
-    public async Task CKt_with_sample_dry_run_build_and_жbuild_Async()
+    public async Task CKt_with_sample_dry_run_build_жbuild_publish_жpublish_Async()
     {
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
         var context = remotes.Clone( clonedFolder ).SetScreen( new StringScreen( useDebugRenderer: true ) );
         var display = (StringScreen)context.Screen;
 
+        #region publish
+        {
+            // From stack root (or if --all is specified): all solutions are pivots <==> none of them is.
+            // (in this case *publish is the same as publish).
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            0 -[DARKGREEN] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1[GRAY]⮐
+            1 -[DARKGREEN] CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1[GRAY]⮐
+            2 -[DARKGREEN] CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3[GRAY]⮐
+            3 -[DARKGREEN] CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4[GRAY]⮐
+            4 -[DARKGREEN] Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            5 -[DARKGREEN] Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            
+            """ );
+
+            // From Samples/: the 2 samples are pivots, others are upstreams: they are ignored and the 2 pivots are
+            // already available (in v0.0.0 built by the "ckli issue --fix" for the missing initial version), so there
+            // is eventually nothing to do.
+            display.Clear();
+            var inSample = context.ChangeDirectory( "Samples" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-Core [Regular]⮐
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-ActivityMonitor [Regular]⮐
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-PerfectEvent [Regular]⮐
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-Monitoring [Regular]⮐
+            [BLACK,yellow]  [P]  [GRAY,black] Samples/CKt-Sample-Monitoring ▻ v0.0.0 ⮐
+            [BLACK,yellow]  [P]  [GRAY,black] Samples/CKt-App-Sample ▻ v0.0.0 ⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            
+            """ );
+
+            // From Samples/CKt-Sample-Monitoring: the App sample is "nothing" (not related to pivots), all the other
+            // are ignored and the CKt-Sample-Monitoring is already available in v0.0.0, there's nothing to do.
+            display.Clear();
+            var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-Core [Regular]⮐
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-ActivityMonitor [Regular]⮐
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-PerfectEvent [Regular]⮐
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-Monitoring [Regular]⮐
+            [BLACK,yellow]  [P]  [GRAY,black] Samples/CKt-Sample-Monitoring ▻ v0.0.0 ⮐
+                   [Strikethrough] Samples/CKt-App-Sample [Regular]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+
+            """ );
+
+            // From Samples/CKt-App-Sample: same as above but CKt-App-Sample pivot replaces CKt-Sample-Monitoring.
+            display.Clear();
+            var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-Core [Regular]⮐
+            [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-ActivityMonitor [Regular]⮐
+                   [Strikethrough] CKt-PerfectEvent [Regular]⮐
+                   [Strikethrough] CKt-Monitoring [Regular]⮐
+                   [Strikethrough] Samples/CKt-Sample-Monitoring [Regular]⮐
+            [BLACK,yellow]  [P]  [GRAY,black] Samples/CKt-App-Sample ▻ v0.0.0 ⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+
+            """ );
+
+            // From CKt-PerfectEvent: the CKt-Monitoring, App sample and monitoring sample are "nothing".
+            display.Clear();
+            var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+                [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-Core [Regular]⮐
+                [BLACK,yellow,Strikethrough]=>[P]  [GRAY,black] CKt-ActivityMonitor [Regular]⮐
+            0 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black] CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3[GRAY]⮐
+                       [Strikethrough] CKt-Monitoring [Regular]⮐
+            1 -[DARKGREEN] [BLACK,yellow]  [P]=>[DARKGREEN,black] Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+                       [Strikethrough] Samples/CKt-App-Sample [Regular]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            
+            """ );
+        }
+        #endregion
+
+        #region *publish
+        {
+            // From stack root: all solutions are pivots <==> none of them is.
+            display.Clear();
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "*publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            0 -[DARKGREEN] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1[GRAY]⮐
+            1 -[DARKGREEN] CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1[GRAY]⮐
+            2 -[DARKGREEN] CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3[GRAY]⮐
+            3 -[DARKGREEN] CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4[GRAY]⮐
+            4 -[DARKGREEN] Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            5 -[DARKGREEN] Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            
+            """ );
+
+            // From Samples/: the 2 samples are pivots, others are upstreams.
+            display.Clear();
+            var inSample = context.ChangeDirectory( "Samples" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "*publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1[GRAY]⮐
+            2 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3[GRAY]⮐
+            3 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4[GRAY]⮐
+            4 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black] Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            5 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black] Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            
+            """ );
+
+            // From Samples/CKt-Sample-Monitoring: the App sample is "nothing" (not related to pivots).
+            // However, the App sample must be build because one of its upstream is built.
+            display.Clear();
+            var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "*publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1[GRAY]⮐
+            2 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3[GRAY]⮐
+            3 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4[GRAY]⮐
+            4 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black] Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            5 -[DARKGREEN]         Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+
+            """ );
+
+            // From Samples/CKt-App-Sample: the monitoring, perfect event and sample monitoring are "nothing", but because of
+            // the upstreams, every Repo must be built.
+            display.Clear();
+            var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "*publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1[GRAY]⮐
+            2 -[DARKGREEN]         CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3[GRAY]⮐
+            3 -[DARKGREEN]         CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4[GRAY]⮐
+            4 -[DARKGREEN]         Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            5 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black] Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+
+            """ );
+
+            // From CKt-PerfectEvent: the CKt-Monitoring and App sample are "nothing", but as usual, because of the upstreams,
+            // every Repo must be built.
+            display.Clear();
+            var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "*publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+            display.ToString().ShouldBe( """
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black] CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1[GRAY]⮐
+            2 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black] CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3[GRAY]⮐
+            3 -[DARKGREEN]         CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4[GRAY]⮐
+            4 -[DARKGREEN] [BLACK,yellow]  [P]=>[DARKGREEN,black] Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            5 -[DARKGREEN]         Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1[GRAY]⮐
+            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            
+            """ );
+        }
+        #endregion
+
         #region build
         {
             // From stack root (or if --all is specified): all solutions are pivots <==> none of them is.
             // (in this case *build is the same as build).
+            display.Clear();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
             0 -[DARKGREEN] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY]⮐

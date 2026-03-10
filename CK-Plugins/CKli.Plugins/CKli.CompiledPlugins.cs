@@ -74,6 +74,8 @@ public static class CompiledPlugins
             new Cmd_fix＿cancel( infos[0].PluginTypes[0] ),
             new Cmd_build( infos[2].PluginTypes[1] ),
             new Cmd_жbuild( infos[2].PluginTypes[1] ),
+            new Cmd_publish( infos[2].PluginTypes[1] ),
+            new Cmd_жpublish( infos[2].PluginTypes[1] ),
             new Cmd_fix＿build( infos[2].PluginTypes[1] ),
             new Cmd_fix＿publish( infos[2].PluginTypes[1] ),
             new Cmd_maintenance＿rebuild＿old( infos[2].PluginTypes[1] ),
@@ -351,6 +353,68 @@ sealed class Cmd_жbuild : PluginCommand
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
         return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).StarBuildStar(
                                            monitor, context, o0, f0, f1, f2, f3 ) );
+    }
+}
+[GeneratedCode("CKli", "0.0.8--0200-dev")]
+sealed class Cmd_publish : PluginCommand
+{
+    internal Cmd_publish( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "publish",
+                "Build-Test-Package and propagates packages from the current repositories to their consumers and publishes all the artifacts.",
+                1,
+                -1,
+                arguments: [
+                ],
+                options: [
+                    (["--branch",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
+                ],
+                flags: [
+                    (["--all",], "Build all the Repos, not only the current repositories and their consumers." ),
+                    (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
+                    (["--dry-run",], "Only display the build roadmap." ),
+                ],
+                "PublishStar", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        var o0 = cmdLine.EatSingleOption( Options[0].Names );
+        var f0 = cmdLine.EatFlag( Flags[0].Names );
+        var f1 = cmdLine.EatFlag( Flags[1].Names );
+        var f2 = cmdLine.EatFlag( Flags[2].Names );
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).PublishStar(
+                                           monitor, context, o0, f0, f1, f2 ) );
+    }
+}
+[GeneratedCode("CKli", "0.0.8--0200-dev")]
+sealed class Cmd_жpublish : PluginCommand
+{
+    internal Cmd_жpublish( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "*publish",
+                "Build-Test-Package the consumers of the current repositories, propagates packages to their consumers and publishes all the artifacts.",
+                1,
+                -1,
+                arguments: [
+                ],
+                options: [
+                    (["--branch",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
+                ],
+                flags: [
+                    (["--all",], "Publish all the Repos, not only the ones that consume or produce the current repositories." ),
+                    (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
+                    (["--dry-run",], "Only display the build roadmap." ),
+                ],
+                "StarPublishStar", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        var o0 = cmdLine.EatSingleOption( Options[0].Names );
+        var f0 = cmdLine.EatFlag( Flags[0].Names );
+        var f1 = cmdLine.EatFlag( Flags[1].Names );
+        var f2 = cmdLine.EatFlag( Flags[2].Names );
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).StarPublishStar(
+                                           monitor, context, o0, f0, f1, f2 ) );
     }
 }
 [GeneratedCode("CKli", "0.0.8--0200-dev")]

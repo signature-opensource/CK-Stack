@@ -70,6 +70,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         return true;
     }
+
     [Description( "Build-Test-Package the consumers of the current repositories and propagates packages to their consumers." )]
     [CommandPath( "*build" )]
     public bool StarBuildStar( IActivityMonitor monitor,
@@ -88,6 +89,60 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                bool dryRun = false )
     {
         var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: true, branch, all, skipTests, forceTests );
+        if( roadmap == null )
+        {
+            return false;
+        }
+        if( !dryRun )
+        {
+
+        }
+        return true;
+    }
+
+    [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers and publishes all the artifacts." )]
+    [CommandPath( "publish" )]
+    public bool PublishStar( IActivityMonitor monitor,
+                             CKliEnv context,
+                             [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
+                             [OptionName( "--branch" )]
+                             string? branch = null,
+                             [Description( "Build all the Repos, not only the current repositories and their consumers." )]
+                             bool all = false,
+                             [Description( "Run tests even if they have already run successfully on the commit." )]
+                             bool forceTests = false,
+                             [Description( "Only display the build roadmap." )]
+                             [OptionName("--dry-run")]
+                             bool dryRun = false )
+    {
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: false, branch, all, skipTests: false, forceTests );
+        if( roadmap == null )
+        {
+            return false;
+        }
+        if( !dryRun )
+        {
+
+        }
+        return true;
+    }
+
+    [Description( "Build-Test-Package the consumers of the current repositories, propagates packages to their consumers and publishes all the artifacts." )]
+    [CommandPath( "*publish" )]
+    public bool StarPublishStar( IActivityMonitor monitor,
+                               CKliEnv context,
+                               [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
+                               [OptionName( "--branch" )]
+                               string? branch = null,
+                               [Description( "Publish all the Repos, not only the ones that consume or produce the current repositories." )]
+                               bool all = false,
+                               [Description( "Run tests even if they have already run successfully on the commit." )]
+                               bool forceTests = false,
+                               [Description( "Only display the build roadmap." )]
+                               [OptionName("--dry-run")]
+                               bool dryRun = false )
+    {
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: false, branch, all, skipTests: false, forceTests );
         if( roadmap == null )
         {
             return false;
