@@ -201,17 +201,12 @@ public class BuildTests
         // From stack root: all solutions are pivots <==> none of them is.
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            Roadmap:⮐
-            > Rank 0 (1)⮐
-            │        [DARKGREEN]  CKt-Core [GRAY]⮐
-            > Rank 1 (1)⮐
-            │        [DARKGREEN]  CKt-ActivityMonitor [GRAY]⮐
-            > Rank 2 (3)⮐
-            │        [DARKGREEN]  CKt-PerfectEvent [GRAY]⮐
-            │        [DARKGREEN]  CKt-Monitoring [GRAY]⮐
-            │        [DARKGREEN]  Samples/CKt-App-Sample [GRAY]⮐
-            > Rank 3 (1)⮐
-            │        [DARKGREEN]  Samples/CKt-Sample-Monitoring [GRAY]⮐
+            0 -[DARKGREEN] CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY]⮐
+            1 -[DARKGREEN] CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY]⮐
+            2 -[DARKGREEN] CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY]⮐
+            3 -[DARKGREEN] CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY]⮐
+            4 -[DARKGREEN] Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
+            5 -[DARKGREEN] Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
             [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
             
             """ );
@@ -221,38 +216,28 @@ public class BuildTests
         var inSample = context.ChangeDirectory( "Samples" );
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            Roadmap:⮐
-            > Rank 0 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-Core [GRAY]⮐
-            > Rank 1 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-ActivityMonitor [GRAY]⮐
-            > Rank 2 (3)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-PerfectEvent [GRAY]⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-Monitoring [GRAY]⮐
-            │ [BLACK,yellow]  [P]  [DARKGREEN,black]  Samples/CKt-App-Sample [GRAY]⮐
-            > Rank 3 (1)⮐
-            │ [BLACK,yellow]  [P]  [DARKGREEN,black]  Samples/CKt-Sample-Monitoring [GRAY]⮐
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY]⮐
+            2 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY]⮐
+            3 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY]⮐
+            4 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black]Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
+            5 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black]Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
             [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
-
+            
             """ );
 
         // From Samples/CKt-Sample-Monitoring: the App sample is "nothing" (not related to pivots).
-        // However, the App sample can be build if one of its upstream is built.
+        // However, the App sample must be build because one of its upstream is built.
         display.Clear();
         var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            Roadmap:⮐
-            > Rank 0 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-Core [GRAY]⮐
-            > Rank 1 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-ActivityMonitor [GRAY]⮐
-            > Rank 2 (3)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-PerfectEvent [GRAY]⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-Monitoring [GRAY]⮐
-            │        [DARKGREEN]  Samples/CKt-App-Sample [GRAY]⮐
-            > Rank 3 (1)⮐
-            │ [BLACK,yellow]  [P]  [DARKGREEN,black]  Samples/CKt-Sample-Monitoring [GRAY]⮐
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY]⮐
+            2 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY]⮐
+            3 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY]⮐
+            4 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black]Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
+            5 -[DARKGREEN]        Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
             [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
 
             """ );
@@ -262,17 +247,12 @@ public class BuildTests
         var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            Roadmap:⮐
-            > Rank 0 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-Core [GRAY]⮐
-            > Rank 1 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-ActivityMonitor [GRAY]⮐
-            > Rank 2 (3)⮐
-            │        [DARKGREEN]  CKt-PerfectEvent [GRAY]⮐
-            │        [DARKGREEN]  CKt-Monitoring [GRAY]⮐
-            │ [BLACK,yellow]  [P]  [DARKGREEN,black]  Samples/CKt-App-Sample [GRAY]⮐
-            > Rank 3 (1)⮐
-            │        [DARKGREEN]  Samples/CKt-Sample-Monitoring [GRAY]⮐
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY]⮐
+            2 -[DARKGREEN]        CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY]⮐
+            3 -[DARKGREEN]        CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY]⮐
+            4 -[DARKGREEN]        Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
+            5 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black]Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
             [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
 
             """ );
@@ -282,17 +262,12 @@ public class BuildTests
         var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            Roadmap:⮐
-            > Rank 0 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-Core [GRAY]⮐
-            > Rank 1 (1)⮐
-            │ [BLACK,yellow]=>[P]  [DARKGREEN,black]  CKt-ActivityMonitor [GRAY]⮐
-            > Rank 2 (3)⮐
-            │ [BLACK,yellow]  [P]  [DARKGREEN,black]  CKt-PerfectEvent [GRAY]⮐
-            │        [DARKGREEN]  CKt-Monitoring [GRAY]⮐
-            │        [DARKGREEN]  Samples/CKt-App-Sample [GRAY]⮐
-            > Rank 3 (1)⮐
-            │ [BLACK,yellow]  [P]=>[DARKGREEN,black]  Samples/CKt-Sample-Monitoring [GRAY]⮐
+            0 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY]⮐
+            1 -[DARKGREEN] [BLACK,yellow]=>[P]  [DARKGREEN,black]CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY]⮐
+            2 -[DARKGREEN] [BLACK,yellow]  [P]  [DARKGREEN,black]CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY]⮐
+            3 -[DARKGREEN]        CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY]⮐
+            4 -[DARKGREEN] [BLACK,yellow]  [P]=>[DARKGREEN,black]Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
+            5 -[DARKGREEN]        Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY]⮐
             [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
             
             """ );

@@ -41,7 +41,7 @@ public sealed partial class VersionTagInfo
         }
 
         /// <summary>
-        /// Gets a non manual issue if <see cref="TopHot"/> is greater or equal to the next major of the last stable version.
+        /// Gets a manual issue if <see cref="TopHot"/> is greater or equal to the next major of the last stable version.
         /// </summary>
         public World.Issue? HotZoneIssue => _hotZoneIssue;
 

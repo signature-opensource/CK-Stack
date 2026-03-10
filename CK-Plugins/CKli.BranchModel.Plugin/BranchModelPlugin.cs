@@ -161,49 +161,52 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// <summary>
     /// Gets the <see cref="HotGraph"/> for a <see cref="BranchName"/>.
     /// <para>
-    /// This requires that no true <see cref="BranchModelInfo.HasIssue"/> exist. This can handle
+    /// This requires that <see cref="BranchModelInfo.HasIssue"/> is false. This can handle
     /// dirty working folders: if the specified branch is currently checked out in a repository,
     /// the working folder will be analyzed.
     /// </para>
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
     /// <param name="branchName">The branch name.</param>
-    /// <param name="pivots">Optional pivots of the graph.</param>
+    /// <param name="pivots">
+    /// Optional pivots of the graph.
+    /// <list type="bullet">
+    ///  <item>When empty, this is the same as the <see cref="World.GetAllDefinedRepo(IActivityMonitor)"/> list.</item>
+    ///  <item>When not empty, it MUST be in strict increasing <see cref="Repo.Index"/> order.</item>
+    /// </list>
+    /// </param>
     /// <returns>The graph or null on error.</returns>
-    public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, params IEnumerable<Repo> pivots )
+    public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, IReadOnlyList<Repo> pivots )
     {
-        var pivotSet = new HashSet<Repo>( pivots );
-        var displayPivots = pivotSet.Count != 0 && pivotSet.Count != World.Layout.Count
-                                ? $"'{pivotSet.OrderBy( r => r.Index ).Select( r => r.DisplayPath.Path ).Concatenate( "', '" )}'"
+        for( int i = 1; i < pivots.Count; i++ )
+        {
+            if( pivots[i-1].Index >= pivots[i].Index )
+            {
+                throw new ArgumentException( "Pivots must be in strict increasing index order." );
+            }
+        }
+        var displayPivots = pivots.Count != 0 && pivots.Count != World.Layout.Count
+                                ? $"'{pivots.Select( r => r.DisplayPath.Path ).Concatenate( "', '" )}'"
                                 : "all repositories";
         using( monitor.OpenTrace( $"Computing Hot Graph from '{branchName}' for {displayPivots}." ) )
         {
             var allRepos = World.GetAllDefinedRepo( monitor );
             if( allRepos == null ) return null;
-            using( monitor.OpenTrace( $"Checking Branch Model issues." ) )
+            if( !TryGetAllWithoutIssue( monitor, out _ )  )
             {
-                bool success = true;
-                foreach( var repo in allRepos )
-                {
-                    success &= !Get( monitor, repo ).HasIssue;
-                }
-                if( !success )
-                {
-                    monitor.Error( $"Please fix any issue before continuing." );
-                    return null;
-                }
+                return null;
             }
             // No pivot => all repositories are pivots.
-            if( pivotSet.Count == 0 )
+            if( pivots.Count == 0 )
             {
-                pivotSet.AddRange( allRepos );
+                pivots = allRepos;
             }
             // Finds the most instable existing branch among the pivots (or among all the repositories).
-            branchName = FindMostInstableBranchFrom( monitor, branchName, pivotSet );
+            branchName = FindMostInstableBranchFrom( monitor, branchName, pivots );
 
             // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
             // instances.
-            var graph = new HotGraph( this, _versionTags, branchName, allRepos, pivotSet );
+            var graph = new HotGraph( branchName, allRepos, pivots );
             bool hasPivots = graph.HasPivots;
             foreach( var repo in allRepos )
             {
@@ -212,7 +215,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 Throw.DebugAssert( "There is no Branch Model issue: the closest branch necessarily exists.", b?.GitBranch != null );
                 var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitDevBranch ?? b.GitBranch );
                 if( shallow == null ) return null;
-                if( !graph.AddSolution( monitor, repo, b, shallow, hasPivots ? pivotSet.Contains( repo ) : false ) )
+                if( !graph.AddSolution( monitor, repo, b, shallow, hasPivots ? pivots.Contains( repo ) : false ) )
                 {
                     return null;
                 }
@@ -220,7 +223,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             // The solutions have been successfully added. The mappings from "package name" (that are the project names)
             // to the solutions are non ambiguous. We can start the topological sort.
             // The sort starts with the pivots (this will walk all the dependencies and sets the IsPivotUpstream).
-            return graph.Sort( monitor ) ? graph : null;
+            return graph.TopologicalSort( monitor ) ? graph : null;
         }
     }
 

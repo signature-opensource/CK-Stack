@@ -55,7 +55,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                            bool skipTests = false,
                            [Description( "Run tests even if they have already run successfully on this commit." )]
                            bool forceTests = false,
-                           [Description( "Only display the build order and the versions." )]
+                           [Description( "Only display the build roadmap." )]
                            [OptionName("--dry-run")]
                            bool dryRun = false )
     {
@@ -82,10 +82,14 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      """ );
                 return false;
             }
-            var r = pivots.Single();
+            var r = pivots[0];
             branch = r.GitStatus.CurrentBranchName;
             monitor.Info( ScreenType.CKliScreenTag,
                           $"Considering current branch '{branch}' from '{r.DisplayPath}' as the --branch <name> to build." );
+            if( branch.StartsWith( "dev/", StringComparison.OrdinalIgnoreCase ) )
+            {
+                branch = branch.Substring( 4 );
+            }
         }
         // If we are not on a known branch (defined by the Branch Model), give up.
         var branchName = _branchModel.GetValidBranchName( monitor, branch );
@@ -101,13 +105,12 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return false;
         }
-        var roadmap = new Roadmap( hotGraph, Roadmap.Mode.PullBuildPush );
-        //if( !roadmap.Initialize( monitor ) )
-        //{
-        //    return false;
-        //}
+        var roadmap = new Roadmap( _versionTags, hotGraph, isPullBuild: true, isCIBuild: true );
+        if( !roadmap.Initialize( monitor ) )
+        {
+            return false;
+        }
         context.Screen.Display( roadmap.ToRenderable );
-
         return true;
     }
 

@@ -159,6 +159,6 @@ public sealed partial class HotGraph
         /// Returns the repository and branch name.
         /// </summary>
         /// <returns>The logical path of this solution.</returns>
-        public override string ToString() => _toString ??= $"{_solution.Repo.DisplayPath}/branch/{_actual}";
+        public override string ToString() => _toString ??= $"{_solution.Repo.DisplayPath} ({_actual})";
     }
 }

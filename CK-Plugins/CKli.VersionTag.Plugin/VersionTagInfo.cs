@@ -5,6 +5,7 @@ using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -81,6 +82,7 @@ public sealed partial class VersionTagInfo : RepoInfo
     /// Non empty <see cref="RemovableTags"/> is not considered annoying.
     /// </para>
     /// </summary>
+    [MemberNotNullWhen( false, nameof( HotZone ) )]
     public override bool HasIssue => _hasIssue;
 
     /// <summary>
@@ -135,7 +137,7 @@ public sealed partial class VersionTagInfo : RepoInfo
     }
 
     /// <summary>
-    /// Gets the hot zone information if there is no hot zone issue, null otherwise.
+    /// Gets the hot zone information. Never null if <see cref="HasIssue"/> is false.
     /// </summary>
     public HotZoneInfo? HotZone => _hotZone;
 

@@ -12,26 +12,26 @@ namespace CKli.BranchModel.Plugin;
 
 /// <summary>
 /// Models a global dependency graph across all repositories.
+/// <para>
+/// Created by <see cref="BranchModelPlugin.GetHotGraph(IActivityMonitor, BranchName, IReadOnlyList{Repo})"/>.
+/// This implies that <see cref="BranchModelInfo.HasIssue"/> is false but doesn't depend on the <see cref="VersionTagPlugin"/>:
+/// version tags issues don't prevent a HotGraph to be obtained (version tags issues prevent CKli.BuildPlugin.Roadmap creation).
+/// </para>
 /// </summary>
 public sealed partial class HotGraph
 {
-    readonly BranchModelPlugin _branchModel;
-    readonly VersionTagPlugin _versionTag;
     readonly BranchName _branchName;
     readonly IReadOnlyList<Repo> _allRepos;
-    readonly HashSet<Repo> _pivots;
+    readonly IReadOnlyList<Repo> _pivots;
     readonly Solution[] _solutions;
     readonly Dictionary<string, Solution> _p2s;
     int _maxRank;
 
-    internal HotGraph( BranchModelPlugin branchModel,
-                       VersionTagPlugin versionTag,
-                       BranchName branchName,
+    internal HotGraph( BranchName branchName,
                        IReadOnlyList<Repo> allRepos,
-                       HashSet<Repo> pivots )
+                       IReadOnlyList<Repo> pivots )
     {
-        _branchModel = branchModel;
-        _versionTag = versionTag;
+        Throw.DebugAssert( allRepos.Count != pivots.Count || pivots == allRepos );
         _branchName = branchName;
         _allRepos = allRepos;
         _pivots = pivots;
@@ -50,17 +50,20 @@ public sealed partial class HotGraph
 
     /// <summary>
     /// Gets the pivots repositories if some has been specified.
-    /// This is never empty: no pivot means all solutions are pivot.
+    /// This is never empty (no pivot means all repositories are pivot).
+    /// <para>
+    /// This list is ordered by <see cref="Repo.Index"/>.
+    /// </para>
     /// </summary>
-    public IReadOnlySet<Repo> Pivots => _pivots;
+    public IReadOnlyList<Repo> Pivots => _pivots;
 
     /// <summary>
-    /// Gets whether not all solutions are pivots.
+    /// Gets whether there are pivots: <see cref="Pivots"/> are not the same as <see cref="Solutions"/>.
     /// </summary>
-    public bool HasPivots => _pivots.Count != _allRepos.Count;
+    public bool HasPivots => _pivots != _allRepos;
 
     /// <summary>
-    /// Gets the ordered list of solutions by <see cref="Solution.Rank"/> and then by <see cref="Repo.Index"/>.
+    /// Gets all the solutions (ordered by <see cref="Repo.Index"/>).
     /// </summary>
     public IReadOnlyCollection<Solution> Solutions => _solutions;
 
@@ -73,11 +76,6 @@ public sealed partial class HotGraph
     {
         Throw.DebugAssert( _solutions[repo.Index] == null );
         Throw.DebugAssert( actual.GitBranch != null );
-        var versionInfo = _versionTag.GetWithoutIssue( monitor, repo );
-        if( versionInfo == null )
-        {
-            return false;
-        }
         var s = new Solution( this, actual, shallow, isPivot );
         _solutions[shallow.Repo.Index] = s;
         foreach( var p in shallow.Projects )
@@ -139,7 +137,7 @@ public sealed partial class HotGraph
         return true;
     }
 
-    internal bool Sort( IActivityMonitor monitor )
+    internal bool TopologicalSort( IActivityMonitor monitor )
     {
         Throw.DebugAssert( _solutions.All( s => s != null && _solutions[s.Repo.Index] == s ) );
         // Sorts the pivots by index to be deterministic.
@@ -166,13 +164,7 @@ public sealed partial class HotGraph
                 }
             }
         }
-        Throw.DebugAssert( _solutions.All( s => s.Rank >= 0 && s.Rank <= _maxRank ) );
-        _solutions.Sort( (s1,s2) =>
-        {
-            int cmp = s1.Rank.CompareTo( s2.Rank );
-            if( cmp != 0 ) return cmp;
-            return s1.Repo.Index.CompareTo( s2.Repo.Index );
-        } );
+        Throw.DebugAssert( _solutions.Select( (s,idx) => s.Repo.Index == idx && s.Rank >= 0 && s.Rank <= _maxRank ).All( Util.FuncIdentity ) );
         return true;
 
         static bool UpdateRank( IActivityMonitor monitor, Solution sPivot, bool isPivotUpstream )
