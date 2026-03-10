@@ -42,26 +42,75 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         World.Events.Issue += IssueRequested;
     }
 
-    [Description( "Build-Test-Package and propagates local packages across the repositories." )]
+    [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers." )]
     [CommandPath( "build" )]
-    public bool RepoBuild( IActivityMonitor monitor,
+    public bool BuildStar( IActivityMonitor monitor,
                            CKliEnv context,
-                           [Description( "Specify the branch to build. By default, the current head is considered." )]
+                           [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
                            [OptionName( "--branch" )]
                            string? branch = null,
-                           [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
+                           [Description( "Build all the Repos, not only the current repositories and their consumers." )]
                            bool all = false,
-                           [Description( "Don't run tests even if they have never locally run on this commit." )]
+                           [Description( "Don't run tests even if they have never locally run on the commit." )]
                            bool skipTests = false,
-                           [Description( "Run tests even if they have already run successfully on this commit." )]
+                           [Description( "Run tests even if they have already run successfully on the commit." )]
                            bool forceTests = false,
                            [Description( "Only display the build roadmap." )]
                            [OptionName("--dry-run")]
                            bool dryRun = false )
     {
-        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: true, branch, all, skipTests, forceTests );
+        if( roadmap == null )
         {
             return false;
+        }
+        if( !dryRun )
+        {
+
+        }
+        return true;
+    }
+    [Description( "Build-Test-Package the consumers of the current repositories and propagates packages to their consumers." )]
+    [CommandPath( "*build" )]
+    public bool StarBuildStar( IActivityMonitor monitor,
+                               CKliEnv context,
+                               [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
+                               [OptionName( "--branch" )]
+                               string? branch = null,
+                               [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
+                               bool all = false,
+                               [Description( "Don't run tests even if they have never locally run on the commit." )]
+                               bool skipTests = false,
+                               [Description( "Run tests even if they have already run successfully on the commit." )]
+                               bool forceTests = false,
+                               [Description( "Only display the build roadmap." )]
+                               [OptionName("--dry-run")]
+                               bool dryRun = false )
+    {
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: true, branch, all, skipTests, forceTests );
+        if( roadmap == null )
+        {
+            return false;
+        }
+        if( !dryRun )
+        {
+
+        }
+        return true;
+    }
+
+    Roadmap? ComputeAndDisplayRoadmap( IActivityMonitor monitor,
+                                       CKliEnv context,
+                                       bool isPullBuild,
+                                       bool isDevBuild,
+                                       string? branch,
+                                       bool all,
+                                       bool skipTests,
+                                       bool forceTests )
+    {
+        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
+        {
+            return null;
         }
         // Consider the repositories selected by current path as the Pivots.
         var pivots = all
@@ -69,7 +118,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                         : World.GetAllDefinedRepo( monitor, context.CurrentDirectory, allowEmpty: false );
         if( pivots == null )
         {
-            return false;
+            return null;
         }
         if( branch == null )
         {
@@ -80,7 +129,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      More than one Repo are below path '{context.CurrentDirectory}'.
                                      The --branch <name> must be specified.
                                      """ );
-                return false;
+                return null;
             }
             var r = pivots[0];
             branch = r.GitStatus.CurrentBranchName;
@@ -95,7 +144,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         var branchName = _branchModel.GetValidBranchName( monitor, branch );
         if( branchName == null )
         {
-            return false;
+            return null;
         }
         // When --all is specified, all the repositories are pivots and the actual branch name considered by
         // the hot graph will be the most instable one of all the repositories (but at least as stable as the
@@ -103,15 +152,15 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         var hotGraph = _branchModel.GetHotGraph( monitor, branchName, pivots );
         if( hotGraph == null )
         {
-            return false;
+            return null;
         }
-        var roadmap = new Roadmap( _versionTags, hotGraph, isPullBuild: true, isCIBuild: true );
+        var roadmap = new Roadmap( _versionTags, hotGraph, isPullBuild, isDevBuild );
         if( !roadmap.Initialize( monitor ) )
         {
-            return false;
+            return null;
         }
         context.Screen.Display( roadmap.ToRenderable );
-        return true;
+        return roadmap;
     }
 
     static bool HandleForceSkipTests( IActivityMonitor monitor, bool skipTests, bool forceTests, out bool? runTest )

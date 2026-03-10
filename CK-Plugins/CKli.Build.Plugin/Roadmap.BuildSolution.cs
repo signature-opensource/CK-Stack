@@ -28,10 +28,23 @@ public sealed partial class Roadmap
             _solution = solution;
         }
 
-        [MemberNotNullWhen( true, nameof( _buildInfo ) )]
         internal bool InitializeFromPivot( IActivityMonitor monitor, ImmutableArray<VersionTagInfo> allVersionTags )
         {
-            if( _buildInfo != null ) return true;
+            // If the _buildInfo has already been computed, we simply return true. We don't have to handle cycles
+            // here: they have already been detected by the HotGraph.
+            //
+            // If we are building without checking upstreams (_roadmap._isPullBuild is false), it doesn't mean that we
+            // must ignore the upstreams, it means that we must only consider the upstreams that ARE pivots: the other
+            // repositories are ignored, as if no development have been made in them.
+            // => This is why we also shortcut, return true (no error) and let the _buildInfo be null if we are building
+            //    without upstreams and this repo is not a pivot.
+            //    Note that when no Repo are pivots (all of them are), this is like building with upstreams. 
+            //
+            if( _buildInfo != null || (!_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot) )
+            {
+                return true;
+            }
+
             using var _ = monitor.OpenTrace( $"Computing BuildInfo for '{_solution.Repo.DisplayPath}'." );
 
             var versionInfo = allVersionTags[Repo.Index];
@@ -44,17 +57,14 @@ public sealed partial class Roadmap
             // that the build is not required, this data is useless.
             BuildSolution[]? directRequirements = null;
             bool mustBuildFromUpstreams = false;
-            if( _roadmap._isPullBuild )
+            if( !InitializeUpstreams( monitor,
+                                        finalInitialization: false,
+                                        allVersionTags,
+                                        out directRequirements,
+                                        out vChange,
+                                        out mustBuildFromUpstreams ) )
             {
-                if( !InitializeUpstreams( monitor,
-                                          finalInitialization: false,
-                                          allVersionTags,
-                                          out directRequirements,
-                                          out vChange,
-                                          out mustBuildFromUpstreams ) )
-                {
-                    return false;
-                }
+                return false;
             }
             bool mustBuild = mustBuildFromUpstreams;
             var commit = _solution.GitSolution.GitBranch.Tip;
@@ -146,8 +156,11 @@ public sealed partial class Roadmap
             {
                 if( vBase.Minor == vTarget.Minor )
                 {
-                    Throw.DebugAssert( vBase.Patch == vTarget.Patch - 1 );
-                    c = VersionChange.Patch;
+                    Throw.DebugAssert( "Either we are on the last stable release or a prerelease of the next patch.",
+                                        vBase == vTarget || vBase.Patch == vTarget.Patch - 1 );
+                    c = vBase.Patch == vTarget.Patch - 1
+                            ? VersionChange.Patch
+                            :  VersionChange.None;
                 }
                 else
                 {
@@ -162,7 +175,6 @@ public sealed partial class Roadmap
             }
             return c;
         }
-
 
         SVersion ComputeTargetVersion( IActivityMonitor monitor,
                                        VersionTagInfo versionInfo,
@@ -508,20 +520,21 @@ public sealed partial class Roadmap
         {
             var repo = _solution.Repo.GitRepository;
 
-            IRenderable r = _buildInfo != null && _buildInfo.BuildIndex >= 0
-                            ? screen.Text( _buildInfo.BuildIndex.ToString( CultureInfo.InvariantCulture ).PadLeft( buildIndexLen ) + " -" )
-                                    .Box( TextStyle.Default, marginRight: 1 )
-                            : screen.EmptyString.Box( marginRight: buildIndexLen + 2 );
+            // When buildIndexLen, there is nothing to build: skip the numbers totally.
+            IRenderable r = buildIndexLen == 0
+                            ? screen.Unit
+                            : _buildInfo != null && _buildInfo.BuildIndex >= 0
+                                ? screen.Text( _buildInfo.BuildIndex.ToString( CultureInfo.InvariantCulture ).PadLeft( buildIndexLen ) + " -" )
+                                        .Box( TextStyle.Default )
+                                : screen.EmptyString.Box( marginRight: buildIndexLen + 2 );
 
-            var prefixStyle = _buildInfo == null
-                                ? TextStyle.Default.With( TextEffect.Strikethrough )
-                                : _buildInfo.MustBuild
-                                    ? new TextStyle( ConsoleColor.Black, ConsoleColor.Yellow )
-                                    : TextStyle.Default;
             if( _roadmap.HasPivots )
             {
-                r = r.AddRight( Prefix( screen, _solution, prefixStyle ) );
+                var prefixStyle = new TextStyle( ConsoleColor.Black, ConsoleColor.Yellow );
+                if( _buildInfo == null ) prefixStyle = prefixStyle.With( TextEffect.Strikethrough );
+                r = r.AddRight( Prefix( screen, _solution, prefixStyle, marginLeft: buildIndexLen == 0 ? 0 : 1 ) );
             }
+
             var style = _buildInfo == null
                             ? TextStyle.Default.With( TextEffect.Strikethrough )
                             : _buildInfo.MustBuild
@@ -529,7 +542,7 @@ public sealed partial class Roadmap
                                 : TextStyle.Default;
 
 
-            r = r.AddRight( screen.Text( repo.DisplayPath ).HyperLink( new Uri( repo.WorkingFolder ) ).Box( style, paddingRight: 1 ) );
+            r = r.AddRight( screen.Text( repo.DisplayPath ).HyperLink( new Uri( repo.WorkingFolder ) ).Box( style, paddingLeft: 1, paddingRight: 1 ) );
             if( _buildInfo != null )
             {
                 r = r.AddRight( screen.Text( $" ▻ v{_buildInfo.BaseVersion}" ) ).Box( style, paddingRight: 1 );
@@ -540,30 +553,29 @@ public sealed partial class Roadmap
             }
             return r;
 
-            static IRenderable Prefix( ScreenType screen, HotGraph.Solution solution, TextStyle style )
+            static IRenderable Prefix( ScreenType screen, HotGraph.Solution solution, TextStyle style, int marginLeft )
             {
                 if( solution.IsPivot )
                 {
-                    return screen.Text( "[P]" ).Box( style: style, paddingLeft: 2, paddingRight: 2 );
+                    return screen.Text( "[P]" ).Box( style, marginLeft: marginLeft, paddingLeft: 2, paddingRight: 2 );
                 }
                 else if( solution.IsPivotDownstream )
                 {
                     if( solution.IsPivotUpstream )
                     {
-                        return screen.Text( "=>[P]=>" ).Box( style: style );
+                        return screen.Text( "=>[P]=>" ).Box( style, marginLeft: marginLeft );
                     }
                     else
                     {
-                        return screen.Text( "[P]=>" ).Box( style: style, paddingLeft: 2 );
+                        return screen.Text( "[P]=>" ).Box( style, marginLeft: marginLeft, paddingLeft: 2 );
                     }
                 }
                 else if( solution.IsPivotUpstream )
                 {
-                    return screen.Text( "=>[P]" ).Box( style: style, paddingRight: 2 );
+                    return screen.Text( "=>[P]" ).Box( style, marginLeft: marginLeft, paddingRight: 2 );
                 }
-                return screen.EmptyString.Box( marginRight: 7 );
+                return screen.EmptyString.Box( style, marginLeft: marginLeft, marginRight: 7 );
             }
-
         }
 
         [GeneratedRegex( @"^(?<1>\w+)(?:\((?<2>[^()]+)\))?(?<3>!)?:", RegexOptions.CultureInvariant )]

@@ -73,6 +73,7 @@ public static class CompiledPlugins
             new Cmd_fix＿info( infos[0].PluginTypes[0] ),
             new Cmd_fix＿cancel( infos[0].PluginTypes[0] ),
             new Cmd_build( infos[2].PluginTypes[1] ),
+            new Cmd_жbuild( infos[2].PluginTypes[1] ),
             new Cmd_fix＿build( infos[2].PluginTypes[1] ),
             new Cmd_fix＿publish( infos[2].PluginTypes[1] ),
             new Cmd_maintenance＿rebuild＿old( infos[2].PluginTypes[1] ),
@@ -292,21 +293,21 @@ sealed class Cmd_build : PluginCommand
     internal Cmd_build( IPluginTypeInfo typeInfo )
         : base( typeInfo,
                 "build",
-                "Build-Test-Package and propagates local packages across the repositories.",
+                "Build-Test-Package and propagates packages from the current repositories to their consumers.",
                 1,
                 -1,
                 arguments: [
                 ],
                 options: [
-                    (["--branch",], "Specify the branch to build. By default, the current head is considered.", false ),
+                    (["--branch",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
                 ],
                 flags: [
-                    (["--all",], "Build all the Repos, not only the ones that consume or produce the current repositories." ),
-                    (["--skip-tests",], "Don't run tests even if they have never locally run on this commit." ),
-                    (["--force-tests",], "Run tests even if they have already run successfully on this commit." ),
-                    (["--dry-run",], "Only display the build order and the versions." ),
+                    (["--all",], "Build all the Repos, not only the current repositories and their consumers." ),
+                    (["--skip-tests",], "Don't run tests even if they have never locally run on the commit." ),
+                    (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
+                    (["--dry-run",], "Only display the build roadmap." ),
                 ],
-                "RepoBuild", MethodAsyncReturn.None ) {}
+                "BuildStar", MethodAsyncReturn.None ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
         var o0 = cmdLine.EatSingleOption( Options[0].Names );
@@ -315,7 +316,40 @@ sealed class Cmd_build : PluginCommand
         var f2 = cmdLine.EatFlag( Flags[2].Names );
         var f3 = cmdLine.EatFlag( Flags[3].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).RepoBuild(
+        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).BuildStar(
+                                           monitor, context, o0, f0, f1, f2, f3 ) );
+    }
+}
+[GeneratedCode("CKli", "0.0.8--0200-dev")]
+sealed class Cmd_жbuild : PluginCommand
+{
+    internal Cmd_жbuild( IPluginTypeInfo typeInfo )
+        : base( typeInfo,
+                "*build",
+                "Build-Test-Package the consumers of the current repositories and propagates packages to their consumers.",
+                1,
+                -1,
+                arguments: [
+                ],
+                options: [
+                    (["--branch",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
+                ],
+                flags: [
+                    (["--all",], "Build all the Repos, not only the ones that consume or produce the current repositories." ),
+                    (["--skip-tests",], "Don't run tests even if they have never locally run on the commit." ),
+                    (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
+                    (["--dry-run",], "Only display the build roadmap." ),
+                ],
+                "StarBuildStar", MethodAsyncReturn.None ) {}
+    protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
+    {
+        var o0 = cmdLine.EatSingleOption( Options[0].Names );
+        var f0 = cmdLine.EatFlag( Flags[0].Names );
+        var f1 = cmdLine.EatFlag( Flags[1].Names );
+        var f2 = cmdLine.EatFlag( Flags[2].Names );
+        var f3 = cmdLine.EatFlag( Flags[3].Names );
+        if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
+        return ValueTask.FromResult( ((CKli.Build.Plugin.BuildPlugin)Instance).StarBuildStar(
                                            monitor, context, o0, f0, f1, f2, f3 ) );
     }
 }

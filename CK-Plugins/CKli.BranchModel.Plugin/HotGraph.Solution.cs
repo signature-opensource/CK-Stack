@@ -70,6 +70,11 @@ public sealed partial class HotGraph
 
         /// <summary>
         /// Gets whether this solution is one of the <see cref="HotGraph.Pivots"/>.
+        /// <para>
+        /// This is false when <see cref="HotGraph.HasPivots"/> is false. Since in this case every solution is a pivot... or not,
+        /// we chose to to keep false for everything (<see cref="IsPivotUpstream"/> and <see cref="IsPivotUpstream"/> are also
+        /// false).
+        /// </para>
         /// </summary>
         public bool IsPivot => _isPivot;
 

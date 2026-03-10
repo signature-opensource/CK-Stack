@@ -24,12 +24,12 @@ public sealed partial class Roadmap
     readonly ImmutableArray<BuildSolution> _pivots;
     int _solutionBuildCount;
 
-    internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, bool isPullBuild, bool isCIBuild )
+    internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, bool isPullBuild, bool isDevBuild )
     {
         _versionTags = versionTags;
         _graph = graph;
         _isPullBuild = isPullBuild;
-        _isCIBuild = isCIBuild;
+        _isCIBuild = isDevBuild;
         var buildSolutions = new BuildSolution[graph.Solutions.Count];
         var pivots = graph.HasPivots ? new BuildSolution[graph.Pivots.Count] : buildSolutions;
         int iPivot = 0;
@@ -99,6 +99,13 @@ public sealed partial class Roadmap
         return screen.Unit.AddBelow( _solutions.Select( s => s.ToRenderable( screen, Log10BuildIndex() ) ) );
     }
 
-    int Log10BuildIndex() => _solutionBuildCount < 10 ? 1 : _solutionBuildCount < 100 ? 2 : _solutionBuildCount < 1000 ? 3 : 4;
+    int Log10BuildIndex() => _solutionBuildCount switch
+                            {
+                                0 => 0,
+                                < 10 => 1,
+                                < 100 => 2,
+                                < 1000 => 3,
+                                _ => 4
+                            };
 
 }
