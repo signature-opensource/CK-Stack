@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
@@ -7,6 +8,7 @@ using System.Collections;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
 using static CKli.BranchModel.Plugin.HotGraph;
 
 namespace CKli.Build.Plugin;
@@ -19,7 +21,7 @@ public sealed partial class Roadmap
     readonly VersionTagPlugin _versionTags;
     readonly HotGraph _graph;
     readonly bool _isPullBuild;
-    readonly bool _isCIBuild;
+    readonly bool _isDevBuild;
     readonly ImmutableArray<BuildSolution> _solutions;
     readonly ImmutableArray<BuildSolution> _pivots;
     int _solutionBuildCount;
@@ -29,7 +31,7 @@ public sealed partial class Roadmap
         _versionTags = versionTags;
         _graph = graph;
         _isPullBuild = isPullBuild;
-        _isCIBuild = isDevBuild;
+        _isDevBuild = isDevBuild;
         var buildSolutions = new BuildSolution[graph.Solutions.Count];
         var pivots = graph.HasPivots ? new BuildSolution[graph.Pivots.Count] : buildSolutions;
         int iPivot = 0;
@@ -71,6 +73,11 @@ public sealed partial class Roadmap
     /// </summary>
     public int SolutionBuildCount => _solutionBuildCount;
 
+    /// <summary>
+    /// Gets whether this is a build on the "dev/" branch (produces CI packages).
+    /// </summary>
+    public bool IsDevBuild => _isDevBuild;
+
     internal bool Initialize( IActivityMonitor monitor )
     {
         if( !_versionTags.TryGetAllWithoutIssue( monitor, out var allVersionTags ) )
@@ -92,6 +99,19 @@ public sealed partial class Roadmap
             }
         }
         return true;
+    }
+
+    internal async Task<bool> BuildAsync( IActivityMonitor monitor, BuildPlugin buildPlugin )
+    {
+        if( _solutionBuildCount == 0 )
+        {
+            monitor.Info( ScreenType.CKliScreenTag, "No repositories need to be built." );
+            return true;
+        }
+        var builder = new RoadmapBuilder( buildPlugin, this );
+        var buildTasks = new Task<bool>[_solutionBuildCount];
+        BuildResult?[] req = await Task.WhenAll( _solutions.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
+        return !req.Contains( null );
     }
 
     public IRenderable ToRenderable( ScreenType screen )

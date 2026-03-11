@@ -85,7 +85,7 @@ public sealed partial class Roadmap
                     // Note that this makes sense only if the branch is bound to "Release build configuration": if the branch
                     // uses "Debug build configuration", generating a CI build here would be useless.
                     //
-                    _buildInfo = new BuildInfo( false, baseCommit.Version, vChange, targetCommit.Version, directRequirements );
+                    _buildInfo = new BuildInfo( this, false, baseCommit.Version, vChange, targetCommit.Version, directRequirements );
                     return true;
                 }
                 mustBuild = true;
@@ -109,7 +109,7 @@ public sealed partial class Roadmap
                     directRequirements[idxReq++] = _roadmap.Solutions[req.Repo.Index];
                 }
             }
-            _buildInfo = new BuildInfo( true, baseCommit.Version, vChange, targetVersion, directRequirements );
+            _buildInfo = new BuildInfo( this, true, baseCommit.Version, vChange, targetVersion, directRequirements );
             return true;
 
         }
@@ -269,7 +269,7 @@ public sealed partial class Roadmap
             }
             // Ite missa est: we can now compute the target version.
             SVersion? targetVersion;
-            if( _roadmap._isCIBuild )
+            if( _roadmap._isDevBuild )
             {
                 var d = Repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( baseCommit.Commit, commit );
                 Throw.DebugAssert( d.CommonAncestor != null && d.BehindBy is not null );
@@ -482,7 +482,7 @@ public sealed partial class Roadmap
 
                     TagCommit baseCommit = versionInfo.HotZone.LastStable;
                     SVersion targetVersion = ComputeTargetVersion( monitor, versionInfo, ref vChange, baseCommit, _solution.GitSolution.GitBranch.Tip, true );
-                    _buildInfo = new BuildInfo( true, baseCommit.Version, vChange, targetVersion, directRequirements );
+                    _buildInfo = new BuildInfo( this, true, baseCommit.Version, vChange, targetVersion, directRequirements );
                     _buildInfo.SetBuildIndex( _roadmap._solutionBuildCount++ );
                 }
             }

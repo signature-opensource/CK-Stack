@@ -164,10 +164,14 @@ public sealed class HotBranch
         return true;
     }
 
+    /// <summary>
+    /// Ensures that <see cref="GitDevBranch"/> exists.
+    /// </summary>
+    /// <returns>The "dev/" branch.</returns>
     [MemberNotNullWhen( true, nameof( GitDevBranch ) )]
-    internal Branch EnsureDevBranch()
+    public Branch EnsureDevBranch()
     {
-        Throw.DebugAssert( IsActive );
+        Throw.CheckState( IsActive );
         if( _gitDevBranch == null )
         {
             _link = _link.CreateAhead( Repo );
