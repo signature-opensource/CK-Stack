@@ -3,8 +3,16 @@ using CSemVer;
 namespace CKli.ShallowSolution.Plugin;
 
 /// <summary>
-/// Primary package mapping interface. This is a read only view of <see cref="PackageMapper"/>
-/// or a wrapper that can adapt version mapping.
+/// Primary package mapping interface.
+/// <para>
+/// This mapping handles more than one version mapping for a package identifier. This supports
+/// an aggressive programming model in which only the exact dependencies version are updated
+/// (the default <see cref="PackageMapper"/> implements this).
+/// </para>
+/// <para>
+/// More relaxed implementations are possible. See <see cref="BrutalPackageMapper"/> for fully
+/// relaxed mappers.
+/// </para>
 /// </summary>
 public interface IPackageMapping
 {

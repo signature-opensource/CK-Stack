@@ -123,14 +123,14 @@ public sealed class PackageMapper : IPackageMapping
             b.Append( name ).Append( ": " ).AppendLine();
             if( o is Tuple<SVersion, SVersion> one )
             {
-                b.Append( one.Item1 ).Append( " -> " ).Append( one.Item2 ).AppendLine();
+                b.Append( one.Item1 ).Append( " → " ).Append( one.Item2 ).AppendLine();
             }
             else
             {
                 var list = (List<(SVersion From, SVersion To)>)o;
                 foreach( var m in list )
                 {
-                    b.Append( m.From ).Append( " -> " ).Append( m.To ).AppendLine();
+                    b.Append( m.From ).Append( " → " ).Append( m.To ).AppendLine();
                 }
             }
         }

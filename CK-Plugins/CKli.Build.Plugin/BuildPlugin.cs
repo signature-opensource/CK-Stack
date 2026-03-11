@@ -59,13 +59,18 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                  [OptionName("--dry-run")]
                                  bool dryRun = false )
     {
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: true, branch, all, skipTests, forceTests );
+        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
+        {
+            return Task.FromResult( false );
+        }
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: true, branch, all );
         if( roadmap == null )
         {
             return Task.FromResult( false );
         }
-        if( dryRun ) return Task.FromResult( true  );
-        return roadmap.BuildAsync( monitor, this );
+        return dryRun
+                ? Task.FromResult( true )
+                : roadmap.BuildAsync( monitor, context, this, runTest );
     }
 
     [Description( "Build-Test-Package the consumers of the current repositories and propagates packages to their consumers." )]
@@ -85,13 +90,18 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      [OptionName("--dry-run")]
                                      bool dryRun = false )
     {
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: true, branch, all, skipTests, forceTests );
+        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
+        {
+            return Task.FromResult( false );
+        }
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: true, branch, all );
         if( roadmap == null )
         {
             return Task.FromResult( false );
         }
-        if( dryRun ) return Task.FromResult( true );
-        return roadmap.BuildAsync( monitor, this );
+        return dryRun
+                ? Task.FromResult( true )
+                : roadmap.BuildAsync( monitor, context, this, runTest );
     }
 
     [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers and publishes all the artifacts." )]
@@ -109,12 +119,13 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    [OptionName("--dry-run")]
                                    bool dryRun = false )
     {
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: false, branch, all, skipTests: false, forceTests );
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: false, branch, all );
         if( roadmap == null )
         {
             return Task.FromResult( false );
         }
         if( dryRun ) return Task.FromResult( true );
+        bool? runTest = forceTests ? true : null;
         throw new NotImplementedException();
     }
 
@@ -133,12 +144,13 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                        [OptionName("--dry-run")]
                                        bool dryRun = false )
     {
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: false, branch, all, skipTests: false, forceTests );
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: false, branch, all );
         if( roadmap == null )
         {
             return Task.FromResult( false );
         }
         if( dryRun ) return Task.FromResult( true );
+        bool? runTest = forceTests ? true : null;
         throw new NotImplementedException();
     }
 
@@ -147,14 +159,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                        bool isPullBuild,
                                        bool isDevBuild,
                                        string? branch,
-                                       bool all,
-                                       bool skipTests,
-                                       bool forceTests )
+                                       bool all )
     {
-        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
-        {
-            return null;
-        }
         // Consider the repositories selected by current path as the Pivots.
         var pivots = all
                         ? World.GetAllDefinedRepo( monitor )

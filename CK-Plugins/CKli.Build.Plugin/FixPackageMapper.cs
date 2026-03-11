@@ -3,11 +3,15 @@ using CSemVer;
 
 namespace CKli.Build.Plugin;
 
-sealed class FixPackageMapping : IPackageMapping
+/// <summary>
+/// Better mapper than a <see cref="BrutalPackageMapper"/>: this allows upgrades
+/// from any prerelease patch version as if it was the previous patch.
+/// </summary>
+sealed class FixPackageMapper : IPackageMapping
 {
     readonly PackageMapper _mapper;
 
-    public FixPackageMapping( PackageMapper mapper )
+    public FixPackageMapper( PackageMapper mapper )
     {
         _mapper = mapper;
     }

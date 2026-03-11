@@ -106,7 +106,7 @@ public sealed partial class BuildPlugin
         }
         var bResults = ImmutableArray.CreateBuilder<BuildResult>( workflow.Targets.Length );
         var packageMapper = new PackageMapper();
-        var packageMapping = new FixPackageMapping( packageMapper );
+        var packageMapping = new FixPackageMapper( packageMapper );
         foreach( var target in workflow.Targets )
         {
             using( monitor.OpenInfo( $"Building n°{target.Index} - {target.Repo.DisplayPath}" ) )
@@ -139,7 +139,7 @@ public sealed partial class BuildPlugin
                                         bool publishing,
                                         ImmutableArray<BuildResult>.Builder bResults,
                                         PackageMapper packageMapper,
-                                        FixPackageMapping packageMapping,
+                                        FixPackageMapper packageMapping,
                                         FixWorkflow.TargetRepo target )
     {
         var versionInfo = _versionTags.Get( monitor, target.Repo );

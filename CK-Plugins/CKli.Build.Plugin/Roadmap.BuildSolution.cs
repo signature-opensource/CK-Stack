@@ -58,11 +58,11 @@ public sealed partial class Roadmap
             BuildSolution[]? directRequirements = null;
             bool mustBuildFromUpstreams = false;
             if( !InitializeUpstreams( monitor,
-                                        finalInitialization: false,
-                                        allVersionTags,
-                                        out directRequirements,
-                                        out vChange,
-                                        out mustBuildFromUpstreams ) )
+                                      finalInitialization: false,
+                                      allVersionTags,
+                                      out directRequirements,
+                                      out vChange,
+                                      out mustBuildFromUpstreams ) )
             {
                 return false;
             }
@@ -85,7 +85,7 @@ public sealed partial class Roadmap
                     // Note that this makes sense only if the branch is bound to "Release build configuration": if the branch
                     // uses "Debug build configuration", generating a CI build here would be useless.
                     //
-                    _buildInfo = new BuildInfo( this, false, baseCommit.Version, vChange, targetCommit.Version, directRequirements );
+                    _buildInfo = new BuildInfo( this, false, versionInfo, baseCommit.Version, vChange, targetCommit.Version, directRequirements );
                     return true;
                 }
                 mustBuild = true;
@@ -109,7 +109,7 @@ public sealed partial class Roadmap
                     directRequirements[idxReq++] = _roadmap.Solutions[req.Repo.Index];
                 }
             }
-            _buildInfo = new BuildInfo( this, true, baseCommit.Version, vChange, targetVersion, directRequirements );
+            _buildInfo = new BuildInfo( this, true, versionInfo, baseCommit.Version, vChange, targetVersion, directRequirements );
             return true;
 
         }
@@ -482,7 +482,7 @@ public sealed partial class Roadmap
 
                     TagCommit baseCommit = versionInfo.HotZone.LastStable;
                     SVersion targetVersion = ComputeTargetVersion( monitor, versionInfo, ref vChange, baseCommit, _solution.GitSolution.GitBranch.Tip, true );
-                    _buildInfo = new BuildInfo( this, true, baseCommit.Version, vChange, targetVersion, directRequirements );
+                    _buildInfo = new BuildInfo( this, true, versionInfo, baseCommit.Version, vChange, targetVersion, directRequirements );
                     _buildInfo.SetBuildIndex( _roadmap._solutionBuildCount++ );
                 }
             }
