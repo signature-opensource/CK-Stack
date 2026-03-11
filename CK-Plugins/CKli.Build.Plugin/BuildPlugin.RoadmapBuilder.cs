@@ -4,6 +4,7 @@ using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CSemVer;
 using LibGit2Sharp;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Channels;
 using System.Threading.Tasks;
@@ -17,13 +18,19 @@ public sealed partial class BuildPlugin
         readonly Roadmap _roadmap;
         readonly BuildPlugin _buildPlugin;
         readonly Channel<object> _channel;
-        private readonly CKliEnv _context;
-        private readonly bool? _runTest;
+        readonly CKliEnv _context;
+        readonly int _maxDoP;
+        readonly bool? _runTest;
+        readonly bool _singleBuild;
 
-        public RoadmapBuilder( BuildPlugin buildPlugin, CKliEnv context, Roadmap roadmap, bool? runTest )
+        public RoadmapBuilder( BuildPlugin buildPlugin, CKliEnv context, Roadmap roadmap, bool? runTest, int maxDoP )
         {
+            Throw.DebugAssert( maxDoP >= 1 );
+            Throw.DebugAssert( roadmap.SolutionBuildCount >= 1 );
             _roadmap = roadmap;
+            _singleBuild = roadmap.SolutionBuildCount == 1;
             _runTest = runTest;
+            _maxDoP = maxDoP;
             _buildPlugin = buildPlugin;
             _context = context;
             _channel = Channel.CreateUnbounded<object>( new UnboundedChannelOptions() { SingleReader = true } );
@@ -32,11 +39,15 @@ public sealed partial class BuildPlugin
         public async Task<bool> StartAsync( IActivityMonitor monitor )
         {
             Throw.DebugAssert( _roadmap.SolutionBuildCount > 0 );
-            if( _roadmap.SolutionBuildCount == 1 )
+            if( _singleBuild )
             {
                 var s = _roadmap.Solutions.Single( s => s.MustBuild );
-                return await s.BuildInfo!.BuildAsync( this ) != null;
+                Throw.DebugAssert( s.BuildInfo != null && !s.BuildInfo.DirectRequirements.Any( s => s.MustBuild ) );
+                return await DoBuildAsync( monitor, s.BuildInfo, PackageMapper.Empty ) != null;
             }
+            Queue<TaskCompletionSource<IActivityMonitor>>? waitingQueue = null;
+            List<IActivityMonitor>? pool = null;
+            int monitorCount = 0;
             _ = Task.Run( WaitForTermination );
             using( monitor.OpenInfo( $"Building {_roadmap.SolutionBuildCount} solutions." ) )
             {
@@ -45,7 +56,28 @@ public sealed partial class BuildPlugin
                     var msg = await _channel.Reader.ReadAsync();
                     if( msg is bool finalResult )
                     {
+                        // There SHOULD never be any pending requests here: all tasks have been completed,
+                        // they have released their monitor.
+                        Throw.DebugAssert( waitingQueue == null || waitingQueue.Count == 0 );
                         return finalResult;
+                    }
+                    if( msg is TaskCompletionSource<IActivityMonitor> newMonitor )
+                    {
+                        if( monitorCount < _maxDoP )
+                        {
+                            newMonitor.SetResult( new ActivityMonitor( $"BuildMonitor n°{monitorCount}." ) );
+                            monitorCount++;
+                        }
+                        else
+                        {
+                            Throw.DebugAssert( _roadmap.SolutionBuildCount > _maxDoP );
+                            waitingQueue ??= new Queue<TaskCompletionSource<IActivityMonitor>>( _roadmap.SolutionBuildCount - _maxDoP );
+                            waitingQueue.Enqueue( newMonitor );
+                        }
+                    }
+                    else if( msg is IActivityMonitor released )
+                    {
+                        TODO
                     }
                 }
             }
@@ -62,6 +94,7 @@ public sealed partial class BuildPlugin
 
         internal async Task<BuildResult?> BuildAsync( Roadmap.BuildInfo build, IPackageMapping mapping )
         {
+            Throw.DebugAssert( !_singleBuild );
             // Acquires a monitor: a TaskCompletionSource is pushed.
             var monitorPromise = new TaskCompletionSource<IActivityMonitor>( TaskCreationOptions.RunContinuationsAsynchronously );
             _channel.Writer.TryWrite( monitorPromise );

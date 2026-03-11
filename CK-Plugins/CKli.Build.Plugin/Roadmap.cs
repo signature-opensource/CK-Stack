@@ -108,7 +108,7 @@ public sealed partial class Roadmap
             monitor.Info( ScreenType.CKliScreenTag, "No repositories need to be built." );
             return true;
         }
-        var builder = new BuildPlugin.RoadmapBuilder( buildPlugin, context, this, runTest );
+        var builder = new BuildPlugin.RoadmapBuilder( buildPlugin, context, this, runTest, maxDoP: 4 );
         var buildTasks = new Task<bool>[_solutionBuildCount];
         BuildResult?[] req = await Task.WhenAll( _solutions.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
         return !req.Contains( null );

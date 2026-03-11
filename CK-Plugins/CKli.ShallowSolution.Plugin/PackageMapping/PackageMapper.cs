@@ -14,6 +14,20 @@ namespace CKli.ShallowSolution.Plugin;
 [DebuggerDisplay( "{ToString(),nq}" )]
 public sealed class PackageMapper : IPackageMapping
 {
+    sealed class EmptyMapper : IPackageMapping
+    {
+        public bool IsEmpty => true;
+
+        public SVersion? GetMappedVersion( string packageId, SVersion from ) => null;
+
+        public bool HasMapping( string packageId ) => false;
+    }
+
+    /// <summary>
+    /// Gets a empty mapping singleton.
+    /// </summary>
+    public static readonly IPackageMapping Empty = new EmptyMapper();
+
     readonly Dictionary<string, object> _mapping;
 
     /// <summary>

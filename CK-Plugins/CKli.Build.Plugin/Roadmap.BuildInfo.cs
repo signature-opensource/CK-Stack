@@ -104,15 +104,18 @@ public sealed partial class Roadmap
         {
             Throw.DebugAssert( _mustBuild );
             // Wait for requirements.
-            // Checks that all builds went fine (or return null) and collects the actual produced package instances at the same time.
-            BuildResult?[] req = await Task.WhenAll( _directRequirements.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
             var allProduced = new Dictionary<string, SVersion>();
-            foreach( var r in req )
+            if( _directRequirements.Length > 0 )
             {
-                if( r == null ) return null;
-                foreach( var p in r.Content.Produced )
+                // Checks that all builds went fine (or return null) and collects the actual produced package instances at the same time.
+                BuildResult?[] req = await Task.WhenAll( _directRequirements.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
+                foreach( var r in req )
                 {
-                    allProduced.Add( p, r.Version );
+                    if( r == null ) return null;
+                    foreach( var p in r.Content.Produced )
+                    {
+                        allProduced.Add( p, r.Version );
+                    }
                 }
             }
             // Building requirements succeed: running this build.
