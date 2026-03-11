@@ -48,9 +48,9 @@ public sealed class MutableSolution
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="mapping">The packages mapping to apply.</param>
-    /// <param name="updated">The package actually updated.</param>
+    /// <param name="updated">Optional collector of packages actually updated.</param>
     /// <returns>True on success, false on failure.</returns>
-    public bool UpdatePackages( IActivityMonitor monitor, IPackageMapping mapping, PackageMapper updated )
+    public bool UpdatePackages( IActivityMonitor monitor, IPackageMapping mapping, PackageMapper? updated )
     {
         if( !mapping.IsEmpty )
         {
@@ -88,7 +88,7 @@ public sealed class MutableSolution
                                     string path,
                                     XElement projectRoot,
                                     IPackageMapping mapping,
-                                    PackageMapper updated )
+                                    PackageMapper? updated )
         {
             if( Path.GetFileName( path.AsSpan() ).Equals( "Directory.Package.props", StringComparison.OrdinalIgnoreCase ) )
             {
@@ -131,7 +131,7 @@ public sealed class MutableSolution
                                        XName attributeName,
                                        string? attributeRequiredMessage,
                                        IPackageMapping map,
-                                       PackageMapper updated )
+                                       PackageMapper? updated )
             {
                if( !CommonSolution.ReadVersionAttribute( monitor,
                                                          path,
@@ -151,7 +151,7 @@ public sealed class MutableSolution
                         if( from != to )
                         {
                             a.SetValue( to.ToString() );
-                            updated.TryAdd( packageId, from, to );
+                            updated?.TryAdd( packageId, from, to );
                         }
                     }
                     else

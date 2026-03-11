@@ -73,6 +73,11 @@ public sealed partial class Roadmap
     /// </summary>
     public int SolutionBuildCount => _solutionBuildCount;
 
+    /// <summary>
+    /// Gets whether this is a build on the "dev/" branch (produces CI packages).
+    /// </summary>
+    public bool IsDevBuild => _isDevBuild;
+
     internal bool Initialize( IActivityMonitor monitor )
     {
         if( !_versionTags.TryGetAllWithoutIssue( monitor, out var allVersionTags ) )
@@ -103,32 +108,10 @@ public sealed partial class Roadmap
             monitor.Info( ScreenType.CKliScreenTag, "No repositories need to be built." );
             return true;
         }
-        var builder = new Builder( _isDevBuild, monitor );
+        var builder = new RoadmapBuilder( buildPlugin, this );
         var buildTasks = new Task<bool>[_solutionBuildCount];
         BuildResult?[] req = await Task.WhenAll( _solutions.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
         return !req.Contains( null );
-    }
-
-    internal sealed class Builder
-    {
-        readonly TaskCompletionSource _start;
-        readonly bool _isDevBuild;
-
-        public Builder( bool isDevBuild, IActivityMonitor monitor )
-        {
-            _start = new TaskCompletionSource( TaskCreationOptions.RunContinuationsAsynchronously );
-            _isDevBuild = isDevBuild;
-        }
-
-        public bool IsDevBuild => _isDevBuild;
-
-        public Task<IActivityMonitor> StartAsync( BuildSolution solution )
-        {
-        }
-
-        public void Stop( IActivityMonitor monitor, BuildSolution solution )
-        {
-        }
     }
 
     public IRenderable ToRenderable( ScreenType screen )
