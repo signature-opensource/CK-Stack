@@ -23,7 +23,7 @@ sealed class TreeFolder : IDirectoryContents, INormalizedFileProvider
 
     public IFileInfo? GetFileInfo( NormalizedPath sub )
     {
-        var e = _t[sub];
+        TreeEntry? e = DoFind( sub );
         if( e != null && e.TargetType != TreeEntryTargetType.GitLink )
         {
             return new GitFileInfo( e, this );
@@ -34,12 +34,22 @@ sealed class TreeFolder : IDirectoryContents, INormalizedFileProvider
     public IDirectoryContents? GetDirectoryContents( NormalizedPath sub )
     {
         if( sub.IsEmptyPath ) return this;
-        TreeEntry e = _t[sub];
+        TreeEntry? e = DoFind( sub );
         if( e != null && e.TargetType != TreeEntryTargetType.GitLink )
         {
             return new GitFileInfo( e, this );
         }
         return null;
+    }
+
+    TreeEntry? DoFind( NormalizedPath sub )
+    {
+        var e = _t[sub];
+        if( e != null ) return e;
+        // Despite the .git/config ignorecase = true, a "NuGet.config" file (at the repository root) is
+        // not found through "nuget.config" key.
+        // Since we call DoFind to locate a file that SHOULD exist (or SHOULD NOT exist), we double check...
+        return e ?? _t.FirstOrDefault( e => StringComparer.OrdinalIgnoreCase.Equals( e.Name, sub.LastPart ) );
     }
 
     public IEnumerator<IFileInfo> GetEnumerator()

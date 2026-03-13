@@ -1,10 +1,8 @@
 using CK.Core;
 using CKli;
 using CKli.Core;
-using LibGit2Sharp;
 using NUnit.Framework;
 using Shouldly;
-using System;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
@@ -35,6 +33,10 @@ public class InitializationTests
         // ckli issue --fix
         // Note that this works only because the repository order is the dependency order of the new "stable" branch
         // because there is no "CKt.*" packages in real remote feeds.
+        //
+        // This renames all "NuGet.config" files to "nuget.config": this is  the work of the CommonFiles plugin and
+        // the BranchModel/HotBranch/ContentIssue.
+        //
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
 
         // ckli maintenance release-database rebuild
@@ -210,66 +212,14 @@ public class InitializationTests
     }
 
 
-    [Test]
-    [Explicit]
-    public async Task on_CK_Async()
-    {
-        TestHelper.Monitor.Info( $"Initializing '{TestHelper.CKliDefaultWorldName}', test instance name: '{CKliRootEnv.InstanceName}'." );
-        var context = CKliRootEnv.DefaultCKliEnv.ChangeDirectory( TestHelper.SolutionFolder.RemoveLastPart() );
-        await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable" );
-        var display = (StringScreen)context.Screen;
+    //[Test]
+    //[Explicit]
+    //public async Task on_CK_Async()
+    //{
+    //    TestHelper.Monitor.Info( $"Initializing '{TestHelper.CKliDefaultWorldName}', test instance name: '{CKliRootEnv.InstanceName}'." );
+    //    var context = CKliRootEnv.DefaultCKliEnv.ChangeDirectory( TestHelper.SolutionFolder.RemoveLastPart() );
+    //    await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable" );
+    //    var display = (StringScreen)context.Screen;
 
-    }
-
-    [Test]
-    public async Task CKt_build_Async()
-    {
-        // Because we are NOT pushing here, we remove the secret: this ensures
-        // that this test doesn't push anything.
-        // "ckli build" is purely local, it has no impacts on the remotes.
-        ProcessRunner.RunProcess( TestHelper.Monitor,
-                                  "dotnet",
-                                  """user-secrets remove FILESYSTEM_GIT --id CKli-CK""",
-                                  Environment.CurrentDirectory )
-                     .ShouldBe( 0 );
-
-        var clonedFolder = TestHelper.InitializeClonedFolder();
-        var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
-        var context = remotes.Clone( clonedFolder );
-
-        // From CKt_init:
-        var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/CKt/NuGet" );
-        var initialPackages = Directory.EnumerateFiles( localNuGetFeed )
-                                     .Select( p => Path.GetFileName( p ) )
-                                     .Order()
-                                     .ToArray();
-        initialPackages.ShouldBe( [
-                    "CKt.ActivityMonitor.0.1.0.nupkg",
-                    "CKt.Core.1.0.0.nupkg",
-                    "CKt.Monitoring.0.2.3.nupkg",
-                    "CKt.PerfectEvent.0.2.0.nupkg",
-                    "CKt.PerfectEvent.0.2.1.nupkg",
-                    "CKt.PerfectEvent.0.3.0.nupkg",
-                    "CKt.PerfectEvent.0.3.2.nupkg"
-                    ] );
-
-        // cd CK-Core.
-        context = context.ChangeDirectory( "CKt-Core" );
-        var display = (StringScreen)context.Screen;
-
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build" )).ShouldBeTrue();
-        display.ToString().ShouldBe( """
-            > Rank 0 (1)
-            │   CKt-Core 
-            > Rank 1 (1)
-            │   CKt-ActivityMonitor 
-            > Rank 2 (2)
-            │   CKt-PerfectEvent 
-            │   CKt-Monitoring 
-            ❰✓❱
-
-            """ );
-
-
-    }
+    //}
 }

@@ -14,8 +14,6 @@ namespace CKli.VersionTag.Plugin;
 
 public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
 {
-    static readonly XName _xMinVersion = XNamespace.None.GetName( "MinVersion" );
-    static readonly XName _xMaxVersion = XNamespace.None.GetName( "MaxVersion" );
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
 
@@ -39,7 +37,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     }
 
     /// <summary>
-    /// Sets <see cref="MinVersion"/> for a Repo.
+    /// Sets <see cref="XMinVersion"/> for a Repo.
     /// This must be called before the <see cref="VersionTagInfo"/> for the Repo is obtained.
     /// This is required for .Net 8 migration. This can be removed one day. 
     /// </summary>
@@ -52,7 +50,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         Throw.CheckArgument( min != null && min.IsValid && !min.IsPrerelease );
         Throw.CheckState( !HasRepoInfoBeenCreated( repo ) );
         return PrimaryPluginContext.GetConfigurationFor( repo )
-                                   .Edit( monitor, ( monitor, e ) => e.SetAttributeValue( _xMinVersion, min.ToString() ) );
+                                   .Edit( monitor, ( monitor, e ) => e.SetAttributeValue( XNames.MinVersion, min.ToString() ) );
     }
 
     /// <summary>
@@ -276,10 +274,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     {
         var config = PrimaryPluginContext.GetConfigurationFor( repo );
         // Non existing or invalid MinVersion fallbacks to v0.0.0.
-        SVersion min = ReadVersionAttribute( monitor, config, _xMinVersion, SVersion.Create( 0, 0, 0 ) );
+        SVersion min = ReadVersionAttribute( monitor, config, XNames.MinVersion, SVersion.Create( 0, 0, 0 ) );
 
         SVersion? max = null;
-        var maxAttr = config.XElement.Attribute( _xMaxVersion );
+        var maxAttr = config.XElement.Attribute( XNames.MaxVersion );
         if( World.Name.IsDefaultWorld )
         {
             if( maxAttr != null )
@@ -296,7 +294,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             // LTS world: the max version must exist.
             // We read it and use the min version as the fallback: this gives an invalid range
             // that should be fixed by the user.
-            min = ReadVersionAttribute( monitor, config, _xMaxVersion, min );
+            min = ReadVersionAttribute( monitor, config, XNames.MaxVersion, min );
             if( min >= max )
             {
                 monitor.Warn( $"Invalid Min/MaxVersion range in '{repo}'. This must be fixed." );

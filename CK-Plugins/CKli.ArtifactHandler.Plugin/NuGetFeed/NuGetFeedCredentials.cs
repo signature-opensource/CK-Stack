@@ -47,9 +47,13 @@ public sealed class NuGetFeedCredentials
     internal static NuGetFeedCredentials? Create( XElement? e )
     {
         if( e == null ) return null;
-        var n = (string?)e.Attribute( "UserNameKey" ) ?? (string?)e.Element( "UserNameKey" );
-        var s = (string?)e.Attribute( "SecretKey" ) ?? (string?)e.Element( "SecretKey" );
+        var n = (string?)e.Attribute( XNames.UserNameKey ) ?? (string?)e.Element( XNames.UserNameKey );
+        var s = (string?)e.Attribute( XNames.SecretKey ) ?? (string?)e.Element( XNames.SecretKey );
         return new NuGetFeedCredentials( s!, n );
     }
+
+    internal XElement ToXml( XName name ) => new XElement( name,
+                                                   _userNameKey != null ? new XAttribute( XNames.UserNameKey, _userNameKey ) : null,
+                                                   new XAttribute( XNames.SecretKey, _secretKey ) );
 
 }

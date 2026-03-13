@@ -86,7 +86,6 @@ public class BuildTests
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "exec", "dotnet", "sln", "add", "CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" )).ShouldBeTrue();
         }
-
         #endregion
 
         #region Initializing Samples/CKt-App-Sample
@@ -128,29 +127,13 @@ public class BuildTests
         }
         #endregion
 
-        // All the nuget.config can be fixed with a dirty folder (no need to commit).
+        // The nuget.config can be fixed with a dirty folder (no need to commit).
         //
         // But the "Missing initial version." requires a clean working folder.
         // 
         display.Clear();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            > CKt-Core (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
-            > CKt-ActivityMonitor (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
-            > CKt-PerfectEvent (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
-            > CKt-Monitoring (1)
-            │ > Content issues.
-            │ │ > Branch: stable (1 content issue)
-            │ │ │ > File must be moved: NuGet.config → nuget.config (case differ)
             > Samples/CKt-Sample-Monitoring (2)
             │ > Content issues.
             │ │ Branch: stable (1 content issue)
@@ -169,11 +152,13 @@ public class BuildTests
         // ... so we commit.
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleFolder, "commit", "Initialized files." )).ShouldBeTrue();
 
-        // This generated the missing nuget.config file (and fixed the case on the existing ones): this is 
-        // the work of the CommonFiles plugin and the BranchModel/HotBranch/ContentIssue.
+        // This created the missing nuget.config file: this is the work of the CommonFiles plugin
+        // and the BranchModel/HotBranch/ContentIssue.
         //
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
         display.Clear();
+
+        // No more issue.
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
             ❰✓❱
@@ -552,7 +537,7 @@ public class BuildTests
         
         """ );
 
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--dry-run" )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build" )).ShouldBeTrue();
     }
 
 }

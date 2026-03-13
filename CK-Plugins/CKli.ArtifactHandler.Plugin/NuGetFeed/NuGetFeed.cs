@@ -1,12 +1,7 @@
 using CK.Core;
 using CKli.Core;
-using CSemVer;
-using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Net;
 using System.Security;
-using System.Text;
 using System.Xml.Linq;
 
 namespace CKli.ArtifactHandler.Plugin;
@@ -20,7 +15,7 @@ public sealed class NuGetFeed
     readonly NormalizedPath _url;
     readonly NuGetFeedCredentials? _pushCredentials;
     readonly NuGetFeedCredentials? _fakeReadCredentials;
-    readonly PackageQualityFilter _pushQualityFilter;
+    readonly VersionQualityFilter _pushQualityFilter;
 
     /// <summary>
     /// Initializes a new NuGet feed.
@@ -33,7 +28,7 @@ public sealed class NuGetFeed
     public NuGetFeed( string name,
                       NormalizedPath url,
                       NuGetFeedCredentials? pushCredentials,
-                      PackageQualityFilter pushQualityFilter,
+                      VersionQualityFilter pushQualityFilter,
                       NuGetFeedCredentials? fakeReadCredentials )
     {
         Throw.CheckNotNullOrWhiteSpaceArgument( name );
@@ -49,16 +44,25 @@ public sealed class NuGetFeed
 
     internal static NuGetFeed Create( XElement e )
     {
-        var name = (string)e.Attribute( "Name" )!;
-        var url = (string?)e.Attribute( "Url" );
-        var p = NuGetFeedCredentials.Create( e.Element( "PushCredentials" ) );
-        if( !PackageQualityFilter.TryParse( (string?)e.Attribute( "PushQualityFilter" ), out var q  ) )
+        var name = (string)e.Attribute( XNames.Name )!;
+        var url = (string?)e.Attribute( XNames.Url );
+        VersionQualityFilter q = default;
+        var sQ = (string?)e.Attribute( XNames.PushQualityFilter );
+        if( !string.IsNullOrWhiteSpace( sQ ) && !VersionQualityFilter.TryParse( sQ, out q ) )
         {
             Throw.ArgumentException( nameof( PushQualityFilter ) );
         }
-        var r = NuGetFeedCredentials.Create( e.Element( "FakeReadCredentials" ) );
+        var p = NuGetFeedCredentials.Create( e.Element( XNames.PushCredentials ) );
+        var r = NuGetFeedCredentials.Create( e.Element( XNames.FakeReadCredentials ) );
         return new NuGetFeed( name, url, p, q, r );
     }
+
+    internal XElement ToXml() => new XElement( XNames.Feed,
+                                               new XAttribute( XNames.Name, _name ),
+                                               new XAttribute( XNames.Url, _url ),
+                                               new XAttribute( XNames.PushQualityFilter, _pushQualityFilter ),
+                                               _pushCredentials?.ToXml( XNames.PushCredentials ),
+                                               _fakeReadCredentials?.ToXml( XNames.FakeReadCredentials ) );
 
     /// <summary>
     /// The feed name.
@@ -99,10 +103,10 @@ public sealed class NuGetFeed
     public NuGetFeedCredentials? PushCredentials => _pushCredentials;
 
     /// <summary>
-    /// Gets the min/max of <see cref="PackageQuality"/> to push packages to this feed.
-    /// Defaults to "CI-Stable": the feed accepts all qualities.
+    /// Gets the filter that can restrict pushed versions of packages into this feed.
+    /// Defaults to "[,].ci": the feed accepts all versions.
     /// </summary>
-    public PackageQualityFilter PushQualityFilter => _pushQualityFilter;
+    public VersionQualityFilter PushQualityFilter => _pushQualityFilter;
 
     internal bool Push( IActivityMonitor monitor, string pushFolder, ISecretsStore secretsStore )
     {

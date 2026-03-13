@@ -101,17 +101,15 @@ public sealed partial class Roadmap
         return true;
     }
 
-    internal async Task<bool> BuildAsync( IActivityMonitor monitor, CKliEnv context, BuildPlugin buildPlugin, bool? runTest )
+    internal Task<bool> BuildAsync( IActivityMonitor monitor, CKliEnv context, BuildPlugin buildPlugin, bool? runTest, int maxDop )
     {
         if( _solutionBuildCount == 0 )
         {
             monitor.Info( ScreenType.CKliScreenTag, "No repositories need to be built." );
-            return true;
+            return Task.FromResult( true );
         }
-        var builder = new BuildPlugin.RoadmapBuilder( buildPlugin, context, this, runTest, maxDoP: 4 );
-        var buildTasks = new Task<bool>[_solutionBuildCount];
-        BuildResult?[] req = await Task.WhenAll( _solutions.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
-        return !req.Contains( null );
+        var builder = new BuildPlugin.RoadmapBuilder( buildPlugin, context, this, runTest, maxDop );
+        return builder.BuildAsync( monitor );
     }
 
     public IRenderable ToRenderable( ScreenType screen )

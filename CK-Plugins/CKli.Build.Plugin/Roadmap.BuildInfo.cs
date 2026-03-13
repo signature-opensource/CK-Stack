@@ -104,7 +104,7 @@ public sealed partial class Roadmap
         {
             Throw.DebugAssert( _mustBuild );
             // Wait for requirements.
-            var allProduced = new Dictionary<string, SVersion>();
+            Dictionary<string, SVersion>? allProduced = null;
             if( _directRequirements.Length > 0 )
             {
                 // Checks that all builds went fine (or return null) and collects the actual produced package instances at the same time.
@@ -114,6 +114,7 @@ public sealed partial class Roadmap
                     if( r == null ) return null;
                     foreach( var p in r.Content.Produced )
                     {
+                        allProduced ??= new Dictionary<string, SVersion>();
                         allProduced.Add( p, r.Version );
                     }
                 }

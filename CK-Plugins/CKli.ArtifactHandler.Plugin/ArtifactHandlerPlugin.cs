@@ -49,7 +49,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     public NormalizedPath LocalAssetsPath => _localAssetsPath;
 
     /// <summary>
-    /// Gets the &lt;ArtifactHandler&gt;/&lt;Feed&gt;/&lt;NuGet&gt; configurations.
+    /// Gets the &lt;ArtifactHandler&gt;/&lt;NuGet&gt;/&lt;Feed&gt; configurations.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="feeds">The configured feeds.</param>
@@ -61,10 +61,26 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         {
             try
             {
-                feeds = PrimaryPluginContext.Configuration.XElement.Elements( "NuGet" )
-                                                           .Elements( "Feed" )
+                feeds = PrimaryPluginContext.Configuration.XElement.Elements( XNames.NuGet )
+                                                           .Elements( XNames.Feed )
                                                            .Select( NuGetFeed.Create )
                                                            .ToImmutableArray();
+                // Handling default here: when there's no configured feeds, we automatically add
+                // the nuget.org public feed.
+                if( feeds.Length == 0 )
+                {
+                    var nugetOrg = new NuGetFeed( "NuGet",
+                                                  "https://api.nuget.org/v3/index.json",
+                                                  pushCredentials: new NuGetFeedCredentials( "NUGET_ORG_PUSH_API_KEY", null ),
+                                                  pushQualityFilter: new VersionQualityFilter( "pre", includeMin: true, null, true, false ),
+                                                  fakeReadCredentials: null );
+                    PrimaryPluginContext.Configuration.Edit( monitor, ( monitor, e ) =>
+                    {
+                        e.Ensure( XNames.NuGet ).Add( nugetOrg.ToXml() );
+                    } );
+                    feeds = [nugetOrg];
+                    monitor.Info( $"ArtifactHandler plugin configuration has been Initialized with 'https://nuget.org' feed." );
+                }
                 _feeds = feeds;
             }
             catch( Exception ex )
@@ -309,34 +325,35 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         {
             return false;
         }
-        var actualFeeds = feeds.Where( f => f.PushCredentials != null && f.PushQualityFilter.Accepts( quality ) );
-        if( !actualFeeds.Any() )
-        {
-            monitor.Error( $"Unable to find at least one configured feed to push '{quality}' quality packages to." );
-            return false;
-        }
-        var folder = NuGetPushFolder.Create( monitor, _localNuGetPath, results );
-        if( folder == null )
-        {
-            return false;
-        }
-        try
-        {
-            if( folder.Count != 0 )
-            {
-                foreach( var f in actualFeeds )
-                {
-                    if( !f.Push( monitor, folder.PushFolder, World.StackRepository.SecretsStore ) )
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-        finally
-        {
-            FileHelper.DeleteFolder( monitor, folder.PushFolder );
-        }
-        return true;
+        throw new NotImplementedException();
+        //var actualFeeds = feeds.Where( f => f.PushCredentials != null && f.PushQualityFilter.Accepts( quality ) );
+        //if( !actualFeeds.Any() )
+        //{
+        //    monitor.Error( $"Unable to find at least one configured feed to push '{quality}' quality packages to." );
+        //    return false;
+        //}
+        //var folder = NuGetPushFolder.Create( monitor, _localNuGetPath, results );
+        //if( folder == null )
+        //{
+        //    return false;
+        //}
+        //try
+        //{
+        //    if( folder.Count != 0 )
+        //    {
+        //        foreach( var f in actualFeeds )
+        //        {
+        //            if( !f.Push( monitor, folder.PushFolder, World.StackRepository.SecretsStore ) )
+        //            {
+        //                return false;
+        //            }
+        //        }
+        //    }
+        //}
+        //finally
+        //{
+        //    FileHelper.DeleteFolder( monitor, folder.PushFolder );
+        //}
+        //return true;
     }
 }

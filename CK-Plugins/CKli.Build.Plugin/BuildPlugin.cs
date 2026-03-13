@@ -47,8 +47,9 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     public Task<bool> BuildStar( IActivityMonitor monitor,
                                  CKliEnv context,
                                  [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
-                                 [OptionName( "--branch" )]
                                  string? branch = null,
+                                 [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                 string? maxDop = null,
                                  [Description( "Build all the Repos, not only the current repositories and their consumers." )]
                                  bool all = false,
                                  [Description( "Don't run tests even if they have never locally run on the commit." )]
@@ -56,10 +57,10 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                  [Description( "Run tests even if they have already run successfully on the commit." )]
                                  bool forceTests = false,
                                  [Description( "Only display the build roadmap." )]
-                                 [OptionName("--dry-run")]
                                  bool dryRun = false )
     {
-        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
+        if( !HandleMaxDop( monitor, maxDop, out var vMaDxDop )
+            || !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
             return Task.FromResult( false );
         }
@@ -70,7 +71,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         return dryRun
                 ? Task.FromResult( true )
-                : roadmap.BuildAsync( monitor, context, this, runTest );
+                : roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop );
     }
 
     [Description( "Build-Test-Package the consumers of the current repositories and propagates packages to their consumers." )]
@@ -80,6 +81,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
                                      [OptionName( "--branch" )]
                                      string? branch = null,
+                                     [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                     string? maxDop = null,
                                      [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
                                      bool all = false,
                                      [Description( "Don't run tests even if they have never locally run on the commit." )]
@@ -90,7 +93,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      [OptionName("--dry-run")]
                                      bool dryRun = false )
     {
-        if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
+        if( !HandleMaxDop( monitor, maxDop, out var vMaDxDop )
+            || !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
             return Task.FromResult( false );
         }
@@ -101,7 +105,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         return dryRun
                 ? Task.FromResult( true )
-                : roadmap.BuildAsync( monitor, context, this, runTest );
+                : roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop );
     }
 
     [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers and publishes all the artifacts." )]
@@ -111,6 +115,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
                                    [OptionName( "--branch" )]
                                    string? branch = null,
+                                   [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                   string? maxDop = null,
                                    [Description( "Build all the Repos, not only the current repositories and their consumers." )]
                                    bool all = false,
                                    [Description( "Run tests even if they have already run successfully on the commit." )]
@@ -120,7 +126,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    bool dryRun = false )
     {
         var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: false, branch, all );
-        if( roadmap == null )
+        if( roadmap == null || !HandleMaxDop( monitor, maxDop, out var vMaDxDop ) )
         {
             return Task.FromResult( false );
         }
@@ -136,6 +142,8 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                        [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
                                        [OptionName( "--branch" )]
                                        string? branch = null,
+                                       [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                       string? maxDop = null,
                                        [Description( "Publish all the Repos, not only the ones that consume or produce the current repositories." )]
                                        bool all = false,
                                        [Description( "Run tests even if they have already run successfully on the commit." )]
@@ -145,7 +153,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                        bool dryRun = false )
     {
         var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: false, branch, all );
-        if( roadmap == null )
+        if( roadmap == null || !HandleMaxDop( monitor, maxDop, out var vMaDxDop ) )
         {
             return Task.FromResult( false );
         }
@@ -210,6 +218,17 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         context.Screen.Display( roadmap.ToRenderable );
         return roadmap;
+    }
+
+    static bool HandleMaxDop( IActivityMonitor monitor, string? maxDop, out int vMaxDop )
+    {
+        if( maxDop == null ) vMaxDop = int.MaxValue;
+        else if( !int.TryParse( maxDop, out vMaxDop ) || vMaxDop <= 0 )
+        {
+            monitor.Error( "Invalid --max-dop value. Must be an integer greater than 0." );
+            return false;
+        }
+        return true;
     }
 
     static bool HandleForceSkipTests( IActivityMonitor monitor, bool skipTests, bool forceTests, out bool? runTest )

@@ -14,11 +14,11 @@ public static class BrutalPackageMapper
     /// <summary>
     /// Creates a brutal mapper from a simple package identifier to version dictionary.
     /// </summary>
-    /// <param name="mappings">The package to version dictionary.</param>
+    /// <param name="mappings">The package to version dictionary. When null, <see cref="PackageMapper.Empty"/> is returned.</param>
     /// <returns>A basic mapping.</returns>
-    public static IPackageMapping Create( Dictionary<string, SVersion> mappings )
+    public static IPackageMapping Create( Dictionary<string, SVersion>? mappings )
     {
-        return new FromDictionary( mappings );
+        return mappings != null ? new FromDictionary( mappings ) : PackageMapper.Empty;
     }
 
     sealed class FromDictionary : IPackageMapping
