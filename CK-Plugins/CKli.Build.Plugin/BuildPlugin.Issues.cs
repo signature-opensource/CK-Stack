@@ -47,7 +47,7 @@ public sealed partial class BuildPlugin
         const string rebuildMessage = """
             Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             On success, the tag content is updated.
-            When the commit cannot be successfully recompiled, the command 'ckli rebuild old'
+            When the commit cannot be successfully recompiled, the command 'ckli maintenance rebuild old'
             can retry and sets a "+deprecated" version on the old commits on failure.
             """;
         if( lightWeightTags.Length > 0 )

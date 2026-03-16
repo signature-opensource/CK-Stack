@@ -58,8 +58,8 @@ public sealed partial class Roadmap
             BuildSolution[]? directRequirements = null;
             bool mustBuildFromUpstreams = false;
             if( !InitializeUpstreams( monitor,
-                                      finalInitialization: false,
                                       allVersionTags,
+                                      finalBuildOrderedSolutions: null,
                                       out directRequirements,
                                       out vChange,
                                       out mustBuildFromUpstreams ) )
@@ -114,11 +114,11 @@ public sealed partial class Roadmap
 
         }
         bool InitializeUpstreams( IActivityMonitor monitor,
-                                    bool finalInitialization,
-                                    ImmutableArray<VersionTagInfo> allVersionTags,
-                                    out BuildSolution[]? directRequirements,
-                                    out VersionChange maxVersionChange,
-                                    out bool mustBuild )
+                                  ImmutableArray<VersionTagInfo> allVersionTags,
+                                  ImmutableArray<BuildSolution>.Builder? finalBuildOrderedSolutions,
+                                  out BuildSolution[]? directRequirements,
+                                  out VersionChange maxVersionChange,
+                                  out bool mustBuild )
         {
             var solutionRequirements = _solution.DirectRequirements;
             maxVersionChange = VersionChange.None;
@@ -128,8 +128,8 @@ public sealed partial class Roadmap
             foreach( var req in solutionRequirements )
             {
                 var sReq = _roadmap.Solutions[req.Repo.Index];
-                if( !(finalInitialization
-                        ? sReq.InitializeFinal( monitor, allVersionTags )
+                if( !(finalBuildOrderedSolutions != null
+                        ? sReq.InitializeFinal( monitor, allVersionTags, finalBuildOrderedSolutions )
                         : sReq.InitializeFromPivot( monitor, allVersionTags )) )
                 {
                     return false;
@@ -434,7 +434,9 @@ public sealed partial class Roadmap
 
         }
 
-        internal bool InitializeFinal( IActivityMonitor monitor, ImmutableArray<VersionTagInfo> allVersionTags )
+        internal bool InitializeFinal( IActivityMonitor monitor,
+                                       ImmutableArray<VersionTagInfo> allVersionTags,
+                                       ImmutableArray<BuildSolution>.Builder buildOrderedSolutions )
         {
             // During the first pass (from pivot), either we:
             // - have met the solution and _buildInfo is not null (MustBuild is true or false).
@@ -454,12 +456,12 @@ public sealed partial class Roadmap
                 Throw.DebugAssert( _buildInfo.MustBuild && _buildInfo.BuildIndex == -1 );
                 foreach( var s in _buildInfo.DirectRequirements )
                 {
-                    if( !s.InitializeFinal( monitor, allVersionTags ) )
+                    if( !s.InitializeFinal( monitor, allVersionTags, buildOrderedSolutions ) )
                     {
                         return false;
                     }
                 }
-                _buildInfo.SetBuildIndex( _roadmap._solutionBuildCount++ );
+                _buildInfo.SetBuildIndex( buildOrderedSolutions );
             }
             else
             {
@@ -467,8 +469,8 @@ public sealed partial class Roadmap
                 // a pivot or we ignore the upstreams): we analyze the direct requirements and if one of them must be built, then we must
                 // also be built (and we initialize the build index).
                 if( !InitializeUpstreams( monitor,
-                                          finalInitialization: true,
                                           allVersionTags,
+                                          finalBuildOrderedSolutions: buildOrderedSolutions,
                                           out var directRequirements,
                                           out var vChange,
                                           out bool mustBuild ) )
@@ -483,7 +485,7 @@ public sealed partial class Roadmap
                     TagCommit baseCommit = versionInfo.HotZone.LastStable;
                     SVersion targetVersion = ComputeTargetVersion( monitor, versionInfo, ref vChange, baseCommit, _solution.GitSolution.GitBranch.Tip, true );
                     _buildInfo = new BuildInfo( this, true, versionInfo, baseCommit.Version, vChange, targetVersion, directRequirements );
-                    _buildInfo.SetBuildIndex( _roadmap._solutionBuildCount++ );
+                    _buildInfo.SetBuildIndex( buildOrderedSolutions );
                 }
             }
             return true;
@@ -520,17 +522,14 @@ public sealed partial class Roadmap
         {
             var repo = _solution.Repo.GitRepository;
 
-            // When buildIndexLen, there is nothing to build: skip the numbers totally.
+            // When buildIndexLen is 0, there is nothing to build: skip the numbers totally.
             IRenderable r = buildIndexLen == 0
                             ? screen.Unit
-                            : _buildInfo != null && _buildInfo.BuildIndex >= 0
-                                ? screen.Text( _buildInfo.BuildIndex.ToString( CultureInfo.InvariantCulture ).PadLeft( buildIndexLen ) + " -" )
-                                        .Box( TextStyle.Default )
-                                : screen.EmptyString.Box( marginRight: buildIndexLen + 2 );
+                            : RenderBuildIndex( screen, buildIndexLen );
 
             if( _roadmap.HasPivots )
             {
-                var prefixStyle = new TextStyle( ConsoleColor.Black, ConsoleColor.Yellow );
+                var prefixStyle = new TextStyle( ConsoleColor.Black, ConsoleColor.DarkYellow );
                 if( _buildInfo == null ) prefixStyle = prefixStyle.With( TextEffect.Strikethrough );
                 r = r.AddRight( Prefix( screen, _solution, prefixStyle, marginLeft: buildIndexLen == 0 ? 0 : 1 ) );
             }
@@ -576,6 +575,16 @@ public sealed partial class Roadmap
                 }
                 return screen.EmptyString.Box( style, marginLeft: marginLeft, marginRight: 7 );
             }
+        }
+
+        IRenderable RenderBuildIndex( ScreenType screen, int buildIndexLen )
+        {
+            if( _buildInfo != null && _buildInfo.BuildIndex >= 0 )
+            {
+                var num = _buildInfo.BuildIndex.ToString( CultureInfo.InvariantCulture );
+                return screen.Text( num.PadRight( buildIndexLen ) + " -" );
+            }
+            return screen.EmptyString.Box( marginRight: buildIndexLen + 2 );
         }
 
         [GeneratedRegex( @"^(?<1>\w+)(?:\((?<2>[^()]+)\))?(?<3>!)?:", RegexOptions.CultureInvariant )]

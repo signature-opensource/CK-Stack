@@ -5,11 +5,11 @@ using CKli.Core;
 using CKli.VersionTag.Plugin;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using static CKli.BranchModel.Plugin.HotGraph;
 
 namespace CKli.Build.Plugin;
 
@@ -24,7 +24,7 @@ public sealed partial class Roadmap
     readonly bool _isDevBuild;
     readonly ImmutableArray<BuildSolution> _solutions;
     readonly ImmutableArray<BuildSolution> _pivots;
-    int _solutionBuildCount;
+    ImmutableArray<BuildSolution> _orderedBuildSolutions;
 
     internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, bool isPullBuild, bool isDevBuild )
     {
@@ -64,6 +64,11 @@ public sealed partial class Roadmap
     public ImmutableArray<BuildSolution> Pivots => _pivots;
 
     /// <summary>
+    /// Gets the final solutions that must be built ordered by <see cref="BuildInfo.BuildIndex"/>.
+    /// </summary>
+    public ImmutableArray<BuildSolution> OrderedBuildSolutions => _orderedBuildSolutions;
+
+    /// <summary>
     /// Gets whether there are pivots: <see cref="Pivots"/> are not the same as <see cref="Solutions"/>.
     /// </summary>
     public bool HasPivots => _graph.HasPivots;
@@ -71,7 +76,7 @@ public sealed partial class Roadmap
     /// <summary>
     /// Gets the count of <see cref="Solutions"/> that have true <see cref="BuildSolution.MustBuild"/>.
     /// </summary>
-    public int SolutionBuildCount => _solutionBuildCount;
+    public int SolutionBuildCount => _orderedBuildSolutions.Length;
 
     /// <summary>
     /// Gets whether this is a build on the "dev/" branch (produces CI packages).
@@ -91,19 +96,21 @@ public sealed partial class Roadmap
                 return false;
             }
         }
+        var finalBuildOrderedSolutions = ImmutableArray.CreateBuilder<BuildSolution>();
         foreach( var s in _solutions )
         {
-            if( !s.InitializeFinal( monitor, allVersionTags ) )
+            if( !s.InitializeFinal( monitor, allVersionTags, finalBuildOrderedSolutions ) )
             {
                 return false;
             }
         }
+        _orderedBuildSolutions = finalBuildOrderedSolutions.DrainToImmutable();
         return true;
     }
 
     internal Task<bool> BuildAsync( IActivityMonitor monitor, CKliEnv context, BuildPlugin buildPlugin, bool? runTest, int maxDop )
     {
-        if( _solutionBuildCount == 0 )
+        if( _orderedBuildSolutions.Length == 0 )
         {
             monitor.Info( ScreenType.CKliScreenTag, "No repositories need to be built." );
             return Task.FromResult( true );
@@ -114,10 +121,12 @@ public sealed partial class Roadmap
 
     public IRenderable ToRenderable( ScreenType screen )
     {
-        return screen.Unit.AddBelow( _solutions.Select( s => s.ToRenderable( screen, Log10BuildIndex() ) ) );
+        return screen.Unit.AddBelow( _orderedBuildSolutions.Select( s => s.ToRenderable( screen, Log10BuildIndex() ) ) );
+
+
     }
 
-    int Log10BuildIndex() => _solutionBuildCount switch
+    int Log10BuildIndex() => _orderedBuildSolutions.Length switch
                             {
                                 0 => 0,
                                 < 10 => 1,

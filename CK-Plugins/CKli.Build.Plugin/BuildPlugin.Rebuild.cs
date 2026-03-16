@@ -43,7 +43,7 @@ public sealed partial class BuildPlugin
                                               tag.Commit,
                                               tag.Version,
                                               runTest,
-                                              forceRebuild: true ).ConfigureAwait( false ) == null )
+                                              forceRebuild: true ).ConfigureAwait( false ) != null )
                     {
                         monitor.Info( ScreenType.CKliScreenTag, $"Version '{tag.Version.ParsedText}' of '{repo.DisplayPath}' is valid." );
                         break;

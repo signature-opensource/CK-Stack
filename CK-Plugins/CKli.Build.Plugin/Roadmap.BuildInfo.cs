@@ -1,11 +1,8 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
-using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using CSemVer;
-using LibGit2Sharp;
-using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -13,8 +10,6 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static CKli.BranchModel.Plugin.HotGraph;
-using static CKli.Build.Plugin.Roadmap;
 
 namespace CKli.Build.Plugin;
 
@@ -86,11 +81,13 @@ public sealed partial class Roadmap
 
         public BuildSolution Solution => _solution;
 
-        internal void SetBuildIndex( int i )
+        internal void SetBuildIndex( ImmutableArray<BuildSolution>.Builder buildOrderedSolutions )
         {
             Throw.DebugAssert( _mustBuild && _buildIndex == -1 );
-            _buildIndex = i;
+            _buildIndex = buildOrderedSolutions.Count;
+            buildOrderedSolutions.Add( _solution );
         }
+
         internal Task<BuildResult?> BuildAsync( BuildPlugin.RoadmapBuilder builder )
         {
             if( _build != null ) return _build;
