@@ -30,9 +30,8 @@ public sealed partial class Roadmap
         readonly SVersion _targetVersion;
         readonly ImmutableArray<BuildSolution> _directRequirements;
         readonly BuildSolution _solution;
-        readonly bool _mustBuild;
         readonly VersionTagInfo _versionInfo;
-        int _buildIndex;
+        readonly bool _mustBuild;
 
         readonly Lock _buildTaskLock;
         Task<BuildResult?>? _build;
@@ -48,7 +47,6 @@ public sealed partial class Roadmap
             _solution = solution;
             _mustBuild = mustBuild;
             _versionInfo = versionInfo;
-            _buildIndex = -1;
             _baseVersion = baseVersion;
             _versionChange = versionChange;
             _targetVersion = targetVersion;
@@ -64,11 +62,6 @@ public sealed partial class Roadmap
         /// </summary>
         public bool MustBuild => _mustBuild;
 
-        /// <summary>
-        /// Gets the build index. -1 when <see cref="MustBuild"/> is false.
-        /// </summary>
-        public int BuildIndex => _buildIndex;
-
         public VersionChange VersionChange => _versionChange;
 
         public VersionTagInfo VersionInfo => _versionInfo;
@@ -80,13 +73,6 @@ public sealed partial class Roadmap
         public ImmutableArray<BuildSolution> DirectRequirements => _directRequirements;
 
         public BuildSolution Solution => _solution;
-
-        internal void SetBuildIndex( ImmutableArray<BuildSolution>.Builder buildOrderedSolutions )
-        {
-            Throw.DebugAssert( _mustBuild && _buildIndex == -1 );
-            _buildIndex = buildOrderedSolutions.Count;
-            buildOrderedSolutions.Add( _solution );
-        }
 
         internal Task<BuildResult?> BuildAsync( BuildPlugin.RoadmapBuilder builder )
         {

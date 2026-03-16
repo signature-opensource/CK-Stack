@@ -71,21 +71,24 @@ public sealed class ShallowSolutionPlugin : PrimaryPluginBase
     public GitSolution? GetShallowSolution( IActivityMonitor monitor, Repo repo, Branch branch )
     {
         Throw.CheckArgument( !branch.IsRemote );
-        var (files,doc) = GetSolutionXDocument( monitor, repo, branch );
-        if( doc == null )
+        using( monitor.OpenInfo( $"Loading shallow solution from '{repo.DisplayPath}' branch '{branch.FriendlyName}'." ) )
         {
-            return null;
+            var (files, doc) = GetSolutionXDocument( monitor, repo, branch );
+            if( doc == null )
+            {
+                return null;
+            }
+            var s = new GitSolution( repo, branch );
+            if( !CommonSolution.LoadAllProjectFiles( monitor,
+                                                     files,
+                                                     doc.Root!,
+                                                     LoadOptions.PreserveWhitespace,
+                                                     s.AddProjectFile ) )
+            {
+                return null;
+            }
+            return s;
         }
-        var s = new GitSolution( repo, branch );
-        if( !CommonSolution.LoadAllProjectFiles( monitor,
-                                                 files,
-                                                 doc.Root!,
-                                                 LoadOptions.PreserveWhitespace,
-                                                 s.AddProjectFile ) )
-        {
-            return null;
-        }
-        return s;
     }
 
     (INormalizedFileProvider, XDocument?) GetSolutionXDocument( IActivityMonitor monitor, Repo repo, Branch branch )

@@ -47,6 +47,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     public Task<bool> BuildStar( IActivityMonitor monitor,
                                  CKliEnv context,
                                  [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
+                                 [OptionName("--branch,-b")]
                                  string? branch = null,
                                  [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
                                  string? maxDop = null,
@@ -57,6 +58,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                  [Description( "Run tests even if they have already run successfully on the commit." )]
                                  bool forceTests = false,
                                  [Description( "Only display the build roadmap." )]
+                                 [OptionName("--dry-run,-d")]
                                  bool dryRun = false )
     {
         if( !HandleMaxDop( monitor, maxDop, out var vMaDxDop )
@@ -79,7 +81,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     public Task<bool> StarBuildStar( IActivityMonitor monitor,
                                      CKliEnv context,
                                      [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
-                                     [OptionName( "--branch" )]
+                                     [OptionName("--branch,-b")]
                                      string? branch = null,
                                      [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
                                      string? maxDop = null,
@@ -90,7 +92,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      [Description( "Run tests even if they have already run successfully on the commit." )]
                                      bool forceTests = false,
                                      [Description( "Only display the build roadmap." )]
-                                     [OptionName("--dry-run")]
+                                     [OptionName("--dry-run,-d")]
                                      bool dryRun = false )
     {
         if( !HandleMaxDop( monitor, maxDop, out var vMaDxDop )
@@ -113,7 +115,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     public Task<bool> PublishStar( IActivityMonitor monitor,
                                    CKliEnv context,
                                    [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
-                                   [OptionName( "--branch" )]
+                                   [OptionName( "--branch,-b" )]
                                    string? branch = null,
                                    [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
                                    string? maxDop = null,
@@ -122,7 +124,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    [Description( "Run tests even if they have already run successfully on the commit." )]
                                    bool forceTests = false,
                                    [Description( "Only display the build roadmap." )]
-                                   [OptionName("--dry-run")]
+                                   [OptionName("--dry-run,-d")]
                                    bool dryRun = false )
     {
         var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: false, branch, all );
@@ -140,7 +142,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     public Task<bool> StarPublishStar( IActivityMonitor monitor,
                                        CKliEnv context,
                                        [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
-                                       [OptionName( "--branch" )]
+                                       [OptionName( "--branch,-b" )]
                                        string? branch = null,
                                        [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
                                        string? maxDop = null,
@@ -149,7 +151,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                        [Description( "Run tests even if they have already run successfully on the commit." )]
                                        bool forceTests = false,
                                        [Description( "Only display the build roadmap." )]
-                                       [OptionName("--dry-run")]
+                                       [OptionName("--dry-run,-d")]
                                        bool dryRun = false )
     {
         var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: false, branch, all );

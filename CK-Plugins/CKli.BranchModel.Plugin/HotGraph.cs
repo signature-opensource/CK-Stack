@@ -5,7 +5,9 @@ using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using System.Runtime.InteropServices;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -25,6 +27,7 @@ public sealed partial class HotGraph
     readonly IReadOnlyList<Repo> _pivots;
     readonly Solution[] _solutions;
     readonly Dictionary<string, Solution> _p2s;
+    ImmutableArray<Solution> _orderedSolutions;
     int _maxRank;
 
     internal HotGraph( BranchName branchName,
@@ -65,7 +68,26 @@ public sealed partial class HotGraph
     /// <summary>
     /// Gets all the solutions (ordered by <see cref="Repo.Index"/>).
     /// </summary>
-    public IReadOnlyCollection<Solution> Solutions => _solutions;
+    public IReadOnlyList<Solution> Solutions => _solutions;
+
+    /// <summary>
+    /// Gets all the solutions (ordered by their <see cref="Solution.OrderedIndex"/>).
+    /// </summary>
+    public ImmutableArray<Solution> OrderedSolutions
+    {
+        get
+        {
+            if( _orderedSolutions.IsDefault )
+            {
+                _orderedSolutions = [.. _solutions.Order()];
+                for( int i = 0; i < _orderedSolutions.Length; i++ )
+                {
+                    _orderedSolutions[i].OrderedIndex = i;
+                }
+            }
+            return _orderedSolutions;
+        } 
+    }
 
     /// <summary>
     /// Gets the maximal <see cref="Solution.Rank"/>.

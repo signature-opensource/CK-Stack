@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 
@@ -11,7 +12,7 @@ public sealed partial class HotGraph
     /// <summary>
     /// Models a solution to build.
     /// </summary>
-    public sealed class Solution
+    public sealed class Solution : IComparable<Solution>
     {
         readonly HotGraph _graph;
         readonly HotBranch _actual;
@@ -87,6 +88,18 @@ public sealed partial class HotGraph
         /// Gets whether this solution is a successor (a consumer) of one of the specified <see cref="HotGraph.Pivots"/>.
         /// </summary>
         public bool IsPivotDownstream => _isPivotDownstream;
+
+        /// <summary>
+        /// Gets the index of this solution in <see cref="HotGraph.OrderedSolutions"/>.
+        /// </summary>
+        public int OrderedIndex { get; internal set; }
+
+        int IComparable<Solution>.CompareTo( Solution? other )
+        {
+            if( other == null ) return 1;
+            int cmp = _rank.CompareTo( other._rank );
+            return cmp != 0 ? cmp : _solution.Repo.Index.CompareTo( other._solution.Repo.Index );
+        }
 
         internal bool UpdateRank( IActivityMonitor monitor,
                                   out int rank,

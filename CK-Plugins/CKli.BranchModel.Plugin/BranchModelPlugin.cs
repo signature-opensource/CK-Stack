@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Security.AccessControl;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -204,26 +205,31 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             // Finds the most instable existing branch among the pivots (or among all the repositories).
             branchName = FindMostInstableBranchFrom( monitor, branchName, pivots );
 
-            // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
-            // instances.
-            var graph = new HotGraph( branchName, allRepos, pivots );
-            bool hasPivots = graph.HasPivots;
-            foreach( var repo in allRepos )
+            using( monitor.OpenInfo( pivots.Count == allRepos.Count
+                                        ? $"Considering branch '{branchName}' from all {allRepos.Count} repositories."
+                                        : $"Considering branch '{branchName}' from {pivots.Count} pivots out of {allRepos.Count} repositories." ) )
             {
-                var branchInfo = Get( monitor, repo );
-                var b = branchInfo.GetClosestActiveBranch( branchName );
-                Throw.DebugAssert( "There is no Branch Model issue: the closest branch necessarily exists.", b?.GitBranch != null );
-                var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitDevBranch ?? b.GitBranch );
-                if( shallow == null ) return null;
-                if( !graph.AddSolution( monitor, repo, b, shallow, hasPivots ? pivots.Contains( repo ) : false ) )
+                // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
+                // instances.
+                var graph = new HotGraph( branchName, allRepos, pivots );
+                bool hasPivots = graph.HasPivots;
+                foreach( var repo in allRepos )
                 {
-                    return null;
+                    var branchInfo = Get( monitor, repo );
+                    var b = branchInfo.GetClosestActiveBranch( branchName );
+                    Throw.DebugAssert( "There is no Branch Model issue: the closest branch necessarily exists.", b?.GitBranch != null );
+                    var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitDevBranch ?? b.GitBranch );
+                    if( shallow == null ) return null;
+                    if( !graph.AddSolution( monitor, repo, b, shallow, hasPivots ? pivots.Contains( repo ) : false ) )
+                    {
+                        return null;
+                    }
                 }
+                // The solutions have been successfully added. The mappings from "package name" (that are the project names)
+                // to the solutions are non ambiguous. We can start the topological sort.
+                // The sort starts with the pivots (this will walk all the dependencies and sets the IsPivotUpstream).
+                return graph.TopologicalSort( monitor ) ? graph : null;
             }
-            // The solutions have been successfully added. The mappings from "package name" (that are the project names)
-            // to the solutions are non ambiguous. We can start the topological sort.
-            // The sort starts with the pivots (this will walk all the dependencies and sets the IsPivotUpstream).
-            return graph.TopologicalSort( monitor ) ? graph : null;
         }
     }
 

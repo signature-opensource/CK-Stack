@@ -516,7 +516,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         var lastStable = lastStables.Count > 0 ? lastStables[0] : null;
 
         Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
-        // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is too much higher than the last
+        // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is "too much higher" than the last
         // stable (this is a strong signal of a bad tag that should be deleted).
         VersionTagInfo.HotZoneInfo? hotZone = null;    
         if( topHot != null )

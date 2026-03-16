@@ -1,20 +1,14 @@
 using CK.Core;
-using CK.Monitoring;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
-using CommunityToolkit.HighPerformance;
-using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Text;
 using System.Threading.Channels;
 using System.Threading.Tasks;
-using static CK.Core.AsyncLock;
-using static CK.Core.CheckedWriteStream;
 
 namespace CKli.Build.Plugin;
 
@@ -48,7 +42,7 @@ public sealed partial class BuildPlugin
             Throw.DebugAssert( _roadmap.SolutionBuildCount > 0 );
             if( _singleBuild )
             {
-                var s = _roadmap.Solutions.Single( s => s.MustBuild );
+                var s = _roadmap.OrderedSolutions.Single( s => s.MustBuild );
                 Throw.DebugAssert( s.BuildInfo != null && !s.BuildInfo.DirectRequirements.Any( s => s.MustBuild ) );
                 return await DoBuildAsync( monitor, s.BuildInfo, PackageMapper.Empty ) != null;
             }
@@ -64,7 +58,8 @@ public sealed partial class BuildPlugin
             Queue<IActivityMonitor> pool = new Queue<IActivityMonitor>( Math.Min( _maxDoP, 32 ) );
             int monitorCount = 0;
             _ = Task.Run( WaitForTermination );
-            var done = new StringBuilder();
+            int remainingCount = _roadmap.SolutionBuildCount;
+            bool hasError = false;
             for(; ; )
             {
                 var msg = await _channel.Reader.ReadAsync();
@@ -103,14 +98,16 @@ public sealed partial class BuildPlugin
                 {
                     if( req.Success )
                     {
-                        if( done.Length == 0 ) done.Append( "Successfully build: " );
-                        else done.Append( ", " );
-                        done.Append( req.Build.Solution.Repo.DisplayPath );
-                        monitor.Info( done.ToString() );
+                        if( !hasError )
+                        {
+                            --remainingCount;
+                            monitor.Info( $"Build '{req.Build.Solution.Repo.DisplayPath}' success, {remainingCount} remaining out of {_roadmap.SolutionBuildCount}." );
+                        }
                     }
                     else
                     {
-                        monitor.Info( req.Message );
+                        hasError = true;
+                        monitor.Error( req.Message );
                     }
                     if( waitingQueue != null && waitingQueue.TryDequeue( out var waiter ) )
                     {
@@ -128,7 +125,7 @@ public sealed partial class BuildPlugin
         async Task WaitForTermination()
         {
             var buildTasks = new Task<bool>[_roadmap.SolutionBuildCount];
-            BuildResult?[] req = await Task.WhenAll( _roadmap.Solutions.Where( s => s.MustBuild )
+            BuildResult?[] req = await Task.WhenAll( _roadmap.OrderedSolutions.Where( s => s.MustBuild )
                                                                        .Select( s => s.BuildInfo!.BuildAsync( this ) )
                                                                        .ToArray() );
             _channel.Writer.TryWrite( !req.Contains( null ) );
@@ -145,7 +142,7 @@ public sealed partial class BuildPlugin
             {
                 _promise = new TaskCompletionSource<IActivityMonitor>( TaskCreationOptions.RunContinuationsAsynchronously );
                 _build = build;
-                _message = $"Building roadmap n°{build.BuildIndex+1}/{build.Solution.Roadmap.SolutionBuildCount}: '{build.Solution.Repo.DisplayPath}'.";
+                _message = $"Building roadmap n°{build.Solution.BuildNumber}/{build.Solution.Roadmap.SolutionBuildCount}: '{build.Solution.Repo.DisplayPath}'.";
             }
 
             public Roadmap.BuildInfo Build => _build;
@@ -172,7 +169,7 @@ public sealed partial class BuildPlugin
                 _success = success;
                 if( !success )
                 {
-                    _message = $"Build of '{_build.Solution.Repo.DisplayPath}' failed.";
+                    _message = $"Failed to build '{_build.Solution.Repo.DisplayPath}'.";
                 }
             }
         }
@@ -242,7 +239,10 @@ public sealed partial class BuildPlugin
                 return true;
             }
 
-            static Commit? UpdateDependenciesAndCommit( IActivityMonitor monitor, Roadmap.BuildSolution solution, IPackageMapping mapping, bool canAmend )
+            static Commit? UpdateDependenciesAndCommit( IActivityMonitor monitor,
+                                                        Roadmap.BuildSolution solution,
+                                                        IPackageMapping mapping,
+                                                        bool canAmend )
             {
                 var s = MutableSolution.Create( monitor, solution.Repo );
                 if( s == null )
