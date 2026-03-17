@@ -75,19 +75,26 @@ public sealed partial class Roadmap
                 var targetCommit = versionInfo.TagCommitsBySha.GetValueOrDefault( commit.Sha );
                 if( targetCommit != null )
                 {
-                    var existingChange = ComputeVersionChange( baseCommit.Version, targetCommit.Version );
-                    if( vChange < existingChange )
+                    if( targetCommit.BuildContentInfo != null )
                     {
-                        vChange = existingChange;
+                        var existingChange = ComputeVersionChange( baseCommit.Version, targetCommit.Version );
+                        if( vChange < existingChange )
+                        {
+                            vChange = existingChange;
+                        }
+                        // If the targetVersion is not a post-release (with the -- trick) and roadmap.IsCIBuild is true,
+                        // this is where we could force a CI build instead of reusing the last version.
+                        //
+                        // Note that this makes sense only if the branch is bound to "Release build configuration": if the branch
+                        // uses "Debug build configuration", generating a CI build here would be useless.
+                        //
+                        _buildInfo = new BuildInfo( this, targetCommit, versionInfo, baseCommit.Version, vChange, targetCommit.Version, directRequirements );
+                        return true;
                     }
-                    // If the targetVersion is not a post-release (with the -- trick) and roadmap.IsCIBuild is true,
-                    // this is where we could force a CI build instead of reusing the last version.
-                    //
-                    // Note that this makes sense only if the branch is bound to "Release build configuration": if the branch
-                    // uses "Debug build configuration", generating a CI build here would be useless.
-                    //
-                    _buildInfo = new BuildInfo( this, false, versionInfo, baseCommit.Version, vChange, targetCommit.Version, directRequirements );
-                    return true;
+                    else
+                    {
+                        monitor.Warn( $"Branch '{Repo.DisplayPath}/{_solution.GitSolution.GitBranch.FriendlyName}' {targetCommit} has no content info. Build is required." ); 
+                    }
                 }
                 mustBuild = true;
             }
@@ -110,7 +117,7 @@ public sealed partial class Roadmap
                     directRequirements[idxReq++] = _roadmap.OrderedSolutions[req.Repo.Index];
                 }
             }
-            _buildInfo = new BuildInfo( this, true, versionInfo, baseCommit.Version, vChange, targetVersion, directRequirements );
+            _buildInfo = new BuildInfo( this, null, versionInfo, baseCommit.Version, vChange, targetVersion, directRequirements );
             _roadmap._buildSolutionCount++;
             return true;
 
@@ -466,7 +473,7 @@ public sealed partial class Roadmap
                     TagCommit baseCommit = versionInfo.HotZone.LastStable;
                     SVersion targetVersion = ComputeTargetVersion( monitor, versionInfo, ref vChange, baseCommit, _solution.GitSolution.GitBranch.Tip, true );
                     _buildInfo = new BuildInfo( this,
-                                                mustBuild: true,
+                                                null,
                                                 versionInfo,
                                                 baseCommit.Version,
                                                 vChange,

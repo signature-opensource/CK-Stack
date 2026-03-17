@@ -162,6 +162,6 @@ public sealed class GitSolution
         }
     }
 
-    public override string ToString() => $"{_repo.DisplayPath}/branch/{_branch.FriendlyName}";
+    public override string ToString() => $"{_repo.DisplayPath} ({_branch.FriendlyName})";
 }
 

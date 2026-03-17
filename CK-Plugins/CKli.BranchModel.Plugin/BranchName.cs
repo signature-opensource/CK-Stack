@@ -1,5 +1,3 @@
-using CK.Core;
-using System.Collections.Generic;
 using System.Diagnostics;
 
 namespace CKli.BranchModel.Plugin;

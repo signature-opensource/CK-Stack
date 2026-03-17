@@ -1,13 +1,11 @@
 using CK.Core;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
-using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
+using CSemVer;
 using System;
-using System.Collections;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Data.SqlTypes;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -115,17 +113,42 @@ public sealed partial class Roadmap
             monitor.Info( ScreenType.CKliScreenTag, "No repositories need to be built." );
             return Task.FromResult( true );
         }
-        var mapping = new PackageMapper();
+
+        bool hasDirtyFolder = false;
+        var mapping = new ConcurrentDictionary<string,SVersion>( StringComparer.OrdinalIgnoreCase );
         foreach( var s in _orderedSolutions )
         {
-            if( s.BuildInfo != null )
+            if( s.Repo.GitStatus.IsDirty )
             {
-                if( s.MustBuild ) mapping.Add( s.BuildInfo.BaseVersion
+                hasDirtyFolder = true;
+                break;
+            }
+            // When a solution must not be built, we must know the "current" package versions
+            // to be able to upgrade dependencies in the built projects.
+            if( !s.MustBuild )
+            {
+                var already = s.BuildInfo?.AlreadyBuilt;
+                Throw.DebugAssert( "Has been checked in InitializeFromPivot.",
+                                    already == null || already.BuildContentInfo != null );
+                if( already == null )
+                {
+                    already = _versionTags.Get( monitor, s.Repo ).FindFirst( s.Solution.GitSolution.GitBranch.Commits, out _ );
+                    if( already?.BuildContentInfo == null )
+                    {
+                        monitor.Error( $"Unable to find a version tag for '{s.Solution.GitSolution}'." );
+                        return Task.FromResult( false );
+                    }
+                }
+                foreach( var p in already.BuildContentInfo!.Produced )
+                {
+                    if( !mapping.TryAdd( p, already.Version ) )
+                    {
+                        Throw.CKException( "Package identifier conflict." );
+                    }
+                }
             }
         }
-
-
-        if( _orderedSolutions.Any( s => s.Repo.GitStatus.IsDirty ) )
+        if( hasDirtyFolder )
         {
             int c = _orderedSolutions.Count( s => s.Repo.GitStatus.IsDirty );
             monitor.Error( c > 1
@@ -139,7 +162,7 @@ public sealed partial class Roadmap
                             """ );
             return Task.FromResult( false );
         }
-        var builder = new BuildPlugin.RoadmapBuilder( buildPlugin, context, this, runTest, maxDop );
+        var builder = new BuildPlugin.RoadmapBuilder( buildPlugin, context, this, runTest, maxDop, mapping );
         return builder.BuildAsync( monitor );
     }
 
@@ -171,6 +194,5 @@ public sealed partial class Roadmap
         }
         return new VerticalContent( screen, renderables.MoveToImmutable() );
     }
-
 
 }

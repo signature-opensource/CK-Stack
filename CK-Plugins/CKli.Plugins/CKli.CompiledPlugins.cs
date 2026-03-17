@@ -301,14 +301,14 @@ sealed class Cmd_build : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. By default, builds are as parallel as possible.", false ),
                 ],
                 flags: [
                     (["--all",], "Build all the Repos, not only the current repositories and their consumers." ),
                     (["--skip-tests",], "Don't run tests even if they have never locally run on the commit." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
-                    (["--dry-run",], "Only display the build roadmap." ),
+                    (["--dry-run","-d",], "Only display the build roadmap." ),
                 ],
                 "BuildStar", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
@@ -336,14 +336,14 @@ sealed class Cmd_жbuild : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. By default, builds are as parallel as possible.", false ),
                 ],
                 flags: [
                     (["--all",], "Build all the Repos, not only the ones that consume or produce the current repositories." ),
                     (["--skip-tests",], "Don't run tests even if they have never locally run on the commit." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
-                    (["--dry-run",], "Only display the build roadmap." ),
+                    (["--dry-run","-d",], "Only display the build roadmap." ),
                 ],
                 "StarBuildStar", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
@@ -371,13 +371,13 @@ sealed class Cmd_publish : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. By default, builds are as parallel as possible.", false ),
                 ],
                 flags: [
                     (["--all",], "Build all the Repos, not only the current repositories and their consumers." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
-                    (["--dry-run",], "Only display the build roadmap." ),
+                    (["--dry-run","-d",], "Only display the build roadmap." ),
                 ],
                 "PublishStar", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
@@ -404,13 +404,13 @@ sealed class Cmd_жpublish : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. By default, builds are as parallel as possible.", false ),
                 ],
                 flags: [
                     (["--all",], "Publish all the Repos, not only the ones that consume or produce the current repositories." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
-                    (["--dry-run",], "Only display the build roadmap." ),
+                    (["--dry-run","-d",], "Only display the build roadmap." ),
                 ],
                 "StarPublishStar", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )

@@ -1,9 +1,7 @@
 using CK.Core;
 using CKli.Core;
-using CKli.ShallowSolution.Plugin;
 using LibGit2Sharp;
 using System.Diagnostics.CodeAnalysis;
-using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 

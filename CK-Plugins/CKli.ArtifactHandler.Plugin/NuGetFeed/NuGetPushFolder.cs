@@ -1,6 +1,5 @@
 using CK.Core;
 using CKli.Core;
-using CSemVer;
 using System;
 using System.Collections.Generic;
 using System.IO;

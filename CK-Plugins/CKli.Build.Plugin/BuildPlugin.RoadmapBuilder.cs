@@ -2,8 +2,10 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
+using CSemVer;
 using LibGit2Sharp;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -21,10 +23,17 @@ public sealed partial class BuildPlugin
         readonly Channel<object> _channel;
         readonly CKliEnv _context;
         readonly int _maxDoP;
+        readonly ConcurrentDictionary<string, SVersion> _mapping;
+        readonly IPackageMapping _packageMapping;
         readonly bool? _runTest;
         readonly bool _singleBuild;
 
-        public RoadmapBuilder( BuildPlugin buildPlugin, CKliEnv context, Roadmap roadmap, bool? runTest, int maxDoP )
+        public RoadmapBuilder( BuildPlugin buildPlugin,
+                               CKliEnv context,
+                               Roadmap roadmap,
+                               bool? runTest,
+                               int maxDoP,
+                               ConcurrentDictionary<string, SVersion> mapping )
         {
             Throw.DebugAssert( maxDoP >= 1 );
             Throw.DebugAssert( roadmap.SolutionBuildCount >= 1 );
@@ -32,6 +41,8 @@ public sealed partial class BuildPlugin
             _singleBuild = roadmap.SolutionBuildCount == 1;
             _runTest = runTest;
             _maxDoP = maxDoP;
+            _mapping = mapping;
+            _packageMapping = BrutalPackageMapper.Create( mapping );
             _buildPlugin = buildPlugin;
             _context = context;
             _channel = Channel.CreateUnbounded<object>( new UnboundedChannelOptions() { SingleReader = true } );
@@ -44,7 +55,7 @@ public sealed partial class BuildPlugin
             {
                 var s = _roadmap.OrderedSolutions.Single( s => s.MustBuild );
                 Throw.DebugAssert( s.BuildInfo != null && !s.BuildInfo.DirectRequirements.Any( s => s.MustBuild ) );
-                return await DoBuildAsync( monitor, s.BuildInfo, PackageMapper.Empty ) != null;
+                return await DoBuildAsync( monitor, s.BuildInfo ) != null;
             }
             using( monitor.OpenInfo( $"Building {_roadmap.SolutionBuildCount} solutions." ) )
             {
@@ -133,76 +144,88 @@ public sealed partial class BuildPlugin
 
         sealed class MonitorRequest
         {
-            readonly TaskCompletionSource<IActivityMonitor> _promise;
+            readonly TaskCompletionSource<IActivityMonitor> _initialize;
+            readonly TaskCompletionSource _finalize;
+            readonly ChannelWriter<object> _writer;
             readonly Roadmap.BuildInfo _build;
             string _message;
-            private bool _success;
+            BuildResult? _buildResult;
 
-            public MonitorRequest( Roadmap.BuildInfo build )
+            public MonitorRequest( ChannelWriter<object> writer, Roadmap.BuildInfo build )
             {
-                _promise = new TaskCompletionSource<IActivityMonitor>( TaskCreationOptions.RunContinuationsAsynchronously );
+                _initialize = new TaskCompletionSource<IActivityMonitor>( TaskCreationOptions.RunContinuationsAsynchronously );
+                _finalize = new TaskCompletionSource( TaskCreationOptions.RunContinuationsAsynchronously );
+                _writer = writer;
                 _build = build;
                 _message = $"Building roadmap n°{build.Solution.BuildNumber}/{build.Solution.Roadmap.SolutionBuildCount}: '{build.Solution.Repo.DisplayPath}'.";
+                _writer.TryWrite( this );
             }
 
             public Roadmap.BuildInfo Build => _build;
 
-            public Task<IActivityMonitor> Acquire() => _promise.Task;
+            public Task<IActivityMonitor> AcquireAsync() => _initialize.Task;
 
             [MemberNotNullWhen( false, nameof( Acquired ) )]
-            public bool MustAcquire => _promise.Task.Status != TaskStatus.RanToCompletion;
+            public bool MustAcquire => _initialize.Task.Status != TaskStatus.RanToCompletion;
 
-            public IActivityMonitor? Acquired => _promise.Task.Status != TaskStatus.RanToCompletion ? null : _promise.Task.Result;
+            public IActivityMonitor? Acquired => _initialize.Task.Status != TaskStatus.RanToCompletion ? null : _initialize.Task.Result;
 
             public string Message => _message;
 
-            public bool Success => _success;
+            public bool Success => _buildResult != null;
 
             public void SetMonitor( IActivityMonitor monitor, IActivityMonitor available )
             {
                 monitor.Info( _message );
-                _promise.SetResult( available );
+                _initialize.SetResult( available );
             }
 
-            public void Release( bool success )
+            public void Release( BuildResult? result )
             {
-                _success = success;
-                if( !success )
+                _buildResult = result;
+                if( result == null )
                 {
                     _message = $"Failed to build '{_build.Solution.Repo.DisplayPath}'.";
                 }
+                _writer.TryWrite( this );
             }
         }
 
-        internal async Task<BuildResult?> BuildAsync( Roadmap.BuildInfo build, IPackageMapping mapping )
+        internal async Task<BuildResult?> BuildAsync( Roadmap.BuildInfo buildInfo )
         {
             Throw.DebugAssert( !_singleBuild );
-            // Acquires a monitor: a TaskCompletionSource is pushed.
-            var request = new MonitorRequest( build );
-            _channel.Writer.TryWrite( request );
-            var monitor = await request.Acquire();
+            // Acquires a monitor.
+            var request = new MonitorRequest( _channel.Writer, buildInfo );
+            var monitor = await request.AcquireAsync();
 
             // Actual build.
-            var result = await DoBuildAsync( monitor, build, mapping );
+            var result = await DoBuildAsync( monitor, buildInfo );
 
-            // Returning the monitor to the pool.
-            request.Release( result != null  );
-            _channel.Writer.TryWrite( request );
+            // Returning the monitor to the pool (and handling centralized success/failure of builds).
+            request.Release( result );
             return result;
         }
 
-        async Task<BuildResult?> DoBuildAsync( IActivityMonitor monitor, Roadmap.BuildInfo build, IPackageMapping mapping )
+        async Task<BuildResult?> DoBuildAsync( IActivityMonitor monitor, Roadmap.BuildInfo build )
         {
             if( !EnsureAndCheckoutBranch( monitor, build.Solution, out var canAmend ) )
             {
                 return null;
             }
-            var commit = UpdateDependenciesAndCommit( monitor, build.Solution, mapping, canAmend );
+            var commit = UpdateDependenciesAndCommit( monitor, build.Solution, _packageMapping, canAmend );
             if( commit == null )
             {
                 return null;
             }
-            return await _buildPlugin.CoreBuildAsync( monitor, _context, build.VersionInfo, commit, build.TargetVersion, _runTest, forceRebuild: false );
+            var result = await _buildPlugin.CoreBuildAsync( monitor, _context, build.VersionInfo, commit, build.TargetVersion, _runTest, forceRebuild: false );
+            if( result != null )
+            {
+                foreach( var p in result.Content.Produced )
+                {
+                    _mapping.TryAdd( p, result.Version );
+                }
+            }
+            return result;
 
             static bool EnsureAndCheckoutBranch( IActivityMonitor monitor, Roadmap.BuildSolution solution, out bool canAmend )
             {
@@ -249,14 +272,15 @@ public sealed partial class BuildPlugin
                 {
                     return null;
                 }
-                if( !s.UpdatePackages( monitor, mapping, null ) )
+                var mapped = new PackageMapper();
+                if( !s.UpdatePackages( monitor, mapping, mapped ) )
                 {
                     return null;
                 }
                 var commitMsg = $"""
-                Updating dependencies.
+                Updated dependencies.
 
-                {mapping.ToString()}
+                {mapped.ToString()}
                 """;
                 return solution.Repo.GitRepository.Commit( monitor,
                                                            commitMsg,

@@ -2,9 +2,6 @@ using CK.Core;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using LibGit2Sharp;
-using Microsoft.Extensions.FileProviders;
-using System;
-using System.Collections.Generic;
 
 namespace CKli.BranchModel.Plugin;
 

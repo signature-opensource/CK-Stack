@@ -2,7 +2,6 @@ using CK.Core;
 using CSemVer;
 using System;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace CKli.ArtifactHandler.Plugin;
 

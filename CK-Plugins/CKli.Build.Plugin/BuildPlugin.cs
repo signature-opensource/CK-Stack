@@ -9,7 +9,6 @@ using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using LogLevel = CK.Core.LogLevel;
 
@@ -49,7 +48,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                  [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
                                  [OptionName("--branch,-b")]
                                  string? branch = null,
-                                 [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                 [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
                                  string? maxDop = null,
                                  [Description( "Build all the Repos, not only the current repositories and their consumers." )]
                                  bool all = false,
@@ -83,7 +82,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
                                      [OptionName("--branch,-b")]
                                      string? branch = null,
-                                     [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                     [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
                                      string? maxDop = null,
                                      [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
                                      bool all = false,
@@ -117,7 +116,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
                                    [OptionName( "--branch,-b" )]
                                    string? branch = null,
-                                   [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                   [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
                                    string? maxDop = null,
                                    [Description( "Build all the Repos, not only the current repositories and their consumers." )]
                                    bool all = false,
@@ -144,7 +143,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                        [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
                                        [OptionName( "--branch,-b" )]
                                        string? branch = null,
-                                       [Description( "Maximal Degree of Parallelism. By default, builds are as parallel as possible." )]
+                                       [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
                                        string? maxDop = null,
                                        [Description( "Publish all the Repos, not only the ones that consume or produce the current repositories." )]
                                        bool all = false,
@@ -224,7 +223,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
 
     static bool HandleMaxDop( IActivityMonitor monitor, string? maxDop, out int vMaxDop )
     {
-        if( maxDop == null ) vMaxDop = int.MaxValue;
+        if( maxDop == null ) vMaxDop = Environment.ProcessorCount;
         else if( !int.TryParse( maxDop, out vMaxDop ) || vMaxDop <= 0 )
         {
             monitor.Error( "Invalid --max-dop value. Must be an integer greater than 0." );

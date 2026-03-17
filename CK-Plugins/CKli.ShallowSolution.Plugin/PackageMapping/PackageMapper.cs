@@ -35,7 +35,7 @@ public sealed class PackageMapper : IPackageMapping
     /// </summary>
     public PackageMapper()
     {
-        _mapping = new Dictionary<string, object>();
+        _mapping = new Dictionary<string, object>( StringComparer.OrdinalIgnoreCase );
     }
 
     /// <inheritdoc />

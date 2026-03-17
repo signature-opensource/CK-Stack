@@ -2,10 +2,7 @@ using CK.Core;
 using CKli.Core;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
-using System.Text;
-using static CKli.Core.World;
 
 namespace CKli.BranchModel.Plugin;
 
