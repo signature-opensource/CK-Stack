@@ -208,11 +208,12 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // the hot graph will be the most instable one of all the repositories (but at least as stable as the
         // branchName resolved above of course).
         var hotGraph = _branchModel.GetHotGraph( monitor, branchName, pivots );
-        if( hotGraph == null )
-        {
-            return null;
-        }
-        var roadmap = new Roadmap( _versionTags, hotGraph, isPullBuild, isDevBuild );
+        if( hotGraph == null ) return null;
+
+        var packageUpdater = hotGraph.GetPackageUpdater( monitor );
+        if( packageUpdater == null ) return null;
+
+        var roadmap = new Roadmap( _versionTags, hotGraph, packageUpdater, isPullBuild, isDevBuild );
         if( !roadmap.Initialize( monitor ) )
         {
             return null;

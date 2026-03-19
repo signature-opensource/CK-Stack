@@ -16,24 +16,23 @@ namespace CKli.Build.Plugin;
 
 public sealed partial class BuildPlugin
 {
-    internal sealed class RoadmapBuilder
+    internal sealed class RoadmapExecutor
     {
         readonly Roadmap _roadmap;
         readonly BuildPlugin _buildPlugin;
         readonly Channel<object> _channel;
         readonly CKliEnv _context;
         readonly int _maxDoP;
-        readonly ConcurrentDictionary<string, SVersion> _mapping;
-        readonly IPackageMapping _packageMapping;
+        readonly ConcurrentDictionary<string, SVersion> _buildMapping;
+        readonly Mapping _packageMapping;
         readonly bool? _runTest;
         readonly bool _singleBuild;
 
-        public RoadmapBuilder( BuildPlugin buildPlugin,
-                               CKliEnv context,
-                               Roadmap roadmap,
-                               bool? runTest,
-                               int maxDoP,
-                               ConcurrentDictionary<string, SVersion> mapping )
+        public RoadmapExecutor( BuildPlugin buildPlugin,
+                                CKliEnv context,
+                                Roadmap roadmap,
+                                bool? runTest,
+                                int maxDoP )
         {
             Throw.DebugAssert( maxDoP >= 1 );
             Throw.DebugAssert( roadmap.SolutionBuildCount >= 1 );
@@ -41,12 +40,36 @@ public sealed partial class BuildPlugin
             _singleBuild = roadmap.SolutionBuildCount == 1;
             _runTest = runTest;
             _maxDoP = maxDoP;
-            _mapping = mapping;
-            _packageMapping = BrutalPackageMapper.Create( mapping );
+            _buildMapping = new ConcurrentDictionary<string, SVersion>();
+            _packageMapping = new Mapping( roadmap.PackageUpdater.PackageMapping, _buildMapping );
             _buildPlugin = buildPlugin;
             _context = context;
             _channel = Channel.CreateUnbounded<object>( new UnboundedChannelOptions() { SingleReader = true } );
         }
+
+        sealed class Mapping : IPackageMapping
+        {
+            readonly IPackageMapping _graphMapper;
+            readonly ConcurrentDictionary<string, SVersion> _buildMapping;
+
+            public Mapping( IPackageMapping mapper, ConcurrentDictionary<string, SVersion> buildMapping )
+            {
+                _buildMapping = buildMapping;
+                _graphMapper = mapper;
+            }
+
+            public bool IsEmpty => _graphMapper.IsEmpty && _buildMapping.Count == 0;
+
+            public SVersion? GetMappedVersion( string packageId, SVersion from )
+            {
+                return _buildMapping.TryGetValue( packageId, out var version )
+                            ? version
+                            : _graphMapper.GetMappedVersion( packageId, from );
+            }
+
+            public bool HasMapping( string packageId ) => _buildMapping.ContainsKey( packageId ) || _graphMapper.HasMapping( packageId );
+        }
+
 
         internal async Task<bool> BuildAsync( IActivityMonitor monitor )
         {
@@ -107,8 +130,10 @@ public sealed partial class BuildPlugin
                 }
                 else
                 {
-                    if( req.Success )
+                    if( req.BuildResult != null )
                     {
+
+
                         if( !hasError )
                         {
                             --remainingCount;
@@ -145,7 +170,6 @@ public sealed partial class BuildPlugin
         sealed class MonitorRequest
         {
             readonly TaskCompletionSource<IActivityMonitor> _initialize;
-            readonly TaskCompletionSource _finalize;
             readonly ChannelWriter<object> _writer;
             readonly Roadmap.BuildInfo _build;
             string _message;
@@ -154,7 +178,6 @@ public sealed partial class BuildPlugin
             public MonitorRequest( ChannelWriter<object> writer, Roadmap.BuildInfo build )
             {
                 _initialize = new TaskCompletionSource<IActivityMonitor>( TaskCreationOptions.RunContinuationsAsynchronously );
-                _finalize = new TaskCompletionSource( TaskCreationOptions.RunContinuationsAsynchronously );
                 _writer = writer;
                 _build = build;
                 _message = $"Building roadmap n°{build.Solution.BuildNumber}/{build.Solution.Roadmap.SolutionBuildCount}: '{build.Solution.Repo.DisplayPath}'.";
@@ -172,7 +195,7 @@ public sealed partial class BuildPlugin
 
             public string Message => _message;
 
-            public bool Success => _buildResult != null;
+            public BuildResult? BuildResult => _buildResult;
 
             public void SetMonitor( IActivityMonitor monitor, IActivityMonitor available )
             {
@@ -217,12 +240,12 @@ public sealed partial class BuildPlugin
             {
                 return null;
             }
-            var result = await _buildPlugin.CoreBuildAsync( monitor, _context, build.VersionInfo, commit, build.TargetVersion, _runTest, forceRebuild: false );
+            var result = await _buildPlugin.CoreBuildAsync( monitor, _context, build.Solution.VersionInfo.VersionTagInfo, commit, build.TargetVersion, _runTest, forceRebuild: false );
             if( result != null )
             {
                 foreach( var p in result.Content.Produced )
                 {
-                    _mapping.TryAdd( p, result.Version );
+                    _buildMapping.TryAdd( p, result.Version );
                 }
             }
             return result;

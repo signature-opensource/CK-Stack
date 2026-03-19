@@ -5,11 +5,13 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
+using CSemVer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -21,6 +23,9 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     readonly ArtifactHandlerPlugin _artifactHandler;
     internal readonly ShallowSolutionPlugin _shallowSolution;
     readonly PerfectEventSender<FixWorkflowStartEventArgs> _onFixStart;
+
+    Dictionary<string, SVersion>? _externalPackages;
+    static readonly Dictionary<string, SVersion> _noExternalPackages = new Dictionary<string, SVersion>();
 
     /// <summary>
     /// This is a primary plugin.
@@ -210,7 +215,10 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             {
                 // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
                 // instances.
-                var graph = new HotGraph( branchName, allRepos, pivots );
+                var externalPackages = GetExternalPackages( monitor );
+                if( externalPackages == null ) return null;
+
+                var graph = new HotGraph( branchName, allRepos, pivots, _versionTags, externalPackages );
                 bool hasPivots = graph.HasPivots;
                 foreach( var repo in allRepos )
                 {
@@ -227,8 +235,34 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 // The solutions have been successfully added. The mappings from "package name" (that are the project names)
                 // to the solutions are non ambiguous. We can start the topological sort.
                 // The sort starts with the pivots (this will walk all the dependencies and sets the IsPivotUpstream).
-                return graph.TopologicalSort( monitor ) ? graph : null;
+                return graph.TopologicalSort( monitor )
+                        ? graph
+                        : null;
             }
+        }
+    }
+
+    Dictionary<string, SVersion>? GetExternalPackages( IActivityMonitor monitor )
+    {
+        try
+        {
+            return _externalPackages ??= PrimaryPluginContext.Configuration.XElement
+                                                    .Elements( "Packages" )
+                                                    .Elements( "Package" )
+                                                    .ToDictionary( e => (string)e.Attribute( XNames.Name )!,
+                                                                    e => SVersion.Parse( (string)e.Attribute( XNames.Version )! ) );
+        }
+        catch( Exception ex )
+        {
+            monitor.Error( $"""
+                Unable to read:
+                <Packages>
+                    <Package Name="..." Version="..." />  
+                </Packages>
+                from:
+                {PrimaryPluginContext.Configuration.XElement}
+                """ );
+            return null;
         }
     }
 

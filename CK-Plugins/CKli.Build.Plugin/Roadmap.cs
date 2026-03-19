@@ -23,12 +23,14 @@ public sealed partial class Roadmap
     readonly bool _isDevBuild;
     readonly ImmutableArray<BuildSolution> _orderedSolutions;
     readonly ImmutableArray<BuildSolution> _pivots;
+    readonly HotGraph.PackageUpdater _packageUpdater;
     int _buildSolutionCount;
 
-    internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, bool isPullBuild, bool isDevBuild )
+    internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, HotGraph.PackageUpdater packageUpdater, bool isPullBuild, bool isDevBuild )
     {
         _versionTags = versionTags;
         _graph = graph;
+        _packageUpdater = packageUpdater;
         _isPullBuild = isPullBuild;
         _isDevBuild = isDevBuild;
         var buildSolutions = new BuildSolution[graph.Solutions.Count];
@@ -36,8 +38,9 @@ public sealed partial class Roadmap
         int iPivot = 0;
         foreach( var s in graph.OrderedSolutions )
         {
-            Throw.DebugAssert( "one solution is a pivot => the graph has pivots.", !s.IsPivot || graph.HasPivots );
-            var sR = new BuildSolution( this, s );
+            Throw.DebugAssert( "One solution is a pivot => the graph has pivots.", !s.IsPivot || graph.HasPivots );
+            Throw.DebugAssert( "PackageUpdater is available => all SolutionVersionInfo are available.", s.VersionInfo != null );
+            var sR = new BuildSolution( this, s, s.VersionInfo );
             buildSolutions[s.OrderedIndex] = sR;
             if( s.IsPivot )
             {
@@ -77,22 +80,23 @@ public sealed partial class Roadmap
     /// </summary>
     public bool IsDevBuild => _isDevBuild;
 
+    /// <summary>
+    /// Gets the package updater for the graph.
+    /// </summary>
+    public HotGraph.PackageUpdater PackageUpdater => _packageUpdater;
+
     internal bool Initialize( IActivityMonitor monitor )
     {
-        if( !_versionTags.TryGetAllWithoutIssue( monitor, out var allVersionTags ) )
-        {
-            return false;
-        }
         foreach( var s in _pivots )
         {
-            if( !s.InitializeFromPivot( monitor, allVersionTags ) )
+            if( !s.InitializeFromPivot( monitor ) )
             {
                 return false;
             }
         }
         foreach( var s in _orderedSolutions )
         {
-            if( !s.InitializeFinal( monitor, allVersionTags ) )
+            if( !s.InitializeFinal( monitor ) )
             {
                 return false;
             }
@@ -114,55 +118,24 @@ public sealed partial class Roadmap
             return Task.FromResult( true );
         }
 
-        bool hasDirtyFolder = false;
-        var mapping = new ConcurrentDictionary<string,SVersion>( StringComparer.OrdinalIgnoreCase );
         foreach( var s in _orderedSolutions )
         {
             if( s.Repo.GitStatus.IsDirty )
             {
-                hasDirtyFolder = true;
-                break;
-            }
-            // When a solution must not be built, we must know the "current" package versions
-            // to be able to upgrade dependencies in the built projects.
-            if( !s.MustBuild )
-            {
-                var already = s.BuildInfo?.AlreadyBuilt;
-                Throw.DebugAssert( "Has been checked in InitializeFromPivot.",
-                                    already == null || already.BuildContentInfo != null );
-                if( already == null )
-                {
-                    already = _versionTags.Get( monitor, s.Repo ).FindFirst( s.Solution.GitSolution.GitBranch.Commits, out _ );
-                    if( already?.BuildContentInfo == null )
-                    {
-                        monitor.Error( $"Unable to find a version tag for '{s.Solution.GitSolution}'." );
-                        return Task.FromResult( false );
-                    }
-                }
-                foreach( var p in already.BuildContentInfo!.Produced )
-                {
-                    if( !mapping.TryAdd( p, already.Version ) )
-                    {
-                        Throw.CKException( "Package identifier conflict." );
-                    }
-                }
-            }
-        }
-        if( hasDirtyFolder )
-        {
-            int c = _orderedSolutions.Count( s => s.Repo.GitStatus.IsDirty );
-            monitor.Error( c > 1
-                            ? $"""
-                            Git repositories '{_orderedSolutions.Where( s => s.Repo.GitStatus.IsDirty ).Select( s => s.Repo.DisplayPath.Path ).Concatenate("', '")}' are dirty.
+                int c = _orderedSolutions.Count( s => s.Repo.GitStatus.IsDirty );
+                monitor.Error( c > 1
+                                ? $"""
+                            Git repositories '{_orderedSolutions.Where( s => s.Repo.GitStatus.IsDirty ).Select( s => s.Repo.DisplayPath.Path ).Concatenate( "', '" )}' are dirty.
                             Changes must be committed first.
                             """
-                            : $"""
+                                : $"""
                             Git repository '{_orderedSolutions.First( s => s.Repo.GitStatus.IsDirty ).Repo.DisplayPath.Path}' is dirty.
                             Changes must be committed first.
                             """ );
-            return Task.FromResult( false );
+                return Task.FromResult( false );
+            }
         }
-        var builder = new BuildPlugin.RoadmapBuilder( buildPlugin, context, this, runTest, maxDop, mapping );
+        var builder = new BuildPlugin.RoadmapExecutor( buildPlugin, context, this, runTest, maxDop );
         return builder.BuildAsync( monitor );
     }
 

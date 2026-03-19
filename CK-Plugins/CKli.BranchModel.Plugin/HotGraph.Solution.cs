@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
+using CKli.VersionTag.Plugin;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -9,8 +10,9 @@ namespace CKli.BranchModel.Plugin;
 
 public sealed partial class HotGraph
 {
+
     /// <summary>
-    /// Models a solution to build.
+    /// Models a <see cref="HotGraph"/>'s solution bound to a <see cref="Branch"/>.
     /// </summary>
     public sealed class Solution : IComparable<Solution>
     {
@@ -19,6 +21,7 @@ public sealed partial class HotGraph
         readonly GitSolution _solution;
         readonly List<Solution> _directRequirements;
         readonly HashSet<Solution> _allRequirements;
+        SolutionVersionInfo? _versionInfo;
         string? _toString;
         int _rank;
         readonly bool _isPivot;
@@ -40,12 +43,18 @@ public sealed partial class HotGraph
         }
 
         /// <summary>
+        /// Gets the graph that contains this solution.
+        /// </summary>
+        public HotGraph Graph => _graph;
+
+        /// <summary>
         /// Gets the repository.
         /// </summary>
         public Repo Repo => _solution.Repo;
 
         /// <summary>
-        /// Gets the branch name from which this <see cref="GitSolution"/> has been read.
+        /// Gets the branch name from which this <see cref="GitSolution"/> has been read: it is the closest
+        /// active branch from the <see cref="HotGraph.BranchName"/>.
         /// </summary>
         public HotBranch Branch => _actual;
 
@@ -65,16 +74,15 @@ public sealed partial class HotGraph
         public IReadOnlySet<Solution> AllRequirements => _allRequirements;
 
         /// <summary>
-        /// Gets the shallow solution.
+        /// Gets the shallow solution. This is loaded from the "dev/<see cref="Branch"/>" branch if it exists or from the <see cref="Branch"/>.
         /// </summary>
         public GitSolution GitSolution => _solution;
 
         /// <summary>
         /// Gets whether this solution is one of the <see cref="HotGraph.Pivots"/>.
         /// <para>
-        /// This is false when <see cref="HotGraph.HasPivots"/> is false. Since in this case every solution is a pivot... or not,
-        /// we chose to to keep false for everything (<see cref="IsPivotUpstream"/> and <see cref="IsPivotUpstream"/> are also
-        /// false).
+        /// This is false when <see cref="HotGraph.HasPivots"/> is false. Since in this case every solution is a (or is not a) pivot,
+        /// we chose to to keep false for everything (<see cref="IsPivotUpstream"/> and <see cref="IsPivotUpstream"/> are also false).
         /// </para>
         /// </summary>
         public bool IsPivot => _isPivot;
@@ -94,6 +102,36 @@ public sealed partial class HotGraph
         /// </summary>
         public int OrderedIndex { get; internal set; }
 
+        /// <summary>
+        /// Gets the version related information.
+        /// <see cref="HotGraph.GetPackageUpdater(IActivityMonitor)"/> must have been successfully called
+        /// for this information to be available.
+        /// </summary>
+        public SolutionVersionInfo? VersionInfo => _versionInfo;
+
+        internal SolutionVersionInfo? ComputeVersionInfo( IActivityMonitor monitor, VersionTagInfo? vInfo )
+        {
+            Throw.DebugAssert( _versionInfo == null );
+            if( vInfo == null ) return null;
+            Throw.DebugAssert( vInfo.Repo == Repo );
+            // Temporary: this works for "stable" only scenario. With multiple
+            // hot branches this will be more complicated.
+            var lastBuild = vInfo.FindFirst( _solution.GitBranch.Commits, out _ );
+            if( lastBuild == null )
+            {
+                monitor.Error( $"Unable to find a version tag for '{_solution}'." );
+                return null;
+            }
+            if( lastBuild.BuildContentInfo == null )
+            {
+                monitor.Warn( $"Last build tag for '{_solution}' is '{lastBuild.Version.ParsedText}'. It requires a build." );
+            }
+            return _versionInfo = new SolutionVersionInfo( this, vInfo, lastBuild );
+        }
+
+        /// <summary>
+        /// This drives the <see cref="HotGraph.OrderedSolutions"/> list.
+        /// </summary>
         int IComparable<Solution>.CompareTo( Solution? other )
         {
             if( other == null ) return 1;

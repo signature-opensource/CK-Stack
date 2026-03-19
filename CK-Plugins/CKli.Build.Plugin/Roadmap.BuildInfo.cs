@@ -1,9 +1,9 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
+using CKli.BranchModel.Plugin;
 using CKli.VersionTag.Plugin;
 using CSemVer;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Threading;
@@ -13,80 +13,62 @@ namespace CKli.Build.Plugin;
 
 public sealed partial class Roadmap
 {
-    public enum VersionChange
-    {
-        None,
-        Patch,
-        Minor,
-        Major
-    }
 
     public sealed class BuildInfo
     {
-        readonly SVersion _baseVersion;
+        readonly BuildSolution _solution;
         readonly VersionChange _versionChange;
         readonly SVersion _targetVersion;
         readonly ImmutableArray<BuildSolution> _directRequirements;
-        readonly BuildSolution _solution;
-        readonly TagCommit? _alreadyBuilt;
-        readonly VersionTagInfo _versionInfo;
+        readonly MustBuildReason _buildReason;
 
         readonly Lock _buildTaskLock;
-        Task<BuildResult?>? _build;
+        Task<BuildResult?>? _buildTask;
 
         public BuildInfo( BuildSolution solution,
-                          TagCommit? alreadyBuilt,
-                          VersionTag.Plugin.VersionTagInfo versionInfo,
-                          SVersion baseVersion,
+                          MustBuildReason buildReason,
                           VersionChange versionChange,
                           SVersion targetVersion,
                           BuildSolution[]? directRequirements )
         {
             _solution = solution;
-            _alreadyBuilt = alreadyBuilt;
-            _versionInfo = versionInfo;
-            _baseVersion = baseVersion;
+            _buildReason = buildReason;
             _versionChange = versionChange;
             _targetVersion = targetVersion;
             _directRequirements = directRequirements != null
                                     ? ImmutableCollectionsMarshal.AsImmutableArray( directRequirements )
                                     : [];
             _buildTaskLock = new Lock();
-            Throw.DebugAssert( "mustBuild => at least Patch", alreadyBuilt != null || versionChange >= VersionChange.Patch );
+            Throw.DebugAssert( "mustBuild => at least Patch", buildReason == MustBuildReason.None || versionChange >= VersionChange.Patch );
         }
+
+        public BuildSolution Solution => _solution;
 
         /// <summary>
         /// Gets whether this solution must be built.
         /// </summary>
-        [MemberNotNullWhen( false, nameof( AlreadyBuilt ) )]
-        public bool MustBuild => _alreadyBuilt == null;
+        public bool MustBuild => _buildReason != MustBuildReason.None;
 
-        public TagCommit? AlreadyBuilt => _alreadyBuilt;
+        public MustBuildReason BuildReason => _buildReason;
 
         public VersionChange VersionChange => _versionChange;
-
-        public VersionTagInfo VersionInfo => _versionInfo;
-
-        public SVersion BaseVersion => _baseVersion;
 
         public SVersion TargetVersion => _targetVersion;
 
         public ImmutableArray<BuildSolution> DirectRequirements => _directRequirements;
 
-        public BuildSolution Solution => _solution;
-
-        internal Task<BuildResult?> BuildAsync( BuildPlugin.RoadmapBuilder builder )
+        internal Task<BuildResult?> BuildAsync( BuildPlugin.RoadmapExecutor builder )
         {
-            if( _build != null ) return _build;
+            if( _buildTask != null ) return _buildTask;
             lock( _buildTaskLock )
             {
-                return _build ??= DoBuildAsync( builder );
+                return _buildTask ??= DoBuildAsync( builder );
             }
         }
 
-        async Task<BuildResult?> DoBuildAsync( BuildPlugin.RoadmapBuilder builder )
+        async Task<BuildResult?> DoBuildAsync( BuildPlugin.RoadmapExecutor builder )
         {
-            Throw.DebugAssert( _alreadyBuilt == null );
+            Throw.DebugAssert( MustBuild );
             // Wait for requirements.
             if( _directRequirements.Length > 0 )
             {

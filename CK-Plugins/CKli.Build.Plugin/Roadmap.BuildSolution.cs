@@ -6,7 +6,6 @@ using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
@@ -20,26 +19,32 @@ public sealed partial class Roadmap
     {
         readonly Roadmap _roadmap;
         readonly HotGraph.Solution _solution;
+        readonly HotGraph.SolutionVersionInfo _versionInfo;
         BuildInfo? _buildInfo;
         int _buildNumber;
 
-        internal BuildSolution( Roadmap roadmap, HotGraph.Solution solution )
+        internal BuildSolution( Roadmap roadmap, HotGraph.Solution solution, HotGraph.SolutionVersionInfo versionInfo )
         {
             _roadmap = roadmap;
             _solution = solution;
+            _versionInfo = versionInfo;
         }
 
-        internal bool InitializeFromPivot( IActivityMonitor monitor, ImmutableArray<VersionTagInfo> allVersionTags )
+        internal bool InitializeFromPivot( IActivityMonitor monitor )
         {
             // If the _buildInfo has already been computed, we simply return true. We don't have to handle cycles
             // here: they have already been detected by the HotGraph.
             //
             // If we are building without checking upstreams (_roadmap._isPullBuild is false), it doesn't mean that we
-            // must ignore the upstreams, it means that we must only consider the upstreams that ARE pivots: the other
-            // repositories are ignored, as if no development have been made in them.
+            // must ignore the upstreams, it means that we must only consider (in this first step) the upstreams that ARE pivots:
+            // the other repositories are ignored, as if they don't exist (as if no development have been made in them).
             // => This is why we also shortcut, return true (no error) and let the _buildInfo be null if we are building
-            //    without upstreams and this repo is not a pivot.
-            //    Note that when no Repo are pivots (all of them are), this is like building with upstreams. 
+            //    without upstreams and this repo is not a pivot: from the downstream caller point of view, this solution doesn't
+            //    need to be built.
+            // 
+            //    Note that when no Repo are pivots (all of them are), this is like building with upstreams (build == *build). 
+            //
+            // => This null _buildInfo will be handled during the InitializeFinal() second step.
             //
             if( _buildInfo != null || (!_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot) )
             {
@@ -48,85 +53,53 @@ public sealed partial class Roadmap
 
             using var _ = monitor.OpenTrace( $"Computing BuildInfo for '{_solution.Repo.DisplayPath}'." );
 
-            var versionInfo = allVersionTags[Repo.Index];
-            Throw.DebugAssert( "This has been checked when initializing Roadmap.", !versionInfo.HasIssue );
-
-            VersionChange vChange = VersionChange.None;
-            TagCommit baseCommit = versionInfo.HotZone.LastStable;
-
-            // If we ignore the upstreams, we let the directRequirements be null: if it happens
-            // that the build is not required, this data is useless.
-            BuildSolution[]? directRequirements = null;
-            bool mustBuildFromUpstreams = false;
+            MustBuildReason buildReason = MustBuildReason.None;
             if( !InitializeUpstreams( monitor,
-                                      allVersionTags,
                                       finalInitialize: false,
-                                      out directRequirements,
-                                      out vChange,
-                                      out mustBuildFromUpstreams ) )
+                                      out BuildSolution[] directRequirements,
+                                      out VersionChange vChange,
+                                      out bool mustBuildFromUpstreams ) )
             {
                 return false;
             }
-            bool mustBuild = mustBuildFromUpstreams;
-            var commit = _solution.GitSolution.GitBranch.Tip;
-            if( !mustBuild )
+            if( mustBuildFromUpstreams )
             {
-                // If this commit has already been built, build is useless.
-                var targetCommit = versionInfo.TagCommitsBySha.GetValueOrDefault( commit.Sha );
-                if( targetCommit != null )
-                {
-                    if( targetCommit.BuildContentInfo != null )
-                    {
-                        var existingChange = ComputeVersionChange( baseCommit.Version, targetCommit.Version );
-                        if( vChange < existingChange )
-                        {
-                            vChange = existingChange;
-                        }
-                        // If the targetVersion is not a post-release (with the -- trick) and roadmap.IsCIBuild is true,
-                        // this is where we could force a CI build instead of reusing the last version.
-                        //
-                        // Note that this makes sense only if the branch is bound to "Release build configuration": if the branch
-                        // uses "Debug build configuration", generating a CI build here would be useless.
-                        //
-                        _buildInfo = new BuildInfo( this, targetCommit, versionInfo, baseCommit.Version, vChange, targetCommit.Version, directRequirements );
-                        return true;
-                    }
-                    else
-                    {
-                        monitor.Warn( $"Branch '{Repo.DisplayPath}/{_solution.GitSolution.GitBranch.FriendlyName}' {targetCommit} has no content info. Build is required." ); 
-                    }
-                }
-                mustBuild = true;
+                buildReason = MustBuildReason.Upstream;
             }
+            else if( _versionInfo.VersionMustBuild )
+            {
+                buildReason = MustBuildReason.Version;
+            }
+            else if( Roadmap.PackageUpdater.HasUpdates( _solution ) )
+            {
+                buildReason = MustBuildReason.DependencyUpdate;
+            }
+            else if( _versionInfo.IsAlreadyBuilt )
+            {
+                // We compute the version change not for us (this solution will not be built) but for
+                // the downstream solutions to correctly propagate the change level (here it may be None).
+                vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _versionInfo.LastBuild.Version );
+                _buildInfo = new BuildInfo( this, MustBuildReason.None, vChange, _versionInfo.LastBuild.Version, directRequirements );
+                return true;
+            }
+            // This handles None => CodeChange for the !IsAlreadyBuilt case.
+            if( _versionInfo.HasCodeChange ) buildReason |= MustBuildReason.CodeChange;
 
-            // We must build (from the upstream repositories or because the branch's tip has not been built yet).
+            Throw.DebugAssert( "We must build.", buildReason != MustBuildReason.None );
             // If the upstream doesn't force a Major, we must compute the change from the code in this repository
             // and eventually compute the target version.
-            SVersion targetVersion = ComputeTargetVersion( monitor, versionInfo, ref vChange, baseCommit, commit, mustBuildFromUpstreams );
+            SVersion targetVersion = ComputeTargetVersion( monitor,
+                                                           ref vChange,
+                                                           mustAddCommit: buildReason != MustBuildReason.CodeChange );
 
-            // If the upstreams are ignored, because here we must be built, we need to
-            // know our requirements to be able to compute our BuildIndex during the
-            // second pass.
-            if( directRequirements == null )
-            {
-                var solutionRequirements = _solution.DirectRequirements;
-                directRequirements = new BuildSolution[solutionRequirements.Count];
-                int idxReq = 0;
-                foreach( var req in solutionRequirements )
-                {
-                    directRequirements[idxReq++] = _roadmap.OrderedSolutions[req.Repo.Index];
-                }
-            }
-            _buildInfo = new BuildInfo( this, null, versionInfo, baseCommit.Version, vChange, targetVersion, directRequirements );
+            _buildInfo = new BuildInfo( this, buildReason, vChange, targetVersion, directRequirements );
             _roadmap._buildSolutionCount++;
             return true;
-
         }
 
         bool InitializeUpstreams( IActivityMonitor monitor,
-                                  ImmutableArray<VersionTagInfo> allVersionTags,
                                   bool finalInitialize,
-                                  out BuildSolution[]? directRequirements,
+                                  out BuildSolution[] directRequirements,
                                   out VersionChange maxVersionChange,
                                   out bool mustBuild )
         {
@@ -139,8 +112,8 @@ public sealed partial class Roadmap
             {
                 var sReq = _roadmap.OrderedSolutions[req.OrderedIndex];
                 if( !(finalInitialize
-                        ? sReq.InitializeFinal( monitor, allVersionTags )
-                        : sReq.InitializeFromPivot( monitor, allVersionTags )) )
+                        ? sReq.InitializeFinal( monitor )
+                        : sReq.InitializeFromPivot( monitor )) )
                 {
                     return false;
                 }
@@ -187,14 +160,11 @@ public sealed partial class Roadmap
         }
 
         SVersion ComputeTargetVersion( IActivityMonitor monitor,
-                                       VersionTagInfo versionInfo,
                                        ref VersionChange vChange,
-                                       TagCommit baseCommit,
-                                       Commit commit,
                                        bool mustAddCommit )
         {
             bool isPrerelease = _roadmap._graph.BranchName.Index != 0;
-            SVersion baseVersion = baseCommit.Version;
+            SVersion baseVersion = _versionInfo.BaseBuild.Version;
             int prereleaseNumber = -1;
             int prereleaseFixNumber = 0;
             char prereleaseChar = (char)0;
@@ -204,64 +174,51 @@ public sealed partial class Roadmap
             }
             if( vChange != VersionChange.Major )
             {
-                // Consider all the commits that participate to this code base from the base commit (the LastStable).
-                var commitsLog = Repo.GitRepository.Repository.Commits.QueryBy( new CommitFilter()
-                {
-                    IncludeReachableFrom = commit,
-                    ExcludeReachableFrom = baseCommit.Commit,
-                    SortBy = CommitSortStrategies.Time | CommitSortStrategies.Reverse
-                } );
-                // Fast path: join the version tag infos and detect a Major change.
-                // Use this first traversal to concretize the list of commits and cache it and 
-                // if on a prerelease branch (not on the root "stable"), we compute the "prerelease and fix number" by
+                // Tries to detect a Major change.
+                // If on a prerelease branch (not on the root "stable"), we compute the "prerelease and fix number" by
                 // keeping the highest among existing versions for this prerelease in the hot commits.
-                List<Commit> hotCommits = new List<Commit>();
-                foreach( var c in commitsLog )
+                foreach( var tc in _versionInfo.TagCommitsFromBaseBuild )
                 {
-                    hotCommits.Add( c );
-                    if( versionInfo.TagCommitsBySha.TryGetValue( c.Sha, out TagCommit? tc ) )
+                    var existingChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, tc.Version );
+                    if( vChange < existingChange )
                     {
-                        var existingChange = ComputeVersionChange( baseCommit.Version, tc.Version );
-                        if( vChange < existingChange )
+                        vChange = existingChange;
+                        if( !isPrerelease && vChange == VersionChange.Major )
                         {
-                            vChange = existingChange;
-                            if( !isPrerelease && vChange == VersionChange.Major )
-                            {
-                                // If we are handling regular versions, we don't need the commits, we can
-                                // stop right now.
-                                break;
-                            }
+                            // If we are handling regular versions, we don't need the commits, we can
+                            // stop right now.
+                            break;
                         }
-                        // Handling prerelease: compute the "prerelease and fix number".
-                        if( isPrerelease )
+                    }
+                    // Handling prerelease: compute the "prerelease and fix number".
+                    if( isPrerelease )
+                    {
+                        var prerelease = tc.Version.Prerelease.AsSpan();
+                        // If the prerelease string cannot be parsed, this is a warning and we ignore the version.
+                        if( prerelease.TryMatch( prereleaseChar )
+                            && ParsePreleaseSuffix( monitor, tc.Version, prerelease, out var preNum, out var fixNum, out bool isCI ) )
                         {
-                            var prerelease = tc.Version.Prerelease.AsSpan();
-                            // If the prerelease string cannot be parsed, this is a warning and we ignore the version.
-                            if( prerelease.TryMatch( prereleaseChar )
-                                && ParsePreleaseSuffix( monitor, tc.Version, prerelease, out var preNum, out var fixNum, out bool isCI ) )
+                            if( prereleaseNumber < preNum )
                             {
-                                if( prereleaseNumber < preNum )
+                                prereleaseNumber = preNum;
+                                prereleaseFixNumber = fixNum;
+                            }
+                            else if( prereleaseNumber == preNum )
+                            {
+                                if( prereleaseFixNumber < fixNum )
                                 {
-                                    prereleaseNumber = preNum;
                                     prereleaseFixNumber = fixNum;
                                 }
-                                else if( prereleaseNumber == preNum )
-                                {
-                                    if( prereleaseFixNumber < fixNum )
-                                    {
-                                        prereleaseFixNumber = fixNum;
-                                    }
-                                }
                             }
                         }
-
                     }
                 }
+
                 // If the tag version lookup failed to find a major change, then takes the slow path:
                 // consider the commit messages.
                 if( vChange != VersionChange.Major )
                 {
-                    foreach( var c in hotCommits )
+                    foreach( var c in _versionInfo.CommitsFromBaseBuild )
                     {
                         var detectedChange = DetectVersionChange( c, noNone: true );
                         if( vChange < detectedChange )
@@ -273,6 +230,7 @@ public sealed partial class Roadmap
                             }
                         }
                     }
+
                     // Ultimately use Patch.
                     if( vChange == VersionChange.None ) vChange = VersionChange.Patch;
                 }
@@ -281,7 +239,8 @@ public sealed partial class Roadmap
             SVersion? targetVersion;
             if( _roadmap._isDevBuild )
             {
-                var d = Repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( baseCommit.Commit, commit );
+                var d = Repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( _versionInfo.BaseBuild.Commit,
+                                                                                                 _versionInfo.GitSolution.GitBranch.Tip );
                 Throw.DebugAssert( d.CommonAncestor != null && d.BehindBy is not null );
                 int buildNumber = d.BehindBy.Value;
                 if( mustAddCommit ) ++buildNumber;
@@ -444,8 +403,7 @@ public sealed partial class Roadmap
 
         }
 
-        internal bool InitializeFinal( IActivityMonitor monitor,
-                                       ImmutableArray<VersionTagInfo> allVersionTags )
+        internal bool InitializeFinal( IActivityMonitor monitor )
         {
             // During the first pass (from pivot), either we:
             // - have met the solution and _buildInfo is not null (MustBuild is true or false).
@@ -455,27 +413,25 @@ public sealed partial class Roadmap
             {
                 // This solution has not been impacted by the pivots (because it is not a pivot and doesn't require
                 // a pivot or we ignore the upstreams): we analyze the direct requirements and if one of them must be built, then we must
-                // also be built (and we initialize the build index).
+                // also be built.
+                // We don't build for any other reasons (the LastBuild may be a "+fake" or a "+deprecated"), the package dependencies
+                // may require an update or new commits are available): this is the whole point of the "Pivots".
+                // They select a "scope" of solutions that must guaranty a coherent set of dependency versions.
+                // This is a weak guaranty (especially the "build"): to fully handle a stack, the build must be ran at the root.
+                // 
                 if( !InitializeUpstreams( monitor,
-                                          allVersionTags,
                                           finalInitialize: true,
-                                          out var directRequirements,
-                                          out var vChange,
+                                          out BuildSolution[] directRequirements,
+                                          out VersionChange vChange,
                                           out bool mustBuild ) )
                 {
                     return false;
                 }
                 if( mustBuild )
                 {
-                    var versionInfo = allVersionTags[Repo.Index];
-                    Throw.DebugAssert( "This has been checked when initializing Roadmap.", !versionInfo.HasIssue );
-
-                    TagCommit baseCommit = versionInfo.HotZone.LastStable;
-                    SVersion targetVersion = ComputeTargetVersion( monitor, versionInfo, ref vChange, baseCommit, _solution.GitSolution.GitBranch.Tip, true );
+                    SVersion targetVersion = ComputeTargetVersion( monitor, ref vChange, true );
                     _buildInfo = new BuildInfo( this,
-                                                null,
-                                                versionInfo,
-                                                baseCommit.Version,
+                                                MustBuildReason.Upstream,
                                                 vChange,
                                                 targetVersion,
                                                 directRequirements );
@@ -499,6 +455,16 @@ public sealed partial class Roadmap
         /// Gets the solution.
         /// </summary>
         public HotGraph.Solution Solution => _solution;
+
+        /// <summary>
+        /// Gets the version related information.
+        /// </summary>
+        public HotGraph.SolutionVersionInfo VersionInfo => _versionInfo;
+
+        /// <summary>
+        /// Gets the base version (the <see cref="VersionTagInfo.HotZoneInfo.LastStable"/> version).
+        /// </summary>
+        public SVersion BaseVersion => _versionInfo.BaseBuild.Version;
 
         /// <summary>
         /// Gets the build info. This is null if this solution is is not impacted
@@ -551,13 +517,12 @@ public sealed partial class Roadmap
                 statusAndName = statusAndName.Box( style );
             }
             r = r.AddRight( statusAndName );
-            if( _buildInfo != null )
+            r = r.AddRight( screen.Text( $" ▻ v{BaseVersion}" ) ).Box( style, paddingRight: 1 );
+            if( MustBuild )
             {
-                r = r.AddRight( screen.Text( $" ▻ v{_buildInfo.BaseVersion}" ) ).Box( style, paddingRight: 1 );
-                if( _buildInfo.MustBuild )
-                {
-                    r = r.AddRight( screen.Text( $"→ v{_buildInfo.TargetVersion}", new TextStyle( ConsoleColor.Green, ConsoleColor.Black ) ) );
-                }
+                Throw.DebugAssert( BuildInfo.BuildReason != MustBuildReason.None );
+                r = r.AddRight( screen.Text( $"→ v{BuildInfo.TargetVersion}", new TextStyle( ConsoleColor.Green, ConsoleColor.Black ) ),
+                                screen.Text( $"({BuildInfo.BuildReason})", TextStyle.Default.With( TextEffect.Italic ) ).Box( paddingLeft: 1 ) );
             }
             return r;
 
@@ -602,7 +567,7 @@ public sealed partial class Roadmap
         public override string ToString() => _buildInfo == null
                                                 ? $"{_solution} [out of scope]"
                                                 : _buildInfo.MustBuild
-                                                    ? $"{_solution} [{_buildInfo.BaseVersion} => {_buildInfo.TargetVersion}]"
+                                                    ? $"{_solution} [{BaseVersion} => {_buildInfo.TargetVersion}]"
                                                     : $"{_solution} [no build]";
     }
 }
