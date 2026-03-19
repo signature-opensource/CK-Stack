@@ -2,9 +2,7 @@ using CK.Core;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
-using CSemVer;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -165,7 +163,7 @@ public sealed partial class Roadmap
             renderables.Add( s.ToRenderable( screen, buildIndexLen, cR ) );
             prevRank = r;
         }
-        return new VerticalContent( screen, renderables.MoveToImmutable() );
+        return new VerticalContent( screen, renderables.MoveToImmutable() ).TableLayout();
     }
 
 }

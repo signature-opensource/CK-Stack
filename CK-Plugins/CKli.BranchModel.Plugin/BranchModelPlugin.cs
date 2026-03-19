@@ -255,13 +255,14 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         catch( Exception ex )
         {
             monitor.Error( $"""
-                Unable to read:
+                Unable to read <Packages> element from <BranchModel> configuration.
+                Expecting:
                 <Packages>
-                    <Package Name="..." Version="..." />  
+                    <Package Name="..." Version="..." />
                 </Packages>
-                from:
+                Configuration is:
                 {PrimaryPluginContext.Configuration.XElement}
-                """ );
+                """, ex );
             return null;
         }
     }

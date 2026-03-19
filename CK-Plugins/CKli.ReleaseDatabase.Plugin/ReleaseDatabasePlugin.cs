@@ -56,6 +56,7 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
             // If we can't find the Repo in the World, it is a "new" external package.
             // We don't track them.
             if( _local.FindProducer( monitor,
+                                     World,
                                      consumed,
                                      out RepoKey? producerKey,
                                      out BuildContentInfo? producerContent,

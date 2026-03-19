@@ -31,4 +31,6 @@ sealed class RepoKey : IEquatable<RepoKey>
     public override bool Equals( object? obj ) => Equals( obj as RepoKey );
 
     public override int GetHashCode() => _hashCode;
+
+    public override string ToString() => $"{RepoId}@{Version}";
 }

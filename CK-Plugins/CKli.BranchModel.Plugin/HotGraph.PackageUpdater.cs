@@ -1,14 +1,9 @@
 using CK.Core;
-using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CSemVer;
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 

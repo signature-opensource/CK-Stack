@@ -88,74 +88,80 @@ public sealed partial class BuildPlugin
 
         async Task<bool> RunLoopAsync( IActivityMonitor monitor )
         {
-            Queue<MonitorRequest>? waitingQueue = null;
-            Queue<IActivityMonitor> pool = new Queue<IActivityMonitor>( Math.Min( _maxDoP, 32 ) );
-            int monitorCount = 0;
-            _ = Task.Run( WaitForTermination );
-            int remainingCount = _roadmap.SolutionBuildCount;
-            bool hasError = false;
-            for(; ; )
+            try
             {
-                var msg = await _channel.Reader.ReadAsync();
-                if( msg is bool finalResult )
+                Queue<MonitorRequest>? waitingQueue = null;
+                Queue<IActivityMonitor> monitorPool = new Queue<IActivityMonitor>( Math.Min( _maxDoP, 32 ) );
+                int monitorCount = 0;
+                _ = WaitForTermination();
+                int remainingCount = _roadmap.SolutionBuildCount;
+                bool hasError = false;
+                for(; ; )
                 {
-                    // There SHOULD never be any pending requests here: all tasks have been completed,
-                    // they have released their monitor.
-                    Throw.DebugAssert( waitingQueue == null || waitingQueue.Count == 0 );
-                    while( pool.TryDequeue( out var m ) )
+                    var msg = await _channel.Reader.ReadAsync();
+                    if( msg is bool finalResult )
                     {
-                        m.MonitorEnd();
-                    }
-                    return finalResult;
-                }
-                Throw.DebugAssert( msg is MonitorRequest );
-                var req = (MonitorRequest)msg;
-                if( req.MustAcquire )
-                {
-                    if( pool.TryDequeue( out var available ) )
-                    {
-                        req.SetMonitor( monitor, available );
-                    }
-                    else if( monitorCount < _maxDoP )
-                    {
-                        req.SetMonitor( monitor, new ActivityMonitor( $"Build Agent n°{monitorCount}." ) );
-                        monitorCount++;
-                    }
-                    else
-                    {
-                        Throw.DebugAssert( _roadmap.SolutionBuildCount > _maxDoP );
-                        waitingQueue ??= new Queue<MonitorRequest>( _roadmap.SolutionBuildCount - _maxDoP );
-                        waitingQueue.Enqueue( req );
-                    }
-                }
-                else
-                {
-                    if( req.BuildResult != null )
-                    {
-
-
-                        if( !hasError )
+                        // There SHOULD never be any pending requests here: all tasks have been completed,
+                        // they have released their monitor.
+                        Throw.DebugAssert( waitingQueue == null || waitingQueue.Count == 0 );
+                        while( monitorPool.TryDequeue( out var m ) )
                         {
-                            --remainingCount;
-                            monitor.Info( $"Build '{req.Build.Solution.Repo.DisplayPath}' success, {remainingCount} remaining out of {_roadmap.SolutionBuildCount}." );
+                            m.MonitorEnd();
+                        }
+                        return finalResult;
+                    }
+                    Throw.DebugAssert( msg is MonitorRequest );
+                    var req = (MonitorRequest)msg;
+                    if( req.MustAcquire )
+                    {
+                        if( monitorPool.TryDequeue( out var available ) )
+                        {
+                            req.SetMonitor( monitor, available );
+                        }
+                        else if( monitorCount < _maxDoP )
+                        {
+                            req.SetMonitor( monitor, new ActivityMonitor( $"Build Agent n°{++monitorCount}." ) );
+                        }
+                        else
+                        {
+                            Throw.DebugAssert( _roadmap.SolutionBuildCount > _maxDoP );
+                            waitingQueue ??= new Queue<MonitorRequest>( _roadmap.SolutionBuildCount - _maxDoP );
+                            waitingQueue.Enqueue( req );
                         }
                     }
                     else
                     {
-                        hasError = true;
-                        monitor.Error( req.Message );
-                    }
-                    if( waitingQueue != null && waitingQueue.TryDequeue( out var waiter ) )
-                    {
-                        waiter.SetMonitor( monitor, req.Acquired );
-                    }
-                    else
-                    {
-                        pool.Enqueue( req.Acquired );
-                        Throw.DebugAssert( pool.Count <= _maxDoP );
+                        if( req.BuildResult != null )
+                        {
+                            if( !hasError )
+                            {
+                                --remainingCount;
+                                monitor.Info( $"Build '{req.Build.Solution.Repo.DisplayPath}' success, {remainingCount} remaining out of {_roadmap.SolutionBuildCount}." );
+                            }
+                        }
+                        else
+                        {
+                            hasError = true;
+                            monitor.Error( req.Message );
+                        }
+                        if( waitingQueue != null && waitingQueue.TryDequeue( out var waiter ) )
+                        {
+                            waiter.SetMonitor( monitor, req.Acquired );
+                        }
+                        else
+                        {
+                            monitorPool.Enqueue( req.Acquired );
+                            Throw.DebugAssert( monitorPool.Count <= _maxDoP );
+                        }
                     }
                 }
             }
+            catch( Exception ex )
+            {
+                monitor.Error( $"Unexpected error during roadmap execution.", ex );
+                return false;
+            }
+
         }
 
         async Task WaitForTermination()
@@ -222,13 +228,23 @@ public sealed partial class BuildPlugin
             var monitor = await request.AcquireAsync();
 
             // Actual build.
-            var result = await DoBuildAsync( monitor, buildInfo );
-
+            BuildResult? result = null;
+            try
+            {
+                result = await DoBuildAsync( monitor, buildInfo );
+            }
+            catch( Exception ex )
+            {
+                monitor.Error( $"Error while building '{buildInfo.Solution}'.", ex );
+            }
             // Returning the monitor to the pool (and handling centralized success/failure of builds).
             request.Release( result );
             return result;
         }
 
+        // This doesn't catch exception. When called with a true _singleBuild, this is a unhandled
+        // command exception handled at the root level.
+        // When called in parallel, it is the BuildAsync wrapper above that handles it.
         async Task<BuildResult?> DoBuildAsync( IActivityMonitor monitor, Roadmap.BuildInfo build )
         {
             if( !EnsureAndCheckoutBranch( monitor, build.Solution, out var canAmend ) )

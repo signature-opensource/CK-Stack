@@ -1,7 +1,5 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
-using CKli.BranchModel.Plugin;
-using CKli.VersionTag.Plugin;
 using CSemVer;
 using System.Collections.Immutable;
 using System.Linq;

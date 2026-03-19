@@ -4,9 +4,12 @@ using CKli.Core;
 using CSemVer;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
+using System.Net.Cache;
+using System.Text;
 
 namespace CKli.ReleaseDatabase.Plugin;
 
@@ -50,6 +53,7 @@ sealed class ReleaseDB
     }
 
     internal bool FindProducer( IActivityMonitor monitor,
+                                World world,
                                 PackageInstance p,
                                 [NotNullWhen(true)] out RepoKey? repo,
                                 [NotNullWhen( true )] out BuildContentInfo? content,
@@ -57,7 +61,7 @@ sealed class ReleaseDB
     {
         Throw.DebugAssert( IsLocal );
         EnsureLoad( monitor );
-        if( EnsureProducedIndex().TryGetValue( p, out repo ) )
+        if( EnsureProducedIndex( monitor, world ).TryGetValue( p, out repo ) )
         {
             content = _data[repo];
             isLocal = true;
@@ -65,7 +69,7 @@ sealed class ReleaseDB
         }
         isLocal = false;
         _published.EnsureLoad( monitor );
-        if( _published.EnsureProducedIndex().TryGetValue( p, out repo ) )
+        if( _published.EnsureProducedIndex( monitor, world ).TryGetValue( p, out repo ) )
         {
             content = _published._data[repo];
             return true;
@@ -74,21 +78,96 @@ sealed class ReleaseDB
         return false;
     }
 
-    Dictionary<PackageInstance, RepoKey> EnsureProducedIndex()
+    Dictionary<PackageInstance, RepoKey> EnsureProducedIndex( IActivityMonitor monitor, World world )
     {
         Throw.DebugAssert( _isLoaded );
         if( _producedIndex == null )
         {
-            _producedIndex = new Dictionary<PackageInstance, RepoKey>();
-            foreach( var e in _data )
+            _producedIndex = CreateIndex( monitor, _data, null );
+            if( _producedIndex == null )
             {
-                foreach( var id in e.Value.Produced )
+                monitor.Warn( $"Potential obsolete ckli-repo identifiers found in {Name} release database. Trying to automatically fix this." );
+                var repos = world.GetAllDefinedRepo( monitor );
+                if( repos == null )
                 {
-                    _producedIndex.Add( new PackageInstance( id, e.Key.Version ), e.Key );
+                    throw new CKException( $"Unable to load all repositories while trying to remove obsolete ckli-repo identifiers from {Name} release database. Giving up." );
                 }
+                RemoveDeadRepositories( monitor, world, _data );
+                _producedIndex = CreateIndex( monitor, _data, world );
+                Throw.DebugAssert( _producedIndex != null );
             }
         }
         return _producedIndex;
+
+        static Dictionary<PackageInstance, RepoKey>? CreateIndex( IActivityMonitor monitor,
+                                                                  Dictionary<RepoKey, BuildContentInfo> data,
+                                                                  World? world )
+        {
+            var index = new Dictionary<PackageInstance, RepoKey>();
+            foreach( var e in data )
+            {
+                foreach( var id in e.Value.Produced )
+                {
+                    var p = new PackageInstance( id, e.Key.Version );
+                    if( !index.TryAdd( p, e.Key ) )
+                    {
+                        // The same package instance is recorded to have been produced
+                        // by two different RepoKey. if the conflicting RepoKeys have different
+                        // RepoId, then one of them is obsolete but if the versions differ then
+                        // it is a more serious incoherency.
+                        var exists = index[p];
+                        if( exists.RepoId == e.Key.RepoId )
+                        {
+                            throw new CKException( $"""
+                                Package '{p}' is recorded to be produced by version '{exists.Version}' and '{e.Key.Version}' of repository with ckli-repo '{exists.RepoId}'.
+                                This is totally incoherent, the release database must be rebuilt.
+                                Please use the command 'ckli maintenance release-database rebuild'.
+                                """ );
+                        }
+                        // Two ckli-repo identifier. We have a way to automatically fix this:
+                        // considering the current world's repositories, only one should exist, we return null and RemoveDeadRepositories
+                        // will be called (or this is over).
+                        if( world == null ) return null;
+                        // This is over...
+                        var existR = world.FindByCKliRepoId( monitor, exists.RepoId );
+                        Throw.DebugAssert( existR != null );
+                        var keyR = world.FindByCKliRepoId( monitor, e.Key.RepoId );
+                        Throw.DebugAssert( keyR != null );
+                        throw new CKException( $"""
+                                Package '{p}' is recorded to be produced by both '{existR.DisplayPath}@{exists.Version}' (ckli-repo: '{exists.RepoId}') and '{keyR.DisplayPath}@{e.Key.Version}' '(ckli-repo: '{e.Key.RepoId}').
+                                This is totally incoherent, the release database must be rebuilt. If the problem persists, one of the tags in the repositories is necessarily invalid and should be deleted.
+                                Please use the command 'ckli maintenance release-database rebuild'.
+                                """ );
+                    }
+                }
+            }
+            return index;
+        }
+
+        static void RemoveDeadRepositories( IActivityMonitor monitor, World world, Dictionary<RepoKey, BuildContentInfo> data )
+        {
+            List<RepoKey>? toRemove = null;
+            foreach( var key in data.Keys )
+            {
+                if( world.FindByCKliRepoId( monitor, key.RepoId, alreadyLoadedOnly: true ) == null )
+                {
+                    toRemove ??= new List<RepoKey>();
+                    toRemove.Add( key );
+                }
+            }
+            if( toRemove != null )
+            {
+                var b = new StringBuilder();
+                foreach( var key in toRemove )
+                {
+                    b.Append( b.Length == 0 ? "Removed ckli-repo identifiers that don't exist anymore: '" : "', '" );
+                    b.Append( key.RepoId.ToString() );
+                    data.Remove( key );
+                }
+                monitor.Info( b.Append( "'." ).ToString() );
+            }
+        }
+
     }
 
     internal void CollectConsumers( IActivityMonitor monitor,

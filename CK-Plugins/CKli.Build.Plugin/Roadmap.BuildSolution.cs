@@ -5,7 +5,6 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
-using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
@@ -466,6 +465,12 @@ public sealed partial class Roadmap
         /// </summary>
         public SVersion BaseVersion => _versionInfo.BaseBuild.Version;
 
+
+        /// <summary>
+        /// Gets the current version (the <see cref="HotGraph.SolutionVersionInfo.LastBuild"/> version).
+        /// </summary>
+        public SVersion CurrentVersion => _versionInfo.LastBuild.Version;
+
         /// <summary>
         /// Gets the build info. This is null if this solution is is not impacted
         /// by any of the <see cref="Roadmap.Pivots"/>.
@@ -500,24 +505,13 @@ public sealed partial class Roadmap
             if( _roadmap.HasPivots )
             {
                 var prefixStyle = new TextStyle( ConsoleColor.Black, ConsoleColor.DarkYellow );
-                if( _buildInfo == null ) prefixStyle = prefixStyle.With( TextEffect.Strikethrough );
                 r = r.AddRight( Prefix( screen, _solution, prefixStyle, marginLeft: buildIndexLen == 0 ? 0 : 1 ) );
             }
 
-            var style = _buildInfo == null
-                            ? TextStyle.Default.With( TextEffect.Strikethrough )
-                            : _buildInfo.MustBuild
-                                ? new TextStyle( ConsoleColor.DarkGreen, ConsoleColor.Black )
-                                : TextStyle.Default;
 
-            var statusAndName = _solution.Repo.ToRenderable( screen );
-            if( _buildNumber == 0 )
-            {
-                Throw.DebugAssert( style.Color.ForeColor != ConsoleColor.DarkGreen );
-                statusAndName = statusAndName.Box( style );
-            }
+            var statusAndName = RepoName( screen, Repo, MustBuild, BuildInfo == null );
             r = r.AddRight( statusAndName );
-            r = r.AddRight( screen.Text( $" ▻ v{BaseVersion}" ) ).Box( style, paddingRight: 1 );
+            r = r.AddRight( screen.Text( CurrentVersion.ParsedText! ).Box( foreColor: ConsoleColor.DarkBlue, paddingRight: 1 ) );
             if( MustBuild )
             {
                 Throw.DebugAssert( BuildInfo.BuildReason != MustBuildReason.None );
@@ -530,24 +524,40 @@ public sealed partial class Roadmap
             {
                 if( solution.IsPivot )
                 {
-                    return screen.Text( "ⓟ" ).Box( style, marginLeft: marginLeft, paddingLeft: 1, paddingRight: 1 );
+                    return screen.Text( "·" ).Box( style, marginLeft: marginLeft, paddingLeft: 1, paddingRight: 1 );
                 }
                 else if( solution.IsPivotDownstream )
                 {
                     if( solution.IsPivotUpstream )
                     {
-                        return screen.Text( "↦ⓟ↦" ).Box( style, marginLeft: marginLeft );
+                        return screen.Text( "→·→" ).Box( style, marginLeft: marginLeft );
                     }
                     else
                     {
-                        return screen.Text( "ⓟ↦" ).Box( style, marginLeft: marginLeft, paddingLeft: 1 );
+                        return screen.Text( "·→" ).Box( style, marginLeft: marginLeft, paddingLeft: 1 );
                     }
                 }
                 else if( solution.IsPivotUpstream )
                 {
-                    return screen.Text( "↦ⓟ" ).Box( style, marginLeft: marginLeft, paddingRight: 1 );
+                    return screen.Text( "→·" ).Box( style, marginLeft: marginLeft, paddingRight: 1 );
                 }
                 return screen.EmptyString.Box( style, marginLeft: marginLeft, marginRight: 3 );
+            }
+
+            static IRenderable RepoName( ScreenType screen, Repo repo, bool mustBuild, bool outOfScope )
+            {
+                var status = repo.GitStatus;
+                var style = mustBuild
+                                ? new TextStyle( status.IsDirty ? ConsoleColor.Red : ConsoleColor.Green, ConsoleColor.Black )
+                                : outOfScope
+                                    ? new TextStyle( status.IsDirty ? ConsoleColor.DarkRed : ConsoleColor.DarkGray, ConsoleColor.Black, TextEffect.Strikethrough )
+                                    : new TextStyle( status.IsDirty ? ConsoleColor.DarkRed : ConsoleColor.DarkGray, ConsoleColor.Black );
+                // First Box.
+                IRenderable r = screen.Text( repo.DisplayPath, style ).HyperLink( new Uri( repo.WorkingFolder ) );
+                r = status.IsDirty
+                            ? r.Box( paddingRight: 1 ).AddLeft( screen.Text( "✱" ).Box( paddingRight: 1 ) )
+                            : r.Box( paddingLeft: 2, paddingRight: 1 );
+                return r;
             }
         }
 
@@ -567,7 +577,7 @@ public sealed partial class Roadmap
         public override string ToString() => _buildInfo == null
                                                 ? $"{_solution} [out of scope]"
                                                 : _buildInfo.MustBuild
-                                                    ? $"{_solution} [{BaseVersion} => {_buildInfo.TargetVersion}]"
+                                                    ? $"{_solution} [{CurrentVersion} => {_buildInfo.TargetVersion}]"
                                                     : $"{_solution} [no build]";
     }
 }
