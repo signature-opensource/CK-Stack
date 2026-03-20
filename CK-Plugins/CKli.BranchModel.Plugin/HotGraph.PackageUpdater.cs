@@ -3,6 +3,7 @@ using CKli.ShallowSolution.Plugin;
 using CSemVer;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace CKli.BranchModel.Plugin;
@@ -87,6 +88,29 @@ public sealed partial class HotGraph
                 }
             }
             return hasUpdates;
+        }
+
+        /// <summary>
+        /// Gets whether the solution has at least one dependency that must be updated and collects these updates.
+        /// </summary>
+        /// <param name="solution">The solution.</param>
+        /// <param name="updates">On success, the non null updates that must be done.</param>
+        /// <returns>True if the dependencies should be updated, false otherwise.</returns>
+        public bool HasUpdates( Solution solution, [NotNullWhen(true)] out PackageMapper? updates )
+        {
+            Throw.CheckArgument( solution.Graph == Graph );
+            updates = null;
+            var mapping = PackageMapping;
+            foreach( var p in solution.GitSolution.Consumed )
+            {
+                if( mapping.TryGetMappedVersion( p.PackageId, p.Version, out var version )
+                    && p.Version != version )
+                {
+                    updates ??= new PackageMapper();
+                    updates.Add( p.PackageId, p.Version, version );
+                }
+            }
+            return updates != null;
         }
 
         sealed class Mapping( Dictionary<string, HotGraph.Solution> p2s,

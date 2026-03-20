@@ -85,16 +85,9 @@ public sealed partial class Roadmap
 
     internal bool Initialize( IActivityMonitor monitor )
     {
-        foreach( var s in _pivots )
-        {
-            if( !s.InitializeFromPivot( monitor ) )
-            {
-                return false;
-            }
-        }
         foreach( var s in _orderedSolutions )
         {
-            if( !s.InitializeFinal( monitor ) )
+            if( !s.Initialize( monitor ) )
             {
                 return false;
             }

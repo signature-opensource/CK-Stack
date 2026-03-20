@@ -40,7 +40,7 @@ public sealed partial class BuildPlugin
             _singleBuild = roadmap.SolutionBuildCount == 1;
             _runTest = runTest;
             _maxDoP = maxDoP;
-            _buildMapping = new ConcurrentDictionary<string, SVersion>();
+            _buildMapping = new ConcurrentDictionary<string, SVersion>( StringComparer.OrdinalIgnoreCase );
             _packageMapping = new Mapping( roadmap.PackageUpdater.PackageMapping, _buildMapping );
             _buildPlugin = buildPlugin;
             _context = context;

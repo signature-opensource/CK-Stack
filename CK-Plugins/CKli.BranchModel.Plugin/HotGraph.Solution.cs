@@ -170,10 +170,15 @@ public sealed partial class HotGraph
         internal bool UpdateRank( IActivityMonitor monitor,
                                   out int rank,
                                   [NotNullWhen(false)] ref List<string>? cycle,
-                                  bool isPivotUpstream,
+                                  bool? isPivotUpstream,
                                   out bool isPivotDownstream )
         {
             isPivotDownstream = _isPivotDownstream;
+            // Upgrade if a pivot requires this.
+            if( isPivotUpstream.HasValue )
+            {
+                _isPivotUpstream |= isPivotUpstream.Value;
+            }
             rank = _rank;
             if( _rank >= 0 )
             {
@@ -187,7 +192,11 @@ public sealed partial class HotGraph
             Throw.DebugAssert( rank == -1 );
             _rank = -2;
             rank = 0;
-            _isPivotUpstream = isPivotUpstream;
+            if( !isPivotUpstream.HasValue )
+            {
+                _isPivotUpstream = false;
+                isPivotUpstream = _isPivot;
+            }
             foreach( var c in _solution.Consumed )
             {
                 if( _graph._p2s.TryGetValue( c.PackageId, out Solution? required ) )
@@ -210,9 +219,8 @@ public sealed partial class HotGraph
                         // Trick: here the direct requirement is not added, only its closure is.
                         _allRequirements.AddRange( required._allRequirements );
 
-                        _isPivotDownstream |= required.IsPivot;
+                        _isPivotDownstream |= isThisPivotDownstream | required.IsPivot;
                         ++reqRank;
-                        _isPivotDownstream |= isThisPivotDownstream;
                         if( rank < reqRank )
                         {
                             rank = reqRank;
@@ -235,6 +243,7 @@ public sealed partial class HotGraph
                     _directRequirements.RemoveAt( i-- );
                 }
             }
+            isPivotDownstream = _isPivotDownstream;
             _rank = rank;
             return true;
         }

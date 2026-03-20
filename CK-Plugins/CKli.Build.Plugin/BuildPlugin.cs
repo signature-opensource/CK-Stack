@@ -48,7 +48,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                  [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
                                  [OptionName("--branch,-b")]
                                  string? branch = null,
-                                 [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
+                                 [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
                                  string? maxDop = null,
                                  [Description( "Build all the Repos, not only the current repositories and their consumers." )]
                                  bool all = false,
@@ -82,7 +82,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                      [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
                                      [OptionName("--branch,-b")]
                                      string? branch = null,
-                                     [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
+                                     [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
                                      string? maxDop = null,
                                      [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
                                      bool all = false,
@@ -116,7 +116,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
                                    [OptionName( "--branch,-b" )]
                                    string? branch = null,
-                                   [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
+                                   [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
                                    string? maxDop = null,
                                    [Description( "Build all the Repos, not only the current repositories and their consumers." )]
                                    bool all = false,
@@ -143,7 +143,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                        [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
                                        [OptionName( "--branch,-b" )]
                                        string? branch = null,
-                                       [Description( "Maximal Degree of Parallelism. Defaults to the number of processors." )]
+                                       [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
                                        string? maxDop = null,
                                        [Description( "Publish all the Repos, not only the ones that consume or produce the current repositories." )]
                                        bool all = false,
@@ -224,7 +224,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
 
     static bool HandleMaxDop( IActivityMonitor monitor, string? maxDop, out int vMaxDop )
     {
-        if( maxDop == null ) vMaxDop = Environment.ProcessorCount;
+        if( maxDop == null ) vMaxDop = 4;
         else if( !int.TryParse( maxDop, out vMaxDop ) || vMaxDop <= 0 )
         {
             monitor.Error( "Invalid --max-dop value. Must be an integer greater than 0." );

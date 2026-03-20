@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
+using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
@@ -30,32 +31,15 @@ public sealed partial class Roadmap
             _versionInfo = versionInfo;
         }
 
-        internal bool InitializeFromPivot( IActivityMonitor monitor )
+        internal bool Initialize( IActivityMonitor monitor )
         {
-            // If the _buildInfo has already been computed, we simply return true. We don't have to handle cycles
-            // here: they have already been detected by the HotGraph.
-            //
-            // If we are building without checking upstreams (_roadmap._isPullBuild is false), it doesn't mean that we
-            // must ignore the upstreams, it means that we must only consider (in this first step) the upstreams that ARE pivots:
-            // the other repositories are ignored, as if they don't exist (as if no development have been made in them).
-            // => This is why we also shortcut, return true (no error) and let the _buildInfo be null if we are building
-            //    without upstreams and this repo is not a pivot: from the downstream caller point of view, this solution doesn't
-            //    need to be built.
-            // 
-            //    Note that when no Repo are pivots (all of them are), this is like building with upstreams (build == *build). 
-            //
-            // => This null _buildInfo will be handled during the InitializeFinal() second step.
-            //
-            if( _buildInfo != null || (!_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot) )
-            {
-                return true;
-            }
-
-            using var _ = monitor.OpenTrace( $"Computing BuildInfo for '{_solution.Repo.DisplayPath}'." );
+            if( _buildInfo != null ) return true;
 
             MustBuildReason buildReason = MustBuildReason.None;
+            PackageMapper? packageUpdates = null;
+
+            // If upstreams are built, always build.
             if( !InitializeUpstreams( monitor,
-                                      finalInitialize: false,
                                       out BuildSolution[] directRequirements,
                                       out VersionChange vChange,
                                       out bool mustBuildFromUpstreams ) )
@@ -64,27 +48,37 @@ public sealed partial class Roadmap
             }
             if( mustBuildFromUpstreams )
             {
-                buildReason = MustBuildReason.Upstream;
+                buildReason |= MustBuildReason.Upstream;
             }
-            else if( _versionInfo.VersionMustBuild )
+            // If some packages must be updated, always build.
+            if( Roadmap.PackageUpdater.HasUpdates( _solution, out packageUpdates ) )
             {
-                buildReason = MustBuildReason.Version;
+                buildReason |= MustBuildReason.DependencyUpdate;
             }
-            else if( Roadmap.PackageUpdater.HasUpdates( _solution ) )
+            // Pivot dependent conditions: if nothing saves the build, then this solution won't be built.
+            if( buildReason == MustBuildReason.None )
             {
-                buildReason = MustBuildReason.DependencyUpdate;
+                bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
+                if( !canSkip )
+                {
+                    if( _versionInfo.VersionMustBuild )
+                    {
+                        buildReason |= MustBuildReason.Version;
+                    }
+                    if( _versionInfo.HasCodeChange )
+                    {
+                        buildReason |= MustBuildReason.CodeChange;
+                    }
+                }
+                if( buildReason == MustBuildReason.None )
+                {
+                    // We compute the version change not for us (this solution will not be built) but for
+                    // the downstream solutions to correctly propagate the change level (here it may be None).
+                    vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _versionInfo.LastBuild.Version );
+                    _buildInfo = new BuildInfo( this, MustBuildReason.None, vChange, _versionInfo.LastBuild.Version, directRequirements, null );
+                    return true;
+                }
             }
-            else if( _versionInfo.IsAlreadyBuilt )
-            {
-                // We compute the version change not for us (this solution will not be built) but for
-                // the downstream solutions to correctly propagate the change level (here it may be None).
-                vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _versionInfo.LastBuild.Version );
-                _buildInfo = new BuildInfo( this, MustBuildReason.None, vChange, _versionInfo.LastBuild.Version, directRequirements );
-                return true;
-            }
-            // This handles None => CodeChange for the !IsAlreadyBuilt case.
-            if( _versionInfo.HasCodeChange ) buildReason |= MustBuildReason.CodeChange;
-
             Throw.DebugAssert( "We must build.", buildReason != MustBuildReason.None );
             // If the upstream doesn't force a Major, we must compute the change from the code in this repository
             // and eventually compute the target version.
@@ -92,13 +86,12 @@ public sealed partial class Roadmap
                                                            ref vChange,
                                                            mustAddCommit: buildReason != MustBuildReason.CodeChange );
 
-            _buildInfo = new BuildInfo( this, buildReason, vChange, targetVersion, directRequirements );
+            _buildInfo = new BuildInfo( this, buildReason, vChange, targetVersion, directRequirements, packageUpdates );
             _roadmap._buildSolutionCount++;
             return true;
         }
 
         bool InitializeUpstreams( IActivityMonitor monitor,
-                                  bool finalInitialize,
                                   out BuildSolution[] directRequirements,
                                   out VersionChange maxVersionChange,
                                   out bool mustBuild )
@@ -111,9 +104,7 @@ public sealed partial class Roadmap
             foreach( var req in solutionRequirements )
             {
                 var sReq = _roadmap.OrderedSolutions[req.OrderedIndex];
-                if( !(finalInitialize
-                        ? sReq.InitializeFinal( monitor )
-                        : sReq.InitializeFromPivot( monitor )) )
+                if( !sReq.Initialize( monitor ) )
                 {
                     return false;
                 }
@@ -403,44 +394,6 @@ public sealed partial class Roadmap
 
         }
 
-        internal bool InitializeFinal( IActivityMonitor monitor )
-        {
-            // During the first pass (from pivot), either we:
-            // - have met the solution and _buildInfo is not null (MustBuild is true or false).
-            // - or the solution has not been met and _buildInfo is null.
-            //
-            if( _buildInfo == null )
-            {
-                // This solution has not been impacted by the pivots (because it is not a pivot and doesn't require
-                // a pivot or we ignore the upstreams): we analyze the direct requirements and if one of them must be built, then we must
-                // also be built.
-                // We don't build for any other reasons (the LastBuild may be a "+fake" or a "+deprecated"), the package dependencies
-                // may require an update or new commits are available): this is the whole point of the "Pivots".
-                // They select a "scope" of solutions that must guaranty a coherent set of dependency versions.
-                // This is a weak guaranty (especially the "build"): to fully handle a stack, the build must be ran at the root.
-                // 
-                if( !InitializeUpstreams( monitor,
-                                          finalInitialize: true,
-                                          out BuildSolution[] directRequirements,
-                                          out VersionChange vChange,
-                                          out bool mustBuild ) )
-                {
-                    return false;
-                }
-                if( mustBuild )
-                {
-                    SVersion targetVersion = ComputeTargetVersion( monitor, ref vChange, true );
-                    _buildInfo = new BuildInfo( this,
-                                                MustBuildReason.Upstream,
-                                                vChange,
-                                                targetVersion,
-                                                directRequirements );
-                    _roadmap._buildSolutionCount++;
-                }
-            }
-            return true;
-        }
-
         /// <summary>
         /// Get the roadmap to which this build belongs.
         /// </summary>
@@ -506,7 +459,7 @@ public sealed partial class Roadmap
             if( _roadmap.HasPivots )
             {
                 var prefixStyle = new TextStyle( ConsoleColor.Black, ConsoleColor.DarkYellow );
-                r = r.AddRight( Prefix( screen, _solution, prefixStyle, marginLeft: buildIndexLen == 0 ? 0 : 1 ) );
+                r = r.AddRight( PivotPrefix( screen, _solution, prefixStyle, marginLeft: buildIndexLen == 0 ? 0 : 1 ) );
             }
 
 
@@ -521,11 +474,23 @@ public sealed partial class Roadmap
             }
             return r;
 
-            static IRenderable Prefix( ScreenType screen, HotGraph.Solution solution, TextStyle style, int marginLeft )
+            static IRenderable PivotPrefix( ScreenType screen, HotGraph.Solution solution, TextStyle style, int marginLeft )
             {
                 if( solution.IsPivot )
                 {
-                    return screen.Text( "·" ).Box( style, marginLeft: marginLeft, paddingLeft: 1, paddingRight: 1 );
+                    if( solution.IsPivotDownstream )
+                    {
+                        if( solution.IsPivotUpstream )
+                        {
+                            return screen.Text( "→⊙→" ).Box( style, marginLeft: marginLeft );
+                        }
+                        return screen.Text( "⊙→" ).Box( style, marginLeft: marginLeft, paddingLeft: 1 );
+                    }
+                    else if( solution.IsPivotUpstream )
+                    {
+                        return screen.Text( "→⊙" ).Box( style, marginLeft: marginLeft, paddingRight: 1 );
+                    }
+                    return screen.Text( "⊙" ).Box( style, marginLeft: marginLeft, paddingLeft: 1, paddingRight: 1 );
                 }
                 else if( solution.IsPivotDownstream )
                 {

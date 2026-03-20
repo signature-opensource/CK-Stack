@@ -221,7 +221,7 @@ public sealed partial class HotGraph
         foreach( var pivot in pivots )
         {
             var sPivot = _solutions[pivot.Index];
-            if( !UpdateRank( monitor, sPivot, isPivotUpstream: hasPivots ) )
+            if( !UpdateRank( monitor, sPivot, isPivotUpstream: null ) )
             {
                 return false;
             }
@@ -240,7 +240,7 @@ public sealed partial class HotGraph
         Throw.DebugAssert( _solutions.Select( (s,idx) => s.Repo.Index == idx && s.Rank >= 0 && s.Rank <= _maxRank ).All( Util.FuncIdentity ) );
         return true;
 
-        static bool UpdateRank( IActivityMonitor monitor, Solution sPivot, bool isPivotUpstream )
+        static bool UpdateRank( IActivityMonitor monitor, Solution sPivot, bool? isPivotUpstream )
         {
             // Cycle detection is done by setting the _rank to -2 AND checking that it is
             // not -2 when entering a node: when it happens this instantiates the cycles collector
