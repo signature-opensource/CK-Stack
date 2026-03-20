@@ -94,8 +94,7 @@ public readonly struct VersionQualityFilter
         if( !v.IsValid ) return false;
         var r = v.Prerelease.AsSpan();
         if( r.Length == 0 ) return AllowStable;
-        if( (r.Contains( "-ci.", StringComparison.Ordinal ) || r.Contains( ".ci.", StringComparison.Ordinal ))
-            && _rejectCI )
+        if( v.IsCI() && _rejectCI )
         {
             return false;
         }

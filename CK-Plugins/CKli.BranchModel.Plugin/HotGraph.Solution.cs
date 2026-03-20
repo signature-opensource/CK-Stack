@@ -2,9 +2,11 @@ using CK.Core;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -114,19 +116,45 @@ public sealed partial class HotGraph
             Throw.DebugAssert( _versionInfo == null );
             if( vInfo == null ) return null;
             Throw.DebugAssert( vInfo.Repo == Repo );
+            Throw.DebugAssert( !vInfo.HasIssue );
+
+            var baseTagCommit = vInfo.HotZone.LastStable;
+            var commitsLog = Repo.GitRepository.Repository.Commits.QueryBy( new CommitFilter()
+            {
+                IncludeReachableFrom = _solution.GitBranch.Tip,
+                ExcludeReachableFrom = baseTagCommit.Commit,
+                SortBy = CommitSortStrategies.Time | CommitSortStrategies.Reverse
+            } );
+            var commitsFromBaseBuild = commitsLog.ToList();
+
+            var tagCommitsFromBaseBuild = new List<TagCommit>();
+            foreach( var c in commitsFromBaseBuild )
+            {
+                var tc = vInfo.TagCommitsBySha.GetValueOrDefault( c.Sha );
+                if( tc != null )
+                {
+                    var v = tc.Version;
+                    if( v < baseTagCommit.Version )
+                    {
+                        monitor.Warn( $"Ignoring {tc} in '{_solution}' as it is lower than the last version '{baseTagCommit.Version.ParsedText}'." );
+                    }
+                    else
+                    {
+                        tagCommitsFromBaseBuild.Add( tc );
+                    }
+                }
+            }
             // Temporary: this works for "stable" only scenario. With multiple
             // hot branches this will be more complicated.
-            var lastBuild = vInfo.FindFirst( _solution.GitBranch.Commits, out _ );
-            if( lastBuild == null )
-            {
-                monitor.Error( $"Unable to find a version tag for '{_solution}'." );
-                return null;
-            }
+            //
+            // Note: TagCommit.CompareTo reverts the SVersion.CompareTo order.
+            //
+            var lastBuild = tagCommitsFromBaseBuild.Min() ?? baseTagCommit;
             if( lastBuild.BuildContentInfo == null )
             {
                 monitor.Warn( $"Last build tag for '{_solution}' is '{lastBuild.Version.ParsedText}'. It requires a build." );
             }
-            return _versionInfo = new SolutionVersionInfo( this, vInfo, lastBuild );
+            return _versionInfo = new SolutionVersionInfo( this, vInfo, lastBuild, commitsFromBaseBuild, tagCommitsFromBaseBuild );
         }
 
         /// <summary>

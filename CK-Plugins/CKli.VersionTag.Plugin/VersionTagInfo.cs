@@ -539,7 +539,13 @@ public sealed partial class VersionTagInfo : RepoInfo
         }
     }
 
-    internal TagCommit? RemoveTag( SVersion version )
+    /// <summary>
+    /// Removes the tag commit (not the Git tag from the repository).
+    /// Handles the <see cref="TagCommits"/> and <see cref="TagCommitsBySha"/>.
+    /// </summary>
+    /// <param name="version">The version to remove.</param>
+    /// <returns>The removed tag commit if has been removed.</returns>
+    internal TagCommit? RemoveTagCommit( SVersion version )
     {
         if( _v2C.Remove( version, out var tc ) )
         {
@@ -558,7 +564,6 @@ public sealed partial class VersionTagInfo : RepoInfo
         }
         return tc;
     }
-
 
     internal void CollectIssues( IActivityMonitor monitor, ScreenType screenType, Action<World.Issue> collector )
     {

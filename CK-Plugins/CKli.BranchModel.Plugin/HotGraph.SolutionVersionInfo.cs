@@ -20,15 +20,21 @@ public sealed partial class HotGraph
         readonly Solution _solution;
         readonly VersionTagInfo _info;
         readonly TagCommit _lastBuild;
-        IReadOnlyList<Commit>? _commitsFromBaseBuild;
-        IReadOnlyList<TagCommit>? _tagCommitsFromBaseBuild;
+        readonly IReadOnlyList<Commit> _commitsFromBaseBuild;
+        readonly IReadOnlyList<TagCommit> _tagCommitsFromBaseBuild;
 
-        internal SolutionVersionInfo( Solution solution, VersionTagInfo info, TagCommit lastBuild )
+        internal SolutionVersionInfo( Solution solution,
+                                      VersionTagInfo info,
+                                      TagCommit lastBuild,
+                                      List<Commit> commitsFromBaseBuild,
+                                      List<TagCommit> tagCommitsFromBaseBuild )
         {
             Throw.DebugAssert( info.HotZone != null && info.HotZone.HotZoneIssue == null );
             _solution = solution;
             _info = info;
             _lastBuild = lastBuild;
+            _commitsFromBaseBuild = commitsFromBaseBuild;
+            _tagCommitsFromBaseBuild = tagCommitsFromBaseBuild;
         }
 
         /// <summary>
@@ -81,41 +87,12 @@ public sealed partial class HotGraph
         /// <summary>
         /// Gets all the commits from <see cref="GitSolution"/>'s git branch's tip down to <see cref="LastBuild"/>.
         /// </summary>
-        public IReadOnlyList<Commit> CommitsFromBaseBuild
-        {
-            get
-            {
-                if( _commitsFromBaseBuild == null )
-                {
-                    var commitsLog = Repo.GitRepository.Repository.Commits.QueryBy( new CommitFilter()
-                    {
-                        IncludeReachableFrom = _solution.GitSolution.GitBranch.Tip,
-                        ExcludeReachableFrom = BaseBuild.Commit,
-                        SortBy = CommitSortStrategies.Time | CommitSortStrategies.Reverse
-                    } );
-                    _commitsFromBaseBuild = commitsLog.ToList();
-                }
-                return _commitsFromBaseBuild;
-            }
-        }
+        public IReadOnlyList<Commit> CommitsFromBaseBuild => _commitsFromBaseBuild;
 
         /// <summary>
         /// Gets the <see cref="CommitsFromBaseBuild"/> joined with <see cref="VersionTagInfo.TagCommitsBySha"/>.
         /// </summary>
-        public IReadOnlyList<TagCommit> TagCommitsFromBaseBuild
-        {
-            get
-            {
-                if( _tagCommitsFromBaseBuild == null )
-                {
-                    _tagCommitsFromBaseBuild = CommitsFromBaseBuild.Select( c => _info.TagCommitsBySha.GetValueOrDefault( c.Sha ) )
-                                                                   .Where( tc => tc != null )
-                                                                   .ToList()!;
-                }
-                return _tagCommitsFromBaseBuild;
-            }
-        }
-
+        public IReadOnlyList<TagCommit> TagCommitsFromBaseBuild => _tagCommitsFromBaseBuild;
 
     }
 }

@@ -452,9 +452,8 @@ sealed class ReleaseDB
         return true;
     }
 
-    internal BuildContentInfo? DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
+    internal BuildContentInfo? DestroyRelease( IActivityMonitor monitor, Repo repo, SVersion version )
     {
-        Throw.DebugAssert( IsLocal );
         EnsureLoad( monitor );
         if( _data.Remove( new RepoKey( repo.CKliRepoId, version ), out var exists ) )
         {

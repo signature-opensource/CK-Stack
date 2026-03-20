@@ -180,7 +180,7 @@ public class BuildTests
     {
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
-        var context = remotes.Clone( clonedFolder ).SetScreen( new StringScreen( useDebugRenderer: true ) );
+        var context = remotes.Clone( clonedFolder );
         var display = (StringScreen)context.Screen;
 
         #region build
@@ -190,13 +190,13 @@ public class BuildTests
             display.Clear();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -[DARKGREEN]  CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-            2 -[DARKGREEN]  CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            3 ╓[DARKGREEN]  CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            4 ║[DARKGREEN]  CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            5 ╙[DARKGREEN]  Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            6 -[DARKGREEN]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            1 -  CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
+            2 -  CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
+            3 ╓  CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║  CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
+            5 ╙  Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            ❰✓❱
             
             """ );
 
@@ -207,13 +207,13 @@ public class BuildTests
             var inSample = context.ChangeDirectory( "Samples" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-Core ▻ v1.0.0 [Regular]⮐
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-ActivityMonitor ▻ v0.1.0 [Regular]⮐
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-PerfectEvent ▻ v0.3.2 [Regular]⮐
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-Monitoring ▻ v0.2.3 [Regular]⮐
-            [BLACK,darkyellow] · [GRAY,black]  Samples/CKt-App-Sample ▻ v0.0.0 ⮐
-            [BLACK,darkyellow] · [GRAY,black]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 ⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            →·   CKt-Core                      v1.0.0 
+            →·   CKt-ActivityMonitor           v0.1.0 
+            →·   CKt-PerfectEvent              v0.3.2 
+            →·   CKt-Monitoring                v0.2.3 
+             ·   Samples/CKt-App-Sample        v0.0.0 
+             ·   Samples/CKt-Sample-Monitoring v0.0.0 
+            ❰✓❱
             
             """ );
 
@@ -223,13 +223,13 @@ public class BuildTests
             var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-Core ▻ v1.0.0 [Regular]⮐
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-ActivityMonitor ▻ v0.1.0 [Regular]⮐
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-PerfectEvent ▻ v0.3.2 [Regular]⮐
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-Monitoring ▻ v0.2.3 [Regular]⮐
-            [Strikethrough]     Samples/CKt-App-Sample ▻ v0.0.0 [Regular]⮐
-            [BLACK,darkyellow] · [GRAY,black]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 ⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            →·   CKt-Core                      v1.0.0 
+            →·   CKt-ActivityMonitor           v0.1.0 
+            →·   CKt-PerfectEvent              v0.3.2 
+            →·   CKt-Monitoring                v0.2.3 
+                 Samples/CKt-App-Sample        v0.0.0 
+             ·   Samples/CKt-Sample-Monitoring v0.0.0 
+            ❰✓❱
 
             """ );
 
@@ -238,13 +238,13 @@ public class BuildTests
             var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-Core ▻ v1.0.0 [Regular]⮐
-            [BLACK,darkyellow,Strikethrough]→· [GRAY,black]  CKt-ActivityMonitor ▻ v0.1.0 [Regular]⮐
-            [Strikethrough]     CKt-PerfectEvent ▻ v0.3.2 [Regular]⮐
-            [Strikethrough]     CKt-Monitoring ▻ v0.2.3 [Regular]⮐
-            [BLACK,darkyellow] · [GRAY,black]  Samples/CKt-App-Sample ▻ v0.0.0 ⮐
-            [Strikethrough]     Samples/CKt-Sample-Monitoring ▻ v0.0.0 [Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            →·   CKt-Core                      v1.0.0 
+            →·   CKt-ActivityMonitor           v0.1.0 
+                 CKt-PerfectEvent              v0.3.2 
+                 CKt-Monitoring                v0.2.3 
+             ·   Samples/CKt-App-Sample        v0.0.0 
+                 Samples/CKt-Sample-Monitoring v0.0.0 
+            ❰✓❱
 
             """ );
 
@@ -254,13 +254,13 @@ public class BuildTests
             var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-              -[Strikethrough] [BLACK,darkyellow]→· [GRAY,black]  CKt-Core ▻ v1.0.0 [Regular]⮐
-              -[Strikethrough] [BLACK,darkyellow]→· [GRAY,black]  CKt-ActivityMonitor ▻ v0.1.0 [Regular]⮐
-            1 ╓[DARKGREEN] [BLACK,darkyellow] · [DARKGREEN,black]  CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-              ║[Strikethrough]      CKt-Monitoring ▻ v0.2.3 [Regular]⮐
-              ╙[Strikethrough]      Samples/CKt-App-Sample ▻ v0.0.0 [Regular]⮐
-            2 -[DARKGREEN] [BLACK,darkyellow] ·→[DARKGREEN,black]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+              - →·   CKt-Core                      v1.0.0 
+              - →·   CKt-ActivityMonitor           v0.1.0 
+            1 ╓  ·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.4 (CodeChange)
+              ║      CKt-Monitoring                v0.2.3 
+              ╙      Samples/CKt-App-Sample        v0.0.0 
+            2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)  
+            ❰✓❱
             
             """ );
         }
@@ -272,13 +272,13 @@ public class BuildTests
             display.Clear();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -[DARKGREEN]  CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-            2 -[DARKGREEN]  CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            3 ╓[DARKGREEN]  CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            4 ║[DARKGREEN]  CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            5 ╙[DARKGREEN]  Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            6 -[DARKGREEN]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            1 -  CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
+            2 -  CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
+            3 ╓  CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║  CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
+            5 ╙  Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            ❰✓❱
             
             """ );
 
@@ -287,13 +287,13 @@ public class BuildTests
             var inSample = context.ChangeDirectory( "Samples" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-            2 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            3 ╓[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            4 ║[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            5 ╙[DARKGREEN] [BLACK,darkyellow] · [DARKGREEN,black]  Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            6 -[DARKGREEN] [BLACK,darkyellow] · [DARKGREEN,black]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
+            3 ╓ →·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║ →·   CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
+            5 ╙  ·   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  ·   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            ❰✓❱
             
             """ );
 
@@ -303,13 +303,13 @@ public class BuildTests
             var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-            2 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            3 ╓[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            4 ║[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            5 ╙[DARKGREEN]      Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            6 -[DARKGREEN] [BLACK,darkyellow] · [DARKGREEN,black]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
+            3 ╓ →·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║ →·   CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
+            5 ╙      Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  ·   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            ❰✓❱
 
             """ );
 
@@ -319,13 +319,13 @@ public class BuildTests
             var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-            2 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            3 ╓[DARKGREEN]      CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY] [Italic](Upstream)[Regular]⮐
-            4 ║[DARKGREEN]      CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY] [Italic](Upstream)[Regular]⮐
-            5 ╙[DARKGREEN] [BLACK,darkyellow] · [DARKGREEN,black]  Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            6 -[DARKGREEN]      Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
+            3 ╓      CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream)            
+            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream)            
+            5 ╙  ·   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -      Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            ❰✓❱
 
             """ );
 
@@ -335,13 +335,13 @@ public class BuildTests
             var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-Core ▻ v1.0.0 [GREEN]→ v1.0.1--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-            2 -[DARKGREEN] [BLACK,darkyellow]→· [DARKGREEN,black]  CKt-ActivityMonitor ▻ v0.1.0 [GREEN]→ v0.1.1--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            3 ╓[DARKGREEN] [BLACK,darkyellow] · [DARKGREEN,black]  CKt-PerfectEvent ▻ v0.3.2 [GREEN]→ v0.3.3--ci.5[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
-            4 ║[DARKGREEN]      CKt-Monitoring ▻ v0.2.3 [GREEN]→ v0.2.4--ci.5[GRAY] [Italic](Upstream)[Regular]⮐
-            5 ╙[DARKGREEN]      Samples/CKt-App-Sample ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            6 -[DARKGREEN] [BLACK,darkyellow] ·→[DARKGREEN,black]  Samples/CKt-Sample-Monitoring ▻ v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]⮐
-            [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
+            3 ╓  ·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream)            
+            5 ╙      Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            ❰✓❱
             
             """ );
         }
@@ -354,7 +354,7 @@ public class BuildTests
     {
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
-        var context = remotes.Clone( clonedFolder );
+        var context = remotes.Clone( clonedFolder ).SetScreen( new StringScreen( useDebugRenderer: true ) );
         var display = (StringScreen)context.Screen;
 
         // From CKt-PerfectEvent (the NuGet.config has been renamed to nuget.config).
@@ -364,13 +364,13 @@ public class BuildTests
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--dry-run" )).ShouldBeTrue();
 
         display.ToString().ShouldBe( """
-          - →·   CKt-Core                      v1.0.0 
-          - →·   CKt-ActivityMonitor           v0.1.0 
-        1 ╓  ·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.4 (CodeChange)
-          ║      CKt-Monitoring                v0.2.3 
-          ╙      Samples/CKt-App-Sample        v0.0.0 
-        2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)  
-        ❰✓❱
+          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY,Strikethrough]CKt-Core[GRAY,Regular]                      [DARKBLUE]v1.0.0 [GRAY]⮐
+          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY,Strikethrough]CKt-ActivityMonitor[GRAY,Regular]           [DARKBLUE]v0.1.0 [GRAY]⮐
+        1 ╓ [BLACK,darkyellow] · [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
+          ║      [DARKGRAY,Strikethrough]CKt-Monitoring[GRAY,Regular]                [DARKBLUE]v0.2.3 [GRAY]⮐
+          ╙      [DARKGRAY,Strikethrough]Samples/CKt-App-Sample[GRAY,Regular]        [DARKBLUE]v0.0.0 [GRAY]⮐
+        2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]  ⮐
+        [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
         
         """ );
 

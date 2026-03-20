@@ -80,7 +80,7 @@ public sealed partial class BuildPlugin
                 Throw.DebugAssert( s.BuildInfo != null && !s.BuildInfo.DirectRequirements.Any( s => s.MustBuild ) );
                 return await DoBuildAsync( monitor, s.BuildInfo ) != null;
             }
-            using( monitor.OpenInfo( $"Building {_roadmap.SolutionBuildCount} solutions." ) )
+            using( monitor.OpenInfo( $"Building {_roadmap.SolutionBuildCount} solutions (--max-dop {_maxDoP})." ) )
             {
                 return await RunLoopAsync( monitor );
             }
@@ -95,7 +95,6 @@ public sealed partial class BuildPlugin
                 int monitorCount = 0;
                 _ = WaitForTermination();
                 int remainingCount = _roadmap.SolutionBuildCount;
-                bool hasError = false;
                 for(; ; )
                 {
                     var msg = await _channel.Reader.ReadAsync();
@@ -133,15 +132,11 @@ public sealed partial class BuildPlugin
                     {
                         if( req.BuildResult != null )
                         {
-                            if( !hasError )
-                            {
-                                --remainingCount;
-                                monitor.Info( $"Build '{req.Build.Solution.Repo.DisplayPath}' success, {remainingCount} remaining out of {_roadmap.SolutionBuildCount}." );
-                            }
+                            --remainingCount;
+                            monitor.Info( ScreenType.CKliScreenTag, $"Build '{req.Build.Solution.Repo.DisplayPath}' succeed." );
                         }
                         else
                         {
-                            hasError = true;
                             monitor.Error( req.Message );
                         }
                         if( waitingQueue != null && waitingQueue.TryDequeue( out var waiter ) )

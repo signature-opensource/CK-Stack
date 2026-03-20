@@ -6,6 +6,12 @@ using System;
 
 namespace CKli.VersionTag.Plugin;
 
+/// <summary>
+/// Captures a <see cref="Commit"/> and its version <see cref="Tag"/>.
+/// <para>
+/// This is comparable but reverts the <see cref="SVersion.CompareTo(SVersion?)"/> order.
+/// </para>
+/// </summary>
 public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
 {
     readonly SVersion _version;

@@ -267,7 +267,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
 
         if( !forceRebuild )
         {
-            var existingRelease = _releaseDatabase.GetReleaseInfo( monitor, versionInfo.Repo, targetVersion );
+            var existingRelease = _releaseDatabase.GetReleaseInfo( monitor, versionInfo.Repo, targetVersion, LogLevel.Debug );
             if( existingRelease != null && existingRelease.HasAllLocalArtifacts( monitor, out var assetsFolder ) )
             {
                 // build is not required... But may be running tests is required.

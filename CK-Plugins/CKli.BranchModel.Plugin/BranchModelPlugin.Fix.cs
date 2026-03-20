@@ -120,7 +120,7 @@ public sealed partial class BranchModelPlugin
         }
         // Defensive programming here: the RepoReleaseInfo must exist.
         // This is the origin of the FixWorkflow.
-        var originReleaseInfo = _releaseDatabase.GetReleaseInfo( monitor, repo, toFix.Version );
+        var originReleaseInfo = _releaseDatabase.GetReleaseInfo( monitor, repo, toFix.Version, LogLevel.Error );
         if( originReleaseInfo == null )
         {
             monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,

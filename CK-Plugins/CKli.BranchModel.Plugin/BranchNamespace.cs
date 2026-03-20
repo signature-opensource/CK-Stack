@@ -82,11 +82,21 @@ public sealed partial class BranchNamespace
                     """ );
             }
             Throw.DebugAssert( e.Current.Index == 0 );
-            var branchName = new string( config.Slice( 0, e.Current.Length ) );
+
+            var sBranchName = config.Slice( 0, e.Current.Length );
             config = config.Slice( e.Current.Length );
+            if( sBranchName.Equals( "ci", StringComparison.Ordinal ) || sBranchName.EndsWith( "-ci", StringComparison.Ordinal ) )
+            {
+                throw new CKException( $"""
+                    Invalid branch name:
+                    {sBranchName}
+                    A branch name cannot be "ci" or ends with "-ci".
+                    """ );
+            }
+            var branchName = new string( sBranchName );
             if( count != 0 )
             {
-                var currentInitial = branchName[0];
+                var currentInitial = sBranchName[0];
                 if( initialChar >= currentInitial )
                 {
                     throw new CKException( $"""

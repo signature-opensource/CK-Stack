@@ -122,7 +122,7 @@ public sealed partial class HotGraph
                 for( int i = 0; i < ordered.Length; i++ )
                 {
                     Solution? s = ordered[i];
-                    var sV = s.ComputeVersionInfo( monitor, _versionTags.Get( monitor, s.Repo ) );
+                    var sV = s.ComputeVersionInfo( monitor, _versionTags.GetWithoutIssue( monitor, s.Repo ) );
                     if( sV != null )
                     {
                         versions[i] = sV;

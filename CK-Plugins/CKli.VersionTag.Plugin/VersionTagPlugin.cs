@@ -68,26 +68,41 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     /// <returns>True on success, false on error (only errors are that assets cannot be properly deleted).</returns>
     public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
     {
-        var info = Get( monitor, repo );
-        if( info == null ) return false;
+        return DestroyRelease( monitor, repo, version, Get( monitor, repo ).RemoveTagCommit( version ), removeFromPublishedDatabase: false );
+    }
+
+    /// <summary>
+    /// Centralized deletion of a release. This tries to delete every possible traces.
+    /// </summary>
+    bool DestroyRelease( IActivityMonitor monitor, Repo repo, SVersion version, TagCommit? existingTag, bool removeFromPublishedDatabase )
+    {
         using( monitor.OpenInfo( $"Deleting local release '{repo.DisplayPath}/{version}'." ) )
         {
             // Take no risk: delete every possible traces (but avoids calling twice the same destroy).
-            var tag = info.RemoveTag( version )?.BuildContentInfo;
-            var db = _releaseDatabase.DestroyLocalRelease( monitor, repo, version );
-            if( tag != null && db != null && db != tag )
+            var tagContent = existingTag?.BuildContentInfo;
+            var pubContent = removeFromPublishedDatabase
+                                ? _releaseDatabase.DestroyPublishedRelease( monitor, repo, version )
+                                : null;
+            var dbContent = _releaseDatabase.DestroyLocalRelease( monitor, repo, version );
+
+            bool success = true;
+            if( tagContent != null )
             {
-                // Use single | (no short circuit).
-                return _artifactHandler.DestroyLocalRelease( monitor, repo, version, tag )
-                        | _artifactHandler.DestroyLocalRelease( monitor, repo, version, db );
+                if( tagContent == pubContent ) pubContent = null;
+                if( tagContent == dbContent ) dbContent = null;
+                success = _artifactHandler.DestroyLocalRelease( monitor, repo, version, tagContent );
             }
-            var any = db ?? tag;
-            if( any != null )
+            if( pubContent != null )
             {
-                return _artifactHandler.DestroyLocalRelease( monitor, repo, version, any );
+                if( pubContent == dbContent ) dbContent = null;
+                success &= _artifactHandler.DestroyLocalRelease( monitor, repo, version, pubContent );
             }
+            if( dbContent != null )
+            {
+                success &= _artifactHandler.DestroyLocalRelease( monitor, repo, version, dbContent );
+            }
+            return success;
         }
-        return true;
     }
 
 
@@ -413,11 +428,12 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         }
         // Second pass: filters out the invalid tags and produces the v2C index
         //              along with potential tag conflicts.
+        //              During this pass, we also compute the topHot (that is the greatest regular version tag).
         var v2c = new Dictionary<SVersion, TagCommit>();
         TagCommit? topHot = null;
         foreach( var newOne in validTags )
         {
-            // This filters out any version tags (regular, +fake or +deprecated).
+            // This filters out any version tags (regular, +fake or +deprecated): +invalid always wins.
             if( invalidTags != null && invalidTags.TryGetValue( newOne.Version, out var invalid ) )
             {
                 if( newOne.Commit.Sha != invalid.T.Target.Sha )
@@ -488,10 +504,53 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             }
         }
 
-
         if( hasBadTagNames )
         {
             monitor.Warn( $"One or more tags have been ignored in '{repo.DisplayPath}'. Use 'ckli tag list' to identify them." );
+        }
+
+        // LastStables are used by ckli fix. They must be sorted (in reverse version order, TagCommit.CompareTo does that).
+        // Explicit for each loop so we also compute the lowestCI tag to support auto-deletion of obsolete CI builds.
+        var lastStables = new List<TagCommit>();
+        TagCommit? lowestCI = null;
+        foreach( var tc in v2c.Values )
+        {
+            if( tc.Version.IsStable )
+            {
+                lastStables.Add( tc );
+            }
+            else if( tc.Version.IsCI() && (lowestCI == null || lowestCI.Version > tc.Version) )
+            {
+                lowestCI = tc;
+            }
+        }
+        // Uses TagCommit.CompareTo that reverts the Version.
+        lastStables.Sort();
+        TagCommit? lastStable = null;
+        if( lastStables.Count > 0 )
+        {
+            lastStable = lastStables[0];
+            if( lowestCI != null && lowestCI.Version < lastStable.Version )
+            {
+                AutoDeleteObsoleteCIReleases( monitor, repo, removableTags, v2c, lastStable, lowestCI );
+            }
+        }
+
+        Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
+        // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is "too much higher" than the last
+        // stable (this is a strong signal of a bad tag that should be deleted).
+        VersionTagInfo.HotZoneInfo? hotZone = null;    
+        if( topHot != null )
+        {
+            Throw.DebugAssert( lastStable != null );
+            // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
+            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot );
+        }
+        else
+        {
+            Throw.DebugAssert( lastStable == null );
+            // The build plugin will handle this.
+            monitor.Warn( $"No initial version found in '{repo.DisplayPath}'." );
         }
 
         // We capture the invalidTags: may be one day we can create a World.Issue that could
@@ -512,25 +571,6 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // release database contains. This is odd and should almost never happen but this is a checkpoint that doesn't
         // cost much.
         //
-        var lastStables = v2c.Values.Where( tc => tc.Version.IsStable ).Order().ToList();
-        var lastStable = lastStables.Count > 0 ? lastStables[0] : null;
-
-        Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
-        // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is "too much higher" than the last
-        // stable (this is a strong signal of a bad tag that should be deleted).
-        VersionTagInfo.HotZoneInfo? hotZone = null;    
-        if( topHot != null )
-        {
-            Throw.DebugAssert( lastStable != null );
-            // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
-            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot );
-        }
-        else
-        {
-            Throw.DebugAssert( lastStable == null );
-            // The build plugin will handle this.
-            monitor.Warn( $"No initial version found in '{repo.DisplayPath}'." );
-        }
         bool hasMissingContentInfo = false;
         World.Issue? publishedReleaseContentIssue = null;
         if( tagConflicts == null )
@@ -605,6 +645,40 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 }
             }
             return best;
+        }
+    }
+
+    void AutoDeleteObsoleteCIReleases( IActivityMonitor monitor,
+                                       Repo repo,
+                                       List<Tag>? removableTags,
+                                       Dictionary<SVersion, TagCommit> v2c,
+                                       TagCommit lastStable,
+                                       TagCommit lowestCI )
+    {
+        Throw.DebugAssert( lowestCI.Version < lastStable.Version );
+        // There's at least one CI version that should be suppressed.
+        var toRemove = v2c.Values.Where( tc => tc.Version.IsCI() && tc.Version < lastStable.Version ).ToList();
+        Throw.DebugAssert( toRemove.Contains( lowestCI ) );
+        bool success = true;
+        using( monitor.OpenInfo( $"Deleting obsolete CI versions: '{toRemove.Select( tc => tc.Version.ParsedText ).Concatenate( "', '" )}'." ) )
+        {
+            foreach( var tc in toRemove )
+            {
+                // This TagCommit is doomed.
+                v2c.Remove( tc.Version );
+                // If we have collected a "+deprecated", removes the non-deprecated one from the removable tags.
+                if( tc.IsDeprecatedVersion && removableTags != null )
+                {
+                    var vClean = tc.Version.WithBuildMetaData( null );
+                    removableTags.RemoveAll( t => SVersion.TryParse( t.FriendlyName, out var v ) && v == vClean );
+                }
+                success &= DestroyRelease( monitor, repo, tc.Version, tc, true );
+            }
+            if( success )
+            {
+                success = repo.GitRepository.DeleteLocalTags( monitor, toRemove.Select( tc => tc.Version.ParsedText! ) );
+            }
+            monitor.CloseGroup( success ? "Success." : "Failed." );
         }
     }
 

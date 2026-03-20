@@ -29,14 +29,15 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The released repository.</param>
     /// <param name="version">The released version.</param>
-    /// <returns>The information or null on error: the released version doesn't exist.</returns>
-    public RepoReleaseInfo? GetReleaseInfo( IActivityMonitor monitor, Repo repo, SVersion version )
+    /// <param name="errorLevel">Log level when not found. Use <see cref="LogLevel.None"/> to skip logging.</param>
+    /// <returns>The information or null if the released version doesn't exist.</returns>
+    public RepoReleaseInfo? GetReleaseInfo( IActivityMonitor monitor, Repo repo, SVersion version, LogLevel errorLevel )
     {
         var key = new RepoKey( repo.CKliRepoId, version );
         var content = _local.Find( monitor, key, out var isLocal );
         if( content == null )
         {
-            monitor.Error( $"No release exist for '{repo.DisplayPath}/{key.Version}'." );
+            monitor.Log( errorLevel, $"No release exist for '{repo.DisplayPath}/{key.Version}'." );
             return null;
         }
         return GetReleasedInfo( monitor, repo, key, content, isLocal );
@@ -205,7 +206,22 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
     /// <returns>The content info it has been removed. Null if it didn't exist.</returns>
     public BuildContentInfo? DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
     {
-        return _local.DestroyLocalRelease( monitor, repo, version );
+        return _local.DestroyRelease( monitor, repo, version );
+    }
+
+    /// <summary>
+    /// This should only be called by the VersionTag plugin.
+    /// <para>
+    /// This is idempotent.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The source repository.</param>
+    /// <param name="version">The release to destroy.</param>
+    /// <returns>The content info it has been removed. Null if it didn't exist.</returns>
+    public BuildContentInfo? DestroyPublishedRelease( IActivityMonitor monitor, Repo repo, SVersion version )
+    {
+        return _published.DestroyRelease( monitor, repo, version );
     }
 
     /// <summary>

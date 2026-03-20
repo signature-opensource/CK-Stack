@@ -5,6 +5,7 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
@@ -377,8 +378,8 @@ public sealed partial class Roadmap
                 {
                     return true;
                 }
-                // Again, we MUST have a ".NUM" here.
-                if( !p.TryMatch( '.' ) || !p.TryMatchInteger( out preNum ) )
+                // If there's more, then again we MUST have a ".NUM" here.
+                if( !p.TryMatch( '.' ) || !p.TryMatchInteger( out fixNum ) )
                 {
                     monitor.Warn( $"Invalid prerelease version pattern '{version}' (expecting '.<number>' suffix for prerelease fix number), got: '{p}'." );
                     return false;
@@ -389,7 +390,7 @@ public sealed partial class Roadmap
                 {
                     return true;
                 }
-                // There's more: this necessarily is a ".ci.NUM" suffix.
+                // If there's more, then this necessarily is a ".ci.NUM" suffix.
                 if( !p.TryMatch( ".ci." ) || !p.TryMatchInteger( out ushort buildNumber ) )
                 {
                     monitor.Warn( $"Invalid prerelease version pattern '{version}' (expecting '.ci.<build number>' suffix), got: '{p}'." );
@@ -555,9 +556,9 @@ public sealed partial class Roadmap
                 // First Box.
                 IRenderable r = screen.Text( repo.DisplayPath, style ).HyperLink( new Uri( repo.WorkingFolder ) );
                 r = status.IsDirty
-                            ? r.Box( paddingRight: 1 ).AddLeft( screen.Text( "✱" ).Box( paddingRight: 1 ) )
+                            ? r.Box( paddingRight: 1 ).AddLeft( screen.Text( "✱", style.With( TextEffect.Regular ) ).Box( paddingRight: 1 ) )
                             : r.Box( paddingLeft: 2, paddingRight: 1 );
-                return r;
+                return r.Box();
             }
         }
 
