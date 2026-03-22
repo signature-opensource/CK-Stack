@@ -3,21 +3,34 @@ using CKli.Core;
 using LibGit2Sharp;
 using System;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;
 
 /// <summary>
 /// A link associates a <see cref="Branch"/> to an optional <see cref="Ahead"/> branch.
-/// Ahead must be based on the Branch and have commits ahead or not exist at all or
-/// the <see cref="Issue"/> should be fixed.
+/// Ahead must be based on the Branch and have commits ahead or not exist at all (or
+/// the <see cref="Issue"/> should be fixed).
 /// <para>
-/// This object is immutable.
+/// This object is immutable. The <see cref="Create(Branch, Branch)"/> and <see cref="Create(Branch, string)"/> factory
+/// methods are the only way to create a new link. Then the mutation methods can be used.
 /// </para>
 /// </summary>
 public sealed partial class BranchLink
 {
-    static readonly MergeTreeOptions _mergeOptions = new MergeTreeOptions() { FailOnConflict = true, SkipReuc = true };
+    static readonly MergeTreeOptions _mergeTreeOptions = new MergeTreeOptions()
+    {
+        FailOnConflict = true,
+        SkipReuc = true
+    };
+    static readonly MergeOptions _mergeOptions = new MergeOptions()
+    {
+        FailOnConflict = true,
+        SkipReuc = true,
+        FastForwardStrategy =
+        FastForwardStrategy.NoFastForward
+    };
 
     readonly Branch _branch;
     readonly Branch? _ahead;
@@ -43,10 +56,18 @@ public sealed partial class BranchLink
         get
         {
             if( _ahead == null ) return IssueKind.None;
-            // If the ahead branch is not ahead, it is useless.
-            // This applies even if ahead is behind the branch: it is useless
-            // to resynchronize it.
-            if( _aheadBy == 0 ) return IssueKind.Useless;
+            // If the ahead branch is not ahead, it is useless. We also consider the case of the exact same content:
+            // the "ahead empty commit" is here... it is useless...
+            if( _aheadBy == 0 || _branch.Tip.Tree.Sha == _ahead.Tip.Tree.Sha )
+            {
+                // ...but if the ahead branch is checked out and the working folder is dirty
+                // then we cannot say that the ahead branch is useless! 
+                if( !_ahead.IsCurrentRepositoryHead
+                    || !RepositoryOf( _branch ).RetrieveStatus( new StatusOptions() { IncludeIgnored = false } ).IsDirty )
+                {
+                    return IssueKind.Useless;
+                }
+            }
             if( _behindBy != 0 )
             {
                 if( _behindBy == -1 )
@@ -54,37 +75,89 @@ public sealed partial class BranchLink
                     Throw.DebugAssert( _aheadBy == -1 );
                     return IssueKind.Unrelated;
                 }
-                // Ahead needs to be resynchronized.
-                // 1 - We save here the edge case of the exact same content:
-                //     when ahead (that is actually behind) has the same content as the branch,
-                //     then we consider that it is useless.
-                if( _branch.Tip.Tree.Sha == _ahead.Tip.Tree.Sha )
-                {
-                    return IssueKind.Useless;
-                }
-                // 2 - We also save the "ahead empty commit".
-                if( _aheadBy == 1 && IsEmptyCommit( _ahead.Tip ) )
-                {
-                    return IssueKind.Useless;
-                }
                 return IssueKind.Desynchronized;
             }
             Throw.DebugAssert( _aheadBy > 0 );
             return IssueKind.None;
-
-            static bool IsEmptyCommit( Commit c )
-            {
-                var parents = c.Parents.ToList();
-                return parents.Count == 1 && c.Tree.Sha == parents[0].Tree.Sha;
-            }
         }
+    }
+
+    /// <summary>
+    /// Integrates the <see cref="Ahead"/> branch into the <see cref="Branch"/> and
+    /// deletes it. If Ahead is null, nothing is done and this link is returned as-is.
+    /// On success, a new <see cref="BranchLink"/> (that replaces this one) is returned.
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The repository.</param>
+    /// <returns>An updated link (replaces this one) on success, null on error.</returns>
+    public BranchLink? IntegrateAhead( IActivityMonitor monitor, GitRepository repo )
+    {
+        if( _ahead == null ) return this;
+        var newBase = IntegrateMerge( monitor, repo, _ahead!, _branch );
+        return newBase == null
+                ? null
+                : new BranchLink( newBase, null, _aheadName, 0, 0 );
+    }
+
+    /// <summary>
+    /// Synchronizes this <see cref="Branch"/> into <see cref="Ahead"/> when <see cref="Issue"/> is <see cref="IssueKind.Desynchronized"/>.
+    /// WHen Issue is <see cref="IssueKind.Useless"/>, nothing is done. When Issue is <see cref="IssueKind.Unrelated"/>, an error is logged
+    /// and null is returned.
+    /// <para>
+    /// On success, a new <see cref="BranchLink"/> (that replaces this one) is returned.
+    /// </para>
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The repository.</param>
+    /// <returns>An updated link (replaces this one) on success, null on error.</returns>
+    public BranchLink? SynchronizeAhead( IActivityMonitor monitor, GitRepository repo )
+    {
+        var issue = Issue;
+        if( issue is IssueKind.Desynchronized )
+        {
+            Throw.DebugAssert( _ahead != null );
+            var newAhead = SynchronizeMerge( monitor, repo, _ahead, _branch );
+            return newAhead == null
+                    ? null
+                    : newAhead == _ahead
+                        ? this
+                        : new BranchLink( _branch, newAhead, _aheadName, _aheadBy, 0 );
+        }
+        if( issue is IssueKind.Unrelated )
+        {
+            Throw.DebugAssert( _ahead != null );
+            monitor.Error( $"""
+                            Branch '{_ahead.FriendlyName}' is independent of its base '{_branch.FriendlyName}' (no common ancestor).
+                            This is an unexpected situation that must be fixed manually.
+                            """ );
+            return null;
+        }
+        return this;
+    }
+
+    /// <summary>
+    /// Refreshes the link: if <see cref="Branch"/> does'nt exist anymore, null is returned.
+    /// </summary>
+    /// <param name="repo">The repository.</param>
+    /// <returns>This link if no change, a refreshed one or null if <see cref="Branch"/> disappeared.</returns>
+    public BranchLink? Refresh( GitRepository repo )
+    {
+        Throw.CheckArgument( repo.Repository == RepositoryOf( Branch ) );
+        var newBranch = repo.Repository.Branches[_branch.CanonicalName];
+        if( newBranch == null ) return null;
+        var newAhead = repo.Repository.Branches[_aheadName];
+        return newBranch.Tip.Sha == _branch.Tip.Sha && newAhead?.Tip.Sha == _ahead?.Tip.Sha
+                ? this
+                : newAhead != null
+                    ? Create( newBranch, newAhead )
+                    : new BranchLink( newBranch, null, _aheadName, 0, 0 );
     }
 
     /// <summary>
     /// Collects this link's issue if any.
     /// </summary>
     /// <param name="issues">The collector for issues.</param>
-    internal void Collect( IssueBuilder issues )
+    internal void CollectIssue( IssueBuilder issues )
     {
         if( _ahead != null )
         {
@@ -104,22 +177,25 @@ public sealed partial class BranchLink
     }
 
     /// <summary>
-    /// Creates the <see cref="Ahead"/> branch on an empty commit.
+    /// Ensures that <see cref="Ahead"/> branch exists: if the ahead branch is missing, a
+    /// new empty commit is created for the new branch.
     /// </summary>
     /// <param name="repo">The repository.</param>
     /// <returns>An updated link (replaces this one).</returns>
-    internal BranchLink CreateAhead( Repo repo )
+    public BranchLink EnsureAhead( GitRepository repo )
     {
-        Throw.CheckState( Ahead == null );
-        Branch ahead = CreateAheadBranch( repo.GitRepository, _branch.Tip, _aheadName );
+        Throw.CheckArgument( repo.Repository == RepositoryOf( Branch ) );
+        if( _ahead != null ) return this;
+        Branch ahead = CreateAheadBranch( repo, _branch.Tip, _aheadName );
         return new BranchLink( _branch, ahead, _aheadName, 1, 0 );
     }
 
     /// <summary>
-    /// Commits the <see cref="Ahead"/> branch that must be currently checked out.
+    /// Commits the <see cref="Ahead"/> branch that must be currently checked out otherwise
+    /// a <see cref="InvalidOperationException"/> is thrown.
     /// On success, return an updated link.
     /// <para>
-    /// Note that there may have been independent commits done before this one: even if there's
+    /// Note that there may have been commits done before this one: even if there's
     /// nothing to commit, the returned link is up to date.
     /// </para>
     /// </summary>
@@ -127,32 +203,18 @@ public sealed partial class BranchLink
     /// <param name="repo">The repository.</param>
     /// <param name="message">The commit message.</param>
     /// <returns>An updated link (replaces this one) on success, null on error.</returns>
-    internal BranchLink? CommitAhead( IActivityMonitor monitor, Repo repo, string message )
+    public BranchLink? CommitAhead( IActivityMonitor monitor, GitRepository repo, string message )
     {
         Throw.CheckState( Ahead != null && Ahead.IsCurrentRepositoryHead );
-        Throw.CheckArgument( repo.GitRepository.Repository == ((IBelongToARepository)Ahead).Repository );
-        return repo.GitRepository.Commit( monitor, message ) switch
+        Throw.CheckArgument( repo.Repository == RepositoryOf( Ahead ) );
+        return repo.Commit( monitor, message, CommitBehavior.CreateNewCommit ) switch
         {
             CommitResult.Error => null,
-            _ => Create( _branch, repo.GitRepository.Repository.Head )
+            _ => Create( _branch, repo.Repository.Head )
         };
     }
 
-    /// <summary>
-    /// Integrates the <see cref="Ahead"/> branch (that must be not null) into the <see cref="Branch"/> and
-    /// deletes it. On success, a new <see cref="BranchLink"/> (that replaces this one) is returned.
-    /// </summary>
-    /// <param name="monitor">The monitor.</param>
-    /// <param name="repo">The repository.</param>
-    /// <returns>An updated link (replaces this one) on success, null on error.</returns>
-    internal BranchLink? IntegrateAhead( IActivityMonitor monitor, Repo repo )
-    {
-        Throw.CheckState( Ahead != null );
-        var newBase = IntegrateMerge( monitor, repo.GitRepository, _ahead!, _branch );
-        return newBase == null
-                ? null
-                : new BranchLink( newBase, null, _aheadName, 0, 0 );
-    }
+    static IRepository RepositoryOf( IBelongToARepository o ) => o.Repository;
 
     /// <summary>
     /// Creates an "empty ahead commit" from a base commit for a new branch.
@@ -163,7 +225,7 @@ public sealed partial class BranchLink
     /// <returns>The git branch.</returns>
     internal static Branch CreateAheadBranch( GitRepository git, Commit baseCommit, string aheadBranchName )
     {
-        Throw.DebugAssert( git.Repository == ((IBelongToARepository)baseCommit).Repository );
+        Throw.DebugAssert( git.Repository == RepositoryOf( baseCommit ) );
         var c = git.Repository.ObjectDatabase.CreateCommit( baseCommit.Author,
                                                             git.Committer, $"""
                                                             Initializing '{aheadBranchName}'.
@@ -191,38 +253,68 @@ public sealed partial class BranchLink
                                             Branch baseBranch,
                                             LogLevel errorLevel = LogLevel.Error )
     {
-        Throw.CheckArgument( git.Repository == ((IBelongToARepository)branch).Repository
-                             && git.Repository == ((IBelongToARepository)baseBranch).Repository );
+        Throw.CheckArgument( git.Repository == RepositoryOf( branch ) && git.Repository == RepositoryOf( baseBranch ) );
+
         try
         {
             var r = git.Repository;
-            var result = r.ObjectDatabase.MergeCommits( baseBranch.Tip, branch.Tip, _mergeOptions );
-            if( result.Status != MergeTreeStatus.Succeeded )
+
+            // If the base or the ahead is the currently checked out branch, it must be clean.
+            bool branchIsCheckedOut = branch.IsCurrentRepositoryHead;
+            bool baseBranchIsCheckedOut = baseBranch.IsCurrentRepositoryHead;
+            if( (branchIsCheckedOut || baseBranchIsCheckedOut) && !git.CheckCleanCommit( monitor ) )
             {
-                monitor.Error( $"""
-                    Unable to synchronize branch '{branch.FriendlyName}' on '{baseBranch.FriendlyName}' in '{git.DisplayPath}'.
-                    Merge conflict must be manually resolved.
-                    """ );
                 return null;
+            }
+
+            // Useless ahead case.
+            if( baseBranch.Tip.Sha == branch.Tip.Sha )
+            {
+                return branch;
+            }
+
+            // If the ahead branch is checked out, we must use the simple API to easily update the index.
+            if( branchIsCheckedOut )
+            {
+                if( r.Merge( baseBranch, git.Committer, _mergeOptions ).Status == MergeStatus.Conflicts )
+                {
+                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
+                }
+                branch = r.Head;
             }
             else
             {
+                var result = r.ObjectDatabase.MergeCommits( baseBranch.Tip, branch.Tip, _mergeTreeOptions );
+                if( result.Status != MergeTreeStatus.Succeeded )
+                {
+                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
+                }
                 var commit = r.ObjectDatabase.CreateCommit( author: git.Committer,
                                                             committer: git.Committer,
-                                                            message: $"Synchronizing '{branch.FriendlyName}' on '{baseBranch.FriendlyName}'.",
+                                                            message: $"Synchronizing '{baseBranch.FriendlyName}' into '{branch.FriendlyName}'.",
                                                             result.Tree,
                                                             [baseBranch.Tip, branch.Tip],
                                                             prettifyMessage: true );
                 r.Refs.UpdateTarget( branch.Reference, commit.Id );
-                return r.Branches[branch.CanonicalName];
+                branch = r.Branches[branch.CanonicalName];
             }
+            return branch;
         }
         catch( Exception ex )
         {
             monitor.Error( $"""
-                Error while synchronizing branch '{branch.FriendlyName}' on '{baseBranch.FriendlyName}'.
+                Error while synchronizing branch '{baseBranch.FriendlyName}' into '{branch.FriendlyName}' in '{git.DisplayPath}'.
                 This must be manually fixed.
                 """, ex );
+            return null;
+        }
+
+        static Branch? ManualMergeRequiredError( IActivityMonitor monitor, GitRepository git, Branch branch, Branch baseBranch )
+        {
+            monitor.Error( $"""
+                    Unable to synchronize branch ''{baseBranch.FriendlyName}' into '{branch.FriendlyName}' in '{git.DisplayPath}'.
+                    Merge conflict must be manually resolved.
+                    """ );
             return null;
         }
     }
@@ -231,51 +323,72 @@ public sealed partial class BranchLink
     /// <summary>
     /// Tries to merge the <paramref name="branch"/> (the "ahead" branch) in its <paramref name="baseBranch"/>.
     /// On success, the ahead branch is deleted and a new, updated, base branch is returned.
+    /// <para>
+    /// If branch is checked out then the base branch is automatically checked out. 
+    /// </para>
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
     /// <param name="git">The repository.</param>
     /// <param name="branch">The (ahead) branch.</param>
     /// <param name="baseBranch">The base branch.</param>
+    /// <param name="removeBranch">False to not delete <paramref name="branch"/> on success.</param>
     /// <param name="errorLevel">Log level to use on error.</param>
     /// <returns>The updated base branch on success, null on error.</returns>
     public static Branch? IntegrateMerge( IActivityMonitor monitor,
                                           GitRepository git,
                                           Branch branch,
                                           Branch baseBranch,
+                                          bool removeBranch = true,
                                           LogLevel errorLevel = LogLevel.Error )
     {
-        Throw.CheckArgument( git.Repository == ((IBelongToARepository)branch).Repository
-                             && git.Repository == ((IBelongToARepository)baseBranch).Repository );
+        Throw.CheckArgument( git.Repository == RepositoryOf( branch ) && git.Repository == RepositoryOf( baseBranch ) );
         try
         {
             var r = git.Repository;
 
+            // If the base or the ahead is the currently checked out branch, it must be clean.
+            bool branchIsCheckedOut = branch.IsCurrentRepositoryHead;
+            bool baseBranchIsCheckedOut = baseBranch.IsCurrentRepositoryHead;
+            if( (branchIsCheckedOut || baseBranchIsCheckedOut) && !git.CheckCleanCommit( monitor ) )
+            {
+                return null;
+            }
+
+            // Useless ahead case: If the ahead branch is currently checked out, check out the base.
             if( branch.Tip.Tree.Id == baseBranch.Tip.Tree.Id )
             {
-                // Nothing to merge (useless ahead case).
-                // If the branch to remove is currently checked out, check out the base.
-                if( branch.IsCurrentRepositoryHead
-                    && !git.Checkout( monitor, baseBranch ) )
+                // This may be too much here... We may change this to do this only if the branch's parent
+                // is the baseBranch ("empty ahead commit" case only).
+                if( branchIsCheckedOut && !git.Checkout( monitor, baseBranch ) )
                 {
                     return null;
                 }
-                // Removes it.
-                r.Branches.Remove( branch );
-                monitor.Trace( $"Branch '{branch.FriendlyName}' was useless, it has been deleted." );
+                if( removeBranch )
+                {
+                    // Removes it.
+                    r.Branches.Remove( branch );
+                    monitor.Trace( $"Branch '{branch.FriendlyName}' was useless, it has been deleted." );
+                }
                 return baseBranch;
             }
-
-            var result = r.ObjectDatabase.MergeCommits( branch.Tip, baseBranch.Tip, _mergeOptions );
-            if( result.Status != MergeTreeStatus.Succeeded )
+            // If baseBranch is checked out, we must use the simple API to easily update the index.
+            if( baseBranchIsCheckedOut )
             {
-                monitor.Error( $"""
-                    Unable to integrate branch '{branch.FriendlyName}' into '{baseBranch.FriendlyName}' in '{git.DisplayPath}'.
-                    Merge conflict must be manually resolved.
-                    """ );
-                return null;
+                if( r.Merge( branch, git.Committer, _mergeOptions ).Status == MergeStatus.Conflicts )
+                {
+                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
+                }
+                baseBranch = r.Head;
             }
             else
             {
+                var result = r.ObjectDatabase.MergeCommits( branch.Tip, baseBranch.Tip, _mergeTreeOptions );
+                if( result.Status != MergeTreeStatus.Succeeded )
+                {
+                    Throw.DebugAssert( result.Tree == null );
+                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
+                }
+                Throw.DebugAssert( result.Tree != null );
                 var commit = r.ObjectDatabase.CreateCommit( author: git.Committer,
                                                             committer: git.Committer,
                                                             message: $"Integrating '{branch.FriendlyName}' in '{baseBranch.FriendlyName}'.",
@@ -285,25 +398,36 @@ public sealed partial class BranchLink
                 r.Refs.UpdateTarget( baseBranch.Reference, commit.Id );
                 // Not sure if a better way to refresh the Branch/Tip exists.
                 baseBranch = r.Branches[baseBranch.CanonicalName];
-                // If the branch to remove is currently checked out, check out the base.
-                if( branch.IsCurrentRepositoryHead
-                    && !git.Checkout( monitor, baseBranch ) )
+                // If the ahead branch is currently checked out, check out the base.
+                if( branchIsCheckedOut && !git.Checkout( monitor, baseBranch ) )
                 {
                     // If this fail, we are left with a "useless ahead branch" and this is fine.
                     return null;
                 }
-                // Removes it.
-                r.Branches.Remove( branch );
-                monitor.Trace( $"Branch '{branch.FriendlyName}' has been integrated in its base '{baseBranch.FriendlyName}' and deleted." );
-                return baseBranch;
             }
+            // Removes the ahead.
+            if( removeBranch )
+            {
+                r.Branches.Remove( branch );
+            }
+            monitor.Trace( $"Branch '{branch.FriendlyName}' has been integrated in its base '{baseBranch.FriendlyName}'{(removeBranch ? " and deleted" : "")}." );
+            return baseBranch;
         }
         catch( Exception ex )
         {
             monitor.Error( $"""
-                Error while synchronizing branch '{branch.FriendlyName}' on '{baseBranch.FriendlyName}'.
+                Error while integrating branch '{branch.FriendlyName}' in its base '{baseBranch.FriendlyName}' in '{git.DisplayPath}'.
                 This must be manually fixed.
                 """, ex );
+            return null;
+        }
+
+        static Branch? ManualMergeRequiredError( IActivityMonitor monitor, GitRepository git, Branch branch, Branch baseBranch )
+        {
+            monitor.Error( $"""
+                    Unable to integrate branch '{branch.FriendlyName}' into '{baseBranch.FriendlyName}' in '{git.DisplayPath}'.
+                    Merge conflict must be manually resolved.
+                    """ );
             return null;
         }
     }
@@ -324,13 +448,14 @@ public sealed partial class BranchLink
     /// <param name="b">The base branch.</param>
     /// <param name="ahead">The branch ahead.</param>
     /// <returns>The link.</returns>
-    internal static BranchLink Create( Branch b, Branch ahead )
+    public static BranchLink Create( Branch b, Branch ahead )
     {
-        Throw.DebugAssert( b != null && ahead != null );
-        var git = ((IBelongToARepository)b).Repository;
+        CheckValidBranchReferenceArgument( b );
+        CheckValidBranchReferenceArgument( ahead );
+        var r = ((IBelongToARepository)b).Repository;
         int aheadBy;
         int behindBy;
-        var d = git.ObjectDatabase.CalculateHistoryDivergence( ahead.Tip, b.Tip );
+        var d = r.ObjectDatabase.CalculateHistoryDivergence( ahead.Tip, b.Tip );
         Throw.DebugAssert( (d.CommonAncestor == null) == (d.AheadBy is null && d.BehindBy is null) );
         if( d.CommonAncestor == null )
         {
@@ -353,14 +478,31 @@ public sealed partial class BranchLink
     /// <param name="b">The base branch.</param>
     /// <param name="aheadName">The name of the ahead branch.</param>
     /// <returns>The link.</returns>
-    internal static BranchLink Create( Branch b, string aheadName )
+    public static BranchLink Create( Branch b, string aheadName )
     {
-        Throw.DebugAssert( b != null && !string.IsNullOrWhiteSpace( aheadName ) );
-        var git = ((IBelongToARepository)b).Repository;
-        var ahead = git.Branches[aheadName];
+        Throw.CheckNotNullOrWhiteSpaceArgument( aheadName );
+        var r = ((IBelongToARepository)b).Repository;
+        CheckValidBranchReferenceArgument( b );
+        var ahead = r.Branches[aheadName];
         return ahead != null
                 ? Create( b, ahead )
                 : new BranchLink( b, null, aheadName, 0, 0 );
+    }
+
+    /// <summary>
+    /// Helper that throws a <see cref="ArgumentException"/> if the branch is null or is invalid.
+    /// </summary>
+    /// <param name="b">The branch to check.</param>
+    public static void CheckValidBranchReferenceArgument( Branch b )
+    {
+        Throw.CheckNotNullArgument( b );
+        var repo = ((IBelongToARepository)b).Repository;
+        var tip = b.Tip.Sha;
+        var actualTip = repo.Refs[b.CanonicalName]?.TargetIdentifier;
+        if( actualTip != tip )
+        {
+            throw new ArgumentException( $"Invalid branch '{b}': branch's tip is '{tip}' but current branch references '{actualTip}'." );
+        }
     }
 
 }

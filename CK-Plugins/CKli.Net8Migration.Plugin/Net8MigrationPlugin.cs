@@ -91,18 +91,19 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         var repos = World.GetAllDefinedRepo( monitor );
         if( repos == null ) return false;
 
-        // If we already run this once, the following check is not useless:
+        #region Work on master => "stable" branch model. This is idempotent.
+        // Even if we already ran this once, the following check is not useless:
         // if we want to recompute the MinVersion, we need the RepositoryInfo.xml.
-        if( !SetMasterAndCheckDevelopIsMerged( monitor, repos, checkDevelop ) ) return false;
+        if( !CheckoutMaster( monitor, repos ) ) return false;
 
         // We must computed the MinVersion before removing the RepositoryInfo.xml
-        // (so before switching to stable if it has already been created).
+        // (so before switching to "stable" if it has already been created).
         InitializeMinVersion( monitor, repos, _versionTag );
 
-        // Ensure the stable branch and checkout: head is now stable.
+        // Ensure the stable branch and checkout: head is now "stable".
         foreach( var repo in repos )
         {
-            var stable = repo.GitRepository.EnsureBranch( monitor, "stable" );
+            var stable = repo.GitRepository.EnsureBranch( monitor, _branchModel.BranchNamespace.Root.Name );
             Commands.Checkout( repo.GitRepository.Repository, stable );
         }
 
@@ -117,36 +118,58 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                                                   "Initialize stable branch with slnx and no RepositoryInfo.xml nor CodeCakeBuilder.",
                                                   CommitBehavior.CreateNewCommit ) is not CommitResult.Error;
         }
-
         // We are ready to work... Still in Net8 but on stable branch.
+        #endregion 
+
+        // Now consider the "dev/stable" branch. If the "develop" branch is ahead from "master" then we ensure
+        // that the "dev/stable" branch exists and merge "develop" into "dev/stable".
+
+        foreach( var repo in repos )
+        {
+            var branchInfo = _branchModel.Get( monitor, repo );
+            var stable = branchInfo.Root;
+            Throw.DebugAssert( "We have ensured it above.", stable.GitBranch != null );
+
+            var develop = repo.GitRepository.GetBranch( monitor, "develop", missingLocalAndRemote: LogLevel.Warn );
+            if( develop != null )
+            {
+                var master = repo.GitRepository.Repository.Branches["master"];
+                var div = repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( develop.Tip, master.Tip );
+                if( !div.AheadBy.HasValue )
+                {
+                    monitor.Error( $"'{repo.DisplayPath}': The 'develop' branch should be based on 'master'." );
+                    success = false;
+                }
+                else 
+                {
+                    Throw.DebugAssert( div.AheadBy.HasValue );
+                    if( div.AheadBy.Value > 0 )
+                    {
+                        // develop is ahead master: we must integrate "develop" into "dev/stable".
+                        // 1 - We ensure the "dev/".
+                        // 2 - We synchronize "stable" into its "dev/" if necessary.
+                        // 3 - We merge "develop" into the "dev/stable".
+                        stable.EnsureDevBranch();
+                        if( !stable.SynchronizeDevBranch( monitor )
+                            || BranchLink.IntegrateMerge( monitor, repo.GitRepository, develop, stable.GitDevBranch, removeBranch: false ) == null )
+                        {
+                            success = false;
+                        }
+                    }
+                }
+            }
+        }
+
 
         return success;
     }
 
-    static bool SetMasterAndCheckDevelopIsMerged( IActivityMonitor monitor, IReadOnlyList<Repo> repos, bool checkDevelop )
+    static bool CheckoutMaster( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
     {
         bool success = true;
         foreach( var repo in repos )
         {
             success &= repo.GitRepository.FullCheckout( monitor, "master", skipFetchMerge: true );
-            if( checkDevelop )
-            {
-                var dev = repo.GitRepository.GetBranch( monitor, "develop", missingLocalAndRemote: LogLevel.Error );
-                if( dev == null )
-                {
-                    success = false;
-                }
-                else
-                {
-                    var master = repo.GitRepository.Repository.Head;
-                    var div = repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( master.Tip, dev.Tip );
-                    if( div.CommonAncestor != dev.Tip && dev.Tip.Tree.Sha != master.Tip.Tree.Sha )
-                    {
-                        monitor.Error( $"The 'develop' branch is not merged in 'master'." );
-                        success = false;
-                    }
-                }
-            }
         }
         return success;
     }

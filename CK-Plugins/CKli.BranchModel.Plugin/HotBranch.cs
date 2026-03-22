@@ -100,7 +100,7 @@ public sealed class HotBranch
         }
         else
         {
-            _link.Collect( issues );
+            _link.CollectIssue( issues );
         }
     }
 
@@ -124,7 +124,7 @@ public sealed class HotBranch
     }
 
     /// <summary>
-    /// Commits into this <see cref="BranchLink"/>. Development always takes place is the "dev/" branch,
+    /// Commits into this <see cref="BranchLink"/>. Development always takes place in the "dev/" branch,
     /// only <see cref="IntegrateDevBranch(IActivityMonitor)"/> can commit in the <see cref="GitBranch"/>.
     /// <list type="bullet">
     ///     <item>The <see cref="GitDevBranch"/> must exists and be checked out.</item>
@@ -138,7 +138,7 @@ public sealed class HotBranch
     public bool Commit( IActivityMonitor monitor, string message )
     {
         Throw.CheckState( IsActive && GitDevBranch != null && GitDevBranch.IsCurrentRepositoryHead );
-        var newLink = _link.CommitAhead( monitor, Repo, message );
+        var newLink = _link.CommitAhead( monitor, Repo.GitRepository, message );
         if( newLink == null ) return false;
         _link = newLink;
         _gitDevBranch = _link.Ahead;
@@ -154,7 +154,7 @@ public sealed class HotBranch
     public bool IntegrateDevBranch( IActivityMonitor monitor )
     {
         Throw.CheckState( IsActive && GitDevBranch != null );
-        var newLink = _link.IntegrateAhead( monitor, Repo );
+        var newLink = _link.IntegrateAhead( monitor, Repo.GitRepository );
         if( newLink == null ) return false;
         _link = newLink;
         Throw.DebugAssert( _link.Ahead == null );
@@ -166,17 +166,32 @@ public sealed class HotBranch
     /// Ensures that <see cref="GitDevBranch"/> exists.
     /// </summary>
     /// <returns>The "dev/" branch.</returns>
-    [MemberNotNullWhen( true, nameof( GitDevBranch ) )]
+    [MemberNotNull( nameof( GitDevBranch ) )]
     public Branch EnsureDevBranch()
     {
         Throw.CheckState( IsActive );
         if( _gitDevBranch == null )
         {
-            _link = _link.CreateAhead( Repo );
+            Throw.DebugAssert( _link.Ahead == null );
+            _link = _link.EnsureAhead( Repo.GitRepository );
             _gitDevBranch = _link.Ahead;
         }
-        Throw.DebugAssert( _gitDevBranch != null );
-        return _gitDevBranch;
+        Throw.DebugAssert( GitDevBranch != null );
+        return _gitDevBranch!;
+    }
+
+    /// <summary>
+    /// Ensures that if <see cref="GitDevBranch"/> exists, the base <see cref="Branch"/> has no commits that are not
+    /// in the "dev/" branch.
+    /// </summary>
+    /// <returns>True on success, false on error.</returns>
+    public bool SynchronizeDevBranch( IActivityMonitor monitor )
+    {
+        Throw.CheckState( IsActive );
+        var newLink = _link.SynchronizeAhead( monitor, Repo.GitRepository );
+        if( newLink == null ) return false;
+        _link = newLink;
+        return true;
     }
 
     /// <summary>

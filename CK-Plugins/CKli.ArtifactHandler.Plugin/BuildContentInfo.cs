@@ -3,6 +3,7 @@ using CSemVer;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
@@ -179,11 +180,11 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
                 packages = [];
                 return true;
             }
-            PackageInstance previous = default;
+            PackageInstance? previous = null;
             var b = ImmutableArray.CreateBuilder<PackageInstance>( count );
             while( PackageInstance.TryMatch( ref s, out var p ) )
             {
-                if( previous.CompareTo( p ) >= 0 )
+                if( previous is not null && previous.CompareTo( p ) >= 0 )
                 {
                     packages = default;
                     return false;

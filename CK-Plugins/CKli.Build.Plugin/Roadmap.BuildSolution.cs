@@ -56,9 +56,9 @@ public sealed partial class Roadmap
                 buildReason |= MustBuildReason.DependencyUpdate;
             }
             // Pivot dependent conditions: if nothing saves the build, then this solution won't be built.
+            bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
             if( buildReason == MustBuildReason.None )
             {
-                bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
                 if( !canSkip )
                 {
                     if( _versionInfo.VersionMustBuild )
@@ -80,6 +80,16 @@ public sealed partial class Roadmap
                 }
             }
             Throw.DebugAssert( "We must build.", buildReason != MustBuildReason.None );
+            // Since we must build, let's update the reason with all its reasons for coherency (and its costs nothing).
+            if( _versionInfo.VersionMustBuild )
+            {
+                buildReason |= MustBuildReason.Version;
+            }
+            if( _versionInfo.HasCodeChange )
+            {
+                buildReason |= MustBuildReason.CodeChange;
+            }
+
             // If the upstream doesn't force a Major, we must compute the change from the code in this repository
             // and eventually compute the target version.
             SVersion targetVersion = ComputeTargetVersion( monitor,

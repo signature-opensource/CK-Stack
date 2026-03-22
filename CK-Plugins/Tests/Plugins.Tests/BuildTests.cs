@@ -2,13 +2,15 @@ using CKli;
 using CKli.Core;
 using NUnit.Framework;
 using Shouldly;
+using System;
 using System.IO;
 using System.Threading.Tasks;
 using static CK.Testing.MonitorTestHelper;
 
 namespace Plugins.Tests;
 
-[TestFixture]
+
+    [TestFixture]
 public class BuildTests
 {
     [Test]
@@ -211,8 +213,8 @@ public class BuildTests
             →·   CKt-ActivityMonitor           v0.1.0 
             →·   CKt-PerfectEvent              v0.3.2 
             →·   CKt-Monitoring                v0.2.3 
-             ·   Samples/CKt-App-Sample        v0.0.0 
-             ·   Samples/CKt-Sample-Monitoring v0.0.0 
+             ⊙   Samples/CKt-App-Sample        v0.0.0 
+             ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
             ❰✓❱
             
             """ );
@@ -228,7 +230,7 @@ public class BuildTests
             →·   CKt-PerfectEvent              v0.3.2 
             →·   CKt-Monitoring                v0.2.3 
                  Samples/CKt-App-Sample        v0.0.0 
-             ·   Samples/CKt-Sample-Monitoring v0.0.0 
+             ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
             ❰✓❱
 
             """ );
@@ -242,7 +244,7 @@ public class BuildTests
             →·   CKt-ActivityMonitor           v0.1.0 
                  CKt-PerfectEvent              v0.3.2 
                  CKt-Monitoring                v0.2.3 
-             ·   Samples/CKt-App-Sample        v0.0.0 
+             ⊙   Samples/CKt-App-Sample        v0.0.0 
                  Samples/CKt-Sample-Monitoring v0.0.0 
             ❰✓❱
 
@@ -256,7 +258,7 @@ public class BuildTests
             display.ToString().ShouldBe( """
               - →·   CKt-Core                      v1.0.0 
               - →·   CKt-ActivityMonitor           v0.1.0 
-            1 ╓  ·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.4 (CodeChange)
+            1 ╓  ⊙   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.4 (CodeChange)
               ║      CKt-Monitoring                v0.2.3 
               ╙      Samples/CKt-App-Sample        v0.0.0 
             2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)  
@@ -291,8 +293,8 @@ public class BuildTests
             2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
             3 ╓ →·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
             4 ║ →·   CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
-            5 ╙  ·   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -  ·   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            5 ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
             ❰✓❱
             
             """ );
@@ -308,7 +310,7 @@ public class BuildTests
             3 ╓ →·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
             4 ║ →·   CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
             5 ╙      Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -  ·   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
             ❰✓❱
 
             """ );
@@ -321,9 +323,9 @@ public class BuildTests
             display.ToString().ShouldBe( """
             1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
             2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓      CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream)            
-            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream)            
-            5 ╙  ·   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            3 ╓      CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
+            5 ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
             6 -      Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
             ❰✓❱
 
@@ -337,8 +339,8 @@ public class BuildTests
             display.ToString().ShouldBe( """
             1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
             2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓  ·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
-            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream)            
+            3 ╓  ⊙   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
             5 ╙      Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
             6 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
             ❰✓❱
@@ -364,11 +366,11 @@ public class BuildTests
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--dry-run" )).ShouldBeTrue();
 
         display.ToString().ShouldBe( """
-          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY,Strikethrough]CKt-Core[GRAY,Regular]                      [DARKBLUE]v1.0.0 [GRAY]⮐
-          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY,Strikethrough]CKt-ActivityMonitor[GRAY,Regular]           [DARKBLUE]v0.1.0 [GRAY]⮐
-        1 ╓ [BLACK,darkyellow] · [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
-          ║      [DARKGRAY,Strikethrough]CKt-Monitoring[GRAY,Regular]                [DARKBLUE]v0.2.3 [GRAY]⮐
-          ╙      [DARKGRAY,Strikethrough]Samples/CKt-App-Sample[GRAY,Regular]        [DARKBLUE]v0.0.0 [GRAY]⮐
+          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0 [GRAY]⮐
+          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GRAY]⮐
+        1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
+          ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GRAY]⮐
+          ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GRAY]⮐
         2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]  ⮐
         [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
         
