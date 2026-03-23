@@ -301,16 +301,17 @@ sealed class Cmd_build : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch","-b",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to consider. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. Defaults to 4.", false ),
                 ],
                 flags: [
                     (["--all",], "Build all the Repos, not only the current repositories and their consumers." ),
                     (["--skip-tests",], "Don't run tests even if they have never locally run on the commit." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
+                    (["--publish",], "On success, publish the generated packages and asset files." ),
                     (["--dry-run","-d",], "Only display the build roadmap." ),
                 ],
-                "BuildStar", MethodAsyncReturn.Task ) {}
+                "Build", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
         var o0 = cmdLine.EatSingleOption( Options[0].Names );
@@ -319,9 +320,10 @@ sealed class Cmd_build : PluginCommand
         var f1 = cmdLine.EatFlag( Flags[1].Names );
         var f2 = cmdLine.EatFlag( Flags[2].Names );
         var f3 = cmdLine.EatFlag( Flags[3].Names );
+        var f4 = cmdLine.EatFlag( Flags[4].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).BuildStar(
-                                           monitor, context, o0, o1, f0, f1, f2, f3 ) );
+        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).Build(
+                                           monitor, context, o0, o1, f0, f1, f2, f3, f4 ) );
     }
 }
 [GeneratedCode("CKli", "0.0.8--0210-dev")]
@@ -336,16 +338,17 @@ sealed class Cmd_жbuild : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch","-b",], "Specify the branch to build. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to consider. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. Defaults to 4.", false ),
                 ],
                 flags: [
                     (["--all",], "Build all the Repos, not only the ones that consume or produce the current repositories." ),
                     (["--skip-tests",], "Don't run tests even if they have never locally run on the commit." ),
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
-                    (["--dry-run","-d",], "Only display the build roadmap." ),
+                    (["--publish",], "On success, publish the generated packages and asset files." ),
+                    (["--dry-run","-d",], "<no description>" ),
                 ],
-                "StarBuildStar", MethodAsyncReturn.Task ) {}
+                "StarBuild", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
         var o0 = cmdLine.EatSingleOption( Options[0].Names );
@@ -354,9 +357,10 @@ sealed class Cmd_жbuild : PluginCommand
         var f1 = cmdLine.EatFlag( Flags[1].Names );
         var f2 = cmdLine.EatFlag( Flags[2].Names );
         var f3 = cmdLine.EatFlag( Flags[3].Names );
+        var f4 = cmdLine.EatFlag( Flags[4].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).StarBuildStar(
-                                           monitor, context, o0, o1, f0, f1, f2, f3 ) );
+        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).StarBuild(
+                                           monitor, context, o0, o1, f0, f1, f2, f3, f4 ) );
     }
 }
 [GeneratedCode("CKli", "0.0.8--0210-dev")]
@@ -371,7 +375,7 @@ sealed class Cmd_publish : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch","-b",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to consider. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. Defaults to 4.", false ),
                 ],
                 flags: [
@@ -379,7 +383,7 @@ sealed class Cmd_publish : PluginCommand
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
                     (["--dry-run","-d",], "Only display the build roadmap." ),
                 ],
-                "PublishStar", MethodAsyncReturn.Task ) {}
+                "Publish", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
         var o0 = cmdLine.EatSingleOption( Options[0].Names );
@@ -388,7 +392,7 @@ sealed class Cmd_publish : PluginCommand
         var f1 = cmdLine.EatFlag( Flags[1].Names );
         var f2 = cmdLine.EatFlag( Flags[2].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).PublishStar(
+        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).Publish(
                                            monitor, context, o0, o1, f0, f1, f2 ) );
     }
 }
@@ -404,7 +408,7 @@ sealed class Cmd_жpublish : PluginCommand
                 arguments: [
                 ],
                 options: [
-                    (["--branch","-b",], "Specify the branch to publish. By default, the current head is considered when in a Repo.", false ),
+                    (["--branch","-b",], "Specify the branch to consider. By default, the current head is considered when in a Repo.", false ),
                     (["--max-dop",], "Maximal Degree of Parallelism. Defaults to 4.", false ),
                 ],
                 flags: [
@@ -412,7 +416,7 @@ sealed class Cmd_жpublish : PluginCommand
                     (["--force-tests",], "Run tests even if they have already run successfully on the commit." ),
                     (["--dry-run","-d",], "Only display the build roadmap." ),
                 ],
-                "StarPublishStar", MethodAsyncReturn.Task ) {}
+                "StarPublish", MethodAsyncReturn.Task ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
         var o0 = cmdLine.EatSingleOption( Options[0].Names );
@@ -421,7 +425,7 @@ sealed class Cmd_жpublish : PluginCommand
         var f1 = cmdLine.EatFlag( Flags[1].Names );
         var f2 = cmdLine.EatFlag( Flags[2].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).StarPublishStar(
+        return new ValueTask<bool>( ((CKli.Build.Plugin.BuildPlugin)Instance).StarPublish(
                                            monitor, context, o0, o1, f0, f1, f2 ) );
     }
 }

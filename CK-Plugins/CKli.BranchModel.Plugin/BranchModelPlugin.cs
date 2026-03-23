@@ -25,7 +25,6 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     readonly PerfectEventSender<FixWorkflowStartEventArgs> _onFixStart;
 
     Dictionary<string, SVersion>? _externalPackages;
-    static readonly Dictionary<string, SVersion> _noExternalPackages = new Dictionary<string, SVersion>();
 
     /// <summary>
     /// This is a primary plugin.

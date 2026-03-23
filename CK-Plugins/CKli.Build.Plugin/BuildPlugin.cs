@@ -1,4 +1,5 @@
 using CK.Core;
+using CK.PerfectEvent;
 using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
@@ -8,20 +9,29 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
+using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Threading.Tasks;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.Build.Plugin;
 
+
 public sealed partial class BuildPlugin : PrimaryPluginBase
 {
+    const string _descBranch = "Specify the branch to consider. By default, the current head is considered when in a Repo.";
+    const string _descMaxDoP = "Maximal Degree of Parallelism. Defaults to 4.";
+
+
     readonly VersionTagPlugin _versionTags;
     readonly BranchModelPlugin _branchModel;
     readonly RepositoryBuilderPlugin _repoBuilder;
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
     readonly ShallowSolutionPlugin _solutionPlugin;
+    readonly PerfectEventSender<Roadmap.BuildEventArgs> _onRoadmapBuild;
+
 
     public BuildPlugin( PrimaryPluginContext primaryContext,
                         VersionTagPlugin versionTags,
@@ -39,86 +49,130 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         _artifactHandler = artifactHandler;
         _solutionPlugin = solutionPlugin;
         World.Events.Issue += IssueRequested;
+        _onRoadmapBuild = new PerfectEventSender<Roadmap.BuildEventArgs>();
     }
+
+    /// <summary>
+    /// Raised whenever a <see cref="Roadmap"/> has been successfully built.
+    /// </summary>
+    public PerfectEvent<Roadmap.BuildEventArgs> OnRoadmapBuild => _onRoadmapBuild.PerfectEvent;
 
     [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers." )]
     [CommandPath( "build" )]
-    public Task<bool> BuildStar( IActivityMonitor monitor,
+    public Task<bool> Build( IActivityMonitor monitor,
+                             CKliEnv context,
+                             [Description( _descBranch )]
+                             [OptionName("--branch,-b")]
+                             string? branch = null,
+                             [Description( _descMaxDoP )]
+                             string? maxDop = null,
+                             [Description( "Build all the Repos, not only the current repositories and their consumers." )]
+                             bool all = false,
+                             [Description( "Don't run tests even if they have never locally run on the commit." )]
+                             bool skipTests = false,
+                             [Description( "Run tests even if they have already run successfully on the commit." )]
+                             bool forceTests = false,
+                             [Description( "On success, publish the generated packages and asset files." )]
+                             [OptionName("--publish")]
+                             bool publish = false,
+                             [Description( "Only display the build roadmap." )]
+                             [OptionName("--dry-run,-d")]
+                             bool dryRun = false )
+    {
+        return DoBuildAsync( monitor, context, branch, maxDop, all, skipTests, forceTests, publish, dryRun, isPullBuild: false );
+    }
+
+    [Description( "Build-Test-Package the consumers of the current repositories and propagates packages to their consumers." )]
+    [CommandPath( "*build" )]
+    public Task<bool> StarBuild( IActivityMonitor monitor,
                                  CKliEnv context,
-                                 [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
+                                 [Description( _descBranch )]
                                  [OptionName("--branch,-b")]
                                  string? branch = null,
-                                 [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
+                                 [Description( _descMaxDoP )]
                                  string? maxDop = null,
-                                 [Description( "Build all the Repos, not only the current repositories and their consumers." )]
+                                 [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
                                  bool all = false,
                                  [Description( "Don't run tests even if they have never locally run on the commit." )]
                                  bool skipTests = false,
                                  [Description( "Run tests even if they have already run successfully on the commit." )]
                                  bool forceTests = false,
-                                 [Description( "Only display the build roadmap." )]
+                                 [Description( "On success, publish the generated packages and asset files." )]
+                                 [OptionName("--publish")]
+                                 bool publish = false,
                                  [OptionName("--dry-run,-d")]
                                  bool dryRun = false )
     {
-        if( !HandleMaxDop( monitor, maxDop, out var vMaDxDop )
-            || !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
-        {
-            return Task.FromResult( false );
-        }
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: true, branch, all );
-        if( roadmap == null )
-        {
-            return Task.FromResult( false );
-        }
-        return dryRun
-                ? Task.FromResult( true )
-                : roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop );
+        return DoBuildAsync( monitor, context, branch, maxDop, all, skipTests, forceTests, publish, dryRun, isPullBuild: false );
     }
 
-    [Description( "Build-Test-Package the consumers of the current repositories and propagates packages to their consumers." )]
-    [CommandPath( "*build" )]
-    public Task<bool> StarBuildStar( IActivityMonitor monitor,
-                                     CKliEnv context,
-                                     [Description( "Specify the branch to build. By default, the current head is considered when in a Repo." )]
-                                     [OptionName("--branch,-b")]
-                                     string? branch = null,
-                                     [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
-                                     string? maxDop = null,
-                                     [Description( "Build all the Repos, not only the ones that consume or produce the current repositories." )]
-                                     bool all = false,
-                                     [Description( "Don't run tests even if they have never locally run on the commit." )]
-                                     bool skipTests = false,
-                                     [Description( "Run tests even if they have already run successfully on the commit." )]
-                                     bool forceTests = false,
-                                     [Description( "Only display the build roadmap." )]
-                                     [OptionName("--dry-run,-d")]
-                                     bool dryRun = false )
+    async Task<bool> DoBuildAsync( IActivityMonitor monitor,
+                                   CKliEnv context,
+                                   string? branch,
+                                   string? maxDop,
+                                   bool all,
+                                   bool skipTests,
+                                   bool forceTests,
+                                   bool publish,
+                                   bool dryRun,
+                                   bool isPullBuild )
     {
-        if( !HandleMaxDop( monitor, maxDop, out var vMaDxDop )
+        if( !HandleMaxDoP( monitor, maxDop, out var vMaDxDop )
             || !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
         {
-            return Task.FromResult( false );
+            return false;
         }
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: true, branch, all );
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isDevBuild: true, branch, all );
         if( roadmap == null )
         {
-            return Task.FromResult( false );
+            return false;
         }
-        return dryRun
-                ? Task.FromResult( true )
-                : roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop );
+        if( dryRun )
+        {
+            return true;
+        }
+        if( !await roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop ).ConfigureAwait( false ) )
+        {
+            return false;
+        }
+        if( _onRoadmapBuild.HasHandlers )
+        {
+            var e = new Roadmap.BuildEventArgs( monitor, roadmap, publish );
+            return await _onRoadmapBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false );
+        }
+        return true;
     }
 
     [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers and publishes all the artifacts." )]
     [CommandPath( "publish" )]
-    public Task<bool> PublishStar( IActivityMonitor monitor,
+    public Task<bool> Publish( IActivityMonitor monitor,
+                               CKliEnv context,
+                               [Description( _descBranch )]
+                               [OptionName( "--branch,-b" )]
+                               string? branch = null,
+                               [Description( _descMaxDoP )]
+                               string? maxDop = null,
+                               [Description( "Build all the Repos, not only the current repositories and their consumers." )]
+                               bool all = false,
+                               [Description( "Run tests even if they have already run successfully on the commit." )]
+                               bool forceTests = false,
+                               [Description( "Only display the build roadmap." )]
+                               [OptionName("--dry-run,-d")]
+                               bool dryRun = false )
+    {
+        return DoPublishAsync( monitor, context, branch, maxDop, all, forceTests, dryRun, isPullBuild: false, shouldPublish: true );
+    }
+
+    [Description( "Build-Test-Package the consumers of the current repositories, propagates packages to their consumers and publishes all the artifacts." )]
+    [CommandPath( "*publish" )]
+    public Task<bool> StarPublish( IActivityMonitor monitor,
                                    CKliEnv context,
-                                   [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
+                                   [Description( _descBranch )]
                                    [OptionName( "--branch,-b" )]
                                    string? branch = null,
-                                   [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
+                                   [Description( _descMaxDoP )]
                                    string? maxDop = null,
-                                   [Description( "Build all the Repos, not only the current repositories and their consumers." )]
+                                   [Description( "Publish all the Repos, not only the ones that consume or produce the current repositories." )]
                                    bool all = false,
                                    [Description( "Run tests even if they have already run successfully on the commit." )]
                                    bool forceTests = false,
@@ -126,41 +180,39 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    [OptionName("--dry-run,-d")]
                                    bool dryRun = false )
     {
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: false, isDevBuild: false, branch, all );
-        if( roadmap == null || !HandleMaxDop( monitor, maxDop, out var vMaDxDop ) )
-        {
-            return Task.FromResult( false );
-        }
-        if( dryRun ) return Task.FromResult( true );
-        bool? runTest = forceTests ? true : null;
-        throw new NotImplementedException();
+        return DoPublishAsync( monitor, context, branch, maxDop, all, forceTests, dryRun, isPullBuild: true, shouldPublish: true );
     }
 
-    [Description( "Build-Test-Package the consumers of the current repositories, propagates packages to their consumers and publishes all the artifacts." )]
-    [CommandPath( "*publish" )]
-    public Task<bool> StarPublishStar( IActivityMonitor monitor,
-                                       CKliEnv context,
-                                       [Description( "Specify the branch to publish. By default, the current head is considered when in a Repo." )]
-                                       [OptionName( "--branch,-b" )]
-                                       string? branch = null,
-                                       [Description( "Maximal Degree of Parallelism. Defaults to 4." )]
-                                       string? maxDop = null,
-                                       [Description( "Publish all the Repos, not only the ones that consume or produce the current repositories." )]
-                                       bool all = false,
-                                       [Description( "Run tests even if they have already run successfully on the commit." )]
-                                       bool forceTests = false,
-                                       [Description( "Only display the build roadmap." )]
-                                       [OptionName("--dry-run,-d")]
-                                       bool dryRun = false )
+    async Task<bool> DoPublishAsync( IActivityMonitor monitor,
+                                     CKliEnv context,
+                                     string? branch,
+                                     string? maxDop,
+                                     bool all,
+                                     bool forceTests,
+                                     bool dryRun,
+                                     bool isPullBuild,
+                                     bool shouldPublish )
     {
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild: true, isDevBuild: false, branch, all );
-        if( roadmap == null || !HandleMaxDop( monitor, maxDop, out var vMaDxDop ) )
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isDevBuild: false, branch, all );
+        if( roadmap == null || !HandleMaxDoP( monitor, maxDop, out var vMaDxDop ) )
         {
-            return Task.FromResult( false );
+            return false;
         }
-        if( dryRun ) return Task.FromResult( true );
+        if( dryRun )
+        {
+            return true;
+        }
         bool? runTest = forceTests ? true : null;
-        throw new NotImplementedException();
+        if( !await roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop ).ConfigureAwait( false ) )
+        {
+            return false;
+        }
+        if( _onRoadmapBuild.HasHandlers )
+        {
+            var e = new Roadmap.BuildEventArgs( monitor, roadmap, shouldPublish );
+            return await _onRoadmapBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false );
+        }
+        return true;
     }
 
     Roadmap? ComputeAndDisplayRoadmap( IActivityMonitor monitor,
@@ -222,7 +274,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return roadmap;
     }
 
-    static bool HandleMaxDop( IActivityMonitor monitor, string? maxDop, out int vMaxDop )
+    static bool HandleMaxDoP( IActivityMonitor monitor, string? maxDop, out int vMaxDop )
     {
         if( maxDop == null ) vMaxDop = 4;
         else if( !int.TryParse( maxDop, out vMaxDop ) || vMaxDop <= 0 )

@@ -238,7 +238,7 @@ public class RepoBuilder : RepoInfo
                                 bool release )
     {
         return Repo.RunDotnet( monitor, $"""
-            build -tl:off --nologo --no-incremental -c {(release ? "Release" : "Debug")} /p:Version={version};InformationalVersion="{informationalVersion}";FileVersion="{fileVersion}"
+            build -tl:off --nologo --no-incremental -c {(release ? "Release" : "Debug")} /p:Version={version} /p:InformationalVersion="{informationalVersion}" /p:FileVersion="{fileVersion}"
             """ );
     }
 
