@@ -148,7 +148,7 @@ sealed class Cmd_maintenance＿release_database＿rebuild : PluginCommand
     internal Cmd_maintenance＿release_database＿rebuild( IPluginTypeInfo typeInfo )
         : base( typeInfo,
                 "maintenance release-database rebuild",
-                "Suppress the published and local databases and rebuild them from the version tags content.\r\nRemote tags drives the update of the published database and are updated on the remote:\r\na local only version tag will remain local.",
+                "Suppress the published and local databases and rebuild them from the version tags content.\r\nRemote tags drives the update of the published database: a local only version tag will remain local.",
                 1,
                 -1,
                 arguments: [
@@ -156,13 +156,15 @@ sealed class Cmd_maintenance＿release_database＿rebuild : PluginCommand
                 options: [
                 ],
                 flags: [
+                    (["--update-remote-tags",], "Pushes the local tag to update an existing remote tag if its content differ." ),
                 ],
                 "RebuildReleaseDatabases", MethodAsyncReturn.None ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
+        var f0 = cmdLine.EatFlag( Flags[0].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
         return ValueTask.FromResult( ((CKli.VersionTag.Plugin.VersionTagPlugin)Instance).RebuildReleaseDatabases(
-                                           monitor, context ) );
+                                           monitor, context, f0 ) );
     }
 }
 [GeneratedCode("CKli", "0.0.8--0210-dev")]

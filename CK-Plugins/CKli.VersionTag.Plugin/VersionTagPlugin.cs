@@ -119,11 +119,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     /// <returns>True on success, false on error.</returns>
     [Description( """
         Suppress the published and local databases and rebuild them from the version tags content.
-        Remote tags drives the update of the published database and are updated on the remote:
-        a local only version tag will remain local.
+        Remote tags drives the update of the published database: a local only version tag will remain local.
         """ )]
     [CommandPath( "maintenance release-database rebuild" )]
-    public bool RebuildReleaseDatabases( IActivityMonitor monitor, CKliEnv context )
+    public bool RebuildReleaseDatabases( IActivityMonitor monitor,
+                                         CKliEnv context,
+                                         [Description("Pushes the local tag to update an existing remote tag if its content differ.")]
+                                         bool updateRemoteTags = false )
     {
         var repos = World.GetAllDefinedRepo( monitor );
         if( repos == null ) return false;
@@ -134,9 +136,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         //
         // Obtaining these tags info will allow us to consider that a version tag that is on the
         // remote side is de facto published: we'll publish the local release that transfers its
-        // information from the local to the published database. Moreover, if the version tag
-        // differ, we push the local one (that updates the remote one): this supports a move from
-        // obsolete (or legacy lightweight) tags to an up-to-date version of the tags content.
+        // information from the local to the published database.
+        //
+        // Moreover (below), if the version tag differ, we push the local one (that updates the remote one):
+        // this supports a move from obsolete (or legacy lightweight) tags to an up-to-date version of the tags content.
         //
         if( !GetAllDiffTags( monitor, context, repos, out var allDiffTags ) )
         {
@@ -149,13 +152,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Resolving the VersionTagInfo repopulates (and saves) the local database.
         // If there is any version tag issue (rebuild is needed to compute the tag content),
         // we demand to execute a "ckli issue --fix".
-        if( !TryGetAll( monitor, out var allInfo ) )
+        if( !TryGetAllWithoutIssue( monitor, out var allInfo, before: "retrying" ) )
         {
-            return false;
-        }
-        if( allInfo.Any( i => i.HasIssue ) )
-        {
-            monitor.Error( "There must be no version tag issues. Use 'ckli issue' before retrying." );
             return false;
         }
         // Consider remote version tags: move the release from local to remote database and update the remote tag if it differs.
@@ -205,10 +203,20 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 }
                 if( pushTagBuffer.Count > 0 )
                 {
-                    monitor.Info( "Updating remote tags that differ from locally updated ones." );
-                    if( !repo.GitRepository.PushTags( monitor, pushTagBuffer ) )
+                    if( updateRemoteTags )
                     {
-                        pushTagFailed = true;
+                        monitor.Info( "Updating remote tags that differ from locally updated ones." );
+                        if( !repo.GitRepository.PushTags( monitor, pushTagBuffer ) )
+                        {
+                            pushTagFailed = true;
+                        }
+                    }
+                    else
+                    {
+                        monitor.Warn( $"""
+                            Remote tags '{pushTagBuffer.Concatenate("', '")}' differ from their local counterpart.
+                            They should be updated by using the --update-remote-tags flag.
+                            """ );
                     }
                     pushTagBuffer.Clear();
                 }
@@ -243,18 +251,21 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             List<int>? issues = null;
             foreach( var repo in repos )
             {
-                if( repo.GitRepository.GetDiffTags( monitor, out var diffTags ) )
+                using( monitor.OpenInfo( $"Collecting local & remote tags of '{repo.DisplayPath}'. Checking that no blocking issue exist for them." ) )
                 {
-                    b.Add( diffTags );
-                    if( diffTags.FetchRequired || diffTags.ConflictCount > 0 )
+                    if( repo.GitRepository.GetDiffTags( monitor, out var diffTags ) )
                     {
-                        issues ??= new List<int>();
-                        issues.Add( repo.Index );
+                        b.Add( diffTags );
+                        if( diffTags.FetchRequired || diffTags.ConflictCount > 0 )
+                        {
+                            issues ??= new List<int>();
+                            issues.Add( repo.Index );
+                        }
                     }
-                }
-                else
-                {
-                    success = false;
+                    else
+                    {
+                        success = false;
+                    }
                 }
             }
             if( !success )

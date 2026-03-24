@@ -54,13 +54,11 @@ public sealed partial class NuGetFeedClient : IDisposable
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="packageId">The package identifier.</param>
-    /// <param name="includePrerelease">Whether to include prerelease versions. Defaults to true.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>The list of versions, or null on error.</returns>
     public async Task<IReadOnlyList<SVersion>?> GetVersionsAsync( IActivityMonitor monitor,
-                                                                   string packageId,
-                                                                   bool includePrerelease = true,
-                                                                   CancellationToken cancellationToken = default )
+                                                                  string packageId,
+                                                                  CancellationToken cancellationToken = default )
     {
         Throw.CheckNotNullOrWhiteSpaceArgument( packageId );
         using var _ = monitor.OpenTrace( $"Getting versions of '{packageId}' from '{_feedUrl}'." );
@@ -71,14 +69,14 @@ public sealed partial class NuGetFeedClient : IDisposable
             var result = new List<SVersion>();
             foreach( var nv in nugetVersions )
             {
-                if( !includePrerelease && nv.IsPrerelease ) continue;
-                if( SVersion.TryParse( nv.ToNormalizedString(), out var sv ) )
+                var nugetVersion = nv.ToFullString();
+                if( SVersion.TryParse( nugetVersion, out var sv ) )
                 {
                     result.Add( sv );
                 }
                 else
                 {
-                    monitor.Warn( $"Cannot map NuGet version '{nv}' to SVersion. Skipped." );
+                    monitor.Warn( $"Cannot map NuGet version '{nugetVersion}' to SVersion. Skipped." );
                 }
             }
             monitor.CloseGroup( $"Found {result.Count} version(s)." );
