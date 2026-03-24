@@ -160,7 +160,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Consider remote version tags: move the release from local to remote database and update the remote tag if it differs.
         bool pushTagFailed = false;
         var pushTagBuffer = new List<string>();
-        var updateRemoteTagsWarning = updateRemoteTags ? new StringBuilder() : null;
+        var updateRemoteTagsWarning = updateRemoteTags ? null : new StringBuilder();
         int publishedReleaseCount = 0;
         foreach( var repo in repos )
         {
@@ -210,7 +210,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                         monitor.Info( "Updating remote tags that differ from locally updated ones." );
                         if( !repo.GitRepository.PushTags( monitor, pushTagBuffer ) )
                         {
+                            // When push failed, odds are that we miss the key.
+                            // it seems better to stop immediately.
                             pushTagFailed = true;
+                            break;
                         }
                     }
                     else
@@ -234,6 +237,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         }
         if( pushTagFailed )
         {
+            Throw.DebugAssert( updateRemoteTagsWarning == null );
             monitor.Warn( """
                 Some tag pushes have failed. Use 'ckli tag list' to analyze tag differences.
                 These differences should be fixed manually.
