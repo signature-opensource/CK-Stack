@@ -219,8 +219,9 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     else
                     {
                         updateRemoteTagsWarning.Append( $"""
-                            - {repo.DisplayPath}:
+                            {repo.DisplayPath}:
                               '{pushTagBuffer.Concatenate("', '")}'
+
 
                             """ );
                     }
