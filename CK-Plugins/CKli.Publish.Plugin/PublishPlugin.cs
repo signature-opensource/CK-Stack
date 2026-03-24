@@ -4,26 +4,29 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using CKli.Build.Plugin;
+using System.Threading.Tasks;
 
 namespace CKli.Publish.Plugin;
 
 public sealed class PublishPlugin : PrimaryPluginBase
 {
-    /// <summary>
-    /// This is a primary plugin. <see cref="PrimaryPluginBase.PrimaryPluginContext"/>
-    /// is always available (as well as the <see cref="PluginBase.World"/>).
-    /// </summary>
-    public PublishPlugin( PrimaryPluginContext primaryContext )
+    readonly BuildPlugin _build;
+
+    public PublishPlugin( PrimaryPluginContext primaryContext, BuildPlugin build )
         : base( primaryContext )
     {
-        primaryContext.World.Events.PluginInfo += e =>
-        {
-            Throw.CheckState( PrimaryPluginContext.PluginInfo.FullPluginName == "CKli.Publish.Plugin" );
-            Throw.CheckState( World == e.World );
-            Throw.CheckState( PrimaryPluginContext.World == e.World );
-            e.AddMessage( PrimaryPluginContext, e.ScreenType.Text( "Message from 'Publish' plugin." ) );
-            e.Monitor.Info( $"New 'Publish' in world '{e.World.Name}' plugin certainly requires some development." );
-            Console.WriteLine( $"Hello from 'Publish' plugin." );
-        };
+        _build = build;
+        _build.OnRoadmapBuild.Async += OnRoadmapBuildAsync;
+    }
+
+    Task OnRoadmapBuildAsync( IActivityMonitor monitor, Roadmap.BuildEventArgs e, System.Threading.CancellationToken cancel )
+    {
+        return e.ShouldPublish ? PublishAsync( monitor, e.Roadmap ) : Task.CompletedTask;
+    }
+
+    async Task PublishAsync( IActivityMonitor monitor, Roadmap roadmap )
+    {
+        roadmap.OrderedSolutions.Where( s => s.MustBuild ).Select( s => (s.Repo, s.BuildInfo!.TargetVersion, s.VersionInfo.CommitsFromBaseBuild) );
     }
 }
