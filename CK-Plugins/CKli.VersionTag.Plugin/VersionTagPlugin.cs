@@ -159,7 +159,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         }
         // Consider remote version tags: move the release from local to remote database and update the remote tag if it differs.
         bool pushTagFailed = false;
-        var pushTagBuffer = new List<string>();
+        var pushTagBuffer = new List<Tag>();
         var updateRemoteTagsWarning = updateRemoteTags ? null : new StringBuilder();
         int publishedReleaseCount = 0;
         foreach( var repo in repos )
@@ -199,7 +199,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                         if( (t.Diff & GitTagInfo.TagDiff.DifferMask) != 0 )
                         {
                             // The remote tag must be updated.
-                            pushTagBuffer.Add( tc.Tag.CanonicalName );
+                            pushTagBuffer.Add( tc.Tag );
                         }
                     }
                 }
@@ -208,7 +208,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     if( updateRemoteTagsWarning == null )
                     {
                         monitor.Info( "Updating remote tags that differ from locally updated ones." );
-                        if( !repo.GitRepository.PushTags( monitor, pushTagBuffer ) )
+                        if( !repo.GitRepository.PushTags( monitor, pushTagBuffer.Select( t => t.CanonicalName ) ) )
                         {
                             // When push failed, odds are that we miss the key.
                             // it seems better to stop immediately.
@@ -219,8 +219,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     else
                     {
                         updateRemoteTagsWarning.Append( $"""
-                            {repo.DisplayPath}:
-                              '{pushTagBuffer.Concatenate("', '")}'
+                            - {repo.DisplayPath}:
+                              '{pushTagBuffer.Select( t => t.FriendlyName ).Concatenate("', '")}'
 
 
                             """ );
