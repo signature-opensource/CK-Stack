@@ -8,6 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Text;
 using System.Xml.Linq;
 
 namespace CKli.VersionTag.Plugin;
@@ -159,6 +160,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Consider remote version tags: move the release from local to remote database and update the remote tag if it differs.
         bool pushTagFailed = false;
         var pushTagBuffer = new List<string>();
+        var updateRemoteTagsWarning = updateRemoteTags ? new StringBuilder() : null;
         int publishedReleaseCount = 0;
         foreach( var repo in repos )
         {
@@ -203,7 +205,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 }
                 if( pushTagBuffer.Count > 0 )
                 {
-                    if( updateRemoteTags )
+                    if( updateRemoteTagsWarning == null )
                     {
                         monitor.Info( "Updating remote tags that differ from locally updated ones." );
                         if( !repo.GitRepository.PushTags( monitor, pushTagBuffer ) )
@@ -213,9 +215,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     }
                     else
                     {
-                        monitor.Warn( $"""
-                            Remote tags '{pushTagBuffer.Concatenate("', '")}' differ from their local counterpart.
-                            They should be updated by using the --update-remote-tags flag.
+                        updateRemoteTagsWarning.Append( $"""
+                            - {repo.DisplayPath}:
+                              '{pushTagBuffer.Concatenate("', '")}'
+
                             """ );
                     }
                     pushTagBuffer.Clear();
@@ -236,6 +239,14 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 These differences should be fixed manually.
                 """ );
         }
+        else if( updateRemoteTagsWarning != null && updateRemoteTagsWarning.Length > 0 )
+        {
+            updateRemoteTagsWarning.AppendLine().Append( """
+                Above repositories have remote tags that differ from their local counterparts.
+                They should be updated by using the --update-remote-tags flag or differences can be analyzed with 'ckli tag list'.
+                """ );
+            monitor.Warn( updateRemoteTagsWarning.ToString() );
+        }
         return true;
     }
 
@@ -244,14 +255,14 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                                 IReadOnlyList<Repo> repos,
                                 out ImmutableArray<GitTagInfo.Diff> allDiffTags )
     {
-        using( monitor.OpenInfo( "Analyzing Tags on the repositories and their 'origin' remotes." ) )
+        using( monitor.OpenInfo( "Analyzing Tags on the repositories and their 'origin' remotes. Checking that no blocking issue exist for them." ) )
         {
             bool success = true;
             var b = ImmutableArray.CreateBuilder<GitTagInfo.Diff>( repos.Count );
             List<int>? issues = null;
             foreach( var repo in repos )
             {
-                using( monitor.OpenInfo( $"Collecting local & remote tags of '{repo.DisplayPath}'. Checking that no blocking issue exist for them." ) )
+                using( monitor.OpenInfo( $"Collecting local & remote tags of '{repo.DisplayPath}'." ) )
                 {
                     if( repo.GitRepository.GetDiffTags( monitor, out var diffTags ) )
                     {
