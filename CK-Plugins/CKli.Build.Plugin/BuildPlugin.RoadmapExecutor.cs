@@ -72,14 +72,15 @@ public sealed partial class BuildPlugin
         }
 
 
-        internal async Task<bool> BuildAsync( IActivityMonitor monitor )
+        internal async Task<BuildResult[]?> BuildAsync( IActivityMonitor monitor )
         {
             Throw.DebugAssert( _roadmap.SolutionBuildCount > 0 );
             if( _singleBuild )
             {
                 var s = _roadmap.OrderedSolutions.Single( s => s.MustBuild );
                 Throw.DebugAssert( s.BuildInfo != null && !s.BuildInfo.DirectRequirements.Any( s => s.MustBuild ) );
-                return await DoBuildAsync( monitor, s.BuildInfo ) != null;
+                var r = await DoBuildAsync( monitor, s.BuildInfo );
+                return r != null ? [r] : null;
             }
             using( monitor.OpenInfo( $"Building {_roadmap.SolutionBuildCount} solutions (--max-dop {_maxDoP})." ) )
             {
@@ -87,7 +88,7 @@ public sealed partial class BuildPlugin
             }
         }
 
-        async Task<bool> RunLoopAsync( IActivityMonitor monitor )
+        async Task<BuildResult[]?> RunLoopAsync( IActivityMonitor monitor )
         {
             try
             {
@@ -99,7 +100,7 @@ public sealed partial class BuildPlugin
                 for(; ; )
                 {
                     var msg = await _channel.Reader.ReadAsync();
-                    if( msg is bool finalResult )
+                    if( msg is BuildResult?[] results )
                     {
                         // There SHOULD never be any pending requests here: all tasks have been completed,
                         // they have released their monitor.
@@ -108,7 +109,7 @@ public sealed partial class BuildPlugin
                         {
                             m.MonitorEnd();
                         }
-                        return finalResult;
+                        return (results.All( r => r != null ) ? results : null)!;
                     }
                     Throw.DebugAssert( msg is MonitorRequest );
                     var req = (MonitorRequest)msg;
@@ -131,9 +132,9 @@ public sealed partial class BuildPlugin
                     }
                     else
                     {
+                        --remainingCount;
                         if( req.BuildResult != null )
                         {
-                            --remainingCount;
                             monitor.Info( ScreenType.CKliScreenTag, $"Build '{req.Build.Solution.Repo.DisplayPath}' succeed." );
                         }
                         else
@@ -155,7 +156,7 @@ public sealed partial class BuildPlugin
             catch( Exception ex )
             {
                 monitor.Error( $"Unexpected error during roadmap execution.", ex );
-                return false;
+                return null;
             }
 
         }
@@ -166,7 +167,7 @@ public sealed partial class BuildPlugin
             BuildResult?[] req = await Task.WhenAll( _roadmap.OrderedSolutions.Where( s => s.MustBuild )
                                                                        .Select( s => s.BuildInfo!.BuildAsync( this ) )
                                                                        .ToArray() );
-            _channel.Writer.TryWrite( !req.Contains( null ) );
+            _channel.Writer.TryWrite( req );
         }
 
         sealed class MonitorRequest

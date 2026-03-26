@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
+using System.Transactions;
 
 namespace CKli.ShallowSolution.Plugin;
 
@@ -12,7 +13,8 @@ namespace CKli.ShallowSolution.Plugin;
 /// Simple implementation of a <see cref="IPackageMapping"/> that can register mappings.
 /// </summary>
 [DebuggerDisplay( "{ToString(),nq}" )]
-public sealed class PackageMapper : IPackageMapping
+[SerializationVersion( 0 )]
+public sealed class PackageMapper : IPackageMapping, ICKVersionedBinarySerializable
 {
     sealed class EmptyMapper : IPackageMapping
     {
@@ -37,6 +39,68 @@ public sealed class PackageMapper : IPackageMapping
     {
         _mapping = new Dictionary<string, object>( StringComparer.OrdinalIgnoreCase );
     }
+
+
+    /// <summary>
+    /// Versioned deserializer.
+    /// </summary>
+    /// <param name="r">The reader.</param>
+    /// <param name="version">The serialization version.</param>
+    public PackageMapper( ICKBinaryReader r, int version )
+    {
+        int count = r.ReadNonNegativeSmallInt32();
+        _mapping = new Dictionary<string, object>( count );
+        for( int i = 0; i < count; i++ )
+        {
+            var k = r.ReadString();
+            int l = r.ReadSmallInt32( 1 );
+            if( l == 1 )
+            {
+                _mapping[k] = Tuple.Create( ReadVersion( r ), ReadVersion( r ) );
+            }
+            else
+            {
+                var list = new List<object>( l );
+                for( int j = 0; j < l; j++ )
+                {
+                    list.Add( (ReadVersion( r ), ReadVersion( r )) );
+                }
+            }
+        }
+
+        static SVersion ReadVersion( ICKBinaryReader r ) => SVersion.Parse( r.ReadString() );
+    }
+
+    /// <summary>
+    /// Versioned serialization.
+    /// </summary>
+    /// <param name="w">The target writer.</param>
+    public void WriteData( ICKBinaryWriter w )
+    {
+        w.WriteNonNegativeSmallInt32( _mapping.Count );
+        foreach( var kvp in _mapping )
+        {
+            w.Write( kvp.Key );
+            if( kvp.Value is Tuple<SVersion, SVersion> one )
+            {
+                w.WriteSmallInt32( 1, 1 );
+                Write( w, one.Item1, one.Item2 );
+            }
+            else
+            {
+                var list = (List<(SVersion From, SVersion To)>)kvp.Value;
+                w.WriteSmallInt32( list.Count, 1 );
+                foreach( var o in list ) Write( w, o.To, o.From );
+            }
+        }
+
+        static void Write( ICKBinaryWriter w, SVersion from, SVersion to )
+        {
+            w.Write( from.ToString() );
+            w.Write( to.ToString() );
+        }
+    }
+
 
     /// <inheritdoc />
     public bool IsEmpty => _mapping.Count == 0;
@@ -134,7 +198,7 @@ public sealed class PackageMapper : IPackageMapping
     {
         foreach( var (name, o) in _mapping )
         {
-            b.Append( name ).Append( ": " ).AppendLine();
+            b.Append( name ).Append( ": " );
             if( o is Tuple<SVersion, SVersion> one )
             {
                 b.Append( one.Item1 ).Append( " → " ).Append( one.Item2 ).AppendLine();
@@ -156,4 +220,5 @@ public sealed class PackageMapper : IPackageMapping
     /// </summary>
     /// <returns>The mappings.</returns>
     public override string ToString() => Write( new StringBuilder() ).ToString();
+
 }

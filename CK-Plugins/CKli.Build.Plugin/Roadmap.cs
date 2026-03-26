@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
@@ -101,12 +102,12 @@ public sealed partial class Roadmap
         return true;
     }
 
-    internal Task<bool> BuildAsync( IActivityMonitor monitor, CKliEnv context, BuildPlugin buildPlugin, bool? runTest, int maxDop )
+    internal Task<BuildResult[]?> BuildAsync( IActivityMonitor monitor, CKliEnv context, BuildPlugin buildPlugin, bool? runTest, int maxDop )
     {
         if( _buildSolutionCount == 0 )
         {
             monitor.Info( ScreenType.CKliScreenTag, "No repositories need to be built." );
-            return Task.FromResult( true );
+            return Task.FromResult( Array.Empty<BuildResult>() )!;
         }
 
         foreach( var s in _orderedSolutions )
@@ -123,7 +124,7 @@ public sealed partial class Roadmap
                             Git repository '{_orderedSolutions.First( s => s.Repo.GitStatus.IsDirty ).Repo.DisplayPath.Path}' is dirty.
                             Changes must be committed first.
                             """ );
-                return Task.FromResult( false );
+                return Task.FromResult( (BuildResult[]?)null );
             }
         }
         var builder = new BuildPlugin.RoadmapExecutor( buildPlugin, context, this, runTest, maxDop );

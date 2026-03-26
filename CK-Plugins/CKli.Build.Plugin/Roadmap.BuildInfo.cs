@@ -13,7 +13,14 @@ namespace CKli.Build.Plugin;
 public sealed partial class Roadmap
 {
     /// <summary>
-    /// Fully describes the status of a 
+    /// Detailed build related status associated of a <see cref="BuildSolution"/> in a <see cref="Roadmap"/>.
+    /// <para>
+    /// Available on <see cref="BuildSolution.BuildInfo"/> when the solution belongs to the pivots scope and is
+    /// not ignored. 
+    /// </para>
+    /// <para>
+    /// After a successful build and if <see cref="MustBuild"/> is true, then the non null <see cref="BuildResult"/> is available.
+    /// </para>
     /// </summary>
     public sealed class BuildInfo
     {
@@ -26,6 +33,7 @@ public sealed partial class Roadmap
 
         readonly Lock _buildTaskLock;
         Task<BuildResult?>? _buildTask;
+        BuildResult? _buildResult;
 
         internal BuildInfo( BuildSolution solution,
                             MustBuildReason buildReason,
@@ -79,6 +87,11 @@ public sealed partial class Roadmap
         /// </summary>
         public PackageMapper? PackageUpdates => _packageUpdates;
 
+        /// <summary>
+        /// Gets the build result. Not null when <see cref="MustBuild"/> is true and build succeeded.
+        /// </summary>
+        public BuildResult? BuildResult => _buildResult;
+
         internal Task<BuildResult?> BuildAsync( BuildPlugin.RoadmapExecutor builder )
         {
             if( _buildTask != null ) return _buildTask;
@@ -102,7 +115,8 @@ public sealed partial class Roadmap
                 }
             }
             // Building requirements succeed: running this build.
-            return await builder.BuildAsync( this );
+            _buildResult = await builder.BuildAsync( this );
+            return _buildResult;
         }
 
     }

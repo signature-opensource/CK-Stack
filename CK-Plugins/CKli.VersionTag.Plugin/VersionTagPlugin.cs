@@ -252,6 +252,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 """ );
             monitor.Warn( updateRemoteTagsWarning.ToString() );
         }
+        monitor.Info( ScreenType.CKliScreenTag, "Databases of 'Published' and 'Local' releases been successfully rebuilt:" );
         return true;
     }
 
@@ -537,7 +538,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         }
 
         // LastStables are used by ckli fix. They must be sorted (in reverse version order, TagCommit.CompareTo does that).
-        // Explicit for each loop so we also compute the lowestCI tag to support auto-deletion of obsolete CI builds.
+        // We use an explicit for each loop so we also compute the lowestCI tag to support auto-deletion of obsolete CI builds.
         var lastStables = new List<TagCommit>();
         TagCommit? lowestCI = null;
         foreach( var tc in v2c.Values )
@@ -554,12 +555,22 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         // Uses TagCommit.CompareTo that reverts the Version.
         lastStables.Sort();
         TagCommit? lastStable = null;
+        TagCommit? lastAvailableStable = null;
         if( lastStables.Count > 0 )
         {
             lastStable = lastStables[0];
+            // Handle obsolete CI builds.
             if( lowestCI != null && lowestCI.Version < lastStable.Version )
             {
                 AutoDeleteObsoleteCIReleases( monitor, repo, removableTags, v2c, lastStable, lowestCI );
+            }
+            if( lastStable.BuildContentInfo != null )
+            {
+                lastAvailableStable = lastStable;
+            }
+            else
+            {
+                lastAvailableStable = lastStables.FirstOrDefault( tc => tc.BuildContentInfo != null );
             }
         }
 
@@ -571,7 +582,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         {
             Throw.DebugAssert( lastStable != null );
             // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
-            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot );
+            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot, lastAvailableStable );
         }
         else
         {

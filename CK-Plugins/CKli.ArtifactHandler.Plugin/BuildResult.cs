@@ -14,10 +14,10 @@ namespace CKli.ArtifactHandler.Plugin;
 /// </summary>
 public sealed partial class BuildResult
 {
-    readonly BuildContentInfo _buildContentInfo;
-    readonly NormalizedPath _assetsFolder;
     readonly Repo _repo;
     readonly SVersion _version;
+    readonly BuildContentInfo _buildContentInfo;
+    readonly NormalizedPath _assetsFolder;
     readonly bool _skippedBuild;
 
     /// <summary>

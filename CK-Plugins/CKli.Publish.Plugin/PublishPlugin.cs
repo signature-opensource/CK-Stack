@@ -2,10 +2,9 @@ using CK.Core;
 using CKli.Core;
 using System;
 using System.IO;
-using System.Linq;
-using System.Collections.Generic;
 using CKli.Build.Plugin;
 using System.Threading.Tasks;
+using CKli.ShallowSolution.Plugin;
 
 namespace CKli.Publish.Plugin;
 
@@ -22,11 +21,15 @@ public sealed class PublishPlugin : PrimaryPluginBase
 
     Task OnRoadmapBuildAsync( IActivityMonitor monitor, Roadmap.BuildEventArgs e, System.Threading.CancellationToken cancel )
     {
-        return e.ShouldPublish ? PublishAsync( monitor, e.Roadmap ) : Task.CompletedTask;
+        return e.ShouldPublish ? PublishAsync( monitor, e.BuildDate, e.Roadmap ) : Task.CompletedTask;
     }
 
-    async Task PublishAsync( IActivityMonitor monitor, Roadmap roadmap )
+    Task<bool> PublishAsync( IActivityMonitor monitor, DateTime buildDate, Roadmap roadmap )
     {
-        roadmap.OrderedSolutions.Where( s => s.MustBuild ).Select( s => (s.Repo, s.BuildInfo!.TargetVersion, s.VersionInfo.CommitsFromBaseBuild) );
+        var state = PublishState.Load( monitor, World );
+        if( state == null ) return Task.FromResult( false );
+        var newOne = WorldPublishInfo.Create( buildDate, roadmap );
+        state.Add( newOne );
+        return state.RunAsync( monitor );
     }
 }

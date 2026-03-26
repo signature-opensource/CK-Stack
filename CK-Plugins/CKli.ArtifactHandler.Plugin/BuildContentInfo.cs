@@ -53,7 +53,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         _assetFileNames = assetFileNames;
     }
 
-    public BuildContentInfo( CKBinaryReader r )
+    public BuildContentInfo( ICKBinaryReader r )
     {
         var b = ImmutableArray.CreateBuilder<PackageInstance>( r.ReadNonNegativeSmallInt32() );
         for( int i = 0; i < b.Capacity; ++i )
@@ -64,7 +64,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         _produced = Read( r );
         _assetFileNames = Read( r );
 
-        static ImmutableArray<string> Read( CKBinaryReader r )
+        static ImmutableArray<string> Read( ICKBinaryReader r )
         {
             int count = r.ReadNonNegativeSmallInt32();
             if( count > 0 )
@@ -80,7 +80,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         }
     }
 
-    public void Write( CKBinaryWriter w )
+    public void Write( ICKBinaryWriter w )
     {
         w.WriteNonNegativeSmallInt32( _consumed.Length );
         foreach( var p in _consumed )
@@ -91,7 +91,7 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         Write( w, _produced );
         Write( w, _assetFileNames );
 
-        static void Write( CKBinaryWriter w, ImmutableArray<string> a )
+        static void Write( ICKBinaryWriter w, ImmutableArray<string> a )
         {
             w.WriteNonNegativeSmallInt32( a.Length );
             foreach( var s in a )

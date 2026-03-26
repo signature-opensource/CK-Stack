@@ -106,43 +106,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return DoBuildAsync( monitor, context, branch, maxDop, all, skipTests, forceTests, publish, dryRun, isPullBuild: false );
     }
 
-    async Task<bool> DoBuildAsync( IActivityMonitor monitor,
-                                   CKliEnv context,
-                                   string? branch,
-                                   string? maxDop,
-                                   bool all,
-                                   bool skipTests,
-                                   bool forceTests,
-                                   bool publish,
-                                   bool dryRun,
-                                   bool isPullBuild )
-    {
-        if( !HandleMaxDoP( monitor, maxDop, out var vMaDxDop )
-            || !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
-        {
-            return false;
-        }
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isDevBuild: true, branch, all );
-        if( roadmap == null )
-        {
-            return false;
-        }
-        if( dryRun )
-        {
-            return true;
-        }
-        if( !await roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop ).ConfigureAwait( false ) )
-        {
-            return false;
-        }
-        if( _onRoadmapBuild.HasHandlers )
-        {
-            var e = new Roadmap.BuildEventArgs( monitor, roadmap, publish );
-            return await _onRoadmapBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false );
-        }
-        return true;
-    }
-
     [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers and publishes all the artifacts." )]
     [CommandPath( "publish" )]
     public Task<bool> Publish( IActivityMonitor monitor,
@@ -183,37 +146,72 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         return DoPublishAsync( monitor, context, branch, maxDop, all, forceTests, dryRun, isPullBuild: true, shouldPublish: true );
     }
 
-    async Task<bool> DoPublishAsync( IActivityMonitor monitor,
-                                     CKliEnv context,
-                                     string? branch,
-                                     string? maxDop,
-                                     bool all,
-                                     bool forceTests,
-                                     bool dryRun,
-                                     bool isPullBuild,
-                                     bool shouldPublish )
+    Task<bool> DoBuildAsync( IActivityMonitor monitor,
+                             CKliEnv context,
+                             string? branch,
+                             string? maxDop,
+                             bool all,
+                             bool skipTests,
+                             bool forceTests,
+                             bool publish,
+                             bool dryRun,
+                             bool isPullBuild )
+    {
+        if( !HandleMaxDoP( monitor, maxDop, out var vMaxDoP )
+            || !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest ) )
+        {
+            return Task.FromResult( false );
+        }
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isDevBuild: true, branch, all );
+        if( roadmap == null )
+        {
+            return Task.FromResult( false );
+        }
+        if( dryRun )
+        {
+            return Task.FromResult( true );
+        }
+        return DoRunBuild( monitor, context, publish, vMaxDoP, runTest, roadmap );
+    }
+
+    Task<bool> DoPublishAsync( IActivityMonitor monitor,
+                               CKliEnv context,
+                               string? branch,
+                               string? maxDop,
+                               bool all,
+                               bool forceTests,
+                               bool dryRun,
+                               bool isPullBuild,
+                               bool shouldPublish )
     {
         var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isDevBuild: false, branch, all );
         if( roadmap == null || !HandleMaxDoP( monitor, maxDop, out var vMaDxDop ) )
         {
-            return false;
+            return Task.FromResult( false );
         }
         if( dryRun )
         {
-            return true;
+            return Task.FromResult( true );
         }
         bool? runTest = forceTests ? true : null;
-        if( !await roadmap.BuildAsync( monitor, context, this, runTest, vMaDxDop ).ConfigureAwait( false ) )
+        return DoRunBuild( monitor, context, shouldPublish, vMaDxDop, runTest, roadmap );
+    }
+
+    async Task<bool> DoRunBuild( IActivityMonitor monitor, CKliEnv context, bool publish, int vMaxDoP, bool? runTest, Roadmap roadmap )
+    {
+        var results = await roadmap.BuildAsync( monitor, context, this, runTest, vMaxDoP ).ConfigureAwait( false );
+        if( results == null )
         {
             return false;
         }
-        if( _onRoadmapBuild.HasHandlers )
+        if( results.Length > 0 && _onRoadmapBuild.HasHandlers )
         {
-            var e = new Roadmap.BuildEventArgs( monitor, roadmap, shouldPublish );
+            var e = new Roadmap.BuildEventArgs( monitor, roadmap, publish );
             return await _onRoadmapBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false );
         }
         return true;
     }
+
 
     Roadmap? ComputeAndDisplayRoadmap( IActivityMonitor monitor,
                                        CKliEnv context,

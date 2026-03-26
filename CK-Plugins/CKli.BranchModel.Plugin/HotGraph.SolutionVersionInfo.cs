@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
@@ -57,8 +58,16 @@ public sealed partial class HotGraph
 
         /// <summary>
         /// Gets the base commit that is the <see cref="VersionTagInfo.HotZoneInfo.LastStable"/>.
+        /// Can be "+fake" or "+deprecated".
         /// </summary>
         public TagCommit BaseBuild => _info.HotZone!.LastStable;
+
+        /// <summary>
+        /// Gets the content info to consider for the <see cref="BaseBuild"/>.
+        /// It corresponds to the <see cref="VersionTagInfo.HotZoneInfo.LastAvailableStable"/> content and is almost
+        /// always the same as the content info of the <see cref="BaseBuild"/>.
+        /// </summary>
+        public BuildContentInfo? BaseBuildContentInfo => _info.HotZone!.LastAvailableStable?.BuildContentInfo;
 
         /// <summary>
         /// Gets the last built version to consider in the <see cref="Solution.Branch"/>.

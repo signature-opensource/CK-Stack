@@ -165,8 +165,8 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
     /// Called when we know for sure that a versioned release has been published.
     /// <para>
     /// This is idempotent: if the version is in the Local database, it is moved to the Published one
-    /// and if it already published, nothing is done. This fails if the release cannot be found in any of
-    /// the 2 databases.
+    /// and if it is already published, nothing is done. This fails if the release cannot be found in
+    /// any of the 2 databases.
     /// </para>
     /// </summary>
     /// <param name="monitor">The monitor.</param>
