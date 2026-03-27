@@ -21,11 +21,36 @@ sealed class RepoPublishInfo
     readonly ImmutableArray<(string CommitId, string Author, string Committer, DateTimeOffset Date, string Text)> _commits;
     string _releaseNotes;
 
+    /// <summary>
+    /// Gets the Repo.
+    /// </summary>
     public Repo Repo => _repo;
 
+    /// <summary>
+    /// Gets the index of this published repository in its <see cref="WorldReleaseInfo.Repos"/>.
+    /// </summary>
     public int Index => _index;
 
+    /// <summary>
+    /// Gets the content that must be published.
+    /// </summary>
     public BuildContentInfo BuildContentInfo => _buildContentInfo;
+
+    /// <summary>
+    /// Gets the number of "items" to publish: the <see cref="BuildContentInfo.Produced"/> packages plus the <see cref="BuildContentInfo.AssetFileNames"/> files
+    /// plus one for the <see cref="Repo"/> itself.
+    /// </summary>
+    public int PublishedLength => _buildContentInfo.Produced.Length + _buildContentInfo.AssetFileNames.Length + 1;
+
+    /// <summary>
+    /// Gets the built version of this repository.
+    /// </summary>
+    public SVersion BuildVersion => _buildVersion;
+
+    /// <summary>
+    /// Gets the release notes. May be empty.
+    /// </summary>
+    public string ReleaseNotes => _releaseNotes;
 
     RepoPublishInfo( Repo repo,
                      int index,

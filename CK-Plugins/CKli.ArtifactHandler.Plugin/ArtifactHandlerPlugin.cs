@@ -50,6 +50,9 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
 
     /// <summary>
     /// Gets the &lt;ArtifactHandler&gt;/&lt;NuGet&gt;/&lt;Feed&gt; configurations.
+    /// <para>
+    /// This is cached once obtained.
+    /// </para>
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="feeds">The configured feeds.</param>

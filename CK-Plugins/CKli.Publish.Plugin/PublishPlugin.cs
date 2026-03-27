@@ -28,8 +28,8 @@ public sealed class PublishPlugin : PrimaryPluginBase
     {
         var state = PublishState.Load( monitor, World );
         if( state == null ) return Task.FromResult( false );
-        var newOne = WorldPublishInfo.Create( buildDate, roadmap );
-        state.Add( newOne );
+        var newOne = WorldReleaseInfo.Create( buildDate, roadmap );
+        state.Add( monitor, newOne );
         return state.RunAsync( monitor );
     }
 }

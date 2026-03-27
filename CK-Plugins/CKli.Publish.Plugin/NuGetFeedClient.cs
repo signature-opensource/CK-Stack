@@ -2,7 +2,6 @@ using CK.Core;
 using CSemVer;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
-using NuGet.Versioning;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -90,13 +89,11 @@ public sealed partial class NuGetFeedClient : IDisposable
     }
 
     /// <summary>
-    /// Sends an HTTP DELETE for the specified package version.
+    /// Sends a delete request for the specified package version.
     /// <para>
     /// Whether this performs a hard-delete or an unlist depends entirely on the server:
     /// nuget.org unlists the package (it remains restorable but is hidden from search),
     /// while most private feeds (BaGet, Gitea, Nexus, Azure Artifacts…) perform a hard-delete.
-    /// Use <see cref="UnlistAsync(IActivityMonitor, string, SVersion, CancellationToken)"/>
-    /// when the intent is specifically to unlist rather than destroy the package.
     /// </para>
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
@@ -104,14 +101,34 @@ public sealed partial class NuGetFeedClient : IDisposable
     /// <param name="version">The version to delete.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>True on success, false on error.</returns>
-    public Task<bool> DeleteAsync( IActivityMonitor monitor,
-                                   string packageId,
-                                   SVersion version,
-                                   CancellationToken cancellationToken = default )
-        => SendDeleteAsync( monitor, packageId, version, "delete", cancellationToken );
+    public async Task<bool> DeleteAsync( IActivityMonitor monitor,
+                                         string packageId,
+                                         SVersion version,
+                                         CancellationToken cancellationToken = default )
+    {
+        Throw.CheckNotNullOrWhiteSpaceArgument( packageId );
+        Throw.CheckNotNullArgument( version );
+        using var _ = monitor.OpenTrace( $"Sending delete request for '{packageId}@{version}' on '{_feedUrl}'." );
+        try
+        {
+            var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
+            await resource.Delete( packageId,
+                                   version.ToString(),
+                                   _ => _apiKey,
+                                   _ => true,
+                                   noServiceEndpoint: false,
+                                   new LoggerAdapter( monitor ) );
+            return true;
+        }
+        catch( Exception ex )
+        {
+            monitor.Error( $"Failed to delete '{packageId}@{version}' on '{_feedUrl}'.", ex );
+            return false;
+        }
+    }
 
     /// <summary>
-    /// Sends an HTTP DELETE for each of the specified package versions.
+    /// Sends a delete request for each of the specified package versions.
     /// See <see cref="DeleteAsync(IActivityMonitor, string, SVersion, CancellationToken)"/> for
     /// the distinction between delete and unlist.
     /// </summary>
@@ -127,75 +144,10 @@ public sealed partial class NuGetFeedClient : IDisposable
     {
         bool success = true;
         foreach( var v in versions )
-            success &= await SendDeleteAsync( monitor, packageId, v, "delete", cancellationToken );
+            success &= await DeleteAsync( monitor, packageId, v,  cancellationToken );
         return success;
     }
 
-    /// <summary>
-    /// Sends an HTTP DELETE with the intent to unlist the specified package version.
-    /// <para>
-    /// On nuget.org this hides the version from search but keeps it restorable.
-    /// On most private feeds this is equivalent to a hard-delete (same protocol operation).
-    /// </para>
-    /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
-    /// <param name="packageId">The package identifier.</param>
-    /// <param name="version">The version to unlist.</param>
-    /// <param name="cancellationToken">Optional cancellation token.</param>
-    /// <returns>True on success, false on error.</returns>
-    public Task<bool> UnlistAsync( IActivityMonitor monitor,
-                                   string packageId,
-                                   SVersion version,
-                                   CancellationToken cancellationToken = default )
-        => SendDeleteAsync( monitor, packageId, version, "unlist", cancellationToken );
-
-    /// <summary>
-    /// Sends an HTTP DELETE with the intent to unlist each of the specified package versions.
-    /// See <see cref="UnlistAsync(IActivityMonitor, string, SVersion, CancellationToken)"/> for
-    /// the distinction between delete and unlist.
-    /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
-    /// <param name="packageId">The package identifier.</param>
-    /// <param name="versions">The versions to unlist.</param>
-    /// <param name="cancellationToken">Optional cancellation token.</param>
-    /// <returns>True if all operations succeeded, false if any failed.</returns>
-    public async Task<bool> UnlistAsync( IActivityMonitor monitor,
-                                         string packageId,
-                                         IEnumerable<SVersion> versions,
-                                         CancellationToken cancellationToken = default )
-    {
-        bool success = true;
-        foreach( var v in versions )
-            success &= await SendDeleteAsync( monitor, packageId, v, "unlist", cancellationToken );
-        return success;
-    }
-
-    async Task<bool> SendDeleteAsync( IActivityMonitor monitor,
-                                      string packageId,
-                                      SVersion version,
-                                      string operation,
-                                      CancellationToken cancellationToken )
-    {
-        Throw.CheckNotNullOrWhiteSpaceArgument( packageId );
-        Throw.CheckNotNullArgument( version );
-        using var _ = monitor.OpenTrace( $"Sending {operation} request for '{packageId}@{version}' on '{_feedUrl}'." );
-        try
-        {
-            var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
-            await resource.Delete( packageId,
-                                   version.ToString(),
-                                   _ => _apiKey,
-                                   _ => true,
-                                   noServiceEndpoint: false,
-                                   new LoggerAdapter( monitor ) );
-            return true;
-        }
-        catch( Exception ex )
-        {
-            monitor.Error( $"Failed to {operation} '{packageId}@{version}' on '{_feedUrl}'.", ex );
-            return false;
-        }
-    }
 
     /// <summary>
     /// Pushes a single .nupkg file to the feed.
