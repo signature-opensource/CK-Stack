@@ -205,9 +205,6 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             {
                 pivots = allRepos;
             }
-            // Finds the most instable existing branch among the pivots (or among all the repositories).
-            branchName = FindMostInstableBranchFrom( monitor, branchName, pivots );
-
             using( monitor.OpenInfo( pivots.Count == allRepos.Count
                                         ? $"Considering branch '{branchName}' from all {allRepos.Count} repositories."
                                         : $"Considering branch '{branchName}' from {pivots.Count} pivots out of {allRepos.Count} repositories." ) )
@@ -221,6 +218,11 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 bool hasPivots = graph.HasPivots;
                 foreach( var repo in allRepos )
                 {
+                    // Consider the closest Git branch that exists in the repository (at the BranchName level), then, if the 
+                    // branch has a "dev/" branch, use it: the shallow solution is based on the "current" code base that is "dev/"
+                    // if it exists. This may be an option here but it's currently pointless to ignore the "dev/" branch and consider
+                    // the regular branch because commits on the regular branch should have a version tag and its content is known:
+                    // regular branches belong to the past.
                     var branchInfo = Get( monitor, repo );
                     var b = branchInfo.GetClosestActiveBranch( branchName );
                     Throw.DebugAssert( "There is no Branch Model issue: the closest branch necessarily exists.", b?.GitBranch != null );
@@ -264,32 +266,6 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 """, ex );
             return null;
         }
-    }
-
-    BranchName FindMostInstableBranchFrom( IActivityMonitor monitor, BranchName branchName, IEnumerable<Repo> pivots )
-    {
-        BranchName? mostInstable = null;
-        foreach( var p in pivots )
-        {
-            var closest = Get( monitor, p ).GetClosestActiveBranch( branchName );
-            Throw.DebugAssert( "There is no Branch Model issue: the closest git branch necessarily exists.", closest?.GitBranch != null );
-            if( closest.BranchName != branchName )
-            {
-                monitor.Info( $"Repository '{p.DisplayPath}' has no branch '{branchName}', considering the closest one that is '{closest.BranchName}'." );
-            }
-            // Finding the most instable branch.
-            if( mostInstable == null || mostInstable.Index < closest.BranchName.Index )
-            {
-                mostInstable = closest.BranchName;
-            }
-        }
-        Throw.DebugAssert( mostInstable != null );
-        if( mostInstable != branchName )
-        {
-            monitor.Info( $"Eventually considering branch '{mostInstable}'." );
-            branchName = mostInstable;
-        }
-        return branchName;
     }
 
     protected override BranchModelInfo Create( IActivityMonitor monitor, Repo repo )

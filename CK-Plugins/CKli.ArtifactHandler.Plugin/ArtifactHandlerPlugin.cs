@@ -17,7 +17,6 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     public const string DeployAssetsName = "Assets";
 
 
-    readonly NormalizedPath _localPath;
     readonly NormalizedPath _localNuGetPath;
     readonly NormalizedPath _localAssetsPath;
     ImmutableArray<NuGetFeed> _feeds;
@@ -26,25 +25,19 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     public ArtifactHandlerPlugin( PrimaryPluginContext context )
         : base( context )
     {
-        _localPath = World.StackRepository.StackWorkingFolder.AppendPart( "$Local" ).AppendPart( World.Name.FullName );
-        _localNuGetPath = _localPath.AppendPart( "NuGet" );
-        _localAssetsPath = _localPath.AppendPart( DeployAssetsName );
+        _localNuGetPath = World.Name.LocalDataFolder.AppendPart( "NuGet" );
+        _localAssetsPath = World.Name.LocalDataFolder.AppendPart( DeployAssetsName );
         Directory.CreateDirectory( _localNuGetPath );
         Directory.CreateDirectory( _localAssetsPath );
     }
 
     /// <summary>
-    /// Gets the root "$Local/&lt;world name&gt;" folder.
-    /// </summary>
-    public NormalizedPath LocalPath => _localPath;
-
-    /// <summary>
-    /// Gets the "$Local/&lt;world name&gt;/NuGet" folder.
+    /// Gets the "<see cref="LocalWorldName.LocalDataFolder"/>/NuGet" folder.
     /// </summary>
     public NormalizedPath LocalNuGetPath => _localNuGetPath;
 
     /// <summary>
-    /// Gets the "$Local/&lt;world name&gt;/Assets" folder.
+    /// Gets the "<see cref="LocalWorldName.LocalDataFolder"/>/Assets" folder.
     /// </summary>
     public NormalizedPath LocalAssetsPath => _localAssetsPath;
 
@@ -157,7 +150,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     }
 
     /// <summary>
-    /// Analyzes "$Local" folder to check whether all produced packages and files are locally available.
+    /// Analyzes <see cref="LocalNuGetPath"/> to check whether all produced packages and files are locally available.
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The released repository.</param>

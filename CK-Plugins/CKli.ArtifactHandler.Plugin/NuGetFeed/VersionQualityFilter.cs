@@ -74,7 +74,10 @@ public readonly struct VersionQualityFilter
     public bool IncludeMax => !_excludeMax;
 
     /// <summary>
-    /// Checks whether this range allows the specified release name (regardless of <see cref="AllowCI"/>).
+    /// Checks whether this range allows the specified prerelease name (regardless of <see cref="AllowCI"/>).
+    /// <para>
+    /// An empty string corresponds to a stable version.
+    /// </para>
     /// </summary>
     /// <param name="prereleaseName">The name to challenge.</param>
     /// <returns>Whether <paramref name="prereleaseName"/> is accepted or not.</returns>

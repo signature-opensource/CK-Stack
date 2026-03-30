@@ -270,7 +270,7 @@ public sealed partial class BuildPlugin
                 Branch workingBranch;
                 canAmend = false;
                 bool hasDev = b.GitDevBranch != null;
-                if( solution.Roadmap.IsDevBuild )
+                if( solution.Roadmap.IsCIBuild )
                 {
                     if( b.GitDevBranch == null )
                     {

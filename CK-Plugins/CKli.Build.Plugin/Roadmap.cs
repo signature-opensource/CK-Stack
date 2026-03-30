@@ -19,19 +19,19 @@ public sealed partial class Roadmap
     readonly VersionTagPlugin _versionTags;
     readonly HotGraph _graph;
     readonly bool _isPullBuild;
-    readonly bool _isDevBuild;
+    readonly bool _isCIBuild;
     readonly ImmutableArray<BuildSolution> _orderedSolutions;
     readonly ImmutableArray<BuildSolution> _pivots;
     readonly HotGraph.PackageUpdater _packageUpdater;
     int _buildSolutionCount;
 
-    internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, HotGraph.PackageUpdater packageUpdater, bool isPullBuild, bool isDevBuild )
+    internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, HotGraph.PackageUpdater packageUpdater, bool isPullBuild, bool isCIBuild )
     {
         _versionTags = versionTags;
         _graph = graph;
         _packageUpdater = packageUpdater;
         _isPullBuild = isPullBuild;
-        _isDevBuild = isDevBuild;
+        _isCIBuild = isCIBuild;
         var buildSolutions = new BuildSolution[graph.Solutions.Count];
         var pivots = graph.HasPivots ? new BuildSolution[graph.Pivots.Count] : buildSolutions;
         int iPivot = 0;
@@ -70,6 +70,11 @@ public sealed partial class Roadmap
     public bool HasPivots => _graph.HasPivots;
 
     /// <summary>
+    /// Gets the branch name to build.
+    /// </summary>
+    public BranchName BranchName => _graph.BranchName;
+
+    /// <summary>
     /// Gets the count of <see cref="OrderedSolutions"/> that have true <see cref="BuildSolution.MustBuild"/>.
     /// </summary>
     public int SolutionBuildCount => _buildSolutionCount;
@@ -77,7 +82,7 @@ public sealed partial class Roadmap
     /// <summary>
     /// Gets whether this is a build on the "dev/" branch (produces CI packages).
     /// </summary>
-    public bool IsDevBuild => _isDevBuild;
+    public bool IsCIBuild => _isCIBuild;
 
     /// <summary>
     /// Gets the package updater for the graph.

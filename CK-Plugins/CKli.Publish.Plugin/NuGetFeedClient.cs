@@ -17,6 +17,8 @@ namespace CKli.Publish.Plugin;
 /// </summary>
 public sealed partial class NuGetFeedClient : IDisposable
 {
+    const int _perPackagePushTimeoutSecond = 60;
+
     readonly string _feedUrl;
     readonly string _apiKey;
     readonly SourceRepository _sourceRepository;
@@ -51,20 +53,20 @@ public sealed partial class NuGetFeedClient : IDisposable
     /// Gets all versions of a package available on the feed.
     /// NuGet versions that cannot be mapped to a valid <see cref="SVersion"/> are skipped with a warning.
     /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="logger">The logger to use.</param>
     /// <param name="packageId">The package identifier.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>The list of versions, or null on error.</returns>
-    public async Task<IReadOnlyList<SVersion>?> GetVersionsAsync( IActivityMonitor monitor,
+    public async Task<IReadOnlyList<SVersion>?> GetVersionsAsync( IActivityLineEmitter logger,
                                                                   string packageId,
                                                                   CancellationToken cancellationToken = default )
     {
         Throw.CheckNotNullOrWhiteSpaceArgument( packageId );
-        using var _ = monitor.OpenTrace( $"Getting versions of '{packageId}' from '{_feedUrl}'." );
+        logger.Trace( $"Getting versions of '{packageId}' from '{_feedUrl}'." );
         try
         {
             var resource = await _sourceRepository.GetResourceAsync<FindPackageByIdResource>( cancellationToken );
-            var nugetVersions = await resource.GetAllVersionsAsync( packageId, _cacheContext, new LoggerAdapter( monitor ), cancellationToken );
+            var nugetVersions = await resource.GetAllVersionsAsync( packageId, _cacheContext, new LoggerAdapter( logger ), cancellationToken );
             var result = new List<SVersion>();
             foreach( var nv in nugetVersions )
             {
@@ -75,15 +77,15 @@ public sealed partial class NuGetFeedClient : IDisposable
                 }
                 else
                 {
-                    monitor.Warn( $"Cannot map NuGet version '{nugetVersion}' to SVersion. Skipped." );
+                    logger.Warn( $"Cannot map NuGet version '{nugetVersion}' to SVersion. Skipped." );
                 }
             }
-            monitor.CloseGroup( $"Found {result.Count} version(s)." );
+            logger.Trace( $"Found {result.Count} version(s) for '{packageId}' in '{_feedUrl}'." );
             return result;
         }
         catch( Exception ex )
         {
-            monitor.Error( $"Failed to get versions of '{packageId}' from '{_feedUrl}'.", ex );
+            logger.Error( $"Failed to get versions of '{packageId}' from '{_feedUrl}'.", ex );
             return null;
         }
     }
@@ -96,19 +98,19 @@ public sealed partial class NuGetFeedClient : IDisposable
     /// while most private feeds (BaGet, Gitea, Nexus, Azure Artifacts…) perform a hard-delete.
     /// </para>
     /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="logger">The logger to use.</param>
     /// <param name="packageId">The package identifier.</param>
     /// <param name="version">The version to delete.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>True on success, false on error.</returns>
-    public async Task<bool> DeleteAsync( IActivityMonitor monitor,
+    public async Task<bool> DeleteAsync( IActivityLineEmitter logger,
                                          string packageId,
                                          SVersion version,
                                          CancellationToken cancellationToken = default )
     {
         Throw.CheckNotNullOrWhiteSpaceArgument( packageId );
         Throw.CheckNotNullArgument( version );
-        using var _ = monitor.OpenTrace( $"Sending delete request for '{packageId}@{version}' on '{_feedUrl}'." );
+        logger.Trace( $"Sending delete request for '{packageId}@{version}' on '{_feedUrl}'." );
         try
         {
             var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
@@ -117,12 +119,12 @@ public sealed partial class NuGetFeedClient : IDisposable
                                    _ => _apiKey,
                                    _ => true,
                                    noServiceEndpoint: false,
-                                   new LoggerAdapter( monitor ) );
+                                   new LoggerAdapter( logger ) );
             return true;
         }
         catch( Exception ex )
         {
-            monitor.Error( $"Failed to delete '{packageId}@{version}' on '{_feedUrl}'.", ex );
+            logger.Error( $"Failed to delete '{packageId}@{version}' on '{_feedUrl}'.", ex );
             return false;
         }
     }
@@ -132,19 +134,19 @@ public sealed partial class NuGetFeedClient : IDisposable
     /// See <see cref="DeleteAsync(IActivityMonitor, string, SVersion, CancellationToken)"/> for
     /// the distinction between delete and unlist.
     /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="logger">The logger to use.</param>
     /// <param name="packageId">The package identifier.</param>
     /// <param name="versions">The versions to delete.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>True if all operations succeeded, false if any failed.</returns>
-    public async Task<bool> DeleteAsync( IActivityMonitor monitor,
+    public async Task<bool> DeleteAsync( IActivityLineEmitter logger,
                                          string packageId,
                                          IEnumerable<SVersion> versions,
                                          CancellationToken cancellationToken = default )
     {
         bool success = true;
         foreach( var v in versions )
-            success &= await DeleteAsync( monitor, packageId, v,  cancellationToken );
+            success &= await DeleteAsync( logger, packageId, v,  cancellationToken );
         return success;
     }
 
@@ -152,86 +154,66 @@ public sealed partial class NuGetFeedClient : IDisposable
     /// <summary>
     /// Pushes a single .nupkg file to the feed.
     /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="logger">The logger to use.</param>
     /// <param name="nupkgFilePath">The path to the .nupkg file.</param>
     /// <param name="skipDuplicate">Whether to skip (rather than fail) if the package version already exists. Defaults to true.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>True on success, false on error.</returns>
-    public Task<bool> PushAsync( IActivityMonitor monitor,
+    public Task<bool> PushAsync( IActivityLineEmitter logger,
                                  string nupkgFilePath,
                                  bool skipDuplicate = true,
                                  CancellationToken cancellationToken = default )
     {
         Throw.CheckNotNullOrWhiteSpaceArgument( nupkgFilePath );
-        return PushCoreAsync( monitor, [nupkgFilePath], skipDuplicate, cancellationToken );
-    }
-
-    /// <summary>
-    /// Pushes all .nupkg files matching <paramref name="searchPattern"/> in <paramref name="directory"/> to the feed.
-    /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
-    /// <param name="directory">The directory to search.</param>
-    /// <param name="searchPattern">File search pattern.</param>
-    /// <param name="skipDuplicate">Whether to skip (rather than fail) if a package version already exists. Defaults to true.</param>
-    /// <param name="cancellationToken">Optional cancellation token.</param>
-    /// <returns>True on success, false on error.</returns>
-    public Task<bool> PushAsync( IActivityMonitor monitor,
-                                 string directory,
-                                 string searchPattern,
-                                 bool skipDuplicate = true,
-                                 CancellationToken cancellationToken = default )
-    {
-        Throw.CheckNotNullOrWhiteSpaceArgument( directory );
-        Throw.CheckNotNullOrWhiteSpaceArgument( searchPattern );
-        return PushCoreAsync( monitor, Directory.GetFiles( directory, searchPattern ), skipDuplicate, cancellationToken );
+        return PushCoreAsync( logger, [nupkgFilePath], skipDuplicate, cancellationToken );
     }
 
     /// <summary>
     /// Pushes a set of .nupkg files to the feed.
     /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
+    /// <param name="logger">The logger to use.</param>
     /// <param name="nupkgFilePaths">Paths to the .nupkg files to push.</param>
     /// <param name="skipDuplicate">Whether to skip (rather than fail) if a package version already exists. Defaults to true.</param>
     /// <param name="cancellationToken">Optional cancellation token.</param>
     /// <returns>True on success, false on error.</returns>
-    public Task<bool> PushAsync( IActivityMonitor monitor,
+    public Task<bool> PushAsync( IActivityLineEmitter logger,
                                  IEnumerable<string> nupkgFilePaths,
                                  bool skipDuplicate = true,
                                  CancellationToken cancellationToken = default )
     {
         Throw.CheckNotNullArgument( nupkgFilePaths );
-        return PushCoreAsync( monitor, nupkgFilePaths.ToArray(), skipDuplicate, cancellationToken );
+        return PushCoreAsync( logger, nupkgFilePaths.ToArray(), skipDuplicate, cancellationToken );
     }
 
-    async Task<bool> PushCoreAsync( IActivityMonitor monitor,
+    async Task<bool> PushCoreAsync( IActivityLineEmitter logger,
                                     IList<string> paths,
                                     bool skipDuplicate,
                                     CancellationToken cancellationToken )
     {
         if( paths.Count == 0 )
         {
-            monitor.Warn( $"PushAsync: no packages to push to '{_feedUrl}'." );
+            logger.Warn( $"PushAsync: no packages to push to '{_feedUrl}'." );
             return true;
         }
-        using var _ = monitor.OpenTrace( $"Pushing {paths.Count} package(s) to '{_feedUrl}'." );
+        logger.Trace( $"Pushing {paths.Count} package(s) to '{_feedUrl}'." );
         try
         {
             var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
             await resource.Push( paths,
                                  symbolSource: null,
-                                 timeoutInSecond: 300,
+                                 timeoutInSecond: paths.Count * _perPackagePushTimeoutSecond,
                                  disableBuffering: false,
                                  getApiKey: _ => _apiKey,
                                  getSymbolApiKey: null,
                                  noServiceEndpoint: false,
                                  skipDuplicate: skipDuplicate,
                                  symbolPackageUpdateResource: null,
-                                 new LoggerAdapter( monitor ) );
+                                 new LoggerAdapter( logger ) );
             return true;
         }
         catch( Exception ex )
         {
-            monitor.Error( $"Failed to push package(s) to '{_feedUrl}'.", ex );
+            logger.Error( $"Failed to push package(s) to '{_feedUrl}'.", ex );
             return false;
         }
     }

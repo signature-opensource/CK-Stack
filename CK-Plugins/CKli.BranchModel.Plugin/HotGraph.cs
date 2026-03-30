@@ -52,11 +52,7 @@ public sealed partial class HotGraph
     }
 
     /// <summary>
-    /// Gets the initial branch name of this graph.
-    /// <para>
-    /// When <see cref="Pivots"/> have been specified, this branch necessarily exists in the Pivots.
-    /// When no pivot exists, this branch exists in at least one of the World's repositories.
-    /// </para>
+    /// Gets the branch name of this graph.
     /// </summary>
     public BranchName BranchName => _branchName;
 
