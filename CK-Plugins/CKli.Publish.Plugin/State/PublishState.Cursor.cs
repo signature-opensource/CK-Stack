@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using System.Linq;
+using System.Threading;
 
 namespace CKli.Publish.Plugin;
 
@@ -8,7 +9,7 @@ sealed partial class PublishState
 {
     /// <summary>
     /// Immutable logical cursor that identifies a position in a <see cref="PublishState"/> and can
-    /// be forwarded.
+    /// be forwarded. This drives the publishing process.
     /// </summary>
     public sealed class Cursor
     {
@@ -24,19 +25,9 @@ sealed partial class PublishState
         public enum LocType
         {
             /// <summary>
-            /// End of state has been reached. There's nothing more to do, both <see cref="World"/> and <see cref="Repo"/> are null.
+            /// The <see cref="Repo"/> must be published.
             /// </summary>
-            EndOfState,
-
-            /// <summary>
-            /// All the <see cref="World"/>'s Repos have been published (<see cref="Repo"/> is null).
-            /// </summary>
-            EndOfWorld,
-
-            /// <summary>
-            /// All the <see cref="Repo"/>'s packages and files have been published.
-            /// </summary>
-            EndOfRepo,
+            BegOfRepo,
 
             /// <summary>
             /// The <see cref="Repo"/>'s package <see cref="Index"/> in <see cref="BuildContentInfo.Produced"/> must be published.
@@ -46,7 +37,23 @@ sealed partial class PublishState
             /// <summary>
             /// The <see cref="Repo"/>'s file <see cref="Index"/> in <see cref="BuildContentInfo.AssetFileNames"/> must be published.
             /// </summary>
-            InFile
+            InFile,
+
+            /// <summary>
+            /// All the <see cref="Repo"/>'s packages and files have been published.
+            /// </summary>
+            EndOfRepo,
+
+            /// <summary>
+            /// All the <see cref="World"/>'s Repos have been published (<see cref="Repo"/> is null).
+            /// </summary>
+            EndOfWorld,
+
+            /// <summary>
+            /// End of state has been reached. There's nothing more to do, both <see cref="World"/> and <see cref="Repo"/> are null.
+            /// </summary>
+            EndOfState
+
         }
 
         /// <summary>
@@ -112,6 +119,10 @@ sealed partial class PublishState
                 return EnterWorld( _state, world );
             }
             Throw.DebugAssert( _repo != null );
+            if( _location == LocType.BegOfRepo )
+            {
+                return EnterRepoBody( _state, _world, _repo );
+            }
             int nextIdx;
             if( _location == LocType.EndOfRepo )
             {
@@ -180,7 +191,6 @@ sealed partial class PublishState
                     foundWorld = true;
                     break;
                 }
-
                 len += w.PublishedLength;
             }
             if( !foundWorld )
@@ -200,6 +210,11 @@ sealed partial class PublishState
             if( _location == LocType.EndOfRepo )
             {
                 return len + _repo.PublishedLength;
+            }
+            ++len;
+            if( _location == LocType.BegOfRepo )
+            {
+                return len;
             }
             if( _location == LocType.InPackage )
             {
@@ -241,6 +256,17 @@ sealed partial class PublishState
 
         static Cursor EnterRepo( PublishState state, WorldReleaseInfo world, RepoPublishInfo repo )
         {
+            // We come from EnterWorld() or _location == LocType.EndOfRepo => BegOfRepo, even
+            // if the Repo is empty.
+            return new Cursor( state, LocType.BegOfRepo, world, repo, -1 );
+        }
+
+        static Cursor EnterRepoBody( PublishState state, WorldReleaseInfo world, RepoPublishInfo repo )
+        {
+            // We come from LocType.BegOfRepo:
+            // - Transitions to InPackage (if there's at least one package).
+            // - InFile otherwise (if there's at least one file)
+            // - or transitions directly to EndOfRepo.
             var loc = LocType.EndOfRepo;
             int index = -1;
             if( repo.BuildContentInfo.Produced.Length > 0 )

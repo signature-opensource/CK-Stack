@@ -31,6 +31,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     readonly ArtifactHandlerPlugin _artifactHandler;
     readonly ShallowSolutionPlugin _solutionPlugin;
     readonly PerfectEventSender<Roadmap.BuildEventArgs> _onRoadmapBuild;
+    readonly PerfectEventSender<FixBuildEventArgs> _onFixBuild;
 
 
     public BuildPlugin( PrimaryPluginContext primaryContext,
@@ -50,12 +51,18 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         _solutionPlugin = solutionPlugin;
         World.Events.Issue += IssueRequested;
         _onRoadmapBuild = new PerfectEventSender<Roadmap.BuildEventArgs>();
+        _onFixBuild = new PerfectEventSender<FixBuildEventArgs>();
     }
 
     /// <summary>
     /// Raised whenever a <see cref="Roadmap"/> has been successfully built.
     /// </summary>
     public PerfectEvent<Roadmap.BuildEventArgs> OnRoadmapBuild => _onRoadmapBuild.PerfectEvent;
+
+    /// <summary>
+    /// Raised whenever a fix has been successfully built.
+    /// </summary>
+    public PerfectEvent<FixBuildEventArgs> OnFixBuild => _onFixBuild.PerfectEvent;
 
     [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers." )]
     [CommandPath( "build" )]
@@ -162,7 +169,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return Task.FromResult( false );
         }
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isDevBuild: true, branch, all );
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isCIBuild: true, branch, all );
         if( roadmap == null )
         {
             return Task.FromResult( false );
@@ -184,7 +191,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                bool isPullBuild,
                                bool shouldPublish )
     {
-        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isDevBuild: false, branch, all );
+        var roadmap = ComputeAndDisplayRoadmap( monitor, context, isPullBuild, isCIBuild: false, branch, all );
         if( roadmap == null || !HandleMaxDoP( monitor, maxDop, out var vMaDxDop ) )
         {
             return Task.FromResult( false );
@@ -216,7 +223,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     Roadmap? ComputeAndDisplayRoadmap( IActivityMonitor monitor,
                                        CKliEnv context,
                                        bool isPullBuild,
-                                       bool isDevBuild,
+                                       bool isCIBuild,
                                        string? branch,
                                        bool all )
     {
@@ -230,23 +237,20 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         if( branch == null )
         {
-            if( pivots.Count > 1 )
+            branch = GetBranchName( monitor, pivots[0] );
+            for( int  i = 1; i < pivots.Count; ++i )
             {
-                monitor.Error( all ? "When 'ckli build --all' is specified, the --branch <name> must be specified."
-                                   : $"""
-                                     More than one Repo are below path '{context.CurrentDirectory}'.
-                                     The --branch <name> must be specified.
+                var bOther = GetBranchName( monitor, pivots[i] );
+                if( bOther != branch )
+                {
+                    monitor.Error( $"""
+                                     Multiple Repo are selected and current checked out branches differ, the --branch <name> must be specified.
+                                     (At least, '{pivots[0].DisplayPath}' is on '{branch}' and '{pivots[i].DisplayPath}' is on '{bOther}'.)
                                      """ );
-                return null;
+                    return null;
+                }
             }
-            var r = pivots[0];
-            branch = r.GitStatus.CurrentBranchName;
-            monitor.Info( ScreenType.CKliScreenTag,
-                          $"Considering current branch '{branch}' from '{r.DisplayPath}' as the --branch <name> to build." );
-            if( branch.StartsWith( "dev/", StringComparison.OrdinalIgnoreCase ) )
-            {
-                branch = branch.Substring( 4 );
-            }
+            monitor.Info( ScreenType.CKliScreenTag, $"Considering current branch '{branch}' as the --branch <name> to build." );
         }
         // If we are not on a known branch (defined by the Branch Model), give up.
         var branchName = _branchModel.GetValidBranchName( monitor, branch );
@@ -263,13 +267,23 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         var packageUpdater = hotGraph.GetPackageUpdater( monitor );
         if( packageUpdater == null ) return null;
 
-        var roadmap = new Roadmap( _versionTags, hotGraph, packageUpdater, isPullBuild, isDevBuild );
+        var roadmap = new Roadmap( _versionTags, hotGraph, packageUpdater, isPullBuild, isCIBuild );
         if( !roadmap.Initialize( monitor ) )
         {
             return null;
         }
         context.Screen.Display( roadmap.ToRenderable );
         return roadmap;
+
+        static string GetBranchName( IActivityMonitor monitor, Repo r )
+        {
+            string branch = r.GitStatus.CurrentBranchName;
+            if( branch.StartsWith( "dev/", StringComparison.OrdinalIgnoreCase ) )
+            {
+                branch = branch.Substring( 4 );
+            }
+            return branch;
+        }
     }
 
     static bool HandleMaxDoP( IActivityMonitor monitor, string? maxDop, out int vMaxDop )

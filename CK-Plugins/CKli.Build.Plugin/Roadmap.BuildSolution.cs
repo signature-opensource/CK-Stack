@@ -238,7 +238,7 @@ public sealed partial class Roadmap
             }
             // Ite missa est: we can now compute the target version.
             SVersion? targetVersion;
-            if( _roadmap._isDevBuild )
+            if( _roadmap._isCIBuild )
             {
                 var d = Repo.GitRepository.Repository.ObjectDatabase.CalculateHistoryDivergence( _versionInfo.BaseBuild.Commit,
                                                                                                  _versionInfo.GitSolution.GitBranch.Tip );

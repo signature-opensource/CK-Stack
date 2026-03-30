@@ -1,10 +1,5 @@
 using CK.Core;
-using CKli.ArtifactHandler.Plugin;
-using CKli.Core;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CKli.Publish.Plugin;
@@ -12,15 +7,15 @@ namespace CKli.Publish.Plugin;
 /// <summary>
 /// Implements simple, sequential, publication process.
 /// </summary>
-sealed class SimplePublisher
+sealed partial class SimplePublisher
 {
-    readonly ArtifactHandlerPlugin _artifactHandler;
     readonly PublishState _state;
+    readonly PackageSender _packageSender;
 
-    public SimplePublisher( ArtifactHandlerPlugin artifactHandler, PublishState state )
+    public SimplePublisher( PublishState state, PackageSender packageSender )
     {
-        _artifactHandler = artifactHandler;
         _state = state;
+        _packageSender = packageSender;
     }
 
     public async Task<bool> RunAsync( IActivityMonitor monitor )
@@ -49,7 +44,7 @@ sealed class SimplePublisher
     }
 
 
-    async Task<PublishState.Cursor?> PublishWorldAsync( IActivityMonitor monitor, PublishState.Cursor step )
+    async Task<PublishState.Cursor?> PublishWorldAsync( IActivityMonitor monitor )
     {
         var world = _state.PrimaryCursor.World;
         Throw.DebugAssert( world != null );
@@ -74,47 +69,17 @@ sealed class SimplePublisher
     async Task<PublishState.Cursor?> PublishPackagesAsync( IActivityMonitor monitor )
     {
         var repo = _state.PrimaryCursor.Repo;
-        Throw.DebugAssert( repo != null );
-        if( !_artifactHandler.GetConfiguredNuGetFeeds( monitor, out var feeds ) )
+        Throw.DebugAssert( repo != null && repo.BuildContentInfo.Produced.Length > 0 );
+        if( await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced ).ConfigureAwait( false ) )
         {
-            return null;
+            return null; 
         }
-        feeds.Where( f => f.PushQualityFilter.Accepts( repo.BuildVersion ) ).ToList();
-        repo.BuildContentInfo.Produced
-
+        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
     }
 
     async Task<PublishState.Cursor?> PublishFilesAsync( IActivityMonitor monitor )
     {
         throw new NotImplementedException();
-    }
-
-    sealed class PackageSender
-    {
-        readonly Repo _repo;
-        readonly ArtifactHandlerPlugin _artifactHandler;
-
-        PackageSender( Repo repo, ArtifactHandlerPlugin artifactHandler )
-        {
-            _repo = repo;
-            _artifactHandler = artifactHandler;
-        }
-
-        public static PackageSender? Create( IActivityMonitor monitor, RepoPublishInfo repo, ArtifactHandlerPlugin artifactHandler )
-        {
-            if( !artifactHandler.GetConfiguredNuGetFeeds( monitor, out var feeds ) )
-            {
-                return null;
-            }
-            var targets = feeds.Where( f => f.PushQualityFilter.Accepts( repo.BuildVersion ) ).ToArray();
-            if( targets.Length == 0 )
-            {
-                monitor.Error( $"No configured NuGet feeds accept version '{repo.BuildVersion}'. Unable to push '{repo.Repo.DisplayPath}' packages." );
-                return null;
-            }
-            
-        }
-
     }
 
 }

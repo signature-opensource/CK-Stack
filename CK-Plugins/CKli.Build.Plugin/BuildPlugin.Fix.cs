@@ -11,6 +11,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static CK.Core.CheckedWriteStream;
 
 namespace CKli.Build.Plugin;
 
@@ -124,7 +125,16 @@ public sealed partial class BuildPlugin
         }
         if( bResults.Count == workflow.Targets.Length )
         {
-            return bResults.MoveToImmutable();
+            var results = bResults.MoveToImmutable();
+
+            var s = context.Screen.ScreenType;
+            var display = RenderBuildResults( s, results );
+            if( publishing ) display = s.Text( "Publishing fix:" ).AddBelow( display );
+            context.Screen.Display( display );
+
+
+
+            return results;
         }
         return default;
     }
