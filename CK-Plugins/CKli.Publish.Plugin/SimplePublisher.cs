@@ -1,8 +1,5 @@
 using CK.Core;
-using CKli.ArtifactHandler.Plugin;
 using System;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace CKli.Publish.Plugin;
@@ -47,7 +44,7 @@ sealed partial class SimplePublisher
     }
 
 
-    async Task<PublishState.Cursor?> PublishWorldAsync( IActivityMonitor monitor, PublishState.Cursor step )
+    async Task<PublishState.Cursor?> PublishWorldAsync( IActivityMonitor monitor )
     {
         var world = _state.PrimaryCursor.World;
         Throw.DebugAssert( world != null );
@@ -73,8 +70,11 @@ sealed partial class SimplePublisher
     {
         var repo = _state.PrimaryCursor.Repo;
         Throw.DebugAssert( repo != null && repo.BuildContentInfo.Produced.Length > 0 );
-
-
+        if( await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced ).ConfigureAwait( false ) )
+        {
+            return null; 
+        }
+        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
     }
 
     async Task<PublishState.Cursor?> PublishFilesAsync( IActivityMonitor monitor )

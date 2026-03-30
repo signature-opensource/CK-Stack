@@ -85,7 +85,7 @@ sealed class PackageSender
             monitor.Error( $"No configured NuGet feeds with PushCredentials accept {name}." );
             return null;
         }
-        return new PackageSender( clients );
+        return new PackageSender( artifactHandler, clients );
     }
 
 }

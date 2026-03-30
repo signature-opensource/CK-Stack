@@ -36,6 +36,7 @@ public sealed class PublishPlugin : PrimaryPluginBase
         var newOne = WorldReleaseInfo.Create( buildDate, roadmap );
         state.Add( monitor, newOne );
 
-        return state.RunAsync( monitor );
+        var publisher = new SimplePublisher( state, packageSender );
+        return publisher.RunAsync( monitor );
     }
 }
