@@ -57,15 +57,9 @@ sealed class RepoPublishInfo
         _buildContentInfo = buildContentInfo;
     }
 
-    internal static RepoPublishInfo Create( int index, Roadmap.BuildInfo info )
+    internal RepoPublishInfo( int index, SVersion baseVersion, BuildResult result )
+        : this( result.Repo, index, baseVersion, result.Version, result.Content )
     {
-        Throw.DebugAssert( info.MustBuild && info.BuildResult != null );
-        return new RepoPublishInfo( info.Solution.Repo,
-                                    index,
-                                    info.Solution.VersionInfo.BaseBuild.Version,
-                                    info.BuildResult.Version,
-                                    info.BuildResult.Content );
-
     }
 
     public static RepoPublishInfo? Read( IActivityMonitor monitor, World world, ICKBinaryReader r, int version )

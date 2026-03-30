@@ -457,19 +457,16 @@ public sealed partial class Roadmap
             internal set => _buildNumber = value;
         }
 
-        internal IRenderable ToRenderable( ScreenType screen, int buildIndexLen, char cRank )
+        internal IRenderable ToRenderable( ScreenType screen, int buildIndexLen, string cRank )
         {
             var repo = _solution.Repo.GitRepository;
 
-            // When buildIndexLen is 0, there is nothing to build: skip the numbers totally.
-            IRenderable r = buildIndexLen == 0
-                            ? screen.Unit
-                            : RenderBuildIndex( screen, buildIndexLen, cRank );
+            IRenderable r = RenderBuildIndexAndRank( screen, buildIndexLen, cRank );
 
             if( _roadmap.HasPivots )
             {
                 var prefixStyle = new TextStyle( ConsoleColor.Black, ConsoleColor.DarkYellow );
-                r = r.AddRight( PivotPrefix( screen, _solution, prefixStyle, marginLeft: buildIndexLen == 0 ? 0 : 1 ) );
+                r = r.AddRight( PivotPrefix( screen, _solution, prefixStyle, marginLeft: 1 ) );
             }
 
 
@@ -537,14 +534,18 @@ public sealed partial class Roadmap
             }
         }
 
-        IRenderable RenderBuildIndex( ScreenType screen, int buildIndexLen, char cRank )
+        IRenderable RenderBuildIndexAndRank( ScreenType screen, int buildIndexLen, string cRank )
         {
             if( _buildNumber > 0 )
             {
+                Throw.DebugAssert( buildIndexLen > 0 );
                 var num = _buildNumber.ToString( CultureInfo.InvariantCulture );
                 return screen.Text( num.PadRight( buildIndexLen + 1 ) + cRank ).Box( TextStyle.Default );
             }
-            return screen.Text( cRank.ToString() ).Box( TextStyle.Default, paddingLeft: buildIndexLen + 1 );
+            var d = screen.Text( cRank );
+            return buildIndexLen > 0
+                    ? d.Box( TextStyle.Default, paddingLeft: buildIndexLen + 1 )
+                    : d.Box( TextStyle.Default );
         }
 
         [GeneratedRegex( @"^(?<1>\w+)(?:\((?<2>[^()]+)\))?(?<3>!)?:", RegexOptions.CultureInvariant )]

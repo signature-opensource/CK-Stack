@@ -11,96 +11,65 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using static CK.Core.CheckedWriteStream;
 
 namespace CKli.Build.Plugin;
 
 public sealed partial class BuildPlugin
 {
 
-    [Description( """
-        Local build the current Fix Workflow.
-        """ )]
+    [Description( "Local build the current Fix Workflow." )]
     [CommandPath( "fix build" )]
-    public async Task<bool> FixBuildAsync( IActivityMonitor monitor,
-                                           CKliEnv context,
-                                           [Description( "Don't run tests even if they have never locally run on a commit." )]
-                                           bool skipTests = false,
-                                           [Description( "Run tests even if they have already run successfully on a commit." )]
-                                           bool forceTests = false,
-                                           [Description( "Force a rebuild." )]
-                                           bool rebuild = false )
+    public Task<bool> FixBuildAsync( IActivityMonitor monitor,
+                                     CKliEnv context,
+                                     [Description( "Don't run tests even if they have never locally run on a commit." )]
+                                     bool skipTests = false,
+                                     [Description( "Run tests even if they have already run successfully on a commit." )]
+                                     bool forceTests = false,
+                                     [Description( "Force a rebuild." )]
+                                     bool rebuild = false )
     {
         if( !HandleForceSkipTests( monitor, skipTests, forceTests, out bool? runTest )
             || !FixWorkflow.Load( monitor, World, out var workflow ) )
         {
-            return false;
+            return Task.FromResult( false );
         }
-        var results = await DoBuildFixAsync( monitor, context, runTest, workflow, rebuild, publishing: false ).ConfigureAwait( false );
-        if( results.IsDefault )
-        {
-            return false;
-        }
-        context.Screen.Display( s => RenderBuildResults( s, results ) );
-        return true;
-
+        return DoBuildFixAsync( monitor, context, runTest, workflow, rebuild, publishing: false );
     }
 
-    [Description( """
-        Local build the current Fix Workflow.
-        """ )]
+    [Description( "Publishes the current Fix Workflow." )]
     [CommandPath( "fix publish" )]
-    public async Task<bool> FixPublishAsync( IActivityMonitor monitor,
-                                             CKliEnv context,
-                                             [Description( "Force a rebuild." )]
-                                             bool rebuild = false )
+    public Task<bool> FixPublishAsync( IActivityMonitor monitor,
+                                       CKliEnv context,
+                                       [Description( "Force a rebuild." )]
+                                       bool rebuild = false )
     {
         if( !FixWorkflow.Load( monitor, World, out var workflow ) )
         {
-            return false;
+            return Task.FromResult( false );
         }
-        var results = await DoBuildFixAsync( monitor,
-                                             context,
-                                             runTest: rebuild ? true : null,
-                                             workflow,
-                                             rebuild,
-                                             publishing: true ).ConfigureAwait( false );
-        if( results.IsDefault )
-        {
-            return false;
-        }
-        context.Screen.Display( s => s.Text( "Publishing fix:" )
-                                      .AddBelow( RenderBuildResults( s, results ) ) );
-        return await _artifactHandler.PublishFixAsync( monitor, results );
+        return DoBuildFixAsync( monitor,
+                                context,
+                                runTest: rebuild ? true : null,
+                                workflow,
+                                rebuild,
+                                publishing: true );
     }
 
-    static IRenderable RenderBuildResults( ScreenType s, ImmutableArray<BuildResult> results )
-    {
-        var d = s.Unit.AddBelow( results.Select( r => r.Repo.ToRenderable( s, withBranchName: true )
-                                                            .AddRight( s.Text( r.Version.ToString() )
-                                                                        .Box( marginLeft: 1,
-                                                                                foreColor: r.SkippedBuild
-                                                                                            ? ConsoleColor.DarkYellow
-                                                                                            : ConsoleColor.Green ) ) ) );
-        return d.TableLayout();
-    }
-
-
-    async Task<ImmutableArray<BuildResult>> DoBuildFixAsync( IActivityMonitor monitor,
-                                                                CKliEnv context,
-                                                                bool? runTest,
-                                                                FixWorkflow? workflow,
-                                                                bool rebuild,
-                                                                bool publishing )
+    async Task<bool> DoBuildFixAsync( IActivityMonitor monitor,
+                                      CKliEnv context,
+                                      bool? runTest,
+                                      FixWorkflow? workflow,
+                                      bool rebuild,
+                                      bool publishing )
     {
         if( workflow == null )
         {
             monitor.Error( $"No current Fix Workflow exist for world '{World.Name}'." );
-            return default;
+            return false;
         }
         if( !_branchModel.CheckBasicPreconditions( monitor, $"building '{workflow}'", out var allRepos ) )
         {
-            return default;
+            return false;
         }
         var bResults = ImmutableArray.CreateBuilder<BuildResult>( workflow.Targets.Length );
         var packageMapper = new PackageMapper();
@@ -123,20 +92,35 @@ public sealed partial class BuildPlugin
                 }
             }
         }
-        if( bResults.Count == workflow.Targets.Length )
+        if( bResults.Count != workflow.Targets.Length )
         {
-            var results = bResults.MoveToImmutable();
-
-            var s = context.Screen.ScreenType;
-            var display = RenderBuildResults( s, results );
-            if( publishing ) display = s.Text( "Publishing fix:" ).AddBelow( display );
-            context.Screen.Display( display );
-
-
-
-            return results;
+            return default;
         }
-        return default;
+        var results = bResults.MoveToImmutable();
+        var s = context.Screen.ScreenType;
+        var display = RenderBuildResults( s, results );
+        if( publishing ) display = s.Text( "Publishing fix:" ).AddBelow( display );
+        context.Screen.Display( display );
+        if( _onFixBuild.HasHandlers )
+        {
+            var e = new FixBuildEventArgs( monitor, workflow, results, publishing );
+            if( !await _onFixBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false ) )
+            {
+                return false;
+            }
+        }
+        return true;
+
+        static IRenderable RenderBuildResults( ScreenType s, ImmutableArray<BuildResult> results )
+        {
+            var d = s.Unit.AddBelow( results.Select( r => r.Repo.ToRenderable( s, withBranchName: true )
+                                                                .AddRight( s.Text( r.Version.ToString() )
+                                                                            .Box( marginLeft: 1,
+                                                                                    foreColor: r.SkippedBuild
+                                                                                                ? ConsoleColor.DarkYellow
+                                                                                                : ConsoleColor.Green ) ) ) );
+            return d.TableLayout();
+        }
     }
 
     async Task<bool> BuildOneFixTarget( IActivityMonitor monitor,

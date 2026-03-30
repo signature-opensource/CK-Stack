@@ -17,9 +17,8 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         : base( context )
     {
         _artifactHandler = artifactHandler;
-        var stackFolder = World.StackRepository.StackWorkingFolder;
-        _published = new ReleaseDB( null, stackFolder.Combine( $"{World.Name.FullName}.PublishedRelease.cache" ) );
-        _local = new ReleaseDB( _published, stackFolder.Combine( $"$Local/{World.Name.FullName}.LocalRelease.cache" ) );
+        _published = new ReleaseDB( null, World.Name.SharedDataFolder.AppendPart( "PublishedRelease.cache" ) );
+        _local = new ReleaseDB( _published, World.Name.LocalDataFolder.AppendPart( $"LocalRelease.cache" ) );
         _releaseInfo = new Dictionary<RepoKey, RepoReleaseInfo>();
     }
 

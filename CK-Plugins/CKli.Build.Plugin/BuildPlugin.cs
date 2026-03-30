@@ -30,7 +30,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
     readonly ShallowSolutionPlugin _solutionPlugin;
-    readonly PerfectEventSender<Roadmap.BuildEventArgs> _onRoadmapBuild;
+    readonly PerfectEventSender<RoadmapBuildEventArgs> _onRoadmapBuild;
     readonly PerfectEventSender<FixBuildEventArgs> _onFixBuild;
 
 
@@ -50,14 +50,14 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         _artifactHandler = artifactHandler;
         _solutionPlugin = solutionPlugin;
         World.Events.Issue += IssueRequested;
-        _onRoadmapBuild = new PerfectEventSender<Roadmap.BuildEventArgs>();
+        _onRoadmapBuild = new PerfectEventSender<RoadmapBuildEventArgs>();
         _onFixBuild = new PerfectEventSender<FixBuildEventArgs>();
     }
 
     /// <summary>
     /// Raised whenever a <see cref="Roadmap"/> has been successfully built.
     /// </summary>
-    public PerfectEvent<Roadmap.BuildEventArgs> OnRoadmapBuild => _onRoadmapBuild.PerfectEvent;
+    public PerfectEvent<RoadmapBuildEventArgs> OnRoadmapBuild => _onRoadmapBuild.PerfectEvent;
 
     /// <summary>
     /// Raised whenever a fix has been successfully built.
@@ -110,7 +110,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                  [OptionName("--dry-run,-d")]
                                  bool dryRun = false )
     {
-        return DoBuildAsync( monitor, context, branch, maxDop, all, skipTests, forceTests, publish, dryRun, isPullBuild: false );
+        return DoBuildAsync( monitor, context, branch, maxDop, all, skipTests, forceTests, publish, dryRun, isPullBuild: true );
     }
 
     [Description( "Build-Test-Package and propagates packages from the current repositories to their consumers and publishes all the artifacts." )]
@@ -213,7 +213,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         }
         if( results.Length > 0 && _onRoadmapBuild.HasHandlers )
         {
-            var e = new Roadmap.BuildEventArgs( monitor, roadmap, publish );
+            var e = new RoadmapBuildEventArgs( monitor, roadmap, publish );
             return await _onRoadmapBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false );
         }
         return true;

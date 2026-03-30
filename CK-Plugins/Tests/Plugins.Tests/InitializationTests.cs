@@ -74,7 +74,7 @@ public class InitializationTests
         var display = (StringScreen)context.Screen;
 
         // From CKt_init:
-        var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/CKt/NuGet" );
+        var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/NuGet" );
         var initialPackages = Directory.EnumerateFiles( localNuGetFeed )
                                      .Select( p => Path.GetFileName( p ) )
                                      .Order()

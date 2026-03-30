@@ -202,19 +202,19 @@ public class BuildTests
             
             """ );
 
-            // From Samples/: the 2 samples are pivots, others are upstreams: they are ignored and the 2 pivots are
-            // already available (in v0.0.0 built by the "ckli issue --fix" for the missing initial version), so there
-            // is eventually nothing to do.
+            // From Samples/: the 2 samples are pivots, others are upstreams: they are ignored because this is a build, not a *build
+            // and the 2 pivots are already available (in v0.0.0 built by the "ckli issue --fix" for the missing initial version),
+            // so there is eventually nothing to do.
             display.Clear();
             var inSample = context.ChangeDirectory( "Samples" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            →·   CKt-Core                      v1.0.0 
-            →·   CKt-ActivityMonitor           v0.1.0 
-            →·   CKt-PerfectEvent              v0.3.2 
-            →·   CKt-Monitoring                v0.2.3 
-             ⊙   Samples/CKt-App-Sample        v0.0.0 
-             ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
+            - →·   CKt-Core                      v1.0.0 
+            - →·   CKt-ActivityMonitor           v0.1.0 
+            ╓ →·   CKt-PerfectEvent              v0.3.2 
+            ║ →·   CKt-Monitoring                v0.2.3 
+            ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 
+            -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
             ❰✓❱
             
             """ );
@@ -225,12 +225,12 @@ public class BuildTests
             var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            →·   CKt-Core                      v1.0.0 
-            →·   CKt-ActivityMonitor           v0.1.0 
-            →·   CKt-PerfectEvent              v0.3.2 
-            →·   CKt-Monitoring                v0.2.3 
-                 Samples/CKt-App-Sample        v0.0.0 
-             ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
+            - →·   CKt-Core                      v1.0.0 
+            - →·   CKt-ActivityMonitor           v0.1.0 
+            ╓ →·   CKt-PerfectEvent              v0.3.2 
+            ║ →·   CKt-Monitoring                v0.2.3 
+            ╙      Samples/CKt-App-Sample        v0.0.0 
+            -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
             ❰✓❱
 
             """ );
@@ -240,12 +240,12 @@ public class BuildTests
             var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            →·   CKt-Core                      v1.0.0 
-            →·   CKt-ActivityMonitor           v0.1.0 
-                 CKt-PerfectEvent              v0.3.2 
-                 CKt-Monitoring                v0.2.3 
-             ⊙   Samples/CKt-App-Sample        v0.0.0 
-                 Samples/CKt-Sample-Monitoring v0.0.0 
+            - →·   CKt-Core                      v1.0.0 
+            - →·   CKt-ActivityMonitor           v0.1.0 
+            ╓      CKt-PerfectEvent              v0.3.2 
+            ║      CKt-Monitoring                v0.2.3 
+            ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 
+            -      Samples/CKt-Sample-Monitoring v0.0.0 
             ❰✓❱
 
             """ );

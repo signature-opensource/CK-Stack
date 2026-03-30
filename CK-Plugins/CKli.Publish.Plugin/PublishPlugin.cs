@@ -1,9 +1,12 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
+using CKli.Build.Plugin;
 using CKli.Core;
 using System;
-using CKli.Build.Plugin;
+using System.Collections.Immutable;
+using System.Threading;
 using System.Threading.Tasks;
-using CKli.ArtifactHandler.Plugin;
+using static CK.Core.ActivityMonitorErrorCounter;
 
 namespace CKli.Publish.Plugin;
 
@@ -18,25 +21,73 @@ public sealed class PublishPlugin : PrimaryPluginBase
         _build = build;
         _artifactHandler = artifactHandler;
         _build.OnRoadmapBuild.Async += OnRoadmapBuildAsync;
+        _build.OnFixBuild.Async += OnFixBuildAsync;
     }
 
-    Task OnRoadmapBuildAsync( IActivityMonitor monitor, Roadmap.BuildEventArgs e, System.Threading.CancellationToken cancel )
+    async Task OnFixBuildAsync( IActivityMonitor monitor, FixBuildEventArgs e, CancellationToken cancel )
     {
-        return e.ShouldPublish ? PublishAsync( monitor, e.BuildDate, e.Roadmap ) : Task.CompletedTask;
+        if( e.ShouldPublish )
+        {
+            if( !await PublishAsync( monitor, World, _artifactHandler, e.BuildDate, e.FixWorkflow, e.Results, cancel ) )
+            {
+                e.SetFailed();
+            }
+        }
+
+
+        static Task<bool> PublishAsync( IActivityMonitor monitor,
+                                        World world,
+                                        ArtifactHandlerPlugin artifactHandler,
+                                        DateTime buildDate,
+                                        BranchModel.Plugin.FixWorkflow fixWorkflow,
+                                        ImmutableArray<BuildResult> results,
+                                        CancellationToken cancel )
+        {
+            // A fix is on the stable branch.
+            var packageSender = PackageSender.Create( monitor, "", ciBuild: false, artifactHandler, world.StackRepository.SecretsStore );
+            if( packageSender == null ) return Task.FromResult( false );
+
+            var state = PublishState.Load( monitor, world );
+            if( state == null ) return Task.FromResult( false );
+
+            var newOne = WorldReleaseInfo.Create( buildDate, fixWorkflow, results );
+            state.Add( monitor, newOne );
+
+            var publisher = new SimplePublisher( state, packageSender );
+            return publisher.RunAsync( monitor, cancel );
+        }
     }
 
-    Task<bool> PublishAsync( IActivityMonitor monitor, DateTime buildDate, Roadmap roadmap )
+
+    async Task OnRoadmapBuildAsync( IActivityMonitor monitor, RoadmapBuildEventArgs e, CancellationToken cancel )
     {
-        var packageSender = PackageSender.Create( monitor, roadmap.BranchName.Name, roadmap.IsCIBuild, _artifactHandler, World.StackRepository.SecretsStore );
-        if( packageSender == null ) return Task.FromResult( false );
+        if( e.ShouldPublish )
+        {
+            if( !await PublishAsync( monitor, World, _artifactHandler, e.BuildDate, e.Roadmap, cancel ) )
+            {
+                e.SetFailed();
+            }
+        }
 
-        var state = PublishState.Load( monitor, World );
-        if( state == null ) return Task.FromResult( false );
+        static Task<bool> PublishAsync( IActivityMonitor monitor,
+                                        World world,
+                                        ArtifactHandlerPlugin artifactHandler,
+                                        DateTime buildDate,
+                                        Roadmap roadmap,
+                                        CancellationToken cancel )
+        {
+            var packageSender = PackageSender.Create( monitor, roadmap.BranchName.Name, roadmap.IsCIBuild, artifactHandler, world.StackRepository.SecretsStore );
+            if( packageSender == null ) return Task.FromResult( false );
 
-        var newOne = WorldReleaseInfo.Create( buildDate, roadmap );
-        state.Add( monitor, newOne );
+            var state = PublishState.Load( monitor, world );
+            if( state == null ) return Task.FromResult( false );
 
-        var publisher = new SimplePublisher( state, packageSender );
-        return publisher.RunAsync( monitor );
+            var newOne = WorldReleaseInfo.Create( buildDate, roadmap );
+            state.Add( monitor, newOne );
+
+            var publisher = new SimplePublisher( state, packageSender );
+            return publisher.RunAsync( monitor, cancel );
+        }
     }
+
 }

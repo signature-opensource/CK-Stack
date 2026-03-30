@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.Core;
 using System;
 using System.Threading.Tasks;
 
@@ -18,24 +19,27 @@ sealed partial class SimplePublisher
         _packageSender = packageSender;
     }
 
-    public async Task<bool> RunAsync( IActivityMonitor monitor )
+    public async Task<bool> RunAsync( IActivityMonitor monitor, System.Threading.CancellationToken cancel )
     {
         var step = _state.PrimaryCursor;
         while( !step.IsEndOfState )
         {
             switch( step.Location )
             {
-                case PublishState.Cursor.LocType.InFile:
-                    step = await PublishFilesAsync( monitor );
+                case PublishState.Cursor.LocType.BegOfRepo:
+                    step = await OnBegOfRepoAsync( monitor );
                     break;
                 case PublishState.Cursor.LocType.InPackage:
-                    step = await PublishPackagesAsync( monitor );
+                    step = await OnInPackagesAsync( monitor );
+                    break;
+                case PublishState.Cursor.LocType.InFile:
+                    step = await OnInFilesAsync( monitor );
                     break;
                 case PublishState.Cursor.LocType.EndOfRepo:
-                    step = await PublishRepoAsync( monitor );
+                    step = await OnEndOfRepoAsync( monitor );
                     break;
                 case PublishState.Cursor.LocType.EndOfWorld:
-                    step = await PublishWorldAsync( monitor );
+                    step = await OnEndOfWorldAsync( monitor );
                     break;
             }
             if( step == null ) return false;
@@ -44,15 +48,28 @@ sealed partial class SimplePublisher
     }
 
 
-    async Task<PublishState.Cursor?> PublishWorldAsync( IActivityMonitor monitor )
+    async Task<PublishState.Cursor?> OnBegOfRepoAsync( IActivityMonitor monitor )
     {
-        var world = _state.PrimaryCursor.World;
-        Throw.DebugAssert( world != null );
-        monitor.Info( $"Release '{world.ReleaseVersion}' published." );
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
-    async Task<PublishState.Cursor?> PublishRepoAsync( IActivityMonitor monitor )
+    async Task<PublishState.Cursor?> OnInPackagesAsync( IActivityMonitor monitor )
+    {
+        var repo = _state.PrimaryCursor.Repo;
+        Throw.DebugAssert( repo != null && repo.BuildContentInfo.Produced.Length > 0 );
+        if( await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced ).ConfigureAwait( false ) )
+        {
+            return null; 
+        }
+        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
+    }
+
+    async Task<PublishState.Cursor?> OnInFilesAsync( IActivityMonitor monitor )
+    {
+        throw new NotSupportedException();
+    }
+
+    async Task<PublishState.Cursor?> OnEndOfRepoAsync( IActivityMonitor monitor )
     {
         var repo = _state.PrimaryCursor.Repo;
         Throw.DebugAssert( repo != null );
@@ -66,20 +83,12 @@ sealed partial class SimplePublisher
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
-    async Task<PublishState.Cursor?> PublishPackagesAsync( IActivityMonitor monitor )
+    async Task<PublishState.Cursor?> OnEndOfWorldAsync( IActivityMonitor monitor )
     {
-        var repo = _state.PrimaryCursor.Repo;
-        Throw.DebugAssert( repo != null && repo.BuildContentInfo.Produced.Length > 0 );
-        if( await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced ).ConfigureAwait( false ) )
-        {
-            return null; 
-        }
-        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
-    }
-
-    async Task<PublishState.Cursor?> PublishFilesAsync( IActivityMonitor monitor )
-    {
-        throw new NotImplementedException();
+        var world = _state.PrimaryCursor.World;
+        Throw.DebugAssert( world != null );
+        monitor.Info( $"Published '{world.Title}'." );
+        return _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
 }

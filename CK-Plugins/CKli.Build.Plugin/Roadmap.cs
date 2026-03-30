@@ -156,9 +156,9 @@ public sealed partial class Roadmap
             var begOfRank = prevRank < r;
             var endOfRank = i == _orderedSolutions.Length - 1 || _orderedSolutions[i + 1].Solution.Rank > r;
 
-            char cR = begOfRank
-                        ? (endOfRank ?  '-' : '╓')
-                        : (endOfRank ? '╙' : '║');
+            var cR = begOfRank
+                        ? (endOfRank ?  "-" : "╓")
+                        : (endOfRank ? "╙" : "║");
             renderables.Add( s.ToRenderable( screen, buildIndexLen, cR ) );
             prevRank = r;
         }

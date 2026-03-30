@@ -183,24 +183,6 @@ public class RepoBuilder : RepoInfo
     }
 
     /// <summary>
-    /// Core Build method.
-    /// This raises the <see cref="RepositoryBuilderPlugin.OnCoreBuild"/> and calls the <see cref="DotNetBuildTestPack"/> helper.
-    /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
-    /// <param name="buildInfo">The build information.</param>
-    /// <param name="runTest">Whether tests should be run or not.</param>
-    /// <param name="outputPath">Destination folder where the artifact files must be created.</param>
-    /// <returns>True on success, false otherwise.</returns>
-    protected virtual async Task<bool> DoBuildAsync( IActivityMonitor monitor,
-                                                     CommitBuildInfo buildInfo,
-                                                     bool runTest,
-                                                     NormalizedPath outputPath )
-    {
-        return await _repositoryBuilder.RaiseOnCoreBuildAsync( monitor, buildInfo ).ConfigureAwait( false )
-               && DotNetBuildTestPack( monitor, buildInfo, runTest, outputPath );
-    }
-
-    /// <summary>
     /// Helper that calls <see cref="DotNetBuild"/>, <see cref="DotNetTest"/> and <see cref="DotNetPack"/>.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
