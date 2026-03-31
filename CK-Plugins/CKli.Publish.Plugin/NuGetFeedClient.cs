@@ -1,5 +1,6 @@
 using CK.Core;
 using CSemVer;
+using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
 using System;
@@ -21,6 +22,7 @@ public sealed partial class NuGetFeedClient : IDisposable
 
     readonly string _feedUrl;
     readonly string _apiKey;
+    readonly string? _localPath;
     readonly SourceRepository _sourceRepository;
     readonly SourceCacheContext _cacheContext;
 
@@ -42,6 +44,10 @@ public sealed partial class NuGetFeedClient : IDisposable
         Throw.CheckNotNullOrWhiteSpaceArgument( apiKey );
         _feedUrl = feedUrl;
         _apiKey = apiKey;
+        if( Uri.TryCreate( feedUrl, UriKind.Absolute, out var uri ) && uri.IsFile )
+        {
+            _localPath = uri.LocalPath;
+        }
         _sourceRepository = Repository.Factory.GetCoreV3( feedUrl );
         _cacheContext = new SourceCacheContext { NoCache = skipCache };
     }
@@ -65,19 +71,34 @@ public sealed partial class NuGetFeedClient : IDisposable
         logger.Trace( $"Getting versions of '{packageId}' from '{_feedUrl}'." );
         try
         {
-            var resource = await _sourceRepository.GetResourceAsync<FindPackageByIdResource>( cancellationToken );
-            var nugetVersions = await resource.GetAllVersionsAsync( packageId, _cacheContext, new LoggerAdapter( logger ), cancellationToken );
             var result = new List<SVersion>();
-            foreach( var nv in nugetVersions )
+            if( _localPath != null )
             {
-                var nugetVersion = nv.ToFullString();
-                if( SVersion.TryParse( nugetVersion, out var sv ) )
+                // Read the V3 expanded folder structure directly: {root}/{id}/{version}/
+                var idFolder = Path.Combine( _localPath, packageId.ToLowerInvariant() );
+                if( Directory.Exists( idFolder ) )
                 {
-                    result.Add( sv );
+                    foreach( var versionDir in Directory.GetDirectories( idFolder ) )
+                    {
+                        var versionName = Path.GetFileName( versionDir );
+                        if( SVersion.TryParse( versionName, out var sv ) )
+                            result.Add( sv );
+                        else
+                            logger.Warn( $"Cannot map local feed version folder '{versionName}' to SVersion. Skipped." );
+                    }
                 }
-                else
+            }
+            else
+            {
+                var resource = await _sourceRepository.GetResourceAsync<FindPackageByIdResource>( cancellationToken );
+                var nugetVersions = await resource.GetAllVersionsAsync( packageId, _cacheContext, new LoggerAdapter( logger ), cancellationToken );
+                foreach( var nv in nugetVersions )
                 {
-                    logger.Warn( $"Cannot map NuGet version '{nugetVersion}' to SVersion. Skipped." );
+                    var nugetVersion = nv.ToFullString();
+                    if( SVersion.TryParse( nugetVersion, out var sv ) )
+                        result.Add( sv );
+                    else
+                        logger.Warn( $"Cannot map NuGet version '{nugetVersion}' to SVersion. Skipped." );
                 }
             }
             logger.Trace( $"Found {result.Count} version(s) for '{packageId}' in '{_feedUrl}'." );
@@ -113,13 +134,22 @@ public sealed partial class NuGetFeedClient : IDisposable
         logger.Trace( $"Sending delete request for '{packageId}@{version}' on '{_feedUrl}'." );
         try
         {
-            var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
-            await resource.Delete( packageId,
-                                   version.ToString(),
-                                   _ => _apiKey,
-                                   _ => true,
-                                   noServiceEndpoint: false,
-                                   new LoggerAdapter( logger ) );
+            if( _localPath != null )
+            {
+                // Delete the V3 expanded folder structure directly: {root}/{id}/{version}/
+                var versionFolder = Path.Combine( _localPath, packageId.ToLowerInvariant(), version.ToString().ToLowerInvariant() );
+                Directory.Delete( versionFolder, recursive: true );
+            }
+            else
+            {
+                var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
+                await resource.Delete( packageId,
+                                       version.ToString(),
+                                       _ => _apiKey,
+                                       _ => true,
+                                       noServiceEndpoint: false,
+                                       new LoggerAdapter( logger ) );
+            }
             return true;
         }
         catch( Exception ex )
@@ -196,19 +226,44 @@ public sealed partial class NuGetFeedClient : IDisposable
             return true;
         }
         logger.Trace( $"Pushing {paths.Count} package(s) to '{_feedUrl}'." );
+        var nugetLogger = new LoggerAdapter( logger );
         try
         {
-            var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
-            await resource.Push( paths,
-                                 symbolSource: null,
-                                 timeoutInSecond: paths.Count * _perPackagePushTimeoutSecond,
-                                 disableBuffering: false,
-                                 getApiKey: _ => _apiKey,
-                                 getSymbolApiKey: null,
-                                 noServiceEndpoint: false,
-                                 skipDuplicate: skipDuplicate,
-                                 symbolPackageUpdateResource: null,
-                                 new LoggerAdapter( logger ) );
+            if( _localPath != null )
+            {
+                // PackageUpdateResource.Push calls ClientPolicyContext.GetClientPolicy(settings, log)
+                // internally with null settings for file:// sources, which throws ArgumentNullException.
+                // OfflineFeedUtility is the proper NuGet API for local V3 feeds.
+                var extractionContext = new PackageExtractionContext( PackageSaveMode.Defaultv3,
+                                                                     XmlDocFileSaveMode.None,
+                                                                     clientPolicyContext: null,
+                                                                     logger: nugetLogger );
+                foreach( var path in paths )
+                {
+                    var addContext = new OfflineFeedAddContext( path,
+                                                               _localPath,
+                                                               nugetLogger,
+                                                               throwIfSourcePackageIsInvalid: true,
+                                                               throwIfPackageExistsAndInvalid: true,
+                                                               throwIfPackageExists: !skipDuplicate,
+                                                               extractionContext );
+                    await OfflineFeedUtility.AddPackageToSource( addContext, cancellationToken );
+                }
+            }
+            else
+            {
+                var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
+                await resource.Push( paths,
+                                     symbolSource: null,
+                                     timeoutInSecond: paths.Count * _perPackagePushTimeoutSecond,
+                                     disableBuffering: false,
+                                     getApiKey: _ => _apiKey,
+                                     getSymbolApiKey: null,
+                                     noServiceEndpoint: false,
+                                     skipDuplicate: skipDuplicate,
+                                     symbolPackageUpdateResource: null,
+                                     nugetLogger );
+            }
             return true;
         }
         catch( Exception ex )

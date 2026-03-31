@@ -1,3 +1,4 @@
+using CK.Core;
 using CKli;
 using CKli.Core;
 using NUnit.Framework;
@@ -5,6 +6,7 @@ using Shouldly;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using static CK.Testing.MonitorTestHelper;
 
 namespace Plugins.Tests;
@@ -350,33 +352,51 @@ public class BuildTests
         #endregion
 
     }
-
+    
     [Test]
-    public async Task CKt_with_sample_build_PerfectEvent_Async()
+    public async Task CKt_with_sample_publish_PerfectEvent_Async()
     {
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
-        var context = remotes.Clone( clonedFolder ).SetScreen( new StringScreen( useDebugRenderer: true ) );
+        var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds ).SetScreen( new StringScreen( useDebugRenderer: true ) );
         var display = (StringScreen)context.Screen;
 
         // From CKt-PerfectEvent (the NuGet.config has been renamed to nuget.config).
         // The CKt-Monitoring and App sample are "nothing".
         // CKt-Sample-Monitoring is a downstream repo that must be built.
         var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--dry-run" )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish" )).ShouldBeTrue();
 
         display.ToString().ShouldBe( """
           - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0 [GRAY]⮐
           - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GRAY]⮐
-        1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3--ci.4[GRAY] [Italic](CodeChange)[Regular]⮐
+        1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3[GRAY] [Italic](CodeChange)[Regular]⮐
           ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GRAY]⮐
           ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GRAY]⮐
-        2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1--ci.1[GRAY] [Italic](Upstream)[Regular]  ⮐
+        2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream)[Regular]  ⮐
         [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
         
         """ );
 
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build" )).ShouldBeTrue();
     }
 
+    static void ConfigureFakeFeeds( IActivityMonitor monitor, NormalizedPath clonedFolder, XElement plugins )
+    {
+        var nugetOrg = clonedFolder.Combine( "FakeFeed/nuget.org" );
+        var sosFeed = clonedFolder.Combine( "FakeFeed/Signature-OpenSource" );
+        NuGetHelper.EnsureLocalFeed( monitor, nugetOrg );
+        NuGetHelper.EnsureLocalFeed( monitor, sosFeed );
+        foreach( var f in plugins.Elements( "ArtifactHandler" ).Elements( "NuGet" ).Elements( "Feed" ) )
+        {
+            var url = f.Attribute( "Url" ).ShouldNotBeNull();
+            url.SetValue( url.Value switch
+            {
+                "https://api.nuget.org/v3/index.json" => $"file://{nugetOrg}",
+                "https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json" => $"file://{sosFeed}",
+                _ => Throw.NotSupportedException<string>()
+            } );
+            var key = f.Element( "PushCredentials" )?.Attribute( "SecretKey" );
+            key.ShouldNotBeNull().SetValue( "FILESYSTEM_GIT" );
+        }
+    }
 }
