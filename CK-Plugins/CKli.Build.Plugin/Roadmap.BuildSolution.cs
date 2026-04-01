@@ -75,7 +75,7 @@ public sealed partial class Roadmap
             // The DiscrepanciesMapping unifies external versions (to the max existing version).
             var packageUpdates = new PackagesUpdateDetails();
             if( _solution.GitSolution.HasUpdates( packageUpdates.Add,
-                                                  _roadmap._packageUpdater.AlreadyBuiltMapping,
+                                                  mustBuildFromUpstreams ? null : _roadmap._packageUpdater.AlreadyBuiltMapping,
                                                   _roadmap._packageUpdater.WorldConfiguredMapping,
                                                   _roadmap._packageUpdater.DiscrepanciesMapping ) )
             {

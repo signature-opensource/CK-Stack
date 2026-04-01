@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Runtime.InteropServices.Marshalling;
 using System.Xml.Linq;
 
 namespace CKli.ShallowSolution.Plugin;
@@ -70,16 +71,17 @@ public sealed class GitSolution
     /// and collects these updates.
     /// </summary>
     /// <param name="updates">Called for each update that must be made.</param>
-    /// <param name="mappings">The package mappings to consider in priority order.</param>
+    /// <param name="mappings">The package mappings to consider in priority order. Some may be null: they are ignored but their index matters.</param>
     /// <returns>True if the dependencies should be updated, false otherwise.</returns>
-    public bool HasUpdates( Action<(PackageInstance Ref, SVersion Update, int MappingIndex)> updates, params ReadOnlySpan<IPackageMapping> mappings )
+    public bool HasUpdates( Action<(PackageInstance Ref, SVersion Update, int MappingIndex)> updates, params ReadOnlySpan<IPackageMapping?> mappings )
     {
         bool hasUpdates = false;
         foreach( var p in _consumed )
         {
             for( int i = 0; i < mappings.Length; ++i )
             {
-                if( mappings[i].TryGetMappedVersion( p.PackageId, p.Version, out var version ) && p.Version != version )
+                var m = mappings[i];
+                if( m != null && m.TryGetMappedVersion( p.PackageId, p.Version, out var version ) && p.Version != version )
                 {
                     hasUpdates = true;
                     updates( (p, version, i) );
