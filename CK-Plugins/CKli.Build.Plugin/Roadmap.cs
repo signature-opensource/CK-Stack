@@ -2,8 +2,10 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
+using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -23,6 +25,7 @@ public sealed partial class Roadmap
     readonly ImmutableArray<BuildSolution> _orderedSolutions;
     readonly ImmutableArray<BuildSolution> _pivots;
     readonly HotGraph.PackageUpdater _packageUpdater;
+    readonly Mapping _packageMapping;
     int _buildSolutionCount;
 
     internal Roadmap( VersionTagPlugin versionTags, HotGraph graph, HotGraph.PackageUpdater packageUpdater, bool isPullBuild, bool isCIBuild )
@@ -47,6 +50,7 @@ public sealed partial class Roadmap
             }
         }
         _orderedSolutions = ImmutableCollectionsMarshal.AsImmutableArray( buildSolutions );
+        _packageMapping = new Mapping( packageUpdater, _orderedSolutions );
         _pivots = ImmutableCollectionsMarshal.AsImmutableArray( pivots );
     }
 
@@ -65,14 +69,9 @@ public sealed partial class Roadmap
     public ImmutableArray<BuildSolution> Pivots => _pivots;
 
     /// <summary>
-    /// Gets whether there are pivots: <see cref="Pivots"/> are not the same as <see cref="OrderedSolutions"/>.
+    /// Gets the <see cref="HotGraph"/> of the world's solutions.
     /// </summary>
-    public bool HasPivots => _graph.HasPivots;
-
-    /// <summary>
-    /// Gets the branch name to build.
-    /// </summary>
-    public BranchName BranchName => _graph.BranchName;
+    public HotGraph Graph => _graph;
 
     /// <summary>
     /// Gets the count of <see cref="OrderedSolutions"/> that have true <see cref="BuildSolution.MustBuild"/>.
@@ -85,9 +84,14 @@ public sealed partial class Roadmap
     public bool IsCIBuild => _isCIBuild;
 
     /// <summary>
-    /// Gets the package updater for the graph.
+    /// Gets the package mapping.
+    /// <para>
+    /// Packages produced by the World are either mapped to already built versions or to build target versions and
+    /// dependencies external to the World are mapped by <see cref="HotGraph.PackageUpdater.WorldConfiguredMapping"/>
+    /// and by <see cref="HotGraph.PackageUpdater.DiscrepanciesMapping"/>.
+    /// </para>
     /// </summary>
-    public HotGraph.PackageUpdater PackageUpdater => _packageUpdater;
+    public IPackageMapping PackageMapping => _packageMapping;
 
     internal bool Initialize( IActivityMonitor monitor )
     {
@@ -99,10 +103,13 @@ public sealed partial class Roadmap
             }
         }
         Throw.DebugAssert( _orderedSolutions.Count( s => s.MustBuild ) == _buildSolutionCount );
-        int idxNumber = 1;
-        foreach( var s in _orderedSolutions )
+        if( _buildSolutionCount > 0 )
         {
-            if( s.MustBuild ) s.BuildNumber = idxNumber++;
+            int idxNumber = 1;
+            foreach( var s in _orderedSolutions )
+            {
+                if( s.MustBuild ) s.BuildNumber = idxNumber++;
+            }
         }
         return true;
     }

@@ -1,9 +1,11 @@
 using CK.Core;
 using CKli.Core;
+using CSemVer;
 using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -34,6 +36,59 @@ public sealed class GitSolution
     /// and all "Directory.Build.props" (reachable from Projects).
     /// </summary>
     public IReadOnlySet<PackageInstance> Consumed => _consumed;
+
+    /// <summary>
+    /// Gets whether the solution has at least one dependency that must be updated considering the <paramref name="mapping"/>. 
+    /// </summary>
+    /// <param name="mapping">The package mapping to consider.</param>
+    /// <returns>True if the dependencies should be updated, false otherwise.</returns>
+    public bool HasUpdates( IPackageMapping mapping ) => _consumed.Any( p => mapping.TryGetMappedVersion( p.PackageId, p.Version, out var version ) && p.Version != version );
+
+    /// <summary>
+    /// Gets whether the solution has at least one dependency that must be updated considering the <paramref name="mapping"/> and collects these updates.
+    /// </summary>
+    /// <param name="mapping">The package mapping to consider.</param>
+    /// <param name="updates">On success, the non null updates that must be done.</param>
+    /// <returns>True if the dependencies should be updated, false otherwise.</returns>
+    public bool HasUpdates( IPackageMapping mapping, [NotNullWhen( true )] ref PackageMapper? updates )
+    {
+        bool hasUpdates = false;
+        foreach( var p in _consumed )
+        {
+            if( mapping.TryGetMappedVersion( p.PackageId, p.Version, out var version ) && p.Version != version )
+            {
+                updates ??= new PackageMapper();
+                updates.Add( p.PackageId, p.Version, version );
+                hasUpdates = true;
+            }
+        }
+        return hasUpdates;
+    }
+
+    /// <summary>
+    /// Gets whether the solution has at least one dependency that must be updated considering any number of <paramref name="mappings"/>
+    /// and collects these updates.
+    /// </summary>
+    /// <param name="updates">Called for each update that must be made.</param>
+    /// <param name="mappings">The package mappings to consider in priority order.</param>
+    /// <returns>True if the dependencies should be updated, false otherwise.</returns>
+    public bool HasUpdates( Action<(PackageInstance Ref, SVersion Update, int MappingIndex)> updates, params ReadOnlySpan<IPackageMapping> mappings )
+    {
+        bool hasUpdates = false;
+        foreach( var p in _consumed )
+        {
+            for( int i = 0; i < mappings.Length; ++i )
+            {
+                if( mappings[i].TryGetMappedVersion( p.PackageId, p.Version, out var version ) && p.Version != version )
+                {
+                    hasUpdates = true;
+                    updates( (p, version, i) );
+                    break;
+                }
+            }
+        }
+        return hasUpdates;
+    }
 
     /// <summary>
     /// Gets the repository.

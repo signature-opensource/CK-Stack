@@ -2,8 +2,6 @@ using CK.Core;
 using CKli.Core;
 using LibGit2Sharp;
 using System;
-using System.Linq;
-using System.Runtime.CompilerServices;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;

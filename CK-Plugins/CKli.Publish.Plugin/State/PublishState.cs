@@ -1,16 +1,10 @@
 using CK.Core;
 using CKli.Core;
-using LibGit2Sharp;
 using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Threading;
-using System.Threading.Tasks;
-using static CK.Core.ActivityMonitorErrorCounter;
-using static CK.Core.CheckedWriteStream;
 
 namespace CKli.Publish.Plugin;
 

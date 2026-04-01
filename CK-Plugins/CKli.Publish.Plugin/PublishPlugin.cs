@@ -6,7 +6,6 @@ using System;
 using System.Collections.Immutable;
 using System.Threading;
 using System.Threading.Tasks;
-using static CK.Core.ActivityMonitorErrorCounter;
 
 namespace CKli.Publish.Plugin;
 
@@ -76,7 +75,7 @@ public sealed class PublishPlugin : PrimaryPluginBase
                                         Roadmap roadmap,
                                         CancellationToken cancel )
         {
-            var packageSender = PackageSender.Create( monitor, roadmap.BranchName.Name, roadmap.IsCIBuild, artifactHandler, world.StackRepository.SecretsStore );
+            var packageSender = PackageSender.Create( monitor, roadmap.Graph.BranchName.Name, roadmap.IsCIBuild, artifactHandler, world.StackRepository.SecretsStore );
             if( packageSender == null ) return Task.FromResult( false );
 
             var state = PublishState.Load( monitor, world );

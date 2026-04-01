@@ -14,6 +14,10 @@ public sealed partial class HotGraph
 {
     /// <summary>
     /// Models a <see cref="HotGraph"/>'s solution bound to a <see cref="Branch"/>.
+    /// <para>
+    /// Solutions are ordered by <see cref="Rank"/> and then by <see cref="Repo.Index"/>, the <see cref="OrderedIndex"/>
+    /// is the index in the <see cref="HotGraph.OrderedSolutions"/> array.
+    /// </para>
     /// </summary>
     public sealed class Solution : IComparable<Solution>
     {

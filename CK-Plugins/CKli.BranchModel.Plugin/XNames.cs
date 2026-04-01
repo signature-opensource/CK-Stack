@@ -8,6 +8,5 @@ namespace CKli.BranchModel.Plugin;
 public static class XNames
 {
     #pragma warning disable 1591 //Missing XML comment for publicly visible type or member
-    public static readonly XName Version = XNamespace.None + "Version";
-    public static XName Name => CKli.Core.XNames.Name;
+    public static readonly XName Branches = XNamespace.None + "Branches";
 }

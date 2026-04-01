@@ -17,6 +17,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
 {
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
+    Dictionary<string, SVersion>? _externalPackages;
 
     public VersionTagPlugin( PrimaryPluginContext primaryContext,
                              ReleaseDatabasePlugin releaseDatabase,
@@ -52,6 +53,43 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         Throw.CheckState( !HasRepoInfoBeenCreated( repo ) );
         return PrimaryPluginContext.GetConfigurationFor( repo )
                                    .Edit( monitor, ( monitor, e ) => e.SetAttributeValue( XNames.MinVersion, min.ToString() ) );
+    }
+
+    /// <summary>
+    /// Gets The World's configured packages versions from this
+    /// <code>
+    /// &lt;Packages&gt;
+    ///     &lt;Package Name = "..." Version="..." /&gt;
+    ///  &lt;/Packages&gt;
+    /// </code>
+    /// VersionTag plugin configuration content.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <returns>The World's configured packages versions.</returns>
+    public IReadOnlyDictionary<string, SVersion>? GetPackagesConfiguration( IActivityMonitor monitor )
+    {
+        try
+        {
+            return _externalPackages ??= PrimaryPluginContext.Configuration.XElement
+                                                    .Elements( "Packages" )
+                                                    .Elements( "Package" )
+                                                    .ToDictionary( e => (string)e.Attribute( XNames.Name )!,
+                                                                   e => SVersion.Parse( (string)e.Attribute( XNames.Version )! ),
+                                                                   StringComparer.OrdinalIgnoreCase );
+        }
+        catch( Exception ex )
+        {
+            monitor.Error( $"""
+                Unable to read <Packages> element from <VersionTag> configuration.
+                Expecting:
+                <Packages>
+                    <Package Name="..." Version="..." />
+                </Packages>
+                Configuration is:
+                {PrimaryPluginContext.Configuration.XElement}
+                """, ex );
+            return null;
+        }
     }
 
     /// <summary>

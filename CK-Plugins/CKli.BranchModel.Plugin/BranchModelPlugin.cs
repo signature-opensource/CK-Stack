@@ -5,13 +5,11 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
-using CSemVer;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -24,8 +22,6 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     internal readonly ShallowSolutionPlugin _shallowSolution;
     readonly PerfectEventSender<FixWorkflowStartEventArgs> _onFixStart;
 
-    Dictionary<string, SVersion>? _externalPackages;
-
     /// <summary>
     /// This is a primary plugin.
     /// </summary>
@@ -37,7 +33,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         : base( primaryContext )
     {
         _namespace = new BranchNamespace( World.Name.LTSName,
-                                          primaryContext.Configuration.XElement.Attribute( "Branches" )?.Value );
+                                          primaryContext.Configuration.XElement.Attribute( XNames.Branches )?.Value );
         World.Events.Issue += IssueRequested;
         _versionTags = versionTags;
         _releaseDatabase = releaseDatabase;
@@ -211,7 +207,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
             {
                 // We can now instantiate the graph object and add all the nodes that are the HotGraph.Solution
                 // instances.
-                var externalPackages = GetExternalPackages( monitor );
+                var externalPackages = _versionTags.GetPackagesConfiguration( monitor );
                 if( externalPackages == null ) return null;
 
                 var graph = new HotGraph( branchName, allRepos, pivots, _versionTags, externalPackages );
@@ -240,42 +236,6 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                         ? graph
                         : null;
             }
-        }
-    }
-
-    /// <summary>
-    /// Gets The World's configured packages versions from this
-    /// <code>
-    /// &lt;Packages&gt;
-    ///     &lt;Package Name = "..." Version="..." /&gt;
-    ///  &lt;/Packages&gt;
-    /// </code>
-    /// BranchModel plugin configuration content.
-    /// </summary>
-    /// <param name="monitor">The monitor to use.</param>
-    /// <returns>The World's configured packages versions.</returns>
-    public Dictionary<string, SVersion>? GetExternalPackages( IActivityMonitor monitor )
-    {
-        try
-        {
-            return _externalPackages ??= PrimaryPluginContext.Configuration.XElement
-                                                    .Elements( "Packages" )
-                                                    .Elements( "Package" )
-                                                    .ToDictionary( e => (string)e.Attribute( XNames.Name )!,
-                                                                    e => SVersion.Parse( (string)e.Attribute( XNames.Version )! ) );
-        }
-        catch( Exception ex )
-        {
-            monitor.Error( $"""
-                Unable to read <Packages> element from <BranchModel> configuration.
-                Expecting:
-                <Packages>
-                    <Package Name="..." Version="..." />
-                </Packages>
-                Configuration is:
-                {PrimaryPluginContext.Configuration.XElement}
-                """, ex );
-            return null;
         }
     }
 

@@ -6,10 +6,11 @@ using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
-using System.Diagnostics;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 
 namespace CKli.Build.Plugin;
@@ -31,12 +32,30 @@ public sealed partial class Roadmap
             _versionInfo = versionInfo;
         }
 
+        #region Initialize
+        sealed class PackagesUpdateDetails
+        {
+            public PackageMapper? WorldRef;
+            public PackageMapper? Configuration;
+            public PackageMapper? Discrepancies;
+
+            public void Add( (PackageInstance Ref, SVersion To, int MappingIndex) update )
+            {
+                var m = update.MappingIndex switch
+                {
+                    0 => WorldRef ??= new PackageMapper(),
+                    1 => Configuration ??= new PackageMapper(),
+                    _ => Discrepancies ??= new PackageMapper()
+                };
+                m.Add( update.Ref.PackageId, update.Ref.Version, update.To );
+            }
+        }
+
         internal bool Initialize( IActivityMonitor monitor )
         {
             if( _buildInfo != null ) return true;
 
             MustBuildReason buildReason = MustBuildReason.None;
-            PackageMapper? packageUpdates = null;
 
             // If upstreams are built, always build.
             if( !InitializeUpstreams( monitor,
@@ -51,10 +70,18 @@ public sealed partial class Roadmap
                 buildReason |= MustBuildReason.Upstream;
             }
             // If some packages must be updated, always build.
-            if( Roadmap.PackageUpdater.HasUpdates( _solution, out packageUpdates ) )
+            // The AlreadyBuiltMapping enables to fix any intra World package references.
+            // The WorldConfiguredMapping applies the VersionTag plugin configuration.
+            // The DiscrepanciesMapping unifies external versions (to the max existing version).
+            var packageUpdates = new PackagesUpdateDetails();
+            if( _solution.GitSolution.HasUpdates( packageUpdates.Add,
+                                                  _roadmap._packageUpdater.AlreadyBuiltMapping,
+                                                  _roadmap._packageUpdater.WorldConfiguredMapping,
+                                                  _roadmap._packageUpdater.DiscrepanciesMapping ) )
             {
                 buildReason |= MustBuildReason.DependencyUpdate;
             }
+
             // Pivot dependent conditions: if nothing saves the build, then this solution won't be built.
             bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
             if( buildReason == MustBuildReason.None )
@@ -75,7 +102,14 @@ public sealed partial class Roadmap
                     // We compute the version change not for us (this solution will not be built) but for
                     // the downstream solutions to correctly propagate the change level (here it may be None).
                     vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _versionInfo.LastBuild.Version );
-                    _buildInfo = new BuildInfo( this, MustBuildReason.None, vChange, _versionInfo.LastBuild.Version, directRequirements, null );
+                    _buildInfo = new BuildInfo( this,
+                                                MustBuildReason.None,
+                                                vChange,
+                                                _versionInfo.LastBuild.Version,
+                                                directRequirements,
+                                                packageUpdates.WorldRef,
+                                                packageUpdates.Configuration,
+                                                packageUpdates.Discrepancies );
                     return true;
                 }
             }
@@ -96,7 +130,7 @@ public sealed partial class Roadmap
                                                            ref vChange,
                                                            mustAddCommit: buildReason != MustBuildReason.CodeChange );
 
-            _buildInfo = new BuildInfo( this, buildReason, vChange, targetVersion, directRequirements, packageUpdates );
+            _buildInfo = new BuildInfo( this, buildReason, vChange, targetVersion, directRequirements, packageUpdates.WorldRef, packageUpdates.Configuration, packageUpdates.Discrepancies );
             _roadmap._buildSolutionCount++;
             return true;
         }
@@ -403,6 +437,7 @@ public sealed partial class Roadmap
 
 
         }
+        #endregion /Initialize
 
         /// <summary>
         /// Get the roadmap to which this build belongs.
@@ -463,7 +498,7 @@ public sealed partial class Roadmap
 
             IRenderable r = RenderBuildIndexAndRank( screen, buildIndexLen, cRank );
 
-            if( _roadmap.HasPivots )
+            if( _roadmap.Graph.HasPivots )
             {
                 var prefixStyle = new TextStyle( ConsoleColor.Black, ConsoleColor.DarkYellow );
                 r = r.AddRight( PivotPrefix( screen, _solution, prefixStyle, marginLeft: 1 ) );
@@ -477,7 +512,7 @@ public sealed partial class Roadmap
             {
                 Throw.DebugAssert( BuildInfo.BuildReason != MustBuildReason.None );
                 r = r.AddRight( screen.Text( $"→ v{BuildInfo.TargetVersion}", new TextStyle( ConsoleColor.Green, ConsoleColor.Black ) ),
-                                screen.Text( $"({BuildInfo.BuildReason})", TextStyle.Default.With( TextEffect.Italic ) ).Box( paddingLeft: 1 ) );
+                                BuildInfo.RenderBuildReason( screen ) );
             }
             return r;
 

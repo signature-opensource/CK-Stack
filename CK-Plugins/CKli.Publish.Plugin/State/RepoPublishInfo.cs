@@ -1,12 +1,7 @@
 using CK.Core;
 using CKli.Core;
-using System;
-using System.Linq;
-using CKli.Build.Plugin;
 using CSemVer;
 using CKli.ArtifactHandler.Plugin;
-using System.Collections.Immutable;
-using System.Runtime.InteropServices;
 
 namespace CKli.Publish.Plugin;
 

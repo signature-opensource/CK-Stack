@@ -7,7 +7,6 @@ using LibGit2Sharp;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Threading.Channels;
@@ -24,8 +23,6 @@ public sealed partial class BuildPlugin
         readonly Channel<object> _channel;
         readonly CKliEnv _context;
         readonly int _maxDoP;
-        readonly ConcurrentDictionary<string, SVersion> _buildMapping;
-        readonly Mapping _packageMapping;
         readonly bool? _runTest;
         readonly bool _singleBuild;
 
@@ -41,8 +38,6 @@ public sealed partial class BuildPlugin
             _singleBuild = roadmap.SolutionBuildCount == 1;
             _runTest = runTest;
             _maxDoP = maxDoP;
-            _buildMapping = new ConcurrentDictionary<string, SVersion>( StringComparer.OrdinalIgnoreCase );
-            _packageMapping = new Mapping( roadmap.PackageUpdater.PackageMapping, _buildMapping );
             _buildPlugin = buildPlugin;
             _context = context;
             _channel = Channel.CreateUnbounded<object>( new UnboundedChannelOptions() { SingleReader = true } );
@@ -248,7 +243,7 @@ public sealed partial class BuildPlugin
             {
                 return null;
             }
-            var commit = UpdateDependenciesAndCommit( monitor, build.Solution, _packageMapping, canAmend );
+            var commit = UpdateDependenciesAndCommit( monitor, build.Solution, _roadmap.PackageMapping, canAmend );
             if( commit == null )
             {
                 return null;
@@ -258,7 +253,7 @@ public sealed partial class BuildPlugin
             {
                 foreach( var p in result.Content.Produced )
                 {
-                    _buildMapping.TryAdd( p, result.Version );
+                    Throw.DebugAssert( _roadmap.PackageMapping.GetMappedVersion( p, build.Solution.CurrentVersion ) == result.Version );
                 }
             }
             return result;

@@ -1,10 +1,14 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
+using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CSemVer;
+using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -25,10 +29,12 @@ public sealed partial class Roadmap
     public sealed class BuildInfo
     {
         readonly BuildSolution _solution;
-        readonly PackageMapper? _packageUpdates;
         readonly MustBuildReason _buildReason;
         readonly VersionChange _versionChange;
         readonly SVersion _targetVersion;
+        readonly PackageMapper? _worldReferences;
+        readonly PackageMapper? _versionConfigurations;
+        readonly PackageMapper? _discrepancies;
         readonly ImmutableArray<BuildSolution> _directRequirements;
 
         readonly Lock _buildTaskLock;
@@ -40,19 +46,23 @@ public sealed partial class Roadmap
                             VersionChange versionChange,
                             SVersion targetVersion,
                             BuildSolution[]? directRequirements,
-                            PackageMapper? packageUpdates )
+                            PackageMapper? worldReferences,
+                            PackageMapper? versionConfigurations,
+                            PackageMapper? discrepancies )
         {
             _solution = solution;
             _buildReason = buildReason;
             _versionChange = versionChange;
             _targetVersion = targetVersion;
-            _packageUpdates = packageUpdates;
+            _worldReferences = worldReferences;
+            _versionConfigurations = versionConfigurations;
+            _discrepancies = discrepancies;
             _directRequirements = directRequirements != null
                                     ? ImmutableCollectionsMarshal.AsImmutableArray( directRequirements )
                                     : [];
             _buildTaskLock = new Lock();
             Throw.DebugAssert( "mustBuild => at least Patch", buildReason == MustBuildReason.None || versionChange >= VersionChange.Patch );
-            Throw.DebugAssert( (packageUpdates != null) == ((_buildReason & MustBuildReason.DependencyUpdate) != 0) );
+            Throw.DebugAssert( (worldReferences != null || versionConfigurations != null || discrepancies != null) == ((_buildReason & MustBuildReason.DependencyUpdate) != 0) );
         }
 
         public BuildSolution Solution => _solution;
@@ -74,6 +84,7 @@ public sealed partial class Roadmap
 
         /// <summary>
         /// Gets the version that must be produced.
+        /// When <see cref="MustBuild"/> is false, this is the last built version (see <see cref="CKli.BranchModel.Plugin.HotGraph.SolutionVersionInfo.LastBuild"/>).
         /// </summary>
         public SVersion TargetVersion => _targetVersion;
 
@@ -83,9 +94,19 @@ public sealed partial class Roadmap
         public ImmutableArray<BuildSolution> DirectRequirements => _directRequirements;
 
         /// <summary>
-        /// Gets the dependencies updates when <see cref="MustBuild"/> is <see cref="MustBuildReason.DependencyUpdate"/>.
+        /// Gets the intra World reference package updates if any.
         /// </summary>
-        public PackageMapper? PackageUpdates => _packageUpdates;
+        public PackageMapper? WorldReferencesUpdates => _worldReferences;
+
+        /// <summary>
+        /// Gets the package updates from <see cref="BranchModel.Plugin.HotGraph.PackageUpdater.WorldConfiguredMapping"/> if any.
+        /// </summary>
+        public PackageMapper? VersionConfigurationUpdates => _versionConfigurations;
+
+        /// <summary>
+        /// Gets the package updates from <see cref="BranchModel.Plugin.HotGraph.PackageUpdater.DiscrepanciesMapping"/> if any.
+        /// </summary>
+        public PackageMapper? DiscrepanciesUpdates => _discrepancies;
 
         /// <summary>
         /// Gets the build result. Not null when <see cref="MustBuild"/> is true and build succeeded.
@@ -117,6 +138,25 @@ public sealed partial class Roadmap
             // Building requirements succeed: running this build.
             _buildResult = await builder.BuildAsync( this );
             return _buildResult;
+        }
+
+
+        internal IRenderable RenderBuildReason( ScreenType screen )
+        {
+            IRenderable r = screen.Text( $"({_buildReason})", TextStyle.Default.With( TextEffect.Italic ) );
+            if( _worldReferences != null )
+            {
+                r = r.AddBelow( screen.Text( "(W)", TextStyle.Default ).AddRight( screen.Text( _worldReferences.ToString(), ConsoleColor.DarkGray ) ) );
+            }
+            if( _versionConfigurations != null )
+            {
+                r = r.AddBelow( screen.Text( "(C)", TextStyle.Default ).AddRight( screen.Text( _versionConfigurations.ToString(), ConsoleColor.DarkGray ) ) );
+            }
+            if( _discrepancies != null )
+            {
+                r = r.AddBelow( screen.Text( "(D)", TextStyle.Default ).AddRight( screen.Text( _discrepancies.ToString(), ConsoleColor.DarkGray ) ) );
+            }
+            return r.Box( paddingLeft: 1 );
         }
 
     }

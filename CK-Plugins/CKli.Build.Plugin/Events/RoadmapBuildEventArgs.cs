@@ -1,7 +1,4 @@
 using CK.Core;
-using CKli.BranchModel.Plugin;
-using System;
-using System.Runtime.InteropServices;
 
 namespace CKli.Build.Plugin;
 

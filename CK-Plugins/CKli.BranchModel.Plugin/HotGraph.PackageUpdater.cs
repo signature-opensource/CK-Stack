@@ -14,10 +14,9 @@ namespace CKli.BranchModel.Plugin;
 public sealed partial class HotGraph
 {
     /// <summary>
-    /// Exposes the <see cref="PackageMapping"/> that must be used to update package dependencies
-    /// in the <see cref="Graph"/>.
+    /// Exposes different <see cref="IPackageMapping"/> that must be used to update package dependencies in the <see cref="Graph"/>.
     /// <para>
-    /// Obtained by <see cref="HotGraph.GetPackageUpdater(IActivityMonitor)"/>. Requires that <see cref="VersionTagPlugin"/> has no issue.
+    /// This is obtained by <see cref="HotGraph.GetPackageUpdater(IActivityMonitor)"/>. Requires that <see cref="VersionTagPlugin"/> has no issue.
     /// </para>
     /// </summary>
     public sealed class PackageUpdater
@@ -26,8 +25,9 @@ public sealed partial class HotGraph
         readonly ImmutableArray<SolutionVersionInfo> _versions;
         readonly bool _buildRequired;
         IReadOnlyDictionary<string, IReadOnlyList<(Solution Solution, SVersion Version)>>? _discrepancies;
-
-        Mapping? _packageMapping;
+        IPackageMapping? _alreadyBuiltMapping;
+        IPackageMapping? _worldConfiguredMapping;
+        IPackageMapping? _discrepanciesMapping;
 
         internal PackageUpdater( HotGraph graph,
                                  ImmutableArray<SolutionVersionInfo> versions,
@@ -44,17 +44,7 @@ public sealed partial class HotGraph
         public HotGraph Graph => _graph;
 
         /// <summary>
-        /// Gets the package mapping with the current <see cref="SolutionVersionInfo.LastBuild"/> version of each solution
-        /// even if <see cref="SolutionVersionInfo.VersionMustBuild"/> is true (the version can be a "+fake" or a "+deprecated").
-        /// <para>
-        /// This also integrates the <see cref="BranchModelPlugin.GetExternalPackages(IActivityMonitor)"/> configured 
-        /// </para>
-        /// </summary>
-        public IPackageMapping PackageMapping => _packageMapping ??= new Mapping( _graph._p2s, _versions, _graph._externalPackages, Discrepancies );
-
-        /// <summary>
-        /// Gets whether at least one <see cref="SolutionVersionInfo.VersionMustBuild"/> is true: the <see cref="PackageMapping"/> should not
-        /// be used as-is, packages should be updated during a build, not directly.
+        /// Gets whether at least one <see cref="SolutionVersionInfo.VersionMustBuild"/> is true.
         /// </summary>
         public bool BuildRequired => _buildRequired;
 
@@ -64,9 +54,7 @@ public sealed partial class HotGraph
         /// A solution may appear more than once if more than one of its project references different versions.
         /// </para>
         /// <para>
-        /// This is computed on demand and cached. The <see cref="PackageMapping"/> automatically considers the greatest version among
-        /// the references to be the one to use. This supports a rather easy way to handle version unification in a World: it is enough
-        /// to upgrade one project in one solution to propagate the upgrade to all the Repos. 
+        /// This is computed on demand and cached and is the base for the <see cref="DiscrepanciesMapping"/>. 
         /// </para>
         /// </summary>
         public IReadOnlyDictionary<string, IReadOnlyList<(Solution Solution, SVersion Version)>> Discrepancies
@@ -117,97 +105,51 @@ public sealed partial class HotGraph
         }
 
         /// <summary>
-        /// Gets whether the solution has at least one dependency that must be updated.
+        /// Gets the package mapping with the current <see cref="SolutionVersionInfo.LastBuild"/> version of each solution
+        /// excluding true <see cref="SolutionVersionInfo.VersionMustBuild"/>: when the version is a "+fake" or a "+deprecated",
+        /// mapping is ignored.
         /// </summary>
-        /// <param name="solution">The solution.</param>
-        /// <returns>True if the dependencies should be updated, false otherwise.</returns>
-        public bool HasUpdates( Solution solution )
-        {
-            Throw.CheckArgument( solution.Graph == Graph );
-            var mapping = PackageMapping;
-            return solution.GitSolution.Consumed.Any( p => mapping.TryGetMappedVersion( p.PackageId, p.Version, out var version )
-                                                           && p.Version != version );
-        }
+        public IPackageMapping AlreadyBuiltMapping => _alreadyBuiltMapping ??= new LastBuildVersionMapping( _graph._p2s, _versions );
 
         /// <summary>
-        /// Gets whether the solution has at least one dependency that must be updated and collects these updates.
+        /// Gets the version mapping of the configured Worlds packages from the <see cref="VersionTag.Plugin.VersionTagPlugin.GetPackagesConfiguration(IActivityMonitor)"/>.
         /// </summary>
-        /// <param name="solution">The solution.</param>
-        /// <param name="updates">The updates.</param>
-        /// <returns>True if the dependencies should be updated, false otherwise.</returns>
-        public bool HasUpdates( Solution solution, PackageMapper updates )
-        {
-            Throw.CheckArgument( solution.Graph == Graph );
-            var mapping = PackageMapping;
-            bool hasUpdates = false;
-            foreach( var p in solution.GitSolution.Consumed )
-            {
-                if( mapping.TryGetMappedVersion( p.PackageId, p.Version, out var version )
-                    && p.Version != version )
-                {
-                    updates.Add( p.PackageId, p.Version, version );
-                    hasUpdates = true;
-                }
-            }
-            return hasUpdates;
-        }
+        public IPackageMapping WorldConfiguredMapping => _worldConfiguredMapping ??= BrutalPackageMapper.Create( _graph._externalPackages );
 
         /// <summary>
-        /// Gets whether the solution has at least one dependency that must be updated and collects these updates.
+        /// Gets the version mapping that resolves <see cref="Discrepancies"/> by mapping to the greatest referenced version.
         /// </summary>
-        /// <param name="solution">The solution.</param>
-        /// <param name="updates">On success, the non null updates that must be done.</param>
-        /// <returns>True if the dependencies should be updated, false otherwise.</returns>
-        public bool HasUpdates( Solution solution, [NotNullWhen(true)] out PackageMapper? updates )
-        {
-            Throw.CheckArgument( solution.Graph == Graph );
-            updates = null;
-            var mapping = PackageMapping;
-            foreach( var p in solution.GitSolution.Consumed )
-            {
-                if( mapping.TryGetMappedVersion( p.PackageId, p.Version, out var version )
-                    && p.Version != version )
-                {
-                    updates ??= new PackageMapper();
-                    updates.Add( p.PackageId, p.Version, version );
-                }
-            }
-            return updates != null;
-        }
+        public IPackageMapping DiscrepanciesMapping => _discrepanciesMapping ??= BrutalPackageMapper.Create( Discrepancies.ToDictionary( kv => kv.Key,
+                                                                                                                                         kv => kv.Value.Max( sv => sv.Version )!,
+                                                                                                                                         StringComparer.OrdinalIgnoreCase ) );
 
-        sealed class Mapping : IPackageMapping
+        sealed class LastBuildVersionMapping : IPackageMapping
         {
             readonly Dictionary<string, Solution> _p2s;
             readonly ImmutableArray<SolutionVersionInfo> _versions;
-            readonly Dictionary<string, SVersion> _externalPackages;
-            readonly Dictionary<string, SVersion> _externalDiscrepancies;
 
-            public Mapping( Dictionary<string, Solution> p2s,
-                                  ImmutableArray<SolutionVersionInfo> versions,
-                                  Dictionary<string, SVersion> externalPackages,
-                                  IReadOnlyDictionary<string, IReadOnlyList<(Solution Solution, SVersion Version)>> discrepancies )
+            public LastBuildVersionMapping( Dictionary<string, Solution> p2s, ImmutableArray<SolutionVersionInfo> versions )
             {
                 _p2s = p2s;
                 _versions = versions;
-                _externalPackages = externalPackages;
-                _externalDiscrepancies = discrepancies.ToDictionary( d => d.Key, d => d.Value.Max( c => c.Version )! );
             }
 
-            public bool IsEmpty => _p2s.Count == 0 && _externalPackages.Count == 0;
+            public bool IsEmpty => _p2s.Count == 0;
 
             public SVersion? GetMappedVersion( string packageId, SVersion from )
             {
-                return _p2s.TryGetValue( packageId, out var s )
-                        ? _versions[s.OrderedIndex].LastBuild.Version
-                        : _externalPackages.TryGetValue( packageId, out var result )
-                            ? result
-                            : _externalDiscrepancies.GetValueOrDefault( packageId );
+                if( _p2s.TryGetValue( packageId, out var s ) )
+                {
+                    var sv = _versions[s.OrderedIndex];
+                    return sv.VersionMustBuild
+                            ? null
+                            : _versions[s.OrderedIndex].LastBuild.Version;
+                }
+                return null;
             }
 
-            public bool HasMapping( string packageId ) => _p2s.ContainsKey( packageId ) || _externalPackages.ContainsKey( packageId );
+            public bool HasMapping( string packageId ) => _p2s.ContainsKey( packageId );
         }
-
-
 
     }
 }

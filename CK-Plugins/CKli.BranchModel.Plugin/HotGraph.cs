@@ -28,10 +28,10 @@ public sealed partial class HotGraph
     readonly IReadOnlyList<Repo> _allRepos;
     readonly IReadOnlyList<Repo> _pivots;
     readonly VersionTagPlugin _versionTags;
-    readonly Dictionary<string, SVersion> _externalPackages;
+    readonly IReadOnlyDictionary<string, SVersion> _externalPackages;
     readonly Solution[] _solutions;
     readonly Dictionary<string, Solution> _p2s;
-    ImmutableArray <Solution> _orderedSolutions;
+    ImmutableArray<Solution> _orderedSolutions;
     PackageUpdater? _packageUpdater;
     int _maxRank;
 
@@ -39,7 +39,7 @@ public sealed partial class HotGraph
                        IReadOnlyList<Repo> allRepos,
                        IReadOnlyList<Repo> pivots,
                        VersionTagPlugin versionTags,
-                       Dictionary<string, SVersion> externalPackages )
+                       IReadOnlyDictionary<string, SVersion> externalPackages )
     {
         Throw.DebugAssert( allRepos.Count != pivots.Count || pivots == allRepos );
         _branchName = branchName;
@@ -91,8 +91,13 @@ public sealed partial class HotGraph
                 }
             }
             return _orderedSolutions;
-        } 
+        }
     }
+
+    /// <summary>
+    /// Gets the all the package identifiers that this graph produces mapped to their <see cref="Solution"/>.
+    /// </summary>
+    public IReadOnlyDictionary<string, Solution> ProducedPackages => _p2s;
 
     /// <summary>
     /// Gets the maximal <see cref="Solution.Rank"/>.

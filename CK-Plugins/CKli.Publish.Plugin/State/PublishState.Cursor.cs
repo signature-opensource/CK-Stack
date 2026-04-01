@@ -1,7 +1,6 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using System.Linq;
-using System.Threading;
 
 namespace CKli.Publish.Plugin;
 

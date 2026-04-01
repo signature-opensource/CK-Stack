@@ -1,7 +1,4 @@
 using CK.Core;
-using CKli.Core;
-using System.IO;
-using System.Security;
 using System.Xml.Linq;
 
 namespace CKli.ArtifactHandler.Plugin;
