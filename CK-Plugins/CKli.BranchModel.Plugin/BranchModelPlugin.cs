@@ -243,7 +243,18 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         }
     }
 
-    Dictionary<string, SVersion>? GetExternalPackages( IActivityMonitor monitor )
+    /// <summary>
+    /// Gets The World's configured packages versions from this
+    /// <code>
+    /// &lt;Packages&gt;
+    ///     &lt;Package Name = "..." Version="..." /&gt;
+    ///  &lt;/Packages&gt;
+    /// </code>
+    /// BranchModel plugin configuration content.
+    /// </summary>
+    /// <param name="monitor">The monitor to use.</param>
+    /// <returns>The World's configured packages versions.</returns>
+    public Dictionary<string, SVersion>? GetExternalPackages( IActivityMonitor monitor )
     {
         try
         {

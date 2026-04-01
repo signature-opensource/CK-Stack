@@ -12,7 +12,6 @@ namespace CKli.BranchModel.Plugin;
 
 public sealed partial class HotGraph
 {
-
     /// <summary>
     /// Models a <see cref="HotGraph"/>'s solution bound to a <see cref="Branch"/>.
     /// </summary>
@@ -23,6 +22,7 @@ public sealed partial class HotGraph
         readonly GitSolution _solution;
         readonly List<Solution> _directRequirements;
         readonly HashSet<Solution> _allRequirements;
+        readonly List<PackageInstance> _externalDependencies;
         SolutionVersionInfo? _versionInfo;
         string? _toString;
         int _rank;
@@ -41,6 +41,7 @@ public sealed partial class HotGraph
             _isPivot = isPivot;
             _directRequirements = new List<Solution>();
             _allRequirements = new HashSet<Solution>();
+            _externalDependencies = new List<PackageInstance>();
             _rank = -1;
         }
 
@@ -110,6 +111,11 @@ public sealed partial class HotGraph
         /// for this information to be available.
         /// </summary>
         public SolutionVersionInfo? VersionInfo => _versionInfo;
+
+        /// <summary>
+        /// Gets the dependencies to external packages (not produced by the stack itself).
+        /// </summary>
+        public IReadOnlyList<PackageInstance> ExternalDependencies => _externalDependencies;
 
         internal SolutionVersionInfo? ComputeVersionInfo( IActivityMonitor monitor, VersionTagInfo? vInfo )
         {
@@ -197,7 +203,7 @@ public sealed partial class HotGraph
                 _isPivotUpstream = false;
                 isPivotUpstream = _isPivot;
             }
-            foreach( var c in _solution.Consumed )
+            foreach( PackageInstance c in _solution.Consumed )
             {
                 if( _graph._p2s.TryGetValue( c.PackageId, out Solution? required ) )
                 {
@@ -230,6 +236,13 @@ public sealed partial class HotGraph
                             }
                         }
                     }
+                }
+                else
+                {
+                    // This package identifier doesn't match any stack's solutions' project: this is an external
+                    // dependency.
+                    // We collect them here, tracking discrepancies among them is done on demand.
+                    _externalDependencies.Add( c );
                 }
             }
             // Finalize direct and closure requirements.

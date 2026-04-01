@@ -31,7 +31,7 @@ public sealed partial class HotGraph
     readonly Dictionary<string, SVersion> _externalPackages;
     readonly Solution[] _solutions;
     readonly Dictionary<string, Solution> _p2s;
-    ImmutableArray<Solution> _orderedSolutions;
+    ImmutableArray <Solution> _orderedSolutions;
     PackageUpdater? _packageUpdater;
     int _maxRank;
 
@@ -133,8 +133,7 @@ public sealed partial class HotGraph
                 {
                     return _packageUpdater = new PackageUpdater( this,
                                                                  ImmutableCollectionsMarshal.AsImmutableArray( versions ),
-                                                                 buildRequired,
-                                                                 _externalPackages );
+                                                                 buildRequired );
                 }
             }
         }
