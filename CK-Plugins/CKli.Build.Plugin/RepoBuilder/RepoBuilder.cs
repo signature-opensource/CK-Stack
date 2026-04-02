@@ -141,10 +141,10 @@ public class RepoBuilder : RepoInfo
         if( !Directory.Exists( deploymentFolder ) )
         {
             // No Deployment assets.
-            monitor.Trace( $"No '{deploymentFolder}' folder." );
+            monitor.Trace( $"No '{ArtifactHandlerPlugin.DeployFolderName}' folder in '{Repo.DisplayPath}'." );
             return true;
         }
-        using var gLog = monitor.OpenInfo( $"Handling '{deploymentFolder}' folder." );
+        using var gLog = monitor.OpenInfo( $"Handling '{ArtifactHandlerPlugin.DeployFolderName}' folder in '{Repo.DisplayPath}'." );
         try
         {
             var generateFileApp = deploymentFolder.AppendPart( "GenerateAssets.cs" );

@@ -15,7 +15,7 @@ sealed partial class PublishState
         readonly PublishState _state;
         readonly WorldReleaseInfo? _world;
         readonly RepoPublishInfo? _repo;
-        readonly int _index;
+        readonly int _itemIndex;
         readonly LocType _location;
 
         /// <summary>
@@ -29,12 +29,12 @@ sealed partial class PublishState
             BegOfRepo,
 
             /// <summary>
-            /// The <see cref="Repo"/>'s package <see cref="Index"/> in <see cref="BuildContentInfo.Produced"/> must be published.
+            /// The <see cref="Repo"/>'s package <see cref="ItemIndex"/> in <see cref="BuildContentInfo.Produced"/> must be published.
             /// </summary>
             InPackage,
 
             /// <summary>
-            /// The <see cref="Repo"/>'s file <see cref="Index"/> in <see cref="BuildContentInfo.AssetFileNames"/> must be published.
+            /// The <see cref="Repo"/>'s file <see cref="ItemIndex"/> in <see cref="BuildContentInfo.AssetFileNames"/> must be published.
             /// </summary>
             InFile,
 
@@ -86,7 +86,7 @@ sealed partial class PublishState
         /// Gets the index in the <see cref="RepoPublishInfo.BuildContentInfo"/>'s <see cref="BuildContentInfo.Produced"/> packages or <see cref="BuildContentInfo.AssetFileNames"/>.
         /// When <see cref="Location"/> is not <see cref="LocType.InFile"/> or <see cref="LocType.InPackage"/>, this is -1.
         /// </summary>
-        public int Index => _index;
+        public int ItemIndex => _itemIndex;
 
         /// <summary>
         /// Returns a cursor that is on the next position in the <see cref="State"/>.
@@ -132,7 +132,7 @@ sealed partial class PublishState
             }
             if( _location == LocType.InPackage )
             {
-                nextIdx = _index + 1;
+                nextIdx = _itemIndex + 1;
                 if( nextIdx < _repo.BuildContentInfo.Produced.Length )
                 {
                     return new Cursor( _state, LocType.InPackage, _world, _repo, nextIdx );
@@ -144,7 +144,7 @@ sealed partial class PublishState
                 return new Cursor( _state, LocType.EndOfRepo, _world, _repo, -1 );
             }
             Throw.DebugAssert( _location == LocType.InFile );
-            nextIdx = _index + 1;
+            nextIdx = _itemIndex + 1;
             return nextIdx < _repo.BuildContentInfo.AssetFileNames.Length
                 ? new Cursor( _state, LocType.InFile, _world, _repo, nextIdx )
                 : new Cursor( _state, LocType.EndOfRepo, _world, _repo, -1 );
@@ -217,10 +217,10 @@ sealed partial class PublishState
             }
             if( _location == LocType.InPackage )
             {
-                return len + _index;
+                return len + _itemIndex;
             }
             Throw.DebugAssert( _location == LocType.InFile );
-            return len + _repo.BuildContentInfo.Produced.Length + _index;
+            return len + _repo.BuildContentInfo.Produced.Length + _itemIndex;
         }
 
         internal Cursor( PublishState state )
@@ -233,7 +233,7 @@ sealed partial class PublishState
             _state = state;
             _world = world;
             _repo = repo;
-            _index = index;
+            _itemIndex = index;
             _location = location;
         }
 

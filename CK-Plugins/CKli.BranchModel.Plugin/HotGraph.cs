@@ -118,7 +118,6 @@ public sealed partial class HotGraph
             {
                 var ordered = OrderedSolutions;
                 bool success = true;
-                bool buildRequired = false;
                 SolutionVersionInfo[] versions = new SolutionVersionInfo[ordered.Length];
                 for( int i = 0; i < ordered.Length; i++ )
                 {
@@ -127,7 +126,6 @@ public sealed partial class HotGraph
                     if( sV != null )
                     {
                         versions[i] = sV;
-                        buildRequired |= sV.VersionMustBuild;
                     }
                     else
                     {
@@ -136,9 +134,7 @@ public sealed partial class HotGraph
                 }
                 if( success )
                 {
-                    return _packageUpdater = new PackageUpdater( this,
-                                                                 ImmutableCollectionsMarshal.AsImmutableArray( versions ),
-                                                                 buildRequired );
+                    return _packageUpdater = new PackageUpdater( this, ImmutableCollectionsMarshal.AsImmutableArray( versions ) );
                 }
             }
         }

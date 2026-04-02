@@ -4,6 +4,7 @@ using CKli.BranchModel.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
 using CSemVer;
+using LibGit2Sharp;
 using System;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;
@@ -15,6 +16,7 @@ sealed class WorldReleaseInfo
     readonly DateTime _buildDate;
     readonly ImmutableArray<RepoPublishInfo> _repos;
     readonly int _publishedLength;
+    readonly bool _isCIBuild;
     string _title;
 
     /// <summary>
@@ -26,6 +28,11 @@ sealed class WorldReleaseInfo
     /// Gets the title.
     /// </summary>
     public string Title => _title;
+
+    /// <summary>
+    /// Gets whether this is a build on the "dev/" branch (produces CI packages).
+    /// </summary>
+    public bool IsCIBuild => _isCIBuild;
 
     /// <summary>
     /// Gets the published repositories information.
@@ -41,12 +48,13 @@ sealed class WorldReleaseInfo
     /// </summary>
     public int PublishedLength => _publishedLength;
 
-    WorldReleaseInfo( string title, DateTime buildDate, ImmutableArray<RepoPublishInfo> repos, int publishedLength )
+    WorldReleaseInfo( string title, DateTime buildDate, ImmutableArray<RepoPublishInfo> repos, int publishedLength, bool isCIBuild )
     {
         _title = title;
         _buildDate = buildDate;
         _repos = repos;
         _publishedLength = publishedLength;
+        _isCIBuild = isCIBuild;
     }
 
     /// <summary>
@@ -65,13 +73,20 @@ sealed class WorldReleaseInfo
             if( s.MustBuild )
             {
                 Throw.DebugAssert( s.BuildInfo.BuildResult != null );
-                var r = new RepoPublishInfo( i, s.VersionInfo.BaseBuild.Version, s.BuildInfo.BuildResult );
+                var branchName = roadmap.IsCIBuild
+                                    ? s.Solution.Branch.BranchName.DevName
+                                    : s.Solution.Branch.BranchName.Name;
+                var r = new RepoPublishInfo( i, branchName, s.VersionInfo.BaseBuild.Version, s.BuildInfo.BuildResult );
                 repoInfos[i++] = r;
                 publishedLength += r.PublishedLength;
             }
         }
         Throw.DebugAssert( i == repoInfos.Length );
-        return new WorldReleaseInfo( buildDate.ToString( "yyyy.M.d+HH.mm" ), buildDate, ImmutableCollectionsMarshal.AsImmutableArray( repoInfos ), publishedLength );
+        return new WorldReleaseInfo( buildDate.ToString( "yyyy.M.d+HH.mm" ),
+                                     buildDate,
+                                     ImmutableCollectionsMarshal.AsImmutableArray( repoInfos ),
+                                     publishedLength,
+                                     roadmap.IsCIBuild );
     }
 
     /// <summary>
@@ -88,11 +103,11 @@ sealed class WorldReleaseInfo
         for( int i = 0; i < results.Length; i++ )
         {
             var b = results[i];
-            var r = new RepoPublishInfo( i, SVersion.Create( b.Version.Major, b.Version.Minor, b.Version.Patch - 1), b );
+            var r = new RepoPublishInfo( i, fixWorkflow.Targets[i].BranchName, SVersion.Create( b.Version.Major, b.Version.Minor, b.Version.Patch - 1), b );
             repoInfos[i++] = r;
             publishedLength += r.PublishedLength;
         }
-        return new WorldReleaseInfo( fixWorkflow.ToString(), buildDate, ImmutableCollectionsMarshal.AsImmutableArray( repoInfos ), publishedLength );
+        return new WorldReleaseInfo( fixWorkflow.ToString(), buildDate, ImmutableCollectionsMarshal.AsImmutableArray( repoInfos ), publishedLength, isCIBuild: false );
     }
 
 
@@ -100,6 +115,7 @@ sealed class WorldReleaseInfo
     {
         var title = r.ReadString();
         var buildDate = r.ReadDateTime();
+        var isCIBuild = r.ReadBoolean();
         int c = r.ReadNonNegativeSmallInt32();
         var repos = new RepoPublishInfo[c];
         for( int i = 0; i < repos.Length; i++ )
@@ -109,13 +125,14 @@ sealed class WorldReleaseInfo
             repos[i] = repo;
         }
         int publishedLength = r.ReadNonNegativeSmallInt32();
-        return new WorldReleaseInfo( title, buildDate, ImmutableCollectionsMarshal.AsImmutableArray( repos ), publishedLength );
+        return new WorldReleaseInfo( title, buildDate, ImmutableCollectionsMarshal.AsImmutableArray( repos ), publishedLength, isCIBuild );
     }
 
     public void Write( ICKBinaryWriter w )
     {
         w.Write( _buildDate );
         w.Write( _title );
+        w.Write( _isCIBuild );
         w.WriteNonNegativeSmallInt32( _repos.Length );
         foreach( var s in _repos ) s.Write( w );
         w.WriteNonNegativeSmallInt32( _publishedLength );

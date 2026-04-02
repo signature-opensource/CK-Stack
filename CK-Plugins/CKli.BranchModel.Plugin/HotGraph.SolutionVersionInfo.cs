@@ -5,6 +5,7 @@ using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using LibGit2Sharp;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -19,22 +20,68 @@ public sealed partial class HotGraph
     {
         readonly Solution _solution;
         readonly VersionTagInfo _info;
-        readonly TagCommit _lastBuild;
+        readonly TagCommit _lastAnyBuild;
         readonly IReadOnlyList<Commit> _commitsFromBaseBuild;
         readonly IReadOnlyList<TagCommit> _tagCommitsFromBaseBuild;
+        TagCommit? _lastBuildInCI;
+        TagCommit? _lastBuildInNonCI;
 
         internal SolutionVersionInfo( Solution solution,
                                       VersionTagInfo info,
-                                      TagCommit lastBuild,
+                                      TagCommit lastAnyBuild,
                                       List<Commit> commitsFromBaseBuild,
                                       List<TagCommit> tagCommitsFromBaseBuild )
         {
             Throw.DebugAssert( info.HotZone != null && info.HotZone.HotZoneIssue == null );
             _solution = solution;
             _info = info;
-            _lastBuild = lastBuild;
+            _lastAnyBuild = lastAnyBuild;
             _commitsFromBaseBuild = commitsFromBaseBuild;
             _tagCommitsFromBaseBuild = tagCommitsFromBaseBuild;
+        }
+
+        /// <summary>
+        /// Captures the last <see cref="TagCommit"/> to consider in a build context (branch and whether we are building
+        /// regular or CI build).
+        /// </summary>
+        public readonly struct BuiltVersion
+        {
+            readonly SolutionVersionInfo _info;
+            readonly TagCommit _tagCommit;
+
+            internal BuiltVersion( SolutionVersionInfo info, TagCommit tagCommit )
+            {
+                _info = info;
+                _tagCommit = tagCommit;
+            }
+
+            /// <summary>
+            /// Gets the version tag.
+            /// </summary>
+            public TagCommit TagCommit => _tagCommit;
+
+            /// <summary>
+            /// Gets whether a build is required because <see cref="TagCommit"/> version is either
+            /// a "+fake" or a "+deprecated" version and should not be used to reference any package
+            /// produced by this solution.
+            /// </summary>
+            public bool VersionMustBuild => _tagCommit.BuildContentInfo == null;
+
+            /// <summary>
+            /// Gets whether a build is required because <see cref="TagCommit"/>'s commit is not the same as the <see cref="GitSolution"/>'s git branch's tip.
+            /// </summary>
+            public bool HasCodeChange => _tagCommit.Commit.Sha != _info._solution.GitSolution.GitBranch.Tip.Sha;
+
+            /// <summary>
+            /// Gets whether this solution has already been built: both <see cref="VersionMustBuild"/> and <see cref="HasCodeChange"/> are false.
+            /// </summary>
+            public bool IsAlreadyBuilt => !VersionMustBuild && !HasCodeChange;
+
+            /// <summary>
+            /// Overridden to return the <see cref="TagCommit"/>.
+            /// </summary>
+            /// <returns>The tag commit.</returns>
+            public override string ToString() => _tagCommit.ToString();
         }
 
         /// <summary>
@@ -61,39 +108,53 @@ public sealed partial class HotGraph
         /// </summary>
         public TagCommit BaseBuild => _info.HotZone!.LastStable;
 
-        /// <summary>
-        /// Gets the content info to consider for the <see cref="BaseBuild"/>.
-        /// It corresponds to the <see cref="VersionTagInfo.HotZoneInfo.LastAvailableStable"/> content and is almost
-        /// always the same as the content info of the <see cref="BaseBuild"/>.
-        /// </summary>
-        public BuildContentInfo? BaseBuildContentInfo => _info.HotZone!.LastAvailableStable?.BuildContentInfo;
+
 
         /// <summary>
-        /// Gets the last built version to consider in the <see cref="Solution.Branch"/>.
-        /// Note that if <see cref="VersionMustBuild"/> is true, this tag commit is either
-        /// a "+fake" or a "+deprecated" version and should not be used.
+        /// Gets the last built version to consider in the <see cref="Solution.Branch"/> and CI build context.
         /// </summary>
-        public TagCommit LastBuild => _lastBuild;
+        public BuiltVersion LastBuildInCI
+        {
+            get
+            {
+                if( _lastBuildInCI == null )
+                {
+                    // Note: TagCommit.CompareTo reverts the SVersion.CompareTo order.
+                    //       Using Min() here gives us the greatest version.
+                    _lastBuildInCI = _tagCommitsFromBaseBuild.Min() ?? BaseBuild;
+                }
+                return new BuiltVersion( this, _lastBuildInCI );
+            }
+        }
 
         /// <summary>
-        /// Gets whether this solution must be built: its <see cref="LastBuild"/> version is either
-        /// a "+fake" or a "+deprecated" version and should not be used to reference any package
-        /// produced by this solution.
+        /// Gets the last built version to consider in the regular <see cref="Solution.Branch"/>.
         /// </summary>
-        public bool VersionMustBuild => _lastBuild.BuildContentInfo == null;
+        public BuiltVersion LastBuildInNonCI
+        {
+            get
+            {
+                if( _lastBuildInNonCI == null )
+                {
+                    Throw.CheckState( "Currently, only 'stable' branch is supported.", _solution.Branch.BranchName.Index == 0 );
+                    // In the "stable" branch, the last commit is by design the BaseBuild.
+                    _lastBuildInNonCI = BaseBuild;
+                }
+                return new BuiltVersion( this, _lastBuildInNonCI );
+            }
+        }
 
         /// <summary>
-        /// Gets whether this <see cref="LastBuild"/>'s commit is not the same as the <see cref="GitSolution"/>'s git branch's tip.
+        /// Gets <see cref="LastBuildInCI"/> or <see cref="LastBuildInNonCI"/>.
         /// </summary>
-        public bool HasCodeChange => _lastBuild.Commit.Sha != _solution.GitSolution.GitBranch.Tip.Sha;
+        /// <param name="ciBuild">Whether we are in a CI build context.</param>
+        /// <returns>The CI or non CI last build.</returns>
+        public BuiltVersion GetLastBuild( bool ciBuild ) => ciBuild ? LastBuildInCI : LastBuildInNonCI;
+
+        public bool VersionMustBuild => _lastAnyBuild.BuildContentInfo == null;
 
         /// <summary>
-        /// Gets whether this solution has already been built: both <see cref="VersionMustBuild"/> and <see cref="HasCodeChange"/> are false.
-        /// </summary>
-        public bool IsAlreadyBuilt => !VersionMustBuild && !HasCodeChange;
-
-        /// <summary>
-        /// Gets all the commits from <see cref="GitSolution"/>'s git branch's tip down to <see cref="LastBuild"/>.
+        /// Gets all the commits from <see cref="GitSolution"/>'s git branch's tip down to <see cref="BaseBuild"/>.
         /// </summary>
         public IReadOnlyList<Commit> CommitsFromBaseBuild => _commitsFromBaseBuild;
 

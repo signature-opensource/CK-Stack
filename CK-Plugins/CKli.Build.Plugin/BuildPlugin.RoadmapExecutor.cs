@@ -43,30 +43,6 @@ public sealed partial class BuildPlugin
             _channel = Channel.CreateUnbounded<object>( new UnboundedChannelOptions() { SingleReader = true } );
         }
 
-        sealed class Mapping : IPackageMapping
-        {
-            readonly IPackageMapping _graphMapper;
-            readonly ConcurrentDictionary<string, SVersion> _buildMapping;
-
-            public Mapping( IPackageMapping mapper, ConcurrentDictionary<string, SVersion> buildMapping )
-            {
-                _buildMapping = buildMapping;
-                _graphMapper = mapper;
-            }
-
-            public bool IsEmpty => _graphMapper.IsEmpty && _buildMapping.Count == 0;
-
-            public SVersion? GetMappedVersion( string packageId, SVersion from )
-            {
-                return _buildMapping.TryGetValue( packageId, out var version )
-                            ? version
-                            : _graphMapper.GetMappedVersion( packageId, from );
-            }
-
-            public bool HasMapping( string packageId ) => _buildMapping.ContainsKey( packageId ) || _graphMapper.HasMapping( packageId );
-        }
-
-
         internal async Task<BuildResult[]?> BuildAsync( IActivityMonitor monitor )
         {
             Throw.DebugAssert( _roadmap.SolutionBuildCount > 0 );
@@ -248,14 +224,14 @@ public sealed partial class BuildPlugin
             {
                 return null;
             }
-            var result = await _buildPlugin.CoreBuildAsync( monitor, _context, build.Solution.VersionInfo.VersionTagInfo, commit, build.TargetVersion, _runTest, forceRebuild: false );
-            if( result != null )
-            {
-                foreach( var p in result.Content.Produced )
-                {
-                    Throw.DebugAssert( _roadmap.PackageMapping.GetMappedVersion( p, build.Solution.CurrentVersion ) == result.Version );
-                }
-            }
+            var result = await _buildPlugin.CoreBuildAsync( monitor,
+                                                            _context,
+                                                            build.Solution.VersionInfo.VersionTagInfo,
+                                                            commit,
+                                                            build.TargetVersion,
+                                                            _runTest,
+                                                            forceRebuild: false ).ConfigureAwait( false );
+            Throw.DebugAssert( result == null || result.Content.Produced.All( p => _roadmap.PackageMapping.GetMappedVersion( p, build.Solution.CurrentVersion ) == result.Version ) );
             return result;
 
             static bool EnsureAndCheckoutBranch( IActivityMonitor monitor, Roadmap.BuildSolution solution, out bool canAmend )

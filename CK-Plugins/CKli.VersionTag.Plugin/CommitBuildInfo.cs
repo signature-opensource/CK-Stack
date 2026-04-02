@@ -17,7 +17,6 @@ public sealed class CommitBuildInfo
     readonly string _toString;
     readonly bool _rebuilding;
     string? _informationalVersion;
-    string? _fileVersion;
 
     internal CommitBuildInfo( VersionTagInfo tagInfo, SVersion version, Commit buildCommit, bool rebuilding )
     {
@@ -62,18 +61,10 @@ public sealed class CommitBuildInfo
     }
 
     /// <summary>
-    /// Gets the 'Major.Minor.Build.Revision' windows file version to use based on the <see cref="CSVersion.OrderedVersion"/>
-    /// when this version is a <see cref="CSVersion"/>, otherwise '0.0.0.0' (<see cref="InformationalVersion.ZeroFileVersion"/>).
+    /// Gets the 'Major.Minor.Build.Revision' windows file version to use.
+    /// This is currently not used and defaults to '0.0.0.0' (<see cref="InformationalVersion.ZeroFileVersion"/>).
     /// </summary>
-    public string FileVersion
-    {
-        get
-        {
-            // All non CSemVer versions uses "0.0.0.0".
-            // We currently don't use the odd numbers for LastReleasedBased CI versions.
-            return _fileVersion ??= _version.AsCSVersion?.ToStringFileVersion( false ) ?? CSemVer.InformationalVersion.ZeroFileVersion;
-        }
-    }
+    public string FileVersion => CSemVer.InformationalVersion.ZeroFileVersion;
 
     /// <summary>
     /// Gets whether the build must use "Release" configuration: the version to build is a

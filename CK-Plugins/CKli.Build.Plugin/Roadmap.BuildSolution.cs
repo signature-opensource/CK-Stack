@@ -75,12 +75,14 @@ public sealed partial class Roadmap
             // The DiscrepanciesMapping unifies external versions (to the max existing version).
             var packageUpdates = new PackagesUpdateDetails();
             if( _solution.GitSolution.HasUpdates( packageUpdates.Add,
-                                                  mustBuildFromUpstreams ? null : _roadmap._packageUpdater.AlreadyBuiltMapping,
+                                                  mustBuildFromUpstreams ? null : _roadmap._packageUpdater.GetAlreadyBuiltMapping( _roadmap._isCIBuild ),
                                                   _roadmap._packageUpdater.WorldConfiguredMapping,
                                                   _roadmap._packageUpdater.DiscrepanciesMapping ) )
             {
                 buildReason |= MustBuildReason.DependencyUpdate;
             }
+
+            var lastBuild = _versionInfo.GetLastBuild( _roadmap._isCIBuild );
 
             // Pivot dependent conditions: if nothing saves the build, then this solution won't be built.
             bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
@@ -88,11 +90,11 @@ public sealed partial class Roadmap
             {
                 if( !canSkip )
                 {
-                    if( _versionInfo.VersionMustBuild )
+                    if( lastBuild.VersionMustBuild )
                     {
                         buildReason |= MustBuildReason.Version;
                     }
-                    if( _versionInfo.HasCodeChange )
+                    if( lastBuild.HasCodeChange )
                     {
                         buildReason |= MustBuildReason.CodeChange;
                     }
@@ -101,11 +103,11 @@ public sealed partial class Roadmap
                 {
                     // We compute the version change not for us (this solution will not be built) but for
                     // the downstream solutions to correctly propagate the change level (here it may be None).
-                    vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _versionInfo.LastBuild.Version );
+                    vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, lastBuild.TagCommit.Version );
                     _buildInfo = new BuildInfo( this,
                                                 MustBuildReason.None,
                                                 vChange,
-                                                _versionInfo.LastBuild.Version,
+                                                lastBuild.TagCommit.Version,
                                                 directRequirements,
                                                 packageUpdates.WorldRef,
                                                 packageUpdates.Configuration,
@@ -115,11 +117,11 @@ public sealed partial class Roadmap
             }
             Throw.DebugAssert( "We must build.", buildReason != MustBuildReason.None );
             // Since we must build, let's update the reason with all its reasons for coherency (and its costs nothing).
-            if( _versionInfo.VersionMustBuild )
+            if( lastBuild.VersionMustBuild )
             {
                 buildReason |= MustBuildReason.Version;
             }
-            if( _versionInfo.HasCodeChange )
+            if( lastBuild.HasCodeChange )
             {
                 buildReason |= MustBuildReason.CodeChange;
             }
@@ -130,7 +132,14 @@ public sealed partial class Roadmap
                                                            ref vChange,
                                                            mustAddCommit: buildReason != MustBuildReason.CodeChange );
 
-            _buildInfo = new BuildInfo( this, buildReason, vChange, targetVersion, directRequirements, packageUpdates.WorldRef, packageUpdates.Configuration, packageUpdates.Discrepancies );
+            _buildInfo = new BuildInfo( this,
+                                        buildReason,
+                                        vChange,
+                                        targetVersion,
+                                        directRequirements,
+                                        packageUpdates.WorldRef,
+                                        packageUpdates.Configuration,
+                                        packageUpdates.Discrepancies );
             _roadmap._buildSolutionCount++;
             return true;
         }
@@ -289,7 +298,7 @@ public sealed partial class Roadmap
                                     + ".ci." + buildNumber.ToString( CultureInfo.InvariantCulture );
                     targetVersion = vChange switch
                     {
-                        VersionChange.Major => SVersion.Create( baseVersion.Major + 1, 0, 0, suffix ),
+                        VersionChange.Major when baseVersion.Major is not 0 => SVersion.Create( baseVersion.Major + 1, 0, 0, suffix ),
                         VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0, suffix ),
                         _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1, suffix )
                     };
@@ -300,7 +309,7 @@ public sealed partial class Roadmap
                     var ciSuffix = "-ci." + buildNumber.ToString( CultureInfo.InvariantCulture );
                     targetVersion = vChange switch
                     {
-                        VersionChange.Major => SVersion.Create( baseVersion.Major + 1, 0, 0, ciSuffix ),
+                        VersionChange.Major when baseVersion.Major is not 0 => SVersion.Create( baseVersion.Major + 1, 0, 0, ciSuffix ),
                         VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0, ciSuffix ),
                         _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1, ciSuffix )
                     };
@@ -344,7 +353,7 @@ public sealed partial class Roadmap
                 {
                     targetVersion = vChange switch
                     {
-                        VersionChange.Major => SVersion.Create( baseVersion.Major + 1, 0, 0 ),
+                        VersionChange.Major when baseVersion.Major is not 0 => SVersion.Create( baseVersion.Major + 1, 0, 0 ),
                         VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0 ),
                         _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1 )
                     };
@@ -356,7 +365,7 @@ public sealed partial class Roadmap
             static VersionChange DetectVersionChange( Commit c, bool noNone )
             {
                 var message = c.Message;
-                // Loosely following the spec here. For use, any appearance of the
+                // Loosely following the spec here. For us, any appearance of the
                 // BREAKING CHANGE anywhere is enough (because of the upper case).
                 if( message.Contains( "BREAKING CHANGE", StringComparison.Ordinal )
                     || message.Contains( "BREAKING-CHANGE", StringComparison.Ordinal ) )
@@ -464,14 +473,13 @@ public sealed partial class Roadmap
         /// </summary>
         public SVersion BaseVersion => _versionInfo.BaseBuild.Version;
 
-
         /// <summary>
-        /// Gets the current version (the <see cref="HotGraph.SolutionVersionInfo.LastBuild"/> version).
+        /// Gets the current version (from <see cref="HotGraph.SolutionVersionInfo.GetLastBuild(bool)"/>).
         /// </summary>
-        public SVersion CurrentVersion => _versionInfo.LastBuild.Version;
+        public SVersion CurrentVersion => _versionInfo.GetLastBuild( _roadmap._isCIBuild ).TagCommit.Version;
 
         /// <summary>
-        /// Gets the build info. This is null if this solution is is not impacted
+        /// Gets the build info. This is null if this solution is not impacted
         /// by any of the <see cref="Roadmap.Pivots"/>.
         /// </summary>
         public BuildInfo? BuildInfo => _buildInfo;

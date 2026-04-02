@@ -23,30 +23,22 @@ public sealed partial class HotGraph
     {
         readonly HotGraph _graph;
         readonly ImmutableArray<SolutionVersionInfo> _versions;
-        readonly bool _buildRequired;
         IReadOnlyDictionary<string, IReadOnlyList<(Solution Solution, SVersion Version)>>? _discrepancies;
-        IPackageMapping? _alreadyBuiltMapping;
+        IPackageMapping? _alreadyBuiltMappingInCI;
+        IPackageMapping? _alreadyBuiltMappingInNonCI;
         IPackageMapping? _worldConfiguredMapping;
         IPackageMapping? _discrepanciesMapping;
 
-        internal PackageUpdater( HotGraph graph,
-                                 ImmutableArray<SolutionVersionInfo> versions,
-                                 bool buildRequired )
+        internal PackageUpdater( HotGraph graph, ImmutableArray<SolutionVersionInfo> versions )
         {
             _graph = graph;
             _versions = versions;
-            _buildRequired = buildRequired;
         }
 
         /// <summary>
         /// Gets the hot graph.
         /// </summary>
         public HotGraph Graph => _graph;
-
-        /// <summary>
-        /// Gets whether at least one <see cref="SolutionVersionInfo.VersionMustBuild"/> is true.
-        /// </summary>
-        public bool BuildRequired => _buildRequired;
 
         /// <summary>
         /// Maps package name to one or more Solution in which their <see cref="Solution.ExternalDependencies"/> have different versions.
@@ -105,11 +97,16 @@ public sealed partial class HotGraph
         }
 
         /// <summary>
-        /// Gets the package mapping with the current <see cref="SolutionVersionInfo.LastBuild"/> version of each solution
-        /// excluding true <see cref="SolutionVersionInfo.VersionMustBuild"/>: when the version is a "+fake" or a "+deprecated",
+        /// Gets the package mapping with the current <see cref="SolutionVersionInfo.GetLastBuild(bool)"/> version of each solution
+        /// excluding true <see cref="SolutionVersionInfo.BuiltVersion.VersionMustBuild"/>: when the version is a "+fake" or a "+deprecated",
         /// mapping is ignored.
         /// </summary>
-        public IPackageMapping AlreadyBuiltMapping => _alreadyBuiltMapping ??= new LastBuildVersionMapping( _graph._p2s, _versions );
+        public IPackageMapping GetAlreadyBuiltMapping( bool ciBuild )
+        {
+            return ciBuild
+                    ? _alreadyBuiltMappingInCI ??= new LastBuildVersionMapping( _graph._p2s, _versions, true )
+                    : _alreadyBuiltMappingInNonCI ??= new LastBuildVersionMapping( _graph._p2s, _versions, false );
+        }
 
         /// <summary>
         /// Gets the version mapping of the configured Worlds packages from the <see cref="VersionTag.Plugin.VersionTagPlugin.GetPackagesConfiguration(IActivityMonitor)"/>.
@@ -127,11 +124,13 @@ public sealed partial class HotGraph
         {
             readonly Dictionary<string, Solution> _p2s;
             readonly ImmutableArray<SolutionVersionInfo> _versions;
+            readonly bool _ciBuild;
 
-            public LastBuildVersionMapping( Dictionary<string, Solution> p2s, ImmutableArray<SolutionVersionInfo> versions )
+            public LastBuildVersionMapping( Dictionary<string, Solution> p2s, ImmutableArray<SolutionVersionInfo> versions, bool ciBuild )
             {
                 _p2s = p2s;
                 _versions = versions;
+                _ciBuild = ciBuild;
             }
 
             public bool IsEmpty => _p2s.Count == 0;
@@ -141,9 +140,10 @@ public sealed partial class HotGraph
                 if( _p2s.TryGetValue( packageId, out var s ) )
                 {
                     var sv = _versions[s.OrderedIndex];
-                    return sv.VersionMustBuild
+                    var last = _ciBuild ? sv.LastBuildInCI : sv.LastBuildInNonCI;
+                    return last.VersionMustBuild
                             ? null
-                            : _versions[s.OrderedIndex].LastBuild.Version;
+                            : last.TagCommit.Version;
                 }
                 return null;
             }

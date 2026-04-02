@@ -159,12 +159,12 @@ public sealed partial class HotGraph
             //
             // Note: TagCommit.CompareTo reverts the SVersion.CompareTo order.
             //
-            var lastBuild = tagCommitsFromBaseBuild.Min() ?? baseTagCommit;
-            if( lastBuild.BuildContentInfo == null )
+            var lastAnyBuild = tagCommitsFromBaseBuild.Min() ?? baseTagCommit;
+            if( lastAnyBuild.BuildContentInfo == null )
             {
-                monitor.Warn( $"Last build tag for '{_solution}' is '{lastBuild.Version.ParsedText}'. It requires a build." );
+                monitor.Warn( $"Last any build tag for '{_solution}' is '{lastAnyBuild.Version.ParsedText}'. It requires a build." );
             }
-            return _versionInfo = new SolutionVersionInfo( this, vInfo, lastBuild, commitsFromBaseBuild, tagCommitsFromBaseBuild );
+            return _versionInfo = new SolutionVersionInfo( this, vInfo, lastAnyBuild, commitsFromBaseBuild, tagCommitsFromBaseBuild );
         }
 
         /// <summary>

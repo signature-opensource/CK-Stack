@@ -11,14 +11,14 @@ namespace CKli.Build.Plugin;
 /// </summary>
 public sealed class LocalStringCache
 {
-    readonly StackRepository _stack;
+    readonly LocalWorldName _world;
     readonly string _name;
     string? _filePath;
     HashSet<string>? _cache;
 
-    public LocalStringCache( StackRepository stack, string name )
+    public LocalStringCache( LocalWorldName world, string name )
     {
-        _stack = stack;
+        _world = world;
         _name = name;
     }
 
@@ -39,7 +39,7 @@ public sealed class LocalStringCache
         }
     }
 
-    string GetFilePath() => _filePath ??= _stack.StackWorkingFolder.Combine( $"$Local/{_name}.txt" );
+    string GetFilePath() => _filePath ??= _world.LocalDataFolder.AppendPart( $"{_name}.txt" );
 
     HashSet<string> GetCache( IActivityMonitor monitor )
     {

@@ -50,7 +50,7 @@ public sealed partial class Roadmap
             }
         }
         _orderedSolutions = ImmutableCollectionsMarshal.AsImmutableArray( buildSolutions );
-        _packageMapping = new Mapping( packageUpdater, _orderedSolutions );
+        _packageMapping = new Mapping( packageUpdater, _orderedSolutions, isCIBuild );
         _pivots = ImmutableCollectionsMarshal.AsImmutableArray( pivots );
     }
 

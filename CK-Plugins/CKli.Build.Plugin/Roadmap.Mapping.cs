@@ -11,11 +11,13 @@ public sealed partial class Roadmap
     {
         readonly HotGraph.PackageUpdater _packageUpdater;
         readonly ImmutableArray<BuildSolution> _orderedSolutions;
+        readonly bool _ciBuild;
 
-        public Mapping( HotGraph.PackageUpdater packageUpdater, ImmutableArray<BuildSolution> orderedSolutions )
+        public Mapping( HotGraph.PackageUpdater packageUpdater, ImmutableArray<BuildSolution> orderedSolutions, bool ciBuild )
         {
             _packageUpdater = packageUpdater;
             _orderedSolutions = orderedSolutions;
+            _ciBuild = ciBuild;
         }
 
         public bool IsEmpty => false;
@@ -23,7 +25,7 @@ public sealed partial class Roadmap
         public SVersion? GetMappedVersion( string packageId, SVersion from )
         {
             // Packages produced by this World are fully handled here: this lookup handles current target build
-            // versions and already built versions (it's useless to lookup the _packageUpdater.AlreadyBuiltMapping mappings).
+            // versions and already built versions: it's useless to lookup the _packageUpdater.GetAlreadyBuiltMapping( bool ciBuild ) mappings.
             if( _packageUpdater.Graph.ProducedPackages.TryGetValue( packageId, out var localSolution ) )
             {
                 var b = _orderedSolutions[localSolution.OrderedIndex];
@@ -31,9 +33,10 @@ public sealed partial class Roadmap
                 {
                     return b.BuildInfo.TargetVersion;
                 }
-                return b.VersionInfo.VersionMustBuild
+                var last = b.VersionInfo.GetLastBuild( _ciBuild );
+                return last.VersionMustBuild
                         ? null
-                        : b.VersionInfo.LastBuild.Version;
+                        : last.TagCommit.Version;
             }
             return _packageUpdater.WorldConfiguredMapping.GetMappedVersion( packageId, from )
                     ?? _packageUpdater.DiscrepanciesMapping.GetMappedVersion( packageId, from );

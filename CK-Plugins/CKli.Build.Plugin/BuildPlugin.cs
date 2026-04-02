@@ -20,7 +20,9 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
 {
     const string _descBranch = "Specify the branch to consider. By default, the current head is considered when in a Repo.";
     const string _descMaxDoP = "Maximal Degree of Parallelism. Defaults to 4.";
-
+    const string _descDryRun = "Only display the build roadmap.";
+    const string _descBuildPublish = "On success, publish the generated packages and asset files.";
+    const string _descNoPublish = "Don't publish the generated packages and asset files.";
 
     readonly VersionTagPlugin _versionTags;
     readonly BranchModelPlugin _branchModel;
@@ -77,10 +79,10 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                              bool skipTests = false,
                              [Description( "Run tests even if they have already run successfully on the commit." )]
                              bool forceTests = false,
-                             [Description( "On success, publish the generated packages and asset files." )]
+                             [Description( _descBuildPublish )]
                              [OptionName("--publish")]
                              bool publish = false,
-                             [Description( "Only display the build roadmap." )]
+                             [Description( _descDryRun )]
                              [OptionName("--dry-run,-d")]
                              bool dryRun = false )
     {
@@ -102,9 +104,10 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                  bool skipTests = false,
                                  [Description( "Run tests even if they have already run successfully on the commit." )]
                                  bool forceTests = false,
-                                 [Description( "On success, publish the generated packages and asset files." )]
+                                 [Description( _descBuildPublish )]
                                  [OptionName("--publish")]
                                  bool publish = false,
+                                 [Description( _descDryRun )]
                                  [OptionName("--dry-run,-d")]
                                  bool dryRun = false )
     {
@@ -124,11 +127,14 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                bool all = false,
                                [Description( "Run tests even if they have already run successfully on the commit." )]
                                bool forceTests = false,
-                               [Description( "Only display the build roadmap." )]
+                               [Description( _descNoPublish )]
+                               [OptionName("--no-publish")]
+                               bool noPublish = false,
+                               [Description( _descDryRun )]
                                [OptionName("--dry-run,-d")]
                                bool dryRun = false )
     {
-        return DoPublishAsync( monitor, context, branch, maxDop, all, forceTests, dryRun, isPullBuild: false, shouldPublish: true );
+        return DoPublishAsync( monitor, context, branch, maxDop, all, forceTests, dryRun, isPullBuild: false, shouldPublish: !noPublish );
     }
 
     [Description( "Build-Test-Package the consumers of the current repositories, propagates packages to their consumers and publishes all the artifacts." )]
@@ -144,11 +150,14 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                                    bool all = false,
                                    [Description( "Run tests even if they have already run successfully on the commit." )]
                                    bool forceTests = false,
-                                   [Description( "Only display the build roadmap." )]
+                                   [Description( _descNoPublish )]
+                                   [OptionName("--no-publish")]
+                                   bool noPublish = false,
+                                   [Description( _descDryRun )]
                                    [OptionName("--dry-run,-d")]
                                    bool dryRun = false )
     {
-        return DoPublishAsync( monitor, context, branch, maxDop, all, forceTests, dryRun, isPullBuild: true, shouldPublish: true );
+        return DoPublishAsync( monitor, context, branch, maxDop, all, forceTests, dryRun, isPullBuild: true, shouldPublish: !noPublish );
     }
 
     Task<bool> DoBuildAsync( IActivityMonitor monitor,

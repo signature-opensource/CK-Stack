@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.ReleaseDatabase.Plugin;
 using System;
 using System.Threading.Tasks;
 
@@ -11,11 +12,13 @@ sealed partial class SimplePublisher
 {
     readonly PublishState _state;
     readonly PackageSender _packageSender;
+    readonly ReleaseDatabasePlugin _releaseDatabase;
 
-    public SimplePublisher( PublishState state, PackageSender packageSender )
+    public SimplePublisher( PublishState state, PackageSender packageSender, ReleaseDatabasePlugin releaseDatabase )
     {
         _state = state;
         _packageSender = packageSender;
+        _releaseDatabase = releaseDatabase;
     }
 
     public async Task<bool> RunAsync( IActivityMonitor monitor, System.Threading.CancellationToken cancel )
@@ -26,26 +29,26 @@ sealed partial class SimplePublisher
             switch( step.Location )
             {
                 case PublishState.Cursor.LocType.BegOfRepo:
-                    step = await OnBegOfRepoAsync( monitor );
+                    step = await OnBegOfRepoAsync( monitor ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.InPackage:
-                    step = await OnInPackagesAsync( monitor );
+                    step = await OnInPackagesAsync( monitor ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.InFile:
-                    step = await OnInFilesAsync( monitor );
+                    step = await OnInFilesAsync( monitor ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.EndOfRepo:
-                    step = await OnEndOfRepoAsync( monitor );
+                    step = await OnEndOfRepoAsync( monitor ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.EndOfWorld:
-                    step = await OnEndOfWorldAsync( monitor );
+                    step = await OnEndOfWorldAsync( monitor ).ConfigureAwait( false );
                     break;
             }
             if( step == null ) return false;
         }
+        _state.World.StackRepository.PushChanges( monitor );
         return true;
     }
-
 
     async Task<PublishState.Cursor?> OnBegOfRepoAsync( IActivityMonitor monitor )
     {
@@ -56,10 +59,11 @@ sealed partial class SimplePublisher
     {
         var repo = _state.PrimaryCursor.Repo;
         Throw.DebugAssert( repo != null && repo.BuildContentInfo.Produced.Length > 0 );
-        if( await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced ).ConfigureAwait( false ) )
+        if( !await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced ).ConfigureAwait( false ) )
         {
             return null; 
         }
+        
         return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
     }
 
@@ -72,10 +76,29 @@ sealed partial class SimplePublisher
     {
         var repo = _state.PrimaryCursor.Repo;
         Throw.DebugAssert( repo != null );
-        // Should create the Release (if hosting provider supports it) with the repo.ReleaseNotes...
-
         // Push the version tag.
-        if( !repo.Repo.GitRepository.PushTags( monitor, ["v" + repo.BuildVersion.ToString()] ) )
+        Core.GitRepository r = repo.Repo.GitRepository;
+        if( !r.PushTags( monitor, ["v" + repo.BuildVersion.ToString()] ) )
+        {
+            return null;
+        }
+        // Push the branch.
+        var branch = r.GetBranch( monitor, repo.BranchName, missingLocalAndRemote: LogLevel.Error );
+        if( branch == null )
+        {
+            return null;
+        }
+        if( !r.PushBranch( monitor, branch, autoCreateRemoteBranch: true ) )
+        {
+            return null;
+        }
+        // Moves the release from local to published database.
+        if( !_releaseDatabase.PublishRelease( monitor, repo.Repo, repo.BuildVersion ) )
+        {
+            return null;
+        }
+        // Should create the Release (if hosting provider supports it).
+        if( !r.RepositoryKey.TryGetHostingInfo(  monitor, out var hostingProvider, out _ ) )
         {
             return null;
         }

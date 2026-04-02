@@ -8,6 +8,7 @@ namespace CKli.Publish.Plugin;
 sealed class RepoPublishInfo
 {
     readonly Repo _repo;
+    readonly string _branchName;
     readonly int _index;
     readonly SVersion _baseVersion;
     readonly SVersion _buildVersion;
@@ -17,6 +18,11 @@ sealed class RepoPublishInfo
     /// Gets the Repo.
     /// </summary>
     public Repo Repo => _repo;
+
+    /// <summary>
+    /// Gets the branch name. This is a "dev/XXX" branch when <see cref="WorldReleaseInfo.IsCIBuild"/> is true.
+    /// </summary>
+    public string BranchName => _branchName;
 
     /// <summary>
     /// Gets the index of this published repository in its <see cref="WorldReleaseInfo.Repos"/>.
@@ -40,20 +46,22 @@ sealed class RepoPublishInfo
     public SVersion BuildVersion => _buildVersion;
 
     RepoPublishInfo( Repo repo,
+                     string branchName,
                      int index,
                      SVersion baseVersion,
                      SVersion buildVersion,
                      BuildContentInfo buildContentInfo )
     {
         _repo = repo;
+        _branchName = branchName;
         _index = index;
         _baseVersion = baseVersion;
         _buildVersion = buildVersion;
         _buildContentInfo = buildContentInfo;
     }
 
-    internal RepoPublishInfo( int index, SVersion baseVersion, BuildResult result )
-        : this( result.Repo, index, baseVersion, result.Version, result.Content )
+    internal RepoPublishInfo( int index, string branchName, SVersion baseVersion, BuildResult result )
+        : this( result.Repo, branchName, index, baseVersion, result.Version, result.Content )
     {
     }
 
@@ -66,12 +74,14 @@ sealed class RepoPublishInfo
             monitor.Error( $"Unable to restore Repo from ckli-repo identifier: '{repoId}'." );
             return null;
         }
+        var branchName = r.ReadString();
         var index = r.ReadNonNegativeSmallInt32();
         var baseVersion = ReadVersion( r );
         var buildVersion = ReadVersion( r );
         var buildContentInfo = new BuildContentInfo( r );
 
         return new RepoPublishInfo( repo,
+                                    branchName,
                                     index,
                                     baseVersion,
                                     buildVersion,
@@ -83,6 +93,7 @@ sealed class RepoPublishInfo
     public void Write( ICKBinaryWriter w )
     {
         w.Write( _repo.CKliRepoId.Value );
+        w.Write( _branchName );
         w.WriteNonNegativeSmallInt32( _index );
         w.Write( _baseVersion.ToString() );
         w.Write( _buildVersion.ToString() );

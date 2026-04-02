@@ -351,11 +351,13 @@ public class BuildTests
         #endregion
 
     }
-    
-    [Test]
-    public async Task CKt_with_sample_publish_PerfectEvent_Async()
+
+    [TestCase( "NonPackableSample" )]
+    [TestCase( "SampleIsPackable" )]
+    public async Task CKt_publish_PerfectEvent_Async( string mode )
     {
-        var clonedFolder = TestHelper.InitializeClonedFolder();
+        var nonPackableSample = mode == "NonPackableSample";
+        var clonedFolder = TestHelper.InitializeClonedFolder( $"CKt_publish_PerfectEvent-{mode}" );
         var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
         var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds ).SetScreen( new StringScreen( useDebugRenderer: true ) );
         var display = (StringScreen)context.Screen;
@@ -363,19 +365,56 @@ public class BuildTests
         // From CKt-PerfectEvent (the NuGet.config has been renamed to nuget.config).
         // The CKt-Monitoring and App sample are "nothing".
         // CKt-Sample-Monitoring is a downstream repo that must be built.
+        // We inject <IsPackable>false</IsPackable> in CKt.Sample.Monitoring.csproj in "nonPackableSample" mode.
         var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
+
+        if( nonPackableSample )
+        {
+            NormalizedPath path = context.CurrentDirectory.Combine( "Samples/CKt-Sample-Monitoring/CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" );
+            var doc = XDocument.Load( path );
+            doc.Root!.AddFirst( new XElement( "PropertyGroup", new XElement( "IsPackable", false ) ) );
+            XmlHelper.SaveWithoutXmlDeclaration( doc, path );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "commit", "Make Sample project not packable." )).ShouldBeTrue();
+            display.Clear();
+        }
+
+        // To be able to push to the FakeFeeds.
+        Helper.SetFileSystemWritePAT();
+
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish" )).ShouldBeTrue();
 
-        display.ToString().ShouldBe( """
-          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0 [GRAY]⮐
-          - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GRAY]⮐
-        1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3[GRAY] [Italic](CodeChange)[Regular]⮐
-          ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GRAY]⮐
-          ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GRAY]⮐
-        2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream)[Regular]  ⮐
-        [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
-        
-        """ );
+        display.ToString().ShouldBe(
+            nonPackableSample
+            ? """
+                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0 [GRAY]⮐
+                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GRAY]⮐
+              1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3[GRAY] [Italic](CodeChange)[Regular]          ⮐
+                ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GRAY]⮐
+                ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GRAY]⮐
+              2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
+              [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+          
+              """
+            : """
+                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0 [GRAY]⮐
+                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GRAY]⮐
+              1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3[GRAY] [Italic](CodeChange)[Regular]⮐
+                ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GRAY]⮐
+                ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GRAY]⮐
+              2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream)[Regular]  ⮐
+              [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+             
+              """ );
+
+        var nugetOrg = clonedFolder.Combine( "FakeFeed/nuget.org" );
+        var sosFeed = clonedFolder.Combine( "FakeFeed/Signature-OpenSource" );
+
+        Directory.Exists( nugetOrg.AppendPart( "ckt.perfectevent" ) ).ShouldBeTrue();
+        Directory.Exists( sosFeed.AppendPart( "ckt.perfectevent" ) ).ShouldBeTrue();
+
+        Directory.Exists( nugetOrg.AppendPart( "ckt.sample.monitoring" ) ).ShouldBe( !nonPackableSample );
+        Directory.Exists( sosFeed.AppendPart( "ckt.sample.monitoring" ) ).ShouldBe( !nonPackableSample );
+
 
     }
 

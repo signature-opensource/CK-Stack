@@ -17,8 +17,14 @@ namespace CKli.Publish.Plugin;
 sealed partial class PublishState
 {
     readonly List<WorldReleaseInfo> _releases;
+    readonly World _world;
     readonly NormalizedPath _path;
     Cursor _primaryCursor;
+
+    /// <summary>
+    /// Gets the world.
+    /// </summary>
+    public World World => _world;
 
     /// <summary>
     /// Gets the list of world releases that wait to be published.
@@ -85,15 +91,17 @@ sealed partial class PublishState
     /// <returns>The cursor to use to traverse this state.</returns>
     public Cursor CreateCursor( int position = 0 ) => Cursor.Create( this );
 
-    PublishState( NormalizedPath path )
+    PublishState( World world, NormalizedPath path )
     {
+        _world = world;
         _path = path;
         _releases = new List<WorldReleaseInfo>();
         _primaryCursor = new Cursor( this );
     }
 
-    PublishState( NormalizedPath path, List<WorldReleaseInfo> releases, int primaryPosition )
+    PublishState( World world, NormalizedPath path, List<WorldReleaseInfo> releases, int primaryPosition )
     {
+        _world = world;
         _path = path;
         _releases = releases;
         _primaryCursor = new Cursor( this ).Forward( primaryPosition );
@@ -119,7 +127,7 @@ sealed partial class PublishState
                         if( p == null ) return null;
                         releases.Add( p );
                     }
-                    return new PublishState( path, releases, position );
+                    return new PublishState( world, path, releases, position );
                 }
             }
             catch( Exception ex )
@@ -128,7 +136,7 @@ sealed partial class PublishState
                 return null;
             }
         }
-        return new PublishState( path );
+        return new PublishState( world, path );
     }
 
     internal bool Persist( IActivityMonitor monitor, bool fullWrite )

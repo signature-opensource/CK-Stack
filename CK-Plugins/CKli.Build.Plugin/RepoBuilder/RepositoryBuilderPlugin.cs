@@ -40,7 +40,7 @@ public sealed class RepositoryBuilderPlugin : PrimaryRepoPlugin<RepoBuilder>
 
     protected override RepoBuilder Create( IActivityMonitor monitor, Repo repo )
     {
-        _shaTestRunCache ??= new LocalStringCache( repo.World.StackRepository, "TestRun.Sha" );
+        _shaTestRunCache ??= new LocalStringCache( repo.World.Name, "TestRun.Sha" );
         return new RepoBuilder( repo, this, _artifactHandler.Get( monitor, repo ) );
     }
 
