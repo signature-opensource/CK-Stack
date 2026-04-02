@@ -187,8 +187,13 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
     static bool RemoveRepositoryInfoAndCodeCakeBuilderAndSlnx( IActivityMonitor monitor, Repo repo )
     {
         bool success = true;
+
         var repoXml = repo.WorkingFolder.AppendPart( "RepositoryInfo.xml" );
         success &= FileHelper.DeleteFile( monitor, repoXml );
+
+        var appveyor = repo.WorkingFolder.AppendPart( "appveyor.yml" );
+        success &= FileHelper.DeleteFile( monitor, appveyor );
+
         var slnPath = repo.WorkingFolder.AppendPart( repo.WorkingFolder.LastPart + ".sln" );
         if( File.Exists( slnPath ) )
         {
