@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
@@ -16,16 +17,19 @@ namespace CKli.Net8Migration.Plugin;
 
 public sealed class Net8MigrationPlugin : PrimaryPluginBase
 {
+    readonly ArtifactHandlerPlugin _artifactHandler;
     readonly VersionTagPlugin _versionTag;
     readonly BranchModelPlugin _branchModel;
     readonly BuildPlugin _build;
 
     public Net8MigrationPlugin( PrimaryPluginContext primaryContext,
+                                ArtifactHandlerPlugin artifactHandler,  
                                 VersionTagPlugin versionTag,
                                 BranchModelPlugin branchModel,
                                 BuildPlugin build )
         : base( primaryContext )
     {
+        _artifactHandler = artifactHandler;
         _versionTag = versionTag;
         _branchModel = branchModel;
         branchModel.OnFixStart.Sync += OnFixStart;
@@ -68,10 +72,10 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
     [Description( "Migrate Net8 stack." )]
     [CommandPath( "migrate net8" )]
     public bool Migrate( IActivityMonitor monitor,
-                         bool resetAll = false,
-                         bool checkDevelop = false )
+                         bool hardResetAll = false,
+                         bool restoreRemotes = false )
     {
-        if( resetAll )
+        if( hardResetAll )
         {
             using( monitor.OpenInfo( "Deleting all existing repo." ) )
             {
@@ -90,6 +94,54 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         // This will fix the layout by re-cloning all the repos.
         var repos = World.GetAllDefinedRepo( monitor );
         if( repos == null ) return false;
+
+        if( restoreRemotes )
+        {
+            foreach( var r in repos )
+            {
+                // Removes the local "develop" to restore it on its remote.
+                if( r.GitRepository.CurrentBranchName == "develop" )
+                {
+                    r.GitRepository.FullCheckout( monitor, "master" );
+                }
+                r.GitRepository.Repository.Branches.Remove( "develop" );
+                if( !r.GitRepository.FetchRemoteBranch( monitor, "develop", withTags: false, out var develop ) || develop == null )
+                {
+                    return false; 
+                }
+                r.GitRepository.Checkout( monitor, develop );
+
+                r.GitRepository.Repository.Branches.Remove( "stable" );
+                r.GitRepository.Repository.Branches.Remove( "dev/stable" );
+                if( !r.GitRepository.GetDiffTags( monitor, out var diff ) )
+                {
+                    return false; 
+                }
+                // Deletes all local only version tags.
+                var localOnlyTags = diff.Entries.SelectMany( e => e.Tags )
+                                                                  .Where( t => t.Diff == GitTagInfo.TagDiff.LocalOnly && t.CanonicalName != "refs/tags/ckli-repo" )
+                                                                  .Select( t => SVersion.TryParse( t.CanonicalName.Substring( 10 ) ) )
+                                                                  .Where( v => v.IsValid );
+                foreach( var localVersion in localOnlyTags )
+                {
+                    if( !_versionTag.DestroyLocalRelease( monitor, r, localVersion ) )
+                    {
+                        return false; 
+                    }
+                }
+
+                if( !FileHelper.DeleteFolder( monitor, _artifactHandler.LocalNuGetPath ) )
+                {
+                    return false;
+                }
+                Directory.CreateDirectory( _artifactHandler.LocalNuGetPath );
+                if( !FileHelper.DeleteFolder( monitor, _artifactHandler.LocalAssetsPath ) )
+                {
+                    return false;
+                }
+                Directory.CreateDirectory( _artifactHandler.LocalAssetsPath );
+            }
+        }
 
         #region Work on master => "stable" branch model. This is idempotent.
         // Even if we already ran this once, the following check is not useless:
@@ -130,6 +182,10 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             var stable = branchInfo.Root;
             Throw.DebugAssert( "We have ensured it above.", stable.GitBranch != null );
 
+            // We always ensure the "dev/stable". It may be useless (will appear in issue but for the
+            // migration, we want the post migration state to be on "dev/stable". 
+            stable.EnsureDevBranch();
+
             var develop = repo.GitRepository.GetBranch( monitor, "develop", missingLocalAndRemote: LogLevel.Warn );
             if( develop != null )
             {
@@ -146,10 +202,9 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                     if( div.AheadBy.Value > 0 )
                     {
                         // develop is ahead master: we must integrate "develop" into "dev/stable".
-                        // 1 - We ensure the "dev/".
+                        // 1 - We have ensured the "dev/" above.
                         // 2 - We synchronize "stable" into its "dev/" if necessary.
                         // 3 - We merge "develop" into the "dev/stable".
-                        stable.EnsureDevBranch();
                         if( !stable.SynchronizeDevBranch( monitor )
                             || BranchLink.IntegrateMerge( monitor, repo.GitRepository, develop, stable.GitDevBranch, removeBranch: false ) == null )
                         {
@@ -158,6 +213,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
                     }
                 }
             }
+            Commands.Checkout( repo.GitRepository.Repository, stable.BranchName.DevName );
         }
 
 
@@ -205,12 +261,12 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
             {
                 success = false;
             }
+            // Idempotent but to avoid useless call, do this only when a sln has been found. 
+            success &= ProcessRunner.RunProcess( monitor.ParallelLogger,
+                                                 "dotnet",
+                                                 "sln remove CodeCakeBuilder/CodeCakeBuilder.csproj",
+                                                 repo.WorkingFolder ) == 0;
         }
-        // Idempotent.
-        success &= ProcessRunner.RunProcess( monitor.ParallelLogger,
-                                             "dotnet",
-                                             "sln remove CodeCakeBuilder/CodeCakeBuilder.csproj",
-                                             repo.WorkingFolder ) == 0;
         var ccbPath = repo.WorkingFolder.AppendPart( "CodeCakeBuilder" );
         success &= FileHelper.DeleteFolder( monitor, ccbPath );
 

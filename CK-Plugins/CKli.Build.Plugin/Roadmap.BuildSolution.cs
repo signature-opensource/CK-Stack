@@ -296,23 +296,13 @@ public sealed partial class Roadmap
                     string suffix = prereleaseChar + '.' + prereleaseNumber.ToString( CultureInfo.InvariantCulture )
                                     + '.' + prereleaseFixNumber.ToString( CultureInfo.InvariantCulture )
                                     + ".ci." + buildNumber.ToString( CultureInfo.InvariantCulture );
-                    targetVersion = vChange switch
-                    {
-                        VersionChange.Major when baseVersion.Major is not 0 => SVersion.Create( baseVersion.Major + 1, 0, 0, suffix ),
-                        VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0, suffix ),
-                        _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1, suffix )
-                    };
+                    targetVersion = NextVersion( vChange, baseVersion, suffix );
                 }
                 else
                 {
                     // Double dash trick here.
                     var ciSuffix = "-ci." + buildNumber.ToString( CultureInfo.InvariantCulture );
-                    targetVersion = vChange switch
-                    {
-                        VersionChange.Major when baseVersion.Major is not 0 => SVersion.Create( baseVersion.Major + 1, 0, 0, ciSuffix ),
-                        VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0, ciSuffix ),
-                        _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1, ciSuffix )
-                    };
+                    targetVersion = NextVersion( vChange, baseVersion, ciSuffix );
                 }
             }
             else
@@ -342,21 +332,11 @@ public sealed partial class Roadmap
                             suffix += '.' + prereleaseFixNumber.ToString( System.Globalization.CultureInfo.InvariantCulture );
                         }
                     }
-                    targetVersion = vChange switch
-                    {
-                        VersionChange.Major => SVersion.Create( baseVersion.Major + 1, 0, 0, suffix ),
-                        VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0, suffix ),
-                        _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1, suffix )
-                    };
+                    targetVersion = NextVersion( vChange, baseVersion, suffix );
                 }
                 else
                 {
-                    targetVersion = vChange switch
-                    {
-                        VersionChange.Major when baseVersion.Major is not 0 => SVersion.Create( baseVersion.Major + 1, 0, 0 ),
-                        VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0 ),
-                        _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1 )
-                    };
+                    targetVersion = NextVersion( vChange, baseVersion, null );
                 }
             }
 
@@ -444,7 +424,17 @@ public sealed partial class Roadmap
                 return true;
             }
 
-
+            static SVersion NextVersion( VersionChange vChange, SVersion baseVersion, string? suffix )
+            {
+                return vChange switch
+                {
+                    VersionChange.Major => baseVersion.Major == 0
+                                            ? SVersion.Create( 0, baseVersion.Minor + 1, 0, suffix )
+                                            : SVersion.Create( baseVersion.Major + 1, 0, 0, suffix ),
+                    VersionChange.Minor => SVersion.Create( baseVersion.Major, baseVersion.Minor + 1, 0, suffix ),
+                    _ => SVersion.Create( baseVersion.Major, baseVersion.Minor, baseVersion.Patch + 1, suffix )
+                };
+            }
         }
         #endregion /Initialize
 

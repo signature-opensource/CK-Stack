@@ -4,6 +4,7 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CSemVer;
 using LibGit2Sharp;
+using NuGet.Frameworks;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -98,7 +99,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     /// and <see cref="ArtifactHandlerPlugin.DestroyLocalRelease(IActivityMonitor, Repo, SVersion, BuildContentInfo)"/>
     /// that should not be called directly.
     /// <para>
-    /// This is idempotent.
+    /// This is idempotent and doesn't trigger the initialization of the <see cref="VersionTagInfo"/> for the Repo, but if it
+    /// <see cref="RepoPluginBase{T}.HasRepoInfoBeenCreated(Repo)">has been created</see> it is updated.
     /// </para>
     /// </summary>
     /// <param name="monitor">The monitor.</param>
@@ -107,7 +109,14 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     /// <returns>True on success, false on error (only errors are that assets cannot be properly deleted).</returns>
     public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
     {
-        return DestroyRelease( monitor, repo, version, Get( monitor, repo ).RemoveTagCommit( version ), removeFromPublishedDatabase: false );
+        TagCommit? tagCommit = HasRepoInfoBeenCreated( repo ) ? Get( monitor, repo ).RemoveTagCommit( version ) : null;
+
+        Tag? tag = tagCommit?.Tag ?? repo.GitRepository.Repository.Tags[$"v{version.ToString()}"] ?? repo.GitRepository.Repository.Tags[version.ToString()];
+        if( tag != null )
+        {
+            repo.GitRepository.DeleteLocalTags( monitor, [tag.CanonicalName] );
+        }
+        return DestroyRelease( monitor, repo, version, tagCommit, removeFromPublishedDatabase: false );
     }
 
     /// <summary>
