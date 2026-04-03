@@ -143,6 +143,68 @@ public sealed partial class Roadmap
         return builder.BuildAsync( monitor );
     }
 
+    internal struct RStats( int repositoryCount, int buildSolutionCount, bool hasPivots, int pivotsCount, bool isPullBuild, string action )
+    {
+        IRenderable? _uDepHead;
+        IRenderable? _cDepHead;
+        IRenderable? _dDepHead;
+
+        public IRenderable GetUDepHead( ScreenType screen ) => _uDepHead ??= DepKind( screen, "U" );
+        public IRenderable GetCDepHead( ScreenType screen ) => _cDepHead ??= DepKind( screen, "C" );
+        public IRenderable GetDDepHead( ScreenType screen ) => _dDepHead ??= DepKind( screen, "D" );
+        public int UDepUpdates;
+        public int CDepUpdates;
+        public int DDepUpdates;
+
+        public IRenderable Render( ScreenType screen )
+        {
+            Throw.DebugAssert( (_uDepHead != null) == (UDepUpdates > 0) );
+            Throw.DebugAssert( (_cDepHead != null) == (CDepUpdates > 0) );
+            Throw.DebugAssert( (_dDepHead != null) == (DDepUpdates > 0) );
+            IRenderable r;
+            if( buildSolutionCount == 0 )
+            {
+                r = hasPivots
+                    ? screen.Text( $"There is nothing to {action} from the {pivotsCount} pivots out of {repositoryCount} repositories." )
+                    : screen.Text( $"There is nothing to {action} across the {repositoryCount} repositories." );
+                if( !isPullBuild && hasPivots )
+                {
+                    r = r.AddBelow( screen.Text( $"(Using '*{action}' may detect required builds in upstreams repositories.)", TextEffect.Italic ) );
+                }
+                return r;
+            }
+            r = hasPivots
+                    ? screen.Text( $"Required {action} for {buildSolutionCount} from the {pivotsCount} pivots out of {repositoryCount} repositories." )
+                    : screen.Text( $"Required {action} for {buildSolutionCount} repositories across the {repositoryCount} repositories." );
+            if( _uDepHead == null && _cDepHead == null && _dDepHead == null )
+            {
+                r = r.AddBelow( screen.Text( $"(No dependency updates other than the ones from the upstreams are needed.)", TextEffect.Italic ) );
+            }
+            else
+            {
+                if( _uDepHead != null )
+                {
+                    r = r.AddBelow( _uDepHead.AddRight( screen.Text( $"{UDepUpdates} updates from upstreams (not using '*{action}' here)." ) ) );
+                }
+                if( _cDepHead != null )
+                {
+                    r = r.AddBelow( _cDepHead.AddRight( screen.Text( $"{CDepUpdates} updates from <VersionTag> plugin configuration." ) ) );
+                }
+                if( _dDepHead != null )
+                {
+                    r = r.AddBelow( _dDepHead.AddRight( screen.Text( $"{DDepUpdates} updates to fix external dependencies discrepancies." ) ) );
+                }
+            }
+            return r;
+        }
+
+        static IRenderable DepKind( ScreenType screen, string kind )
+        {
+            return screen.Text( kind, foreColor: ConsoleColor.Black, ConsoleColor.DarkMagenta ).Box( marginRight: 1 );
+        }
+
+    }
+
     public IRenderable ToRenderable( ScreenType screen )
     {
         int buildIndexLen = _buildSolutionCount switch
@@ -153,6 +215,8 @@ public sealed partial class Roadmap
             < 1000 => 3,
             _ => 4
         };
+
+        var stats = new RStats( _orderedSolutions.Length, _buildSolutionCount, _graph.HasPivots, _pivots.Length, _isPullBuild, _isCIBuild ? "build" : "publish" );
         var renderables = ImmutableArray.CreateBuilder<IRenderable>( _orderedSolutions.Length );
 
         int prevRank = -1;
@@ -166,10 +230,11 @@ public sealed partial class Roadmap
             var cR = begOfRank
                         ? (endOfRank ?  "-" : "╓")
                         : (endOfRank ? "╙" : "║");
-            renderables.Add( s.ToRenderable( screen, buildIndexLen, cR ) );
+            renderables.Add( s.ToRenderable( screen, buildIndexLen, cR, ref stats ) );
             prevRank = r;
         }
-        return new VerticalContent( screen, renderables.MoveToImmutable() ).TableLayout();
+        return new VerticalContent( screen, renderables.MoveToImmutable() ).TableLayout()
+               .AddBelow( stats.Render( screen ) );
     }
 
 }

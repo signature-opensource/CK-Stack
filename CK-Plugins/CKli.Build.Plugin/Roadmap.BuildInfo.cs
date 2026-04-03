@@ -141,20 +141,25 @@ public sealed partial class Roadmap
         }
 
 
-        internal IRenderable RenderBuildReason( ScreenType screen )
+        internal IRenderable RenderBuildReason( ScreenType screen, ref RStats stats )
         {
             IRenderable r = screen.Text( $"({_buildReason})", TextStyle.Default.With( TextEffect.Italic ) );
             if( _worldReferences != null )
             {
-                r = r.AddBelow( screen.Text( "(W)", TextStyle.Default ).AddRight( screen.Text( _worldReferences.ToString(), ConsoleColor.DarkGray ) ) );
+                // This is used only when building the upstreams is skipped, the updates here are existing upstreams
+                // so we use 'U'.
+                r = r.AddBelow( stats.GetUDepHead( screen ).AddRight( screen.Text( _worldReferences.ToString(), ConsoleColor.DarkGray ) ) );
+                stats.UDepUpdates += _worldReferences.Count;
             }
             if( _versionConfigurations != null )
             {
-                r = r.AddBelow( screen.Text( "(C)", TextStyle.Default ).AddRight( screen.Text( _versionConfigurations.ToString(), ConsoleColor.DarkGray ) ) );
+                r = r.AddBelow( stats.GetCDepHead( screen ).AddRight( screen.Text( _versionConfigurations.ToString(), ConsoleColor.DarkGray ) ) );
+                stats.CDepUpdates += _versionConfigurations.Count;
             }
             if( _discrepancies != null )
             {
-                r = r.AddBelow( screen.Text( "(D)", TextStyle.Default ).AddRight( screen.Text( _discrepancies.ToString(), ConsoleColor.DarkGray ) ) );
+                r = r.AddBelow( stats.GetDDepHead( screen ).AddRight( screen.Text( _discrepancies.ToString(), ConsoleColor.DarkGray ) ) );
+                stats.DDepUpdates += _discrepancies.Count;
             }
             return r.Box( paddingLeft: 1 );
         }

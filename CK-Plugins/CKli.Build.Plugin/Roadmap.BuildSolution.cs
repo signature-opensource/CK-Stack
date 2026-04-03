@@ -500,7 +500,7 @@ public sealed partial class Roadmap
             internal set => _buildNumber = value;
         }
 
-        internal IRenderable ToRenderable( ScreenType screen, int buildIndexLen, string cRank )
+        internal IRenderable ToRenderable( ScreenType screen, int buildIndexLen, string cRank, ref RStats stats )
         {
             var repo = _solution.Repo.GitRepository;
 
@@ -520,7 +520,7 @@ public sealed partial class Roadmap
             {
                 Throw.DebugAssert( BuildInfo.BuildReason != MustBuildReason.None );
                 r = r.AddRight( screen.Text( $"→ v{BuildInfo.TargetVersion}", new TextStyle( ConsoleColor.Green, ConsoleColor.Black ) ),
-                                BuildInfo.RenderBuildReason( screen ) );
+                                BuildInfo.RenderBuildReason( screen, ref stats ) );
             }
             return r;
 

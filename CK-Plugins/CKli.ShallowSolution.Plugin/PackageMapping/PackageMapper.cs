@@ -10,6 +10,10 @@ namespace CKli.ShallowSolution.Plugin;
 
 /// <summary>
 /// Simple implementation of a <see cref="IPackageMapping"/> that can register mappings.
+/// <para>
+/// This can be used to collect precise "from" mappings (where a package upgrade depends on the "from" version)
+/// or to collect actually applied mappings to a project, solution or multiple solutions.
+/// </para>
 /// </summary>
 [DebuggerDisplay( "{ToString(),nq}" )]
 [SerializationVersion( 0 )]
@@ -30,6 +34,7 @@ public sealed class PackageMapper : IPackageMapping, ICKVersionedBinarySerializa
     public static readonly IPackageMapping Empty = new EmptyMapper();
 
     readonly Dictionary<string, object> _mapping;
+    int _count;
 
     /// <summary>
     /// Initializes an empty mapper.
@@ -104,6 +109,15 @@ public sealed class PackageMapper : IPackageMapping, ICKVersionedBinarySerializa
     /// <inheritdoc />
     public bool IsEmpty => _mapping.Count == 0;
 
+    /// <summary>
+    /// Gets the number of mappings. This is not generalized (at the <see cref="IPackageMapping"/> level) because
+    /// the semantics is not obvious due to the explicit or implicit "from" version mapping.
+    /// <para>
+    /// This is typically relevant when this mapper is used to collect applied mappings rather than to-do ones.
+    /// </para>
+    /// </summary>
+    public int Count => _count;
+
     /// <inheritdoc />
     public bool HasMapping( string packageId ) => _mapping.ContainsKey( packageId );
 
@@ -129,6 +143,7 @@ public sealed class PackageMapper : IPackageMapping, ICKVersionedBinarySerializa
                     return one.Item2 == to;
                 }
                 _mapping[packageId] = new List<(SVersion, SVersion)> { (one.Item1, one.Item2), (from, to) };
+                _count++;
             }
             else
             {
@@ -139,11 +154,13 @@ public sealed class PackageMapper : IPackageMapping, ICKVersionedBinarySerializa
                     return exists.To == to;
                 }
                 list.Add( (from, to) );
+                _count++;
             }
         }
         else
         {
             _mapping.Add( packageId, Tuple.Create( from, to ) );
+            _count++;
         }
         return true;
     }

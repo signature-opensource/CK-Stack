@@ -178,14 +178,19 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// <returns>The graph or null on error.</returns>
     public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, IReadOnlyList<Repo> pivots )
     {
-        for( int i = 1; i < pivots.Count; i++ )
+        bool hasPivots = pivots.Count != 0 && pivots.Count != World.Layout.Count;
+        // Avoid checking the order if the provided pivots are all the repositories.
+        if( hasPivots )
         {
-            if( pivots[i-1].Index >= pivots[i].Index )
+            for( int i = 1; i < pivots.Count; i++ )
             {
-                throw new ArgumentException( "Pivots must be in strict increasing index order." );
+                if( pivots[i - 1].Index >= pivots[i].Index )
+                {
+                    throw new ArgumentException( "Pivots must be in strict increasing index order." );
+                }
             }
         }
-        var displayPivots = pivots.Count != 0 && pivots.Count != World.Layout.Count
+        var displayPivots = hasPivots
                                 ? $"'{pivots.Select( r => r.DisplayPath.Path ).Concatenate( "', '" )}'"
                                 : "all repositories";
         using( monitor.OpenTrace( $"Computing Hot Graph from '{branchName}' for {displayPivots}." ) )
@@ -197,7 +202,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 return null;
             }
             // No pivot => all repositories are pivots.
-            if( pivots.Count == 0 )
+            if( !hasPivots )
             {
                 pivots = allRepos;
             }
@@ -211,7 +216,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 if( externalPackages == null ) return null;
 
                 var graph = new HotGraph( branchName, allRepos, pivots, _versionTags, externalPackages );
-                bool hasPivots = graph.HasPivots;
+                Throw.DebugAssert( graph.HasPivots == hasPivots );
                 foreach( var repo in allRepos )
                 {
                     // Consider the closest Git branch that exists in the repository (at the BranchName level), then, if the 
