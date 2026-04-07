@@ -106,48 +106,89 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The source repository.</param>
     /// <param name="version">The release to destroy.</param>
+    /// <param name="removeFromNuGetGlobalCache">
+    /// False to let the package in the NuGet global cache (if it exists).
+    /// The global cache is "%userprofile%\.nuget\packages" on windows and "~/.nuget/packages" on Mac/Linux.
+    /// </param>
     /// <returns>True on success, false on error (only errors are that assets cannot be properly deleted).</returns>
-    public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version )
+    public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version, bool removeFromNuGetGlobalCache = true )
     {
         TagCommit? tagCommit = HasRepoInfoBeenCreated( repo ) ? Get( monitor, repo ).RemoveTagCommit( version ) : null;
 
-        Tag? tag = tagCommit?.Tag ?? repo.GitRepository.Repository.Tags[$"v{version.ToString()}"] ?? repo.GitRepository.Repository.Tags[version.ToString()];
+        Tag? tag = tagCommit?.Tag;
+        BuildContentInfo? tagContent = tagCommit?.BuildContentInfo;
+        if( tag == null )
+        {
+            tag = repo.GitRepository.Repository.Tags[$"v{version.ToString()}"] ?? repo.GitRepository.Repository.Tags[version.ToString()];
+            _ = BuildContentInfo.TryParse( tag.Annotation?.Message, out tagContent );
+        }
         if( tag != null )
         {
             repo.GitRepository.DeleteLocalTags( monitor, [tag.CanonicalName] );
         }
-        return DestroyRelease( monitor, repo, version, tagCommit, removeFromPublishedDatabase: false );
+        return CleanupLocalRelease( monitor, repo, version, tagContent, removeFromNuGetGlobalCache );
     }
 
     /// <summary>
-    /// Centralized deletion of a release. This tries to delete every possible traces.
+    /// Centralized deletion of the artifacts of a release. This tries to delete every possible traces but doesn't remove the
+    /// versioned tag: use <see cref="DestroyLocalRelease(IActivityMonitor, Repo, SVersion, bool)"/> to fully destroy a release.
+    /// <para>
+    /// This centralizes the calls to <see cref="ReleaseDatabasePlugin.DestroyLocalRelease(IActivityMonitor, Repo, SVersion)"/>
+    /// and <see cref="ArtifactHandlerPlugin.DestroyLocalRelease(IActivityMonitor, Repo, SVersion, BuildContentInfo)"/>
+    /// that should not be called directly.
+    /// </para>
     /// </summary>
-    bool DestroyRelease( IActivityMonitor monitor, Repo repo, SVersion version, TagCommit? existingTag, bool removeFromPublishedDatabase )
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The source repository.</param>
+    /// <param name="version">The version to cleanup.</param>
+    /// <param name="removeFromNuGetGlobalCache">
+    /// False to let the package in the NuGet global cache (if it exists).
+    /// The global cache is "%userprofile%\.nuget\packages" on windows and "~/.nuget/packages" on Mac/Linux.
+    /// </param>
+    /// <returns>True on success, false on error (only errors are that assets cannot be properly deleted).</returns>
+    public bool CleanupLocalRelease( IActivityMonitor monitor,
+                                     Repo repo,
+                                     SVersion version,
+                                     BuildContentInfo? knownContent,
+                                     bool removeFromNuGetGlobalCache = true )
+    {
+        return DoCleanupLocalRelease( monitor, repo, version, knownContent, removeFromPublishedDatabase: false, removeFromNuGetGlobalCache );
+    }
+
+    bool DoCleanupLocalRelease( IActivityMonitor monitor,
+                                Repo repo,
+                                SVersion version,
+                                BuildContentInfo? knownContent,
+                                bool removeFromPublishedDatabase,
+                                bool removeFromNuGetGlobalCache = true )
     {
         using( monitor.OpenInfo( $"Deleting local release '{repo.DisplayPath}/{version}'." ) )
         {
             // Take no risk: delete every possible traces (but avoids calling twice the same destroy).
-            var tagContent = existingTag?.BuildContentInfo;
-            var pubContent = removeFromPublishedDatabase
+            //
+            // If we must suppress the Published release, call DestroyPublishedRelease, otherwise we must
+            // only lookup for the content.
+            var dbPubContent = removeFromPublishedDatabase
                                 ? _releaseDatabase.DestroyPublishedRelease( monitor, repo, version )
-                                : null;
-            var dbContent = _releaseDatabase.DestroyLocalRelease( monitor, repo, version );
+                                : _releaseDatabase.GetBuildContentInfo( monitor, repo, version, fromPublished: true );
+
+            var dbLocContent = _releaseDatabase.DestroyLocalRelease( monitor, repo, version );
 
             bool success = true;
-            if( tagContent != null )
+            if( knownContent != null )
             {
-                if( tagContent == pubContent ) pubContent = null;
-                if( tagContent == dbContent ) dbContent = null;
-                success = _artifactHandler.DestroyLocalRelease( monitor, repo, version, tagContent );
+                if( knownContent == dbPubContent ) dbPubContent = null;
+                if( knownContent == dbLocContent ) dbLocContent = null;
+                success = _artifactHandler.DestroyLocalRelease( monitor, repo, version, knownContent, removeFromNuGetGlobalCache );
             }
-            if( pubContent != null )
+            if( dbPubContent != null )
             {
-                if( pubContent == dbContent ) dbContent = null;
-                success &= _artifactHandler.DestroyLocalRelease( monitor, repo, version, pubContent );
+                if( dbPubContent == dbLocContent ) dbLocContent = null;
+                success &= _artifactHandler.DestroyLocalRelease( monitor, repo, version, dbPubContent, removeFromNuGetGlobalCache );
             }
-            if( dbContent != null )
+            if( dbLocContent != null )
             {
-                success &= _artifactHandler.DestroyLocalRelease( monitor, repo, version, dbContent );
+                success &= _artifactHandler.DestroyLocalRelease( monitor, repo, version, dbLocContent, removeFromNuGetGlobalCache );
             }
             return success;
         }
@@ -757,7 +798,12 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     var vClean = tc.Version.WithBuildMetaData( null );
                     removableTags.RemoveAll( t => SVersion.TryParse( t.FriendlyName, out var v ) && v == vClean );
                 }
-                success &= DestroyRelease( monitor, repo, tc.Version, tc, true );
+                success &= DoCleanupLocalRelease( monitor,
+                                                  repo,
+                                                  tc.Version,
+                                                  tc.BuildContentInfo,
+                                                  removeFromPublishedDatabase: true,
+                                                  removeFromNuGetGlobalCache: true );
             }
             if( success )
             {

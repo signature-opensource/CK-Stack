@@ -193,6 +193,21 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         return _local.OnLocalBuild( monitor, repo, version, rebuild, content );
     }
 
+
+    /// <summary>
+    /// Gets a <see cref="BuildContentInfo"/> from the local (or published database).  
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="repo">The repository tp find.</param>
+    /// <param name="version">The release to find.</param>
+    /// <param name="fromPublished">True to search in the Published database instead of the Local one.</param>
+    /// <returns></returns>
+    public BuildContentInfo? GetBuildContentInfo( IActivityMonitor monitor, Repo repo, SVersion version, bool fromPublished = false )
+    {
+        var key = new RepoKey( repo.CKliRepoId, version );
+        return fromPublished ? _published.DoFind( monitor, key ) : _local.DoFind( monitor, key ); 
+    }
+
     /// <summary>
     /// This should only be called by the VersionTag plugin.
     /// <para>

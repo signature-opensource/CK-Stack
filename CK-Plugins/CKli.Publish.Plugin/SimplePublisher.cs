@@ -1,6 +1,11 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
+using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
+using CKli.VersionTag.Plugin;
 using System;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CKli.Publish.Plugin;
@@ -13,35 +18,56 @@ sealed partial class SimplePublisher
     readonly PublishState _state;
     readonly PackageSender _packageSender;
     readonly ReleaseDatabasePlugin _releaseDatabase;
+    readonly ArtifactHandlerPlugin _artifactHandler;
+    readonly VersionTagPlugin _versionTag;
 
-    public SimplePublisher( PublishState state, PackageSender packageSender, ReleaseDatabasePlugin releaseDatabase )
+    GitHostingProvider? _hostingProvider;
+    NormalizedPath _hostedRepoPath;
+    string? _releaseId;
+
+    public SimplePublisher( PublishState state,
+                            PackageSender packageSender,
+                            ReleaseDatabasePlugin releaseDatabase,
+                            ArtifactHandlerPlugin artifactHandler,
+                            VersionTagPlugin versionTag )
     {
         _state = state;
         _packageSender = packageSender;
         _releaseDatabase = releaseDatabase;
+        _artifactHandler = artifactHandler;
+        _versionTag = versionTag;
     }
 
-    public async Task<bool> RunAsync( IActivityMonitor monitor, System.Threading.CancellationToken cancel )
+    public async Task<bool> RunAsync( IActivityMonitor monitor, CancellationToken cancel )
     {
         var step = _state.PrimaryCursor;
+        RepoPublishInfo? repo;
         while( !step.IsEndOfState )
         {
             switch( step.Location )
             {
                 case PublishState.Cursor.LocType.BegOfRepo:
-                    step = await OnBegOfRepoAsync( monitor ).ConfigureAwait( false );
+                    repo = _state.PrimaryCursor.Repo;
+                    Throw.DebugAssert( repo != null );
+                    step = await OnBegOfRepoAsync( monitor, repo, cancel ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.InPackage:
-                    step = await OnInPackagesAsync( monitor ).ConfigureAwait( false );
+                    repo = _state.PrimaryCursor.Repo;
+                    Throw.DebugAssert( repo != null );
+                    step = await OnInPackagesAsync( monitor, repo, cancel ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.InFile:
-                    step = await OnInFilesAsync( monitor ).ConfigureAwait( false );
+                    repo = _state.PrimaryCursor.Repo;
+                    Throw.DebugAssert( repo != null );
+                    step = await OnInFilesAsync( monitor, repo, cancel ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.EndOfRepo:
-                    step = await OnEndOfRepoAsync( monitor ).ConfigureAwait( false );
+                    repo = _state.PrimaryCursor.Repo;
+                    Throw.DebugAssert( repo != null );
+                    step = await OnEndOfRepoAsync( monitor, repo, cancel ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.EndOfWorld:
-                    step = await OnEndOfWorldAsync( monitor ).ConfigureAwait( false );
+                    step = await OnEndOfWorldAsync( monitor, cancel ).ConfigureAwait( false );
                     break;
             }
             if( step == null ) return false;
@@ -50,35 +76,29 @@ sealed partial class SimplePublisher
         return true;
     }
 
-    async Task<PublishState.Cursor?> OnBegOfRepoAsync( IActivityMonitor monitor )
+    async Task<PublishState.Cursor?> OnBegOfRepoAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
     {
+        if( !repo.Repo.GitRepository.RepositoryKey.TryGetHostingInfo( monitor, out _hostingProvider, out _hostedRepoPath ) )
+        {
+            monitor.Error( $"Unable to resolve Git hosting provider for '{repo.Repo.DisplayPath}' ({repo.Repo.OriginUrl})." );
+            return null;
+        }
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
-    async Task<PublishState.Cursor?> OnInPackagesAsync( IActivityMonitor monitor )
+    async Task<PublishState.Cursor?> OnInPackagesAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
     {
-        var repo = _state.PrimaryCursor.Repo;
-        Throw.DebugAssert( repo != null && repo.BuildContentInfo.Produced.Length > 0 );
-        if( !await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced ).ConfigureAwait( false ) )
+        if( !await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced, cancel ).ConfigureAwait( false ) )
         {
             return null; 
         }
-        
-        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
-    }
-
-    async Task<PublishState.Cursor?> OnInFilesAsync( IActivityMonitor monitor )
-    {
-        throw new NotSupportedException();
-    }
-
-    async Task<PublishState.Cursor?> OnEndOfRepoAsync( IActivityMonitor monitor )
-    {
-        var repo = _state.PrimaryCursor.Repo;
-        Throw.DebugAssert( repo != null );
-        // Push the version tag.
-        Core.GitRepository r = repo.Repo.GitRepository;
-        if( !r.PushTags( monitor, ["v" + repo.BuildVersion.ToString()] ) )
+        // Packages have been pushed.
+        // Whether there are asset files or not, we create the hosted release now to be able to handle asset files if any (and to
+        // end with a release if no asset files exist!).
+        // To create a release, hosting provider requires that the tag exists in the repository, so it's time to push it.
+        var versionedTag = "v" + repo.BuildVersion.ToString();
+        GitRepository r = repo.Repo.GitRepository;
+        if( !r.PushTags( monitor, [versionedTag] ) )
         {
             return null;
         }
@@ -92,20 +112,60 @@ sealed partial class SimplePublisher
         {
             return null;
         }
+        Throw.DebugAssert( _hostingProvider != null );
+        _releaseId = await _hostingProvider.CreateDraftReleaseAsync( monitor, _hostedRepoPath, versionedTag, cancel ).ConfigureAwait( false );
+        if( _releaseId == null )
+        {
+            return null;
+        }
+        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
+    }
+
+    async Task<PublishState.Cursor?> OnInFilesAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
+    {
+        Throw.DebugAssert( _hostingProvider != null && _releaseId != null );
+        Throw.DebugAssert( repo.BuildContentInfo.AssetFileNames.Length > 0 );
+        var folder = _artifactHandler.GetAssetsFolder( repo.Repo, repo.BuildVersion );
+        if( !Directory.Exists( folder ) )
+        {
+            monitor.Error( $"""
+                Expected folder '{folder}' to exist with files:
+                '{repo.BuildContentInfo.AssetFileNames.Concatenate("', '")}'.
+                """ );
+            return null;
+        }
+        if( !await _hostingProvider.AddReleaseAssetsAsync( monitor, _hostedRepoPath, _releaseId, folder, cancel ).ConfigureAwait( false ) )
+        {
+            return null;
+        }
+        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.AssetFileNames.Length );
+    }
+
+    async Task<PublishState.Cursor?> OnEndOfRepoAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
+    {
         // Moves the release from local to published database.
         if( !_releaseDatabase.PublishRelease( monitor, repo.Repo, repo.BuildVersion ) )
         {
             return null;
         }
-        // Should create the Release (if hosting provider supports it).
-        if( !r.RepositoryKey.TryGetHostingInfo(  monitor, out var hostingProvider, out _ ) )
+        // To consider that the war is won, we must first be sure that the published database
+        // is pushed in the Stack repository.
+        if( !repo.Repo.World.StackRepository.PushChanges( monitor ) )
         {
-            return null;
+            return null; 
         }
+        // We are almost done: finalize the hosted release.
+        Throw.DebugAssert( _hostingProvider != null && _releaseId != null );
+        if( !await _hostingProvider.FinalizeReleaseAsync( monitor, _hostedRepoPath, _releaseId, cancel ).ConfigureAwait( false ) )
+        {
+            return null; 
+        }
+        // If this fails, we still terminate this release.
+        _versionTag.CleanupLocalRelease( monitor, repo.Repo, repo.BuildVersion, repo.BuildContentInfo, removeFromNuGetGlobalCache: false );
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
-    async Task<PublishState.Cursor?> OnEndOfWorldAsync( IActivityMonitor monitor )
+    async Task<PublishState.Cursor?> OnEndOfWorldAsync( IActivityMonitor monitor, CancellationToken cancel )
     {
         var world = _state.PrimaryCursor.World;
         Throw.DebugAssert( world != null );

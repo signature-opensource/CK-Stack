@@ -158,7 +158,7 @@ public class RepoBuilder : RepoInfo
             if( Directory.Exists( repoAssetsFolder ) )
             {
                 monitor.Trace( $"Cleaning up '{repoAssetsFolder}'." );
-                if( !FileHelper.DeleteFolder( monitor, assetsFolder ) )
+                if( !FileHelper.DeleteFolder( monitor, repoAssetsFolder ) )
                 {
                     return false;
                 }

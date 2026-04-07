@@ -1,5 +1,6 @@
 using CK.Core;
 using CKli;
+using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using NUnit.Framework;
 using Shouldly;
@@ -20,7 +21,7 @@ public class BuildTests
         Helper.SetFileSystemWritePAT();
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
-        var context = remotes.Clone( clonedFolder );
+        var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds );
         var display = (StringScreen)context.Screen;
 
         var inSampleFolder = context.ChangeDirectory( "Samples" ); 
@@ -88,6 +89,13 @@ public class BuildTests
 
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "exec", "dotnet", "sln", "add", "CKt.Sample.Monitoring/CKt.Sample.Monitoring.csproj" )).ShouldBeTrue();
+
+            var deployFolder = inSampleMonitoring.CurrentDirectory.AppendPart( ArtifactHandlerPlugin.DeployFolderName );
+            Directory.CreateDirectory( deployFolder );
+            File.WriteAllText( deployFolder.AppendPart( "GenerateAssets.cs" ), """
+                File.WriteAllText( $"Assets/Install-{args[0]}.txt", $"I'm the install manual of CKt-Sample-Monitoring version '{args[0]}'." );
+                """ );
+            File.WriteAllText( deployFolder.AppendPart( ".gitignore" ), "Assets/" );
         }
         #endregion
 
@@ -127,10 +135,21 @@ public class BuildTests
 
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleApp, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleApp, "exec", "dotnet", "sln", "add", "CKt.SomeApp/CKt.SomeApp.csproj" )).ShouldBeTrue();
+
+            var deployFolder = inSampleApp.CurrentDirectory.AppendPart( ArtifactHandlerPlugin.DeployFolderName );
+            Directory.CreateDirectory( deployFolder );
+            File.WriteAllText( deployFolder.AppendPart( "GenerateAssets.cs" ), """
+                Directory.CreateDirectory( "Assets/ZipDemo" );
+                File.WriteAllText( $"Assets/ZipDemo/Install-{args[0]}.txt", "I'm the install manual of CKt.SomeApp version '{args[0]}'." );
+                File.WriteAllText( $"Assets/ZipDemo/AnotherFile.txt", "Another file..." );
+
+                """ );
+            File.WriteAllText( deployFolder.AppendPart( ".gitignore" ), "Assets/" );
         }
         #endregion
 
-        // The nuget.config can be fixed with a dirty folder (no need to commit).
+
+        // The nuget.config can be fixed with a dirty folder (no need to pre-commit here).
         //
         // But the "Missing initial version." requires a clean working folder.
         // 
@@ -167,6 +186,23 @@ public class BuildTests
             ❰✓❱
 
             """ );
+
+        // Let's build and publish the CI versions.
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--publish" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            1 -  CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
+            2 -  CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
+            3 ╓  CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
+            4 ║  CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
+            5 ╙  Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            6 -  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            Required build for 6 repositories across the 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
+            ❰✓❱
+
+            """ );
+
     }
 
     [Explicit]

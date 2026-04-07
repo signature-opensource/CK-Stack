@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace CKli.Publish.Plugin;
@@ -21,13 +22,13 @@ sealed class PackageSender
         _clients = clients;
     }
 
-    public async Task<bool> SendAsync( IActivityMonitor monitor, SVersion version, ImmutableArray<string> packageNames )
+    public async Task<bool> SendAsync( IActivityMonitor monitor, SVersion version, ImmutableArray<string> packageNames, CancellationToken cancel )
     {
         var fileNames = packageNames.Select( p => _artifactHandler.LocalNuGetPath.AppendPart( $"{p}.{version}.nupkg" ) ).ToArray();
         using( monitor.OpenInfo( $"Pushing {fileNames.Length} packages to {_clients.Count} feeds." ) )
         {
             // Parallel only by client.
-            var allTasks = _clients.Select( c => c.PushAsync( monitor.ParallelLogger, fileNames.Select( p => p.Path ) ) ).ToArray();
+            var allTasks = _clients.Select( c => c.PushAsync( monitor.ParallelLogger, fileNames.Select( p => p.Path ), skipDuplicate: true, cancel ) ).ToArray();
             var results = await Task.WhenAll( allTasks ).ConfigureAwait( false );
 
             // Generic parallel error handling.

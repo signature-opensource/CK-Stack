@@ -31,9 +31,11 @@ sealed class ReleaseDB
 
     public string Name => IsLocal ? "Local" : "Published";
 
-    internal BuildContentInfo? Find( IActivityMonitor monitor, Repo repo, SVersion version, out bool local )
+
+    internal BuildContentInfo? DoFind( IActivityMonitor monitor, RepoKey key )
     {
-        return Find( monitor, new RepoKey( repo.CKliRepoId, version ), out local );
+        EnsureLoad( monitor );
+        return _data.GetValueOrDefault( key );
     }
 
     internal BuildContentInfo? Find( IActivityMonitor monitor, RepoKey key, out bool local )

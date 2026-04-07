@@ -10,6 +10,11 @@ using System.Text;
 
 namespace CKli.ArtifactHandler.Plugin;
 
+/// <summary>
+/// This is the primary data that is associated to each build. This info is fully serializable in binary format but also
+/// in a textual form (<see cref="Write(StringBuilder)"/> and <see cref="TryParse(ReadOnlySpan{char}, out CKli.ArtifactHandler.Plugin.BuildContentInfo?)"/>)
+/// and this is the content of the <see cref="LibGit2Sharp.Tag.Annotation"/> of the versioned tag on built commit.
+/// </summary>
 public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 {
     readonly ImmutableArray<PackageInstance> _consumed;
@@ -52,6 +57,10 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         _assetFileNames = assetFileNames;
     }
 
+    /// <summary>
+    /// Deserialization constructor.
+    /// </summary>
+    /// <param name="r">The reader.</param>
     public BuildContentInfo( ICKBinaryReader r )
     {
         var b = ImmutableArray.CreateBuilder<PackageInstance>( r.ReadNonNegativeSmallInt32() );
@@ -79,6 +88,10 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         }
     }
 
+    /// <summary>
+    /// Binary serialization writer.
+    /// </summary>
+    /// <param name="w">The target writer.</param>
     public void Write( ICKBinaryWriter w )
     {
         w.WriteNonNegativeSmallInt32( _consumed.Length );

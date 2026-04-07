@@ -221,11 +221,13 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         if( results.Length > 0 && _onRoadmapBuild.HasHandlers )
         {
             var e = new RoadmapBuildEventArgs( monitor, roadmap, publish );
-            return await _onRoadmapBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false );
+            if( !await _onRoadmapBuild.SafeRaiseAsync( monitor, e ).ConfigureAwait( false ) || !e.Success )
+            {
+                return false;
+            }
         }
         return true;
     }
-
 
     Roadmap? ComputeAndDisplayRoadmap( IActivityMonitor monitor,
                                        CKliEnv context,

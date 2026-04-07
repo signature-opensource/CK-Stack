@@ -234,15 +234,19 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     /// <param name="repo">The source repository.</param>
     /// <param name="version">The release to destroy.</param>
     /// <param name="buildContentInfo">The build content.</param>
+    /// <param name="removeFromNuGetGlobalCache">
+    /// False to let the package in the NuGet global cache (if it exists).
+    /// The global cache is "%userprofile%\.nuget\packages" on windows and "~/.nuget/packages" on Mac/Linux.
+    /// </param>
     /// <returns>True on success, false if deleting some artifacts failed.</returns>
-    public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version, BuildContentInfo buildContentInfo )
+    public bool DestroyLocalRelease( IActivityMonitor monitor, Repo repo, SVersion version, BuildContentInfo buildContentInfo, bool removeFromNuGetGlobalCache = true )
     {
         bool success = true;
         if( buildContentInfo.Produced.Length > 0 )
         {
             foreach( var p in buildContentInfo.Produced )
             {
-                NuGetHelper.ClearGlobalCache( monitor, p, version.ToString() );
+                if( removeFromNuGetGlobalCache ) NuGetHelper.ClearGlobalCache( monitor, p, version.ToString() );
                 success &= FileHelper.DeleteFile( monitor, Path.Combine( _localNuGetPath, $"{p}.{version}.nupkg" ) );
             }
         }
