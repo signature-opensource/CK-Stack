@@ -223,6 +223,10 @@ sealed partial class PublishState
             return len + _repo.BuildContentInfo.Produced.Length + _itemIndex;
         }
 
+        /// <summary>
+        /// Empty (EndOfState) constructor. 
+        /// </summary>
+        /// <param name="state">The state.</param>
         internal Cursor( PublishState state )
             : this( state, LocType.EndOfState, null, null, -1 )
         {
@@ -247,14 +251,14 @@ sealed partial class PublishState
 
         static Cursor EnterWorld( PublishState state, WorldReleaseInfo world )
         {
-            // If there's a world, then there's a Repo: so if there's no packages
-            // and no files, we end up directly to EndOfRepo.
+            Throw.DebugAssert( "If there's a world, then there's at least one Repo.", world.Repos.Length > 0 );
             var repo = world.Repos[0];
             return EnterRepo( state, world, repo );
         }
 
         static Cursor EnterRepo( PublishState state, WorldReleaseInfo world, RepoPublishInfo repo )
         {
+            Throw.DebugAssert( world != null );
             // We come from EnterWorld() or _location == LocType.EndOfRepo => BegOfRepo, even
             // if the Repo is empty.
             return new Cursor( state, LocType.BegOfRepo, world, repo, -1 );

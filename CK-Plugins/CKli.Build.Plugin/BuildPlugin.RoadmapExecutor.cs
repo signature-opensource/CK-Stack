@@ -2,10 +2,8 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
-using CSemVer;
 using LibGit2Sharp;
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
@@ -215,6 +213,8 @@ public sealed partial class BuildPlugin
         // When called in parallel, it is the BuildAsync wrapper above that handles it.
         async Task<BuildResult?> DoBuildAsync( IActivityMonitor monitor, Roadmap.BuildInfo build )
         {
+            // EnsureAndCheckoutBranch and UpdateDependenciesAndCommit only interact with their own Repo:
+            // parallel builds don't need synchronization for these. 
             if( !EnsureAndCheckoutBranch( monitor, build.Solution, out var canAmend ) )
             {
                 return null;
@@ -224,6 +224,9 @@ public sealed partial class BuildPlugin
             {
                 return null;
             }
+
+            // CoreBuildAsync interacts with the ReleaseDatabasePlugin and this plugin is "thread safe" (thanks to a simple basic lock).
+            // It also interacts with the ArtifactHandlerPlugin that is mainly a proxy of the file system (the $Local NuGet and Assets folders).
             var result = await _buildPlugin.CoreBuildAsync( monitor,
                                                             _context,
                                                             build.Solution.VersionInfo.VersionTagInfo,

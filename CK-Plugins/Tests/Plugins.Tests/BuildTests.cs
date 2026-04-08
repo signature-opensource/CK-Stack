@@ -2,9 +2,11 @@ using CK.Core;
 using CKli;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
+using CSemVer;
 using NUnit.Framework;
 using Shouldly;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using static CK.Testing.MonitorTestHelper;
@@ -16,7 +18,7 @@ namespace Plugins.Tests;
 public class BuildTests
 {
     [Test]
-    public async Task CKt_add_sample_Async()
+    public async Task CKt_add_sample_and_publish_Async()
     {
         Helper.SetFileSystemWritePAT();
         var clonedFolder = TestHelper.InitializeClonedFolder();
@@ -24,7 +26,7 @@ public class BuildTests
         var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds );
         var display = (StringScreen)context.Screen;
 
-        var inSampleFolder = context.ChangeDirectory( "Samples" ); 
+        var inSampleFolder = context.ChangeDirectory( "Samples" );
         var newRepo1 = TestHelper.CKliRemotesPath.AppendPart( "bare" ).Combine( "CKt(initialized)/CKt-Sample-Monitoring" );
         var newRepoUrl1 = $"file://{newRepo1}";
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "hosting", "create", newRepoUrl1 )).ShouldBeTrue();
@@ -75,7 +77,7 @@ public class BuildTests
                     </ItemGroup>
 
                 </Project>
-            
+
                 """ );
             File.WriteAllText( path.AppendPart( "PreserveAssemblyReference.cs" ), """
                 using System;
@@ -84,7 +86,7 @@ public class BuildTests
 
                 public record PreserveAssemblyReference( CKt.Monitoring.PreserveAssemblyReference Monitoring,
                                                          CKt.PerfectEvent.PreserveAssemblyReference PerfectEvent );
-                        
+
                 """ );
 
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
@@ -122,7 +124,7 @@ public class BuildTests
                 </ItemGroup>
 
             </Project>
-            
+
             """ );
             File.WriteAllText( path.AppendPart( "PreserveAssemblyReference.cs" ), """
             using System;
@@ -130,7 +132,7 @@ public class BuildTests
             namespace CKt.SomeApp;
 
             public record PreserveAssemblyReference( CKt.ActivityMonitor.PreserveAssemblyReference ActivityMonitor );
-                        
+
             """ );
 
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleApp, "exec", "dotnet", "new", "sln" )).ShouldBeTrue();
@@ -203,6 +205,48 @@ public class BuildTests
 
             """ );
 
+        var (nugetOrgFeed, sosFeed) = GetFakeFeedPaths( clonedFolder );
+
+        // CI build: nuget.org is not concerned.
+        Directory.GetDirectories( nugetOrgFeed ).Select( p => Path.GetFileName( p ) ).ShouldBe( ["ck.canarypackage"] );
+
+        // The other feed have the packages.
+        var existingPackages = Directory.GetDirectories( sosFeed )
+                                        .SelectMany( p => Directory.GetDirectories( p )
+                                                                   .Select( pp => new PackageInstance( Path.GetFileName( p ),
+                                                                                                       SVersion.Parse( Path.GetFileName( pp ) ) ) ) );
+        existingPackages.Select( p => p.ToString() )
+                        .ShouldBe( ["ck.canarypackage@1.0.0",
+                                    "ckt.activitymonitor@0.1.1--ci.5",
+                                    "ckt.core@1.0.1--ci.4",
+                                    "ckt.monitoring@0.2.4--ci.5",
+                                    "ckt.perfectevent@0.3.3--ci.5",
+                                    "ckt.sample.monitoring@0.0.1--ci.1",
+                                    "ckt.someapp@0.0.1--ci.1"], ignoreOrder: true );
+
+        // The FileSystemHostingProvider received the asset files.
+        var appRemoteReleases = Path.Combine( TestHelper.CKliRemotesPath, "bare", remotes.FullName, "CKt-App-Sample", "Releases" );
+        Directory.GetFiles( appRemoteReleases, "*", SearchOption.AllDirectories )
+                 .Select( p => new NormalizedPath( p ) )
+                 .Select( p => p.RemoveParts( 0, p.Parts.Count - 2 ).ToString() )
+                 .ShouldBe( ["v0.0.1--ci.1/ZipDemo.zip"] );
+
+        var sampleRemoteReleases = Path.Combine( TestHelper.CKliRemotesPath, "bare", remotes.FullName, "CKt-Sample-Monitoring", "Releases" );
+        Directory.GetFiles( sampleRemoteReleases, "*", SearchOption.AllDirectories )
+                 .Select( p => new NormalizedPath( p ) )
+                 .Select( p => p.RemoveParts( 0, p.Parts.Count - 2 ).ToString() )
+                 .ShouldBe( ["v0.0.1--ci.1/Install-0.0.1--ci.1.txt"] );
+
+        // The "PublishState.bin" has been removed.
+        File.Exists( context.CurrentStackPath.Combine( "$Local/PublishState.bin" ) ).ShouldBeFalse();
+
+        // No issue.
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            ❰✓❱
+
+            """ );
     }
 
     [Explicit]
@@ -210,8 +254,8 @@ public class BuildTests
     public async Task REMOTES_CKt_add_sample_to_with_sample_Async()
     {
         FileHelper.DeleteFolder( TestHelper.Monitor, TestHelper.CKliRemotesPath.AppendPart( "CKt(with_sample)" ) );
-        await CKt_add_sample_Async();
-        TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_add_sample_Async", "CKt", "(with_sample)" );
+        await CKt_add_sample_and_publish_Async();
+        TestHelper.CKliCreateRemoteFolderFromCloned( "CKt_add_sample_and_publish_Async", "CKt", "(with_sample)" );
     }
 
     [Test]
@@ -222,19 +266,58 @@ public class BuildTests
         var context = remotes.Clone( clonedFolder );
         var display = (StringScreen)context.Screen;
 
+        // From stack root (or if --all is specified): all solutions are pivots <==> none of them is.
+        // (in this case *build is the same as build).
+        // The CKt(with_sample) has been "ckli build --publish": there's nothing to build.
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+        -  CKt-Core                      v1.0.1--ci.4 
+        -  CKt-ActivityMonitor           v0.1.1--ci.5 
+        ╓  CKt-PerfectEvent              v0.3.3--ci.5 
+        ║  CKt-Monitoring                v0.2.4--ci.5 
+        ╙  Samples/CKt-App-Sample        v0.0.1--ci.1 
+        -  Samples/CKt-Sample-Monitoring v0.0.1--ci.1 
+        There is nothing to build across the 6 repositories.
+        ❰✓❱
+        
+        """ );
+
+        // If we "ckli publish" (that is the same as "ckli *publish" here), the 6 repositories must be published.  
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "publish", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+        1 -  CKt-Core                      v1.0.0 → v1.0.1 (CodeChange)          
+        2 -  CKt-ActivityMonitor           v0.1.0 → v0.1.1 (Upstream, CodeChange)
+        3 ╓  CKt-PerfectEvent              v0.3.2 → v0.3.3 (Upstream, CodeChange)
+        4 ║  CKt-Monitoring                v0.2.3 → v0.2.4 (Upstream, CodeChange)
+        5 ╙  Samples/CKt-App-Sample        v0.0.0 → v0.0.1 (Upstream, CodeChange)
+        6 -  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1 (Upstream, CodeChange)
+        Required publish for 6 repositories across the 6 repositories.
+        (No dependency updates other than the ones from the upstreams are needed.)
+        ❰✓❱
+        
+        """ );
+
+        // To test the "build" and "*build", we touch the CKt-Core and CKt-PerfectEvent repositories.
+        await TouchProjectAndCommit( context, "CKt-Core/CKt.Core/CKt.Core.csproj" );
+        await TouchProjectAndCommit( context, "CKt-PerfectEvent/CKt.PerfectEvent/CKt.PerfectEvent.csproj" );
+
         #region build
         {
             // From stack root (or if --all is specified): all solutions are pivots <==> none of them is.
             // (in this case *build is the same as build).
+            // Since CKt-Core is dirty, it implies the 5 other ones.
             display.Clear();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -  CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
-            2 -  CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓  CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
-            4 ║  CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
-            5 ╙  Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            1 -  CKt-Core                      v1.0.1--ci.4 → v1.0.1--ci.5 (CodeChange)          
+            2 -  CKt-ActivityMonitor           v0.1.1--ci.5 → v0.1.1--ci.6 (Upstream)            
+            3 ╓  CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.7 (Upstream, CodeChange)
+            4 ║  CKt-Monitoring                v0.2.4--ci.5 → v0.2.4--ci.6 (Upstream)            
+            5 ╙  Samples/CKt-App-Sample        v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            6 -  Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            Required build for 6 repositories across the 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
             ❰✓❱
             
             """ );
@@ -246,12 +329,14 @@ public class BuildTests
             var inSample = context.ChangeDirectory( "Samples" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            - →·   CKt-Core                      v1.0.0 
-            - →·   CKt-ActivityMonitor           v0.1.0 
-            ╓ →·   CKt-PerfectEvent              v0.3.2 
-            ║ →·   CKt-Monitoring                v0.2.3 
-            ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 
-            -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
+            - →·   CKt-Core                      v1.0.1--ci.4 
+            - →·   CKt-ActivityMonitor           v0.1.1--ci.5 
+            ╓ →·   CKt-PerfectEvent              v0.3.3--ci.5 
+            ║ →·   CKt-Monitoring                v0.2.4--ci.5 
+            ╙  ⊙   Samples/CKt-App-Sample        v0.0.1--ci.1 
+            -  ⊙   Samples/CKt-Sample-Monitoring v0.0.1--ci.1 
+            There is nothing to build from the 2 pivots out of 6 repositories.
+            (Using '*build' may detect required builds in upstreams repositories.)
             ❰✓❱
             
             """ );
@@ -262,12 +347,14 @@ public class BuildTests
             var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            - →·   CKt-Core                      v1.0.0 
-            - →·   CKt-ActivityMonitor           v0.1.0 
-            ╓ →·   CKt-PerfectEvent              v0.3.2 
-            ║ →·   CKt-Monitoring                v0.2.3 
-            ╙      Samples/CKt-App-Sample        v0.0.0 
-            -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 
+            - →·   CKt-Core                      v1.0.1--ci.4 
+            - →·   CKt-ActivityMonitor           v0.1.1--ci.5 
+            ╓ →·   CKt-PerfectEvent              v0.3.3--ci.5 
+            ║ →·   CKt-Monitoring                v0.2.4--ci.5 
+            ╙      Samples/CKt-App-Sample        v0.0.1--ci.1 
+            -  ⊙   Samples/CKt-Sample-Monitoring v0.0.1--ci.1 
+            There is nothing to build from the 1 pivots out of 6 repositories.
+            (Using '*build' may detect required builds in upstreams repositories.)
             ❰✓❱
 
             """ );
@@ -277,12 +364,14 @@ public class BuildTests
             var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            - →·   CKt-Core                      v1.0.0 
-            - →·   CKt-ActivityMonitor           v0.1.0 
-            ╓      CKt-PerfectEvent              v0.3.2 
-            ║      CKt-Monitoring                v0.2.3 
-            ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 
-            -      Samples/CKt-Sample-Monitoring v0.0.0 
+            - →·   CKt-Core                      v1.0.1--ci.4 
+            - →·   CKt-ActivityMonitor           v0.1.1--ci.5 
+            ╓      CKt-PerfectEvent              v0.3.3--ci.5 
+            ║      CKt-Monitoring                v0.2.4--ci.5 
+            ╙  ⊙   Samples/CKt-App-Sample        v0.0.1--ci.1 
+            -      Samples/CKt-Sample-Monitoring v0.0.1--ci.1 
+            There is nothing to build from the 1 pivots out of 6 repositories.
+            (Using '*build' may detect required builds in upstreams repositories.)
             ❰✓❱
 
             """ );
@@ -293,12 +382,14 @@ public class BuildTests
             var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-              - →·   CKt-Core                      v1.0.0 
-              - →·   CKt-ActivityMonitor           v0.1.0 
-            1 ╓  ⊙   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.4 (CodeChange)
-              ║      CKt-Monitoring                v0.2.3 
-              ╙      Samples/CKt-App-Sample        v0.0.0 
-            2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)  
+              - →·   CKt-Core                      v1.0.1--ci.4 
+              - →·   CKt-ActivityMonitor           v0.1.1--ci.5 
+            1 ╓  ⊙   CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.6 (CodeChange)
+              ║      CKt-Monitoring                v0.2.4--ci.5 
+              ╙      Samples/CKt-App-Sample        v0.0.1--ci.1 
+            2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)  
+            Required build for 2 from the 1 pivots out of 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
             ❰✓❱
             
             """ );
@@ -311,12 +402,14 @@ public class BuildTests
             display.Clear();
             (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 -  CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
-            2 -  CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓  CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
-            4 ║  CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
-            5 ╙  Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            1 -  CKt-Core                      v1.0.1--ci.4 → v1.0.1--ci.5 (CodeChange)          
+            2 -  CKt-ActivityMonitor           v0.1.1--ci.5 → v0.1.1--ci.6 (Upstream)            
+            3 ╓  CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.7 (Upstream, CodeChange)
+            4 ║  CKt-Monitoring                v0.2.4--ci.5 → v0.2.4--ci.6 (Upstream)            
+            5 ╙  Samples/CKt-App-Sample        v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            6 -  Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            Required build for 6 repositories across the 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
             ❰✓❱
             
             """ );
@@ -326,12 +419,14 @@ public class BuildTests
             var inSample = context.ChangeDirectory( "Samples" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSample, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
-            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓ →·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
-            4 ║ →·   CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
-            5 ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            1 - →·   CKt-Core                      v1.0.1--ci.4 → v1.0.1--ci.5 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.1--ci.5 → v0.1.1--ci.6 (Upstream)            
+            3 ╓ →·   CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.7 (Upstream, CodeChange)
+            4 ║ →·   CKt-Monitoring                v0.2.4--ci.5 → v0.2.4--ci.6 (Upstream)            
+            5 ╙  ⊙   Samples/CKt-App-Sample        v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            6 -  ⊙   Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            Required build for 6 from the 2 pivots out of 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
             ❰✓❱
             
             """ );
@@ -342,12 +437,14 @@ public class BuildTests
             var inSampleMonitoring = inSample.ChangeDirectory( "CKt-Sample-Monitoring" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
-            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓ →·   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
-            4 ║ →·   CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
-            5 ╙      Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -  ⊙   Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            1 - →·   CKt-Core                      v1.0.1--ci.4 → v1.0.1--ci.5 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.1--ci.5 → v0.1.1--ci.6 (Upstream)            
+            3 ╓ →·   CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.7 (Upstream, CodeChange)
+            4 ║ →·   CKt-Monitoring                v0.2.4--ci.5 → v0.2.4--ci.6 (Upstream)            
+            5 ╙      Samples/CKt-App-Sample        v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            6 -  ⊙   Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            Required build for 6 from the 1 pivots out of 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
             ❰✓❱
 
             """ );
@@ -358,12 +455,14 @@ public class BuildTests
             var inAppSample = inSample.ChangeDirectory( "CKt-App-Sample" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
-            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓      CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
-            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
-            5 ╙  ⊙   Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -      Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            1 - →·   CKt-Core                      v1.0.1--ci.4 → v1.0.1--ci.5 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.1--ci.5 → v0.1.1--ci.6 (Upstream)            
+            3 ╓      CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.7 (Upstream, CodeChange)
+            4 ║      CKt-Monitoring                v0.2.4--ci.5 → v0.2.4--ci.6 (Upstream)            
+            5 ╙  ⊙   Samples/CKt-App-Sample        v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            6 -      Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            Required build for 6 from the 1 pivots out of 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
             ❰✓❱
 
             """ );
@@ -374,15 +473,26 @@ public class BuildTests
             var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
             (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "*build", "--branch", "stable", "--dry-run" )).ShouldBeTrue();
             display.ToString().ShouldBe( """
-            1 - →·   CKt-Core                      v1.0.0 → v1.0.1--ci.4 (CodeChange)          
-            2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.1.1--ci.5 (Upstream, CodeChange)
-            3 ╓  ⊙   CKt-PerfectEvent              v0.3.2 → v0.3.3--ci.5 (Upstream, CodeChange)
-            4 ║      CKt-Monitoring                v0.2.3 → v0.2.4--ci.5 (Upstream, CodeChange)
-            5 ╙      Samples/CKt-App-Sample        v0.0.0 → v0.0.1--ci.1 (Upstream)            
-            6 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.0.1--ci.1 (Upstream)            
+            1 - →·   CKt-Core                      v1.0.1--ci.4 → v1.0.1--ci.5 (CodeChange)          
+            2 - →·   CKt-ActivityMonitor           v0.1.1--ci.5 → v0.1.1--ci.6 (Upstream)            
+            3 ╓  ⊙   CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.7 (Upstream, CodeChange)
+            4 ║      CKt-Monitoring                v0.2.4--ci.5 → v0.2.4--ci.6 (Upstream)            
+            5 ╙      Samples/CKt-App-Sample        v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            6 -  ·→  Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.2 (Upstream)            
+            Required build for 6 from the 1 pivots out of 6 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
             ❰✓❱
             
             """ );
+        }
+
+        static async Task TouchProjectAndCommit( CKliEnv context, string csprojPath )
+        {
+            NormalizedPath path = context.CurrentDirectory.Combine( csprojPath );
+            var doc = XDocument.Load( path );
+            doc.Root!.AddFirst( new XElement( "PropertyGroup", new XElement( "TouchedForTest", true ) ) );
+            XmlHelper.SaveWithoutXmlDeclaration( doc, path );
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "commit", "Touched for test." )).ShouldBeTrue();
         }
         #endregion
 
@@ -420,52 +530,48 @@ public class BuildTests
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish" )).ShouldBeTrue();
 
         display.ToString().ShouldBe(
-            nonPackableSample
-            ? """
+              """
                 - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0 [GRAY]⮐
-                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GRAY]⮐
-              1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3[GRAY] [Italic](CodeChange)[Regular]          ⮐
-                ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GRAY]⮐
-                ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GRAY]⮐
-              2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream, CodeChange)[Regular]⮐
+              1 - [BLACK,darkyellow]→· [GRAY,black]  [GREEN]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GREEN]→ v0.1.1[GRAY] [Italic](DependencyUpdate, CodeChange)[Regular] ⮐
+                                                                     [BLACK,darkmagenta]U[GRAY,black] [DARKGRAY]CKt.Core: 1.0.1--ci.4 → 1.0.0[GRAY]⮐
+              2 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
+              3 ║      [GREEN]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GREEN]→ v0.2.4[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
+              4 ╙      [GREEN]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
+              5 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
+              Required publish for 5 from the 1 pivots out of 6 repositories.⮐
+              [BLACK,darkmagenta]U[GRAY,black] 1 updates from upstreams (not using '*publish' here).⮐
               [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
           
-              """
-            : """
-                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0 [GRAY]⮐
-                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0 [GRAY]⮐
-              1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [DARKBLUE]v0.3.2 [GREEN]→ v0.3.3[GRAY] [Italic](CodeChange)[Regular]⮐
-                ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3 [GRAY]⮐
-                ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [DARKBLUE]v0.0.0 [GRAY]⮐
-              2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [DARKBLUE]v0.0.0 [GREEN]→ v0.0.1[GRAY] [Italic](Upstream)[Regular]  ⮐
-              [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
-             
               """ );
 
-        var nugetOrg = clonedFolder.Combine( "FakeFeed/nuget.org" );
-        var sosFeed = clonedFolder.Combine( "FakeFeed/Signature-OpenSource" );
+        var (nugetOrgFeed, sosFeed) = GetFakeFeedPaths( clonedFolder );
 
-        Directory.Exists( nugetOrg.AppendPart( "ckt.perfectevent" ) ).ShouldBeTrue();
+        Directory.Exists( nugetOrgFeed.AppendPart( "ckt.perfectevent" ) ).ShouldBeTrue();
         Directory.Exists( sosFeed.AppendPart( "ckt.perfectevent" ) ).ShouldBeTrue();
 
-        Directory.Exists( nugetOrg.AppendPart( "ckt.sample.monitoring" ) ).ShouldBe( !nonPackableSample );
+        Directory.Exists( nugetOrgFeed.AppendPart( "ckt.sample.monitoring" ) ).ShouldBe( !nonPackableSample );
         Directory.Exists( sosFeed.AppendPart( "ckt.sample.monitoring" ) ).ShouldBe( !nonPackableSample );
 
+    }
+
+
+    static (NormalizedPath NuGetOrgPath, NormalizedPath SignatureOSPath) GetFakeFeedPaths( NormalizedPath clonedFolder )
+    {
+        return (clonedFolder.Combine( "FakeFeed/nuget.org" ), clonedFolder.Combine( "FakeFeed/Signature-OpenSource" ));
 
     }
 
     static void ConfigureFakeFeeds( IActivityMonitor monitor, NormalizedPath clonedFolder, XElement plugins )
     {
-        var nugetOrg = clonedFolder.Combine( "FakeFeed/nuget.org" );
-        var sosFeed = clonedFolder.Combine( "FakeFeed/Signature-OpenSource" );
-        NuGetHelper.EnsureLocalFeed( monitor, nugetOrg );
+        var (nugetOrgFeed, sosFeed) = GetFakeFeedPaths( clonedFolder );
+        NuGetHelper.EnsureLocalFeed( monitor, nugetOrgFeed );
         NuGetHelper.EnsureLocalFeed( monitor, sosFeed );
         foreach( var f in plugins.Elements( "ArtifactHandler" ).Elements( "NuGet" ).Elements( "Feed" ) )
         {
             var url = f.Attribute( "Url" ).ShouldNotBeNull();
             url.SetValue( url.Value switch
             {
-                "https://api.nuget.org/v3/index.json" => $"file://{nugetOrg}",
+                "https://api.nuget.org/v3/index.json" => $"file://{nugetOrgFeed}",
                 "https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json" => $"file://{sosFeed}",
                 _ => Throw.NotSupportedException<string>()
             } );

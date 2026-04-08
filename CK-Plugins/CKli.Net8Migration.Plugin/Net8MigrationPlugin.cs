@@ -146,7 +146,7 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         #region Work on master => "stable" branch model. This is idempotent.
         // Even if we already ran this once, the following check is not useless:
         // if we want to recompute the MinVersion, we need the RepositoryInfo.xml.
-        if( !CheckoutMaster( monitor, repos ) ) return false;
+        if( !CheckoutMasterAndFetchTags( monitor, repos ) ) return false;
 
         // We must computed the MinVersion before removing the RepositoryInfo.xml
         // (so before switching to "stable" if it has already been created).
@@ -220,12 +220,13 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
         return success;
     }
 
-    static bool CheckoutMaster( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
+    static bool CheckoutMasterAndFetchTags( IActivityMonitor monitor, IReadOnlyList<Repo> repos )
     {
         bool success = true;
         foreach( var repo in repos )
         {
-            success &= repo.GitRepository.FullCheckout( monitor, "master", skipFetchMerge: true );
+            success &= repo.GitRepository.FullCheckout( monitor, "master", skipFetchMerge: false );
+            success &= repo.GitRepository.FetchTags( monitor );
         }
         return success;
     }

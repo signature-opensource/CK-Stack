@@ -52,18 +52,28 @@ sealed partial class PublishState
         Throw.CheckArgument( offset > 0 );
         bool fullUpdate = false;
         var c = _primaryCursor.Forward( offset );
-        if( cleanupReleases && c.World != null && c.World != _primaryCursor.World )
+        // Quick: consider only a change of the World.
+        if( cleanupReleases && c.World != _primaryCursor.World )
         {
-            while( _releases.Count > 0 )
+            Throw.DebugAssert( c.World is null == c.Location is Cursor.LocType.EndOfState );
+            if( c.World != null )
             {
-                if( _releases[0] != c.World )
+                while( _releases.Count > 0 )
                 {
-                    _releases.RemoveAt( 0 );
-                    fullUpdate = true;
+                    if( _releases[0] != c.World )
+                    {
+                        _releases.RemoveAt( 0 );
+                        fullUpdate = true;
+                    }
                 }
             }
+            else
+            {
+                // World is null <=> EndOfState.
+                _releases.Clear();
+            }
         }
-        return Persist( monitor, fullUpdate )
+        return Persist( monitor, fullUpdate, c )
                 ? _primaryCursor = c
                 : null;
     }
@@ -82,7 +92,7 @@ sealed partial class PublishState
         {
             _primaryCursor = CreateCursor();
         }
-        return Persist( monitor, fullWrite: true );
+        return Persist( monitor, fullWrite: true, _primaryCursor );
     }
 
     /// <summary>
@@ -139,7 +149,7 @@ sealed partial class PublishState
         return new PublishState( world, path );
     }
 
-    internal bool Persist( IActivityMonitor monitor, bool fullWrite )
+    internal bool Persist( IActivityMonitor monitor, bool fullWrite, Cursor primaryCursor )
     {
         if( _releases.Count == 0 )
         {
@@ -147,7 +157,7 @@ sealed partial class PublishState
         }
         try
         {
-            int primaryPosition = _primaryCursor.GetPosition();
+            int primaryPosition = primaryCursor.GetPosition();
             if( fullWrite || !File.Exists( _path ) )
             {
                 using( var stream = File.OpenWrite( _path ) )

@@ -54,15 +54,6 @@ sealed partial class IssueBuilder
                             success = false;
                             switchSuccess = false;
                         }
-                        else
-                        {
-                            monitor.Error( $"""
-                                Unable to remove branch '{r.Branch.FriendlyName}' as it is the current head.
-                                Please checks out another branch first in '{Repo.DisplayPath}'.
-                                """ );
-                                success = false;
-                                switchSuccess = false;
-                        }
                     }
                 }
                 if( switchSuccess )

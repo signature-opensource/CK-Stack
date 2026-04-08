@@ -3,7 +3,6 @@ using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
-using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -160,7 +159,7 @@ sealed partial class SimplePublisher
         {
             return null; 
         }
-        // If this fails, we still terminate this release.
+        // If the cleanup fails, we still consider this release done.
         _versionTag.CleanupLocalRelease( monitor, repo.Repo, repo.BuildVersion, repo.BuildContentInfo, removeFromNuGetGlobalCache: false );
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }

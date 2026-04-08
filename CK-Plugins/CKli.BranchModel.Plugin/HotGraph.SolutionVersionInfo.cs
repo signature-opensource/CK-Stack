@@ -1,5 +1,4 @@
 using CK.Core;
-using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;

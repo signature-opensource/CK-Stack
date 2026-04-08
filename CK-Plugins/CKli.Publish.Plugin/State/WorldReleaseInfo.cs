@@ -4,7 +4,6 @@ using CKli.BranchModel.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
 using CSemVer;
-using LibGit2Sharp;
 using System;
 using System.Collections.Immutable;
 using System.Runtime.InteropServices;

@@ -4,7 +4,6 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CSemVer;
 using LibGit2Sharp;
-using NuGet.Frameworks;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -120,7 +119,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         if( tag == null )
         {
             tag = repo.GitRepository.Repository.Tags[$"v{version.ToString()}"] ?? repo.GitRepository.Repository.Tags[version.ToString()];
-            _ = BuildContentInfo.TryParse( tag.Annotation?.Message, out tagContent );
+            if( tag != null )
+            {
+                _ = BuildContentInfo.TryParse( tag.Annotation?.Message, out tagContent );
+            }
         }
         if( tag != null )
         {

@@ -4,11 +4,9 @@ using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CSemVer;
 using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
