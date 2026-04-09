@@ -45,12 +45,12 @@ sealed class RepoPublishInfo
     /// </summary>
     public SVersion BuildVersion => _buildVersion;
 
-    RepoPublishInfo( Repo repo,
-                     string branchName,
-                     int index,
-                     SVersion baseVersion,
-                     SVersion buildVersion,
-                     BuildContentInfo buildContentInfo )
+    internal RepoPublishInfo( Repo repo,
+                              string branchName,
+                              int index,
+                              SVersion baseVersion,
+                              SVersion buildVersion,
+                              BuildContentInfo buildContentInfo )
     {
         _repo = repo;
         _branchName = branchName;

@@ -346,6 +346,15 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         return true;
     }
 
+    /// <summary>
+    /// This is used by RebuildReleaseDatabases: there must be no conflicting nor "fetched required" tags
+    /// for 'ckli maintenance release-database rebuild' to be successfully executed.
+    /// </summary>
+    /// <param name="monitor">The monitor.</param>
+    /// <param name="context">The CKli context.</param>
+    /// <param name="repos">The repositories to consider.</param>
+    /// <param name="allDiffTags">On success, contains the tags diff info.</param>
+    /// <returns>True on success, false on error.</returns>
     static bool GetAllDiffTags( IActivityMonitor monitor,
                                 CKliEnv context,
                                 IReadOnlyList<Repo> repos,

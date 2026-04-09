@@ -3,9 +3,12 @@ using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
+using CKli.ReleaseDatabase.Plugin;
 using CSemVer;
+using NuGet.Packaging.Core;
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace CKli.Publish.Plugin;
@@ -64,18 +67,19 @@ sealed class WorldReleaseInfo
     /// <returns>A new world release.</returns>
     internal static WorldReleaseInfo Create( DateTime buildDate, Roadmap roadmap )
     {
-        var repoInfos = new RepoPublishInfo[roadmap.SolutionBuildCount];
+        var repoInfos = new RepoPublishInfo[roadmap.SolutionPublishCount];
         int publishedLength = 0;
         int i = 0;
         foreach( var s in roadmap.OrderedSolutions )
         {
-            if( s.MustBuild )
+            if( s.MustPublish )
             {
-                Throw.DebugAssert( s.BuildInfo.BuildResult != null );
                 var branchName = roadmap.IsCIBuild
                                     ? s.Solution.Branch.BranchName.DevName
                                     : s.Solution.Branch.BranchName.Name;
-                var r = new RepoPublishInfo( i, branchName, s.VersionInfo.BaseBuild.Version, s.BuildInfo.BuildResult );
+
+                var (version, content) = s.GetFinalPublishInfo();
+                var r = new RepoPublishInfo( s.Repo, branchName, i, s.VersionInfo.BaseBuild.Version, version, content );
                 repoInfos[i++] = r;
                 publishedLength += r.PublishedLength;
             }

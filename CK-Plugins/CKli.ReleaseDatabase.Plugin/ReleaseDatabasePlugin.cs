@@ -165,8 +165,8 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
     }
 
     /// <summary>
-    /// Called with existing version tags. This initializes the Local release database and checks that an already
-    /// Published version has the same content as the one provided.
+    /// Called with existing version tags (each time a VersionTagInfo is created).
+    /// This initializes the Local release database and checks that an already Published version has the same content as the one provided.
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The repository.</param>
@@ -219,21 +219,22 @@ public sealed class ReleaseDatabasePlugin : PrimaryPluginBase
         }
     }
 
-
     /// <summary>
     /// Gets a <see cref="BuildContentInfo"/> from the local (or published database).  
     /// </summary>
     /// <param name="monitor">The monitor.</param>
     /// <param name="repo">The repository tp find.</param>
-    /// <param name="version">The release to find.</param>
+    /// <param name="version">The version to find.</param>
     /// <param name="fromPublished">True to search in the Published database instead of the Local one.</param>
-    /// <returns></returns>
+    /// <returns>The info if it exists, null otherwise.</returns>
     public BuildContentInfo? GetBuildContentInfo( IActivityMonitor monitor, Repo repo, SVersion version, bool fromPublished = false )
     {
         lock( _dbLock )
         {
             var key = new RepoKey( repo.CKliRepoId, version );
-            return fromPublished ? _published.DoFind( monitor, key ) : _local.DoFind( monitor, key );
+            return fromPublished
+                    ? _published.GetBuildContentInfo( monitor, key )
+                    : _local.GetBuildContentInfo( monitor, key );
         }
     }
 

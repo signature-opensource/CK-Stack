@@ -159,7 +159,7 @@ public sealed partial class Roadmap
                 r = r.AddBelow( stats.GetDDepHead( screen ).AddRight( screen.Text( _discrepancies.ToString(), ConsoleColor.DarkGray ) ) );
                 stats.DDepUpdates += _discrepancies.Count;
             }
-            return r.Box( paddingLeft: 1 );
+            return r;
         }
 
     }

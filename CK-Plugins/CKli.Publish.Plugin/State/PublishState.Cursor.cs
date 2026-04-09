@@ -251,7 +251,10 @@ sealed partial class PublishState
 
         static Cursor EnterWorld( PublishState state, WorldReleaseInfo world )
         {
-            Throw.DebugAssert( "If there's a world, then there's at least one Repo.", world.Repos.Length > 0 );
+            if( world.Repos.Length == 0 )
+            {
+                return new Cursor( state, LocType.EndOfWorld, world, null, -1 );
+            }
             var repo = world.Repos[0];
             return EnterRepo( state, world, repo );
         }

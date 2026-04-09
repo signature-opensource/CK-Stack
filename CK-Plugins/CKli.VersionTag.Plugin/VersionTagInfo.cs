@@ -11,6 +11,9 @@ using System.Threading.Tasks;
 
 namespace CKli.VersionTag.Plugin;
 
+/// <summary>
+/// <see cref="RepoInfo"/> for version tags related information.
+/// </summary>
 public sealed partial class VersionTagInfo : RepoInfo
 {
     readonly List<TagCommit> _lastStables;

@@ -13,7 +13,7 @@ namespace CKli.ArtifactHandler.Plugin;
 /// <summary>
 /// This is the primary data that is associated to each build. This info is fully serializable in binary format but also
 /// in a textual form (<see cref="Write(StringBuilder)"/> and <see cref="TryParse(ReadOnlySpan{char}, out CKli.ArtifactHandler.Plugin.BuildContentInfo?)"/>)
-/// and this is the content of the <see cref="LibGit2Sharp.Tag.Annotation"/> of the versioned tag on built commit.
+/// and this is the content of the <see cref="LibGit2Sharp.Tag.Annotation"/> of the versioned tag on any built commit.
 /// </summary>
 public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
 {

@@ -1,6 +1,8 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
+using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using CSemVer;
@@ -21,7 +23,10 @@ public sealed partial class Roadmap
         readonly HotGraph.Solution _solution;
         readonly HotGraph.SolutionVersionInfo _versionInfo;
         BuildInfo? _buildInfo;
+        HotGraph.SolutionVersionInfo.BuiltVersion _lastBuild;
+        BuildContentInfo? _lastBuildToPublish;
         int _buildNumber;
+        bool _mustPublish;
 
         internal BuildSolution( Roadmap roadmap, HotGraph.Solution solution, HotGraph.SolutionVersionInfo versionInfo )
         {
@@ -80,7 +85,7 @@ public sealed partial class Roadmap
                 buildReason |= MustBuildReason.DependencyUpdate;
             }
 
-            var lastBuild = _versionInfo.GetLastBuild( _roadmap._isCIBuild );
+            _lastBuild = _versionInfo.GetLastBuild( _roadmap._isCIBuild );
 
             // Pivot dependent conditions: if nothing saves the build, then this solution won't be built.
             bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
@@ -88,11 +93,11 @@ public sealed partial class Roadmap
             {
                 if( !canSkip )
                 {
-                    if( lastBuild.VersionMustBuild )
+                    if( _lastBuild.VersionMustBuild )
                     {
                         buildReason |= MustBuildReason.Version;
                     }
-                    if( lastBuild.HasCodeChange )
+                    if( _lastBuild.HasCodeChange )
                     {
                         buildReason |= MustBuildReason.CodeChange;
                     }
@@ -101,11 +106,11 @@ public sealed partial class Roadmap
                 {
                     // We compute the version change not for us (this solution will not be built) but for
                     // the downstream solutions to correctly propagate the change level (here it may be None).
-                    vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, lastBuild.TagCommit.Version );
+                    vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _lastBuild.TagCommit.Version );
                     _buildInfo = new BuildInfo( this,
                                                 MustBuildReason.None,
                                                 vChange,
-                                                lastBuild.TagCommit.Version,
+                                                _lastBuild.TagCommit.Version,
                                                 directRequirements,
                                                 packageUpdates.WorldRef,
                                                 packageUpdates.Configuration,
@@ -115,11 +120,11 @@ public sealed partial class Roadmap
             }
             Throw.DebugAssert( "We must build.", buildReason != MustBuildReason.None );
             // Since we must build, let's update the reason with all its reasons for coherency (and its costs nothing).
-            if( lastBuild.VersionMustBuild )
+            if( _lastBuild.VersionMustBuild )
             {
                 buildReason |= MustBuildReason.Version;
             }
-            if( lastBuild.HasCodeChange )
+            if( _lastBuild.HasCodeChange )
             {
                 buildReason |= MustBuildReason.CodeChange;
             }
@@ -436,6 +441,62 @@ public sealed partial class Roadmap
         }
         #endregion /Initialize
 
+        internal bool ConcludeInitialization( IActivityMonitor monitor,
+                                              ReleaseDatabasePlugin releaseDatabase,
+                                              ArtifactHandlerPlugin artifactHandlerPlugin,
+                                              ref int idxBuildNumber )
+        {
+            if( MustBuild )
+            {
+                Throw.DebugAssert( _buildNumber == 0 && idxBuildNumber >= 1 );
+                _buildNumber = idxBuildNumber++;
+                Throw.DebugAssert( !_mustPublish );
+
+                // The TargetVersion must not already be published.
+                var targetVersion = BuildInfo.TargetVersion;
+                var published = releaseDatabase.GetBuildContentInfo( monitor, _solution.Repo, targetVersion, fromPublished: true );
+                if( published != null )
+                {
+                    monitor.Error( $"""
+                        Repository '{Repo.DisplayPath}' must be build in version '{targetVersion}' but this version already appears in the published database with the content:
+                        {published}
+
+                        Local/Remote state seems desynchronized. A 'ckli pull' and/or a 'ckli maintenance release-database rebuild' may be welcome.
+                        """ );
+                    return false;
+                }
+                _mustPublish = true;
+                ++_roadmap._publishSolutionCount;
+            }
+            else
+            {
+                // The CurrentVersion may already be published.
+                Throw.DebugAssert( !_mustPublish );
+                _mustPublish = releaseDatabase.GetBuildContentInfo( monitor, _solution.Repo, CurrentVersion, fromPublished: true ) == null;
+                if( _mustPublish )
+                {
+                    _lastBuildToPublish = releaseDatabase.GetBuildContentInfo( monitor, _solution.Repo, CurrentVersion, fromPublished: false );
+                    if( _lastBuildToPublish == null )
+                    {
+                        monitor.Error( $"""
+                        Repository '{Repo.DisplayPath}' must be published in existing version '{CurrentVersion}' but this version doesn't appear in local release database.
+                        """ );
+                        return false;
+                    }
+                    if( !artifactHandlerPlugin.HasAllArtifacts( monitor, _solution.Repo, CurrentVersion, _lastBuildToPublish, out _ ) )
+                    {
+                        monitor.Error( $"""
+                        Repository '{Repo.DisplayPath}' must be published in existing version '{CurrentVersion}' but this version misses local artifacts.
+                        """ );
+                        return false;
+                    }
+                    ++_roadmap._publishSolutionCount;
+                }
+                Throw.DebugAssert( _buildNumber == 0 );
+            }
+            return true;
+        }
+
         /// <summary>
         /// Get the roadmap to which this build belongs.
         /// </summary>
@@ -464,7 +525,7 @@ public sealed partial class Roadmap
         /// <summary>
         /// Gets the current version (from <see cref="HotGraph.SolutionVersionInfo.GetLastBuild(bool)"/>).
         /// </summary>
-        public SVersion CurrentVersion => _versionInfo.GetLastBuild( _roadmap._isCIBuild ).TagCommit.Version;
+        public SVersion CurrentVersion => _lastBuild.TagCommit.Version;
 
         /// <summary>
         /// Gets the build info. This is null if this solution is not impacted
@@ -479,14 +540,33 @@ public sealed partial class Roadmap
         public bool MustBuild => _buildInfo != null && _buildInfo.MustBuild;
 
         /// <summary>
+        /// Gets whether this solution should be published:
+        /// <see cref="MustBuild"/> is true (the <see cref="BuildInfo.TargetVersion"/> must be published) or the <see cref="CurrentVersion"/>
+        /// is not in the published database.
+        /// </summary>
+        public bool MustPublish => _mustPublish;
+
+        /// <summary>
+        /// Gets the version and content that must be published. This MUST be called only if <see cref="MustPublish"/> is
+        /// true and after a successful <see cref="Roadmap.BuildAsync(IActivityMonitor, CKliEnv, BuildPlugin, bool?, int)"/>.
+        /// </summary>
+        /// <returns>The version and content to publish.</returns>
+        public (SVersion Version, BuildContentInfo Content) GetFinalPublishInfo()
+        {
+            Throw.CheckState( MustPublish );
+            Throw.CheckState( "A successful build must have been done before.", !MustBuild || BuildInfo.BuildResult != null );
+
+            Throw.DebugAssert( MustBuild || _lastBuildToPublish != null );
+            return MustBuild
+                    ? (BuildInfo.TargetVersion, BuildInfo.BuildResult!.Content)
+                    : (CurrentVersion, _lastBuildToPublish!);
+        }
+
+        /// <summary>
         /// Gets the 1-based build number in the order of the <see cref="HotGraph.Solution.OrderedIndex"/>.
         /// 0 when <see cref="MustBuild"/> is false.
         /// </summary>
-        public int BuildNumber
-        {
-            get => _buildNumber;
-            internal set => _buildNumber = value;
-        }
+        public int BuildNumber => _buildNumber;
 
         internal IRenderable ToRenderable( ScreenType screen, int buildIndexLen, string cRank, ref RStats stats )
         {
@@ -500,15 +580,24 @@ public sealed partial class Roadmap
                 r = r.AddRight( PivotPrefix( screen, _solution, prefixStyle, marginLeft: 1 ) );
             }
 
-
             var statusAndName = RepoName( screen, Repo, MustBuild, BuildInfo == null );
             r = r.AddRight( statusAndName );
-            r = r.AddRight( screen.Text( CurrentVersion.ParsedText! ).Box( foreColor: ConsoleColor.DarkBlue, paddingRight: 1 ) );
+            var currentVersion = CurrentVersion.ParsedText!;
             if( MustBuild )
             {
+                Throw.DebugAssert( "An error has been emitted if a MustBuild target version has already been published.",
+                                   _mustPublish );
                 Throw.DebugAssert( BuildInfo.BuildReason != MustBuildReason.None );
-                r = r.AddRight( screen.Text( $"→ v{BuildInfo.TargetVersion}", new TextStyle( ConsoleColor.Green, ConsoleColor.Black ) ),
+
+                r = r.AddRight( screen.Text( currentVersion, ConsoleColor.Blue ),
+                                screen.Text( $"→ v{BuildInfo.TargetVersion} 🡡", ConsoleColor.Green ).Box( marginLeft: 1, marginRight: 1 ),
                                 BuildInfo.RenderBuildReason( screen, ref stats ) );
+            }
+            else
+            {
+                r = r.AddRight( !_mustPublish
+                                    ? screen.Text( currentVersion, ConsoleColor.DarkBlue )
+                                    : screen.Text( $"{currentVersion} 🡡", ConsoleColor.Blue ) );
             }
             return r;
 
