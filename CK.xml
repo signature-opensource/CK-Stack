@@ -19,29 +19,6 @@
     <CommonFiles />
     <Publish />
   </Plugins>
-  <Folder Name="AspNet">
-    <Repository Url="https://github.com/signature-opensource/CK-AspNet">
-      <VersionTag MinVersion="15.0.0" />
-    </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth">
-      <VersionTag MinVersion="24.0.0" />
-    </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-TypeScript">
-      <VersionTag MinVersion="0.26.2" />
-    </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-Cris-TypeScript">
-      <VersionTag MinVersion="0.50.0" />
-    </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-Ng-SiteMap">
-      <VersionTag MinVersion="0.33.0" />
-    </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib">
-      <VersionTag MinVersion="0.0.0" />
-    </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile">
-      <VersionTag MinVersion="0.0.0" />
-    </Repository>
-  </Folder>
   <Folder Name="Core">
     <Folder Name="Basic">
       <Repository Url="https://github.com/signature-opensource/CK-Core">
@@ -226,6 +203,29 @@
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Templates">
       <VersionTag MinVersion="4.0.0" />
+    </Repository>
+  </Folder>
+  <Folder Name="Web">
+    <Repository Url="https://github.com/signature-opensource/CK-AspNet">
+      <VersionTag MinVersion="15.0.0" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth">
+      <VersionTag MinVersion="24.0.0" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-TypeScript">
+      <VersionTag MinVersion="0.26.2" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Cris-TypeScript">
+      <VersionTag MinVersion="0.50.0" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Ng-SiteMap">
+      <VersionTag MinVersion="0.33.0" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib">
+      <VersionTag MinVersion="0.0.0" />
+    </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile">
+      <VersionTag MinVersion="0.0.0" />
     </Repository>
   </Folder>
 </CK>
