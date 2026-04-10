@@ -11,7 +11,7 @@ sealed class RepoPublishInfo
     readonly string _branchName;
     readonly int _index;
     readonly SVersion _baseVersion;
-    readonly SVersion _buildVersion;
+    readonly SVersion _publishVersion;
     readonly BuildContentInfo _buildContentInfo;
 
     /// <summary>
@@ -41,22 +41,22 @@ sealed class RepoPublishInfo
     public int PublishedLength => 1 + _buildContentInfo.Produced.Length + _buildContentInfo.AssetFileNames.Length + 1;
 
     /// <summary>
-    /// Gets the built version of this repository.
+    /// Gets the version to publish for this repository.
     /// </summary>
-    public SVersion BuildVersion => _buildVersion;
+    public SVersion PublishVersion => _publishVersion;
 
     internal RepoPublishInfo( Repo repo,
                               string branchName,
                               int index,
                               SVersion baseVersion,
-                              SVersion buildVersion,
+                              SVersion publishVersion,
                               BuildContentInfo buildContentInfo )
     {
         _repo = repo;
         _branchName = branchName;
         _index = index;
         _baseVersion = baseVersion;
-        _buildVersion = buildVersion;
+        _publishVersion = publishVersion;
         _buildContentInfo = buildContentInfo;
     }
 
@@ -96,7 +96,7 @@ sealed class RepoPublishInfo
         w.Write( _branchName );
         w.WriteNonNegativeSmallInt32( _index );
         w.Write( _baseVersion.ToString() );
-        w.Write( _buildVersion.ToString() );
+        w.Write( _publishVersion.ToString() );
         _buildContentInfo.Write( w );
     }
 }

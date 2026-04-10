@@ -6,7 +6,6 @@ using CKli.VersionTag.Plugin;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using static CK.Core.ActivityMonitorErrorCounter;
 
 namespace CKli.Publish.Plugin;
 
@@ -42,6 +41,7 @@ sealed partial class SimplePublisher
     {
         var step = _state.PrimaryCursor;
         RepoPublishInfo? repo;
+        IDisposableGroup? disposableGroup = null;
         while( !step.IsEndOfState )
         {
             switch( step.Location )
@@ -49,6 +49,7 @@ sealed partial class SimplePublisher
                 case PublishState.Cursor.LocType.BegOfRepo:
                     repo = _state.PrimaryCursor.Repo;
                     Throw.DebugAssert( repo != null );
+                    disposableGroup = monitor.OpenInfo( $"Publishing '{repo.Repo.DisplayPath}' version '{repo.PublishVersion}'." );
                     step = await OnBegOfRepoAsync( monitor, repo, cancel ).ConfigureAwait( false );
                     break;
                 case PublishState.Cursor.LocType.InPackage:
@@ -65,11 +66,17 @@ sealed partial class SimplePublisher
                     repo = _state.PrimaryCursor.Repo;
                     Throw.DebugAssert( repo != null );
                     step = await OnEndOfRepoAsync( monitor, repo, cancel ).ConfigureAwait( false );
+                    if( disposableGroup != null )
+                    {
+                        disposableGroup.Dispose();
+                        disposableGroup = null;
+                    }
                     break;
                 case PublishState.Cursor.LocType.EndOfWorld:
                     step = await OnEndOfWorldAsync( monitor, cancel ).ConfigureAwait( false );
                     break;
             }
+            disposableGroup?.Dispose();
             if( step == null ) return false;
         }
         _state.World.StackRepository.PushChanges( monitor );
@@ -92,7 +99,7 @@ sealed partial class SimplePublisher
 
     async Task<PublishState.Cursor?> OnInPackagesAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
     {
-        if( !await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced, cancel ).ConfigureAwait( false ) )
+        if( !await _packageSender.SendAsync( monitor, repo.PublishVersion, repo.BuildContentInfo.Produced, cancel ).ConfigureAwait( false ) )
         {
             return null;
         }
@@ -102,7 +109,7 @@ sealed partial class SimplePublisher
     async Task<PublishState.Cursor?> CreateRelease( IActivityMonitor monitor, RepoPublishInfo repo, int forwardLength, CancellationToken cancel )
     {
         // To create a release, hosting provider requires that the tag exists in the repository, so it's time to push it.
-        var versionedTag = "v" + repo.BuildVersion.ToString();
+        var versionedTag = "v" + repo.PublishVersion.ToString();
         GitRepository r = repo.Repo.GitRepository;
         if( !r.PushTags( monitor, [versionedTag] ) )
         {
@@ -129,7 +136,7 @@ sealed partial class SimplePublisher
     {
         Throw.DebugAssert( _hostingProvider != null && _releaseId != null );
         Throw.DebugAssert( repo.BuildContentInfo.AssetFileNames.Length > 0 );
-        var folder = _artifactHandler.GetAssetsFolder( repo.Repo, repo.BuildVersion );
+        var folder = _artifactHandler.GetAssetsFolder( repo.Repo, repo.PublishVersion );
         if( !Directory.Exists( folder ) )
         {
             monitor.Error( $"""
@@ -148,11 +155,11 @@ sealed partial class SimplePublisher
     async Task<PublishState.Cursor?> OnEndOfRepoAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
     {
         // Moves the release from local to published database.
-        if( !_releaseDatabase.PublishRelease( monitor, repo.Repo, repo.BuildVersion ) )
+        if( !_releaseDatabase.PublishRelease( monitor, repo.Repo, repo.PublishVersion ) )
         {
             return null;
         }
-        // To consider that the war is won, we must first be sure that the published database
+        // To consider that the war is won, we could ensure that the published database
         // is pushed in the Stack repository... But this is a lot of commits (one for each repository)!
         // And this is not crucial because the published database is just an index (the tag matters),
         // so we postpone the stack push to the end of the world.
@@ -168,7 +175,7 @@ sealed partial class SimplePublisher
         _hostingProvider = null;
         _releaseId = null;
         // If the cleanup fails, we still consider this release done.
-        _versionTag.CleanupLocalRelease( monitor, repo.Repo, repo.BuildVersion, repo.BuildContentInfo, removeFromNuGetGlobalCache: false );
+        _versionTag.CleanupLocalRelease( monitor, repo.Repo, repo.PublishVersion, repo.BuildContentInfo, removeFromNuGetGlobalCache: false );
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
@@ -176,11 +183,6 @@ sealed partial class SimplePublisher
     {
         var world = _state.PrimaryCursor.World;
         Throw.DebugAssert( world != null );
-        if( !_state.World.StackRepository.PushChanges( monitor ) )
-        {
-            return null;
-        }
-
         monitor.Info( $"Published '{world.Title}'." );
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }
