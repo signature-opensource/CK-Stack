@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <ItemGroup>
         <PackageReference Include="CKli.Plugins.Core" />
+        <PackageReference Include="NuGet.Credentials" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\CKli.Build.Plugin\CKli.Build.Plugin.csproj" />

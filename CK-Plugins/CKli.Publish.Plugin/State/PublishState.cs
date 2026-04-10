@@ -128,8 +128,8 @@ sealed partial class PublishState
                 using( var r = new CKBinaryReader( stream ) )
                 {
                     var releases = new List<WorldReleaseInfo>();
-                    int position = r.ReadInt32();
                     int version = r.ReadByte();
+                    int position = r.ReadInt32();
                     int count = r.ReadNonNegativeSmallInt32();
                     while( --count >= 0 )
                     {
@@ -151,41 +151,42 @@ sealed partial class PublishState
 
     internal bool Persist( IActivityMonitor monitor, bool fullWrite, Cursor primaryCursor )
     {
-        if( _releases.Count == 0 )
-        {
-            return FileHelper.DeleteFile( monitor, _path );
-        }
-        try
-        {
-            int primaryPosition = primaryCursor.GetPosition();
-            if( fullWrite || !File.Exists( _path ) )
-            {
-                using( var stream = File.OpenWrite( _path ) )
-                using( var w = new CKBinaryWriter( stream ) )
-                {
-                    w.Write( (byte)0 );
-                    w.Write( primaryPosition );
-                    w.WriteNonNegativeSmallInt32( _releases.Count );
-                    foreach( var release in _releases )
-                    {
-                        release.Write( w );
-                    }
-                }
-            }
-            else
-            {
-                using SafeFileHandle handle = File.OpenHandle( _path, FileMode.Open, FileAccess.Write );
-                var sPos = MemoryMarshal.AsBytes( MemoryMarshal.CreateReadOnlySpan( ref primaryPosition, 1 ) );
-                RandomAccess.Write( handle, sPos, 1 );
-                RandomAccess.FlushToDisk( handle );
-            }
-            return true;
-        }
-        catch( Exception ex )
-        {
-            monitor.Error( $"While persisting '{_path}'.", ex );
-            return false;
-        }
+        return true;
+        //if( _releases.Count == 0 )
+        //{
+        //    return FileHelper.DeleteFile( monitor, _path );
+        //}
+        //try
+        //{
+        //    int primaryPosition = primaryCursor.GetPosition();
+        //    if( fullWrite || !File.Exists( _path ) )
+        //    {
+        //        using( var stream = File.OpenWrite( _path ) )
+        //        using( var w = new CKBinaryWriter( stream ) )
+        //        {
+        //            w.Write( (byte)0 );
+        //            w.Write( primaryPosition );
+        //            w.WriteNonNegativeSmallInt32( _releases.Count );
+        //            foreach( var release in _releases )
+        //            {
+        //                release.Write( w );
+        //            }
+        //        }
+        //    }
+        //    else
+        //    {
+        //        using SafeFileHandle handle = File.OpenHandle( _path, FileMode.Open, FileAccess.Write );
+        //        var sPos = MemoryMarshal.AsBytes( MemoryMarshal.CreateReadOnlySpan( ref primaryPosition, 1 ) );
+        //        RandomAccess.Write( handle, sPos, 1 );
+        //        RandomAccess.FlushToDisk( handle );
+        //    }
+        //    return true;
+        //}
+        //catch( Exception ex )
+        //{
+        //    monitor.Error( $"While persisting '{_path}'.", ex );
+        //    return false;
+        //}
     }
 
 }

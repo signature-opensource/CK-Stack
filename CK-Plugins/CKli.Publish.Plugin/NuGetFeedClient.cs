@@ -1,5 +1,8 @@
 using CK.Core;
 using CSemVer;
+using NuGet.Common;
+using NuGet.Configuration;
+using NuGet.Credentials;
 using NuGet.Packaging;
 using NuGet.Protocol;
 using NuGet.Protocol.Core.Types;
@@ -7,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,10 +30,52 @@ public sealed partial class NuGetFeedClient : IDisposable
     readonly SourceRepository _sourceRepository;
     readonly SourceCacheContext _cacheContext;
 
+    sealed class MicroProvider : ICredentialProvider
+    {
+        readonly Uri _sourceUri;
+        readonly string _apiKey;
+        readonly string _id;
+
+        internal MicroProvider( Uri sourceUri, string apiKey, int idx )
+        {
+            _sourceUri = sourceUri;
+            _apiKey = apiKey;
+            _id = $"Ckli{idx}";
+        }
+
+        public string Id => _id;
+
+        public Task<CredentialResponse> GetAsync( Uri uri,
+                                                  IWebProxy proxy,
+                                                  CredentialRequestType type,
+                                                  string message,
+                                                  bool isRetry,
+                                                  bool nonInteractive,
+                                                  CancellationToken cancellationToken )
+        {
+            return Task.FromResult( uri == _sourceUri
+                                        ? new CredentialResponse( new NetworkCredential( _id, _apiKey ) )
+                                        : new CredentialResponse( CredentialStatus.ProviderNotApplicable ) );
+        }
+    }
+
+    static List<MicroProvider> _credentialProviders;
+
+    static NuGetFeedClient()
+    {
+        _credentialProviders = new List<MicroProvider>();
+        HttpHandlerResourceV3.CredentialService = new Lazy<ICredentialService>(
+        () => new CredentialService(
+            providers: new AsyncLazy<IEnumerable<ICredentialProvider>>( () => Task.FromResult<IEnumerable<ICredentialProvider>>( _credentialProviders ) ),
+            nonInteractive: true,
+            handlesDefaultCredentials: true )
+        );
+    }
+
     /// <summary>
     /// Initializes a new <see cref="NuGetFeedClient"/>.
     /// </summary>
-    /// <param name="feedUrl">The NuGet feed URL (V3 index.json or V2 endpoint).</param>
+    /// <param name="feedUrl">The NuGet feed URL (V3 index.json, V2 endpoint or file system folder path).</param>
     /// <param name="apiKey">The API key used for push and delete operations.</param>
     /// <param name="skipCache">
     /// When true (the default), bypasses the NuGet on-disk metadata cache and always hits
@@ -44,11 +90,13 @@ public sealed partial class NuGetFeedClient : IDisposable
         Throw.CheckNotNullOrWhiteSpaceArgument( apiKey );
         _feedUrl = feedUrl;
         _apiKey = apiKey;
-        if( Uri.TryCreate( feedUrl, UriKind.Absolute, out var uri ) && uri.IsFile )
+        _sourceRepository = Repository.Factory.GetCoreV3( feedUrl );
+        var uri = _sourceRepository.PackageSource.SourceUri;
+        if( uri.IsFile )
         {
             _localPath = uri.LocalPath;
         }
-        _sourceRepository = Repository.Factory.GetCoreV3( feedUrl );
+        _credentialProviders.Add( new MicroProvider( uri, _apiKey, _credentialProviders.Count ) );
         _cacheContext = new SourceCacheContext { NoCache = skipCache };
     }
 
@@ -254,11 +302,11 @@ public sealed partial class NuGetFeedClient : IDisposable
             {
                 var resource = await _sourceRepository.GetResourceAsync<PackageUpdateResource>( cancellationToken );
                 await resource.Push( paths,
-                                     symbolSource: null,
+                                     symbolSource: string.Empty, // no Symbol source.
                                      timeoutInSecond: paths.Count * _perPackagePushTimeoutSecond,
                                      disableBuffering: false,
                                      getApiKey: _ => _apiKey,
-                                     getSymbolApiKey: null,
+                                     getSymbolApiKey: symbolsEndpoint => null,
                                      noServiceEndpoint: false,
                                      skipDuplicate: skipDuplicate,
                                      symbolPackageUpdateResource: null,
