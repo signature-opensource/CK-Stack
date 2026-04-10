@@ -6,6 +6,7 @@ using CKli.VersionTag.Plugin;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using static CK.Core.ActivityMonitorErrorCounter;
 
 namespace CKli.Publish.Plugin;
 
@@ -82,18 +83,24 @@ sealed partial class SimplePublisher
             monitor.Error( $"Unable to resolve Git hosting provider for '{repo.Repo.DisplayPath}' ({repo.Repo.OriginUrl})." );
             return null;
         }
-        return _state.ForwardPrimaryCursor( monitor, 1 );
+        // If we have packages to push, we let the InPackages state create the release.
+        // But if we have no packages, we create the release right now.
+        return repo.BuildContentInfo.Produced.Length == 0
+                    ? await CreateRelease( monitor, repo, 1, cancel ).ConfigureAwait( false )
+                    : _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
     async Task<PublishState.Cursor?> OnInPackagesAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
     {
         if( !await _packageSender.SendAsync( monitor, repo.BuildVersion, repo.BuildContentInfo.Produced, cancel ).ConfigureAwait( false ) )
         {
-            return null; 
+            return null;
         }
-        // Packages have been pushed.
-        // Whether there are asset files or not, we create the hosted release now to be able to handle asset files if any (and to
-        // end with a release if no asset files exist!).
+        return await CreateRelease( monitor, repo, repo.BuildContentInfo.Produced.Length, cancel ).ConfigureAwait( false );
+    }
+
+    async Task<PublishState.Cursor?> CreateRelease( IActivityMonitor monitor, RepoPublishInfo repo, int forwardLength, CancellationToken cancel )
+    {
         // To create a release, hosting provider requires that the tag exists in the repository, so it's time to push it.
         var versionedTag = "v" + repo.BuildVersion.ToString();
         GitRepository r = repo.Repo.GitRepository;
@@ -113,11 +120,9 @@ sealed partial class SimplePublisher
         }
         Throw.DebugAssert( _hostingProvider != null );
         _releaseId = await _hostingProvider.CreateDraftReleaseAsync( monitor, _hostedRepoPath, versionedTag, cancel ).ConfigureAwait( false );
-        if( _releaseId == null )
-        {
-            return null;
-        }
-        return _state.ForwardPrimaryCursor( monitor, repo.BuildContentInfo.Produced.Length );
+        return _releaseId == null
+                ? null
+                : _state.ForwardPrimaryCursor( monitor, forwardLength );
     }
 
     async Task<PublishState.Cursor?> OnInFilesAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
@@ -148,17 +153,20 @@ sealed partial class SimplePublisher
             return null;
         }
         // To consider that the war is won, we must first be sure that the published database
-        // is pushed in the Stack repository.
-        if( !repo.Repo.World.StackRepository.PushChanges( monitor ) )
-        {
-            return null; 
-        }
+        // is pushed in the Stack repository... But this is a lot of commits (one for each repository)!
+        // And this is not crucial because the published database is just an index (the tag matters),
+        // so we postpone the stack push to the end of the world.
+        // if( !repo.Repo.World.StackRepository.PushChanges( monitor ) ) return null; 
+
         // We are almost done: finalize the hosted release.
         Throw.DebugAssert( _hostingProvider != null && _releaseId != null );
         if( !await _hostingProvider.FinalizeReleaseAsync( monitor, _hostedRepoPath, _releaseId, cancel ).ConfigureAwait( false ) )
         {
             return null; 
         }
+        // Resets the hosting provider and release state.
+        _hostingProvider = null;
+        _releaseId = null;
         // If the cleanup fails, we still consider this release done.
         _versionTag.CleanupLocalRelease( monitor, repo.Repo, repo.BuildVersion, repo.BuildContentInfo, removeFromNuGetGlobalCache: false );
         return _state.ForwardPrimaryCursor( monitor, 1 );
@@ -168,6 +176,11 @@ sealed partial class SimplePublisher
     {
         var world = _state.PrimaryCursor.World;
         Throw.DebugAssert( world != null );
+        if( !_state.World.StackRepository.PushChanges( monitor ) )
+        {
+            return null;
+        }
+
         monitor.Info( $"Published '{world.Title}'." );
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }

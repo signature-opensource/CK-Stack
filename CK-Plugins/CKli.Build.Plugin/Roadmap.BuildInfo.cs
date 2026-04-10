@@ -126,7 +126,7 @@ public sealed partial class Roadmap
             // Wait for requirements.
             if( _directRequirements.Length > 0 )
             {
-                // Checks that all builds went fine (or return null).
+                // Checks that all required builds went fine (or return null).
                 BuildResult?[] req = await Task.WhenAll( _directRequirements.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
                 foreach( var r in req )
                 {
