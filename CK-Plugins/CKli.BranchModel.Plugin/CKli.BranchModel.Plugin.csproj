@@ -5,7 +5,6 @@
     <PackageReference Include="CSemVer" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CKli.ShallowSolution.Plugin\CKli.ShallowSolution.Plugin.csproj" />
     <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
   </ItemGroup>
 </Project>

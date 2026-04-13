@@ -13,8 +13,6 @@
     <ProjectReference Include="..\CKli.ReleaseDatabase.Plugin\CKli.ReleaseDatabase.Plugin.csproj" />
     <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
     <ProjectReference Include="..\CKli.Net8Migration.Plugin\CKli.Net8Migration.Plugin.csproj" />
-    
-    <ProjectReference Include="..\CKli.ShallowSolution.Plugin\CKli.ShallowSolution.Plugin.csproj" />
   <ProjectReference Include="..\CKli.CommonFiles.Plugin\CKli.CommonFiles.Plugin.csproj" /><ProjectReference Include="..\CKli.Publish.Plugin\CKli.Publish.Plugin.csproj" /></ItemGroup>
 
 </Project>
