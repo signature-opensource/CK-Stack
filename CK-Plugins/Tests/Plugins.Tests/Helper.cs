@@ -1,5 +1,10 @@
+using CK.Core;
+using CKli;
 using CKli.Core;
+using Shouldly;
 using System;
+using System.Threading.Tasks;
+using System.Xml.Linq;
 using static CK.Testing.MonitorTestHelper;
 
 namespace Plugins.Tests;
@@ -34,6 +39,15 @@ public static class Helper
                                   """user-secrets set FILESYSTEM_GIT "don't care" --id CKli-CK""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
+    }
+
+    public static async Task TouchProjectAndCommitAsync( CKliEnv context, string csprojPath, string commitMessage = "Touched for test." )
+    {
+        NormalizedPath path = context.CurrentDirectory.Combine( csprojPath );
+        var doc = XDocument.Load( path );
+        doc.Root!.AddFirst( new XElement( "PropertyGroup", new XElement( "TouchedForTest", true ) ) );
+        XmlHelper.SaveWithoutXmlDeclaration( doc, path );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "commit", commitMessage )).ShouldBeTrue();
     }
 
 }

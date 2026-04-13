@@ -73,9 +73,12 @@ public sealed partial class Roadmap
                 buildReason |= MustBuildReason.Upstream;
             }
             // If some packages must be updated, always build.
-            // The AlreadyBuiltMapping enables to fix any intra World package references.
-            // The WorldConfiguredMapping applies the VersionTag plugin configuration.
-            // The DiscrepanciesMapping unifies external versions (to the max existing version).
+            // - The AlreadyBuiltMapping enables to fix any intra World package references.
+            // - The WorldConfiguredMapping applies the VersionTag plugin configuration.
+            // - The DiscrepanciesMapping unifies external versions (to the max existing version).
+            //
+            // The PackagesUpdateDetails collects up to 3 PackageMapper with the package updates for this
+            // solution. The display of the roadmap renders them (with the 'U', 'C' and 'D' letters).
             var packageUpdates = new PackagesUpdateDetails();
             if( _solution.GitSolution.HasUpdates( packageUpdates.Add,
                                                   mustBuildFromUpstreams ? null : _roadmap._packageUpdater.GetAlreadyBuiltMapping( _roadmap._isCIBuild ),

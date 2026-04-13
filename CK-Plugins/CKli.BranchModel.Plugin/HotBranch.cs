@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.Core;
 using LibGit2Sharp;
 using System.Diagnostics.CodeAnalysis;
+using System.Xml.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -18,24 +19,47 @@ public sealed class HotBranch
     BranchLink? _link;
     Branch? _gitDevBranch;
 
-    HotBranch( BranchName name, BranchModelInfo info, Branch? gitBranch, Branch? gitDevBranch )
+    HotBranch( BranchName name, BranchModelInfo info, BranchLink? link, Branch? gitDevBranch )
     {
         _name = name;
         _info = info;
+        _link = link;
         _gitDevBranch = gitDevBranch;
-        if( gitBranch != null )
-        {
-            _link = gitDevBranch == null
-                    ? BranchLink.Create( gitBranch, name.DevName )
-                    : BranchLink.Create( gitBranch, gitDevBranch );
-        }
     }
 
     internal static HotBranch Create( IActivityMonitor monitor, BranchModelInfo info, GitRepository repo, BranchName name )
     {
+        DoCreate( monitor, repo, name, out BranchLink? link, out Branch? gitDevBranch );
+        return new HotBranch( name, info, link, gitDevBranch );
+    }
+
+    static void DoCreate( IActivityMonitor monitor, GitRepository repo, BranchName name, out BranchLink? link, out Branch gitDevBranch )
+    {
         var gitBranch = repo.GetBranch( monitor, name.Name, missingLocalAndRemote: CK.Core.LogLevel.None );
-        var gitDevBranch = repo.GetBranch( monitor, name.DevName, missingLocalAndRemote: CK.Core.LogLevel.None );
-        return new HotBranch( name, info, gitBranch, gitDevBranch );
+        // Ignore the remote for the "dev/" branch.
+        gitDevBranch = repo.Repository.Branches[name.DevName];
+        if( gitBranch != null )
+        {
+            link = gitDevBranch == null
+                    ? BranchLink.Create( gitBranch, name.DevName )
+                    : BranchLink.Create( gitBranch, gitDevBranch );
+        }
+        else
+        {
+            link = null;
+        }
+    }
+
+    /// <summary>
+    /// Refreshes this branch state and returns <see cref="IsActive"/>.
+    /// </summary>
+    /// <param name="monitor">The required monitor.</param>
+    /// <returns>Whether the <see cref="GitBranch"/> exists in the repository.</returns>
+    [MemberNotNullWhen( true, nameof( GitBranch ), nameof( _link ) )]
+    public bool Refresh( IActivityMonitor monitor )
+    {
+        DoCreate( monitor, Repo.GitRepository, _name, out _link, out _gitDevBranch );
+        return IsActive;
     }
 
     /// <summary>

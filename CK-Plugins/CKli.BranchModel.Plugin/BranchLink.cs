@@ -134,7 +134,7 @@ public sealed partial class BranchLink
     }
 
     /// <summary>
-    /// Refreshes the link: if <see cref="Branch"/> does'nt exist anymore, null is returned.
+    /// Refreshes the link: if <see cref="Branch"/> doesn't exist anymore, null is returned.
     /// </summary>
     /// <param name="repo">The repository.</param>
     /// <returns>This link if no change, a refreshed one or null if <see cref="Branch"/> disappeared.</returns>
@@ -216,6 +216,7 @@ public sealed partial class BranchLink
 
     /// <summary>
     /// Creates an "empty ahead commit" from a base commit for a new branch.
+    /// If a remote "origin" branch exists, the local branch is created on its Tip.
     /// </summary>
     /// <param name="git">The git repository.</param>
     /// <param name="baseCommit">The base commit.</param>
@@ -223,16 +224,27 @@ public sealed partial class BranchLink
     /// <returns>The git branch.</returns>
     internal static Branch CreateAheadBranch( GitRepository git, Commit baseCommit, string aheadBranchName )
     {
-        Throw.DebugAssert( git.Repository == RepositoryOf( baseCommit ) );
-        var c = git.Repository.ObjectDatabase.CreateCommit( baseCommit.Author,
-                                                            git.Committer, $"""
-                                                            Initializing '{aheadBranchName}'.
+        var repository = git.Repository;
+        Throw.DebugAssert( repository == RepositoryOf( baseCommit ) );
+        // Lookup for an existing "origin" remote.
+        string remoteName = "origin/" + aheadBranchName;
+        var remote = repository.Branches[remoteName];
+        if( remote != null )
+        {
+            var b = repository.Branches.Add( aheadBranchName, remote.Tip );
+            b = repository.Branches.Update( b, u => u.TrackedBranch = remote.CanonicalName );
+            return b;
+        }
+        // No corresponding remote branch: "empty ahead commit".
+        var c = repository.ObjectDatabase.CreateCommit( baseCommit.Author,
+                                                        git.Committer, $"""
+                                                        Initializing '{aheadBranchName}'.
 
-                                                            """,
-                                                            baseCommit.Tree,
-                                                            [baseCommit],
-                                                            prettifyMessage: false );
-        return git.Repository.Branches.Add( aheadBranchName, c );
+                                                        """,
+                                                        baseCommit.Tree,
+                                                        [baseCommit],
+                                                        prettifyMessage: false );
+        return repository.Branches.Add( aheadBranchName, c );
     }
 
     /// <summary>

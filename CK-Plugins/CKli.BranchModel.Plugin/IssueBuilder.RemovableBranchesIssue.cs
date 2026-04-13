@@ -24,8 +24,8 @@ sealed partial class IssueBuilder
         {
             var names = removables.Select( r => r.BaseOrName switch
                                                 {
-                                                    string name => $"- {r.Branch.FriendlyName} lacks its base '{name}' branch.",
-                                                    Branch b => $"- {r.Branch.FriendlyName} is merged into '{b.FriendlyName}'.",
+                                                    string name => $"- '{r.Branch.FriendlyName}' lacks its base '{name}' branch.",
+                                                    Branch b => $"- '{r.Branch.FriendlyName}' is merged into '{b.FriendlyName}'.",
                                                     _ => Throw.NotSupportedException<string>()
                                                 } )
                                   .Concatenate( Environment.NewLine );

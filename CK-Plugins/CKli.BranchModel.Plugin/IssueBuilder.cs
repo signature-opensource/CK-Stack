@@ -12,11 +12,13 @@ sealed partial class IssueBuilder
     List<(Branch Branch, object BaseOrName)>? _removables;
     List<(Branch Ahead, Branch Base, int BehindBy)>? _desynchronized;
     List<(Branch Ahead, Branch Base)>? _unrelated;
+    bool _hasSevereIssues;
 
     public void OnMissingBaseBranch( Branch branch, string baseBranchName )
     {
         _removables ??= [];
         _removables.Add( (branch, baseBranchName) );
+        _hasSevereIssues = true;
     }
 
     public void OnUselessBranch( Branch branch, Branch baseBranch )
@@ -29,19 +31,23 @@ sealed partial class IssueBuilder
     {
         _desynchronized ??= [];
         _desynchronized.Add( (ahead, branch, behindBy) );
+        _hasSevereIssues = true;
     }
 
     public void OnUnrelated( Branch ahead, Branch branch )
     {
         _unrelated ??= [];
         _unrelated.Add( (ahead, branch) );
+        _hasSevereIssues = true;
     }
 
     internal void CollectIssues( IActivityMonitor monitor,
                                  Repo repo,
                                  ScreenType screenType,
-                                 Action<World.Issue> collector )
+                                 Action<World.Issue> collector,
+                                 out bool hasSevereIssues )
     {
+        hasSevereIssues = _hasSevereIssues;
         if( _unrelated != null )
         {
             foreach( var (a,b) in _unrelated )

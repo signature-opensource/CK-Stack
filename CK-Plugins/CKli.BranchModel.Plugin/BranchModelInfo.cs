@@ -74,7 +74,8 @@ public sealed partial class BranchModelInfo : RepoInfo
 
     internal void CollectIssues( IActivityMonitor monitor,
                                  ScreenType screenType,
-                                 Action<World.Issue> collector )
+                                 Action<World.Issue> collector,
+                                 out bool hasSevereIssues )
     {
         Throw.DebugAssert( _hasIssue );
         // If the "stable" branch doesn't exist, no need to continue.
@@ -85,6 +86,7 @@ public sealed partial class BranchModelInfo : RepoInfo
                                     ?? Repo.GitRepository.GetBranch( monitor, "main", LogLevel.Info )
                                     ?? Repo.GitRepository.GetBranch( monitor, "master", LogLevel.Info );
             collector( MissingRootBranchIssue.Create( monitor, Root, mainOrMaster, screenType ) );
+            hasSevereIssues = true;
             return;
         }
         var issues = new IssueBuilder();
@@ -92,7 +94,7 @@ public sealed partial class BranchModelInfo : RepoInfo
         {
             b.Collect( issues );
         }
-        issues.CollectIssues( monitor, Repo, screenType, collector );
+        issues.CollectIssues( monitor, Repo, screenType, collector, out hasSevereIssues );
     }
 
 }

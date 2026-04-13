@@ -26,24 +26,30 @@ public sealed partial class ContentIssueBuilder
             var currentHead = Repo.GitRepository.Repository.Head;
             foreach( var issues in _branchIssues )
             {
-                Throw.DebugAssert( issues.Branch.IsActive );
-                // - Creates the "dev/" branch from the hot branch if needed.
-                // - Checks out the "dev/" branch.
-                // - Executes the issues.
-                // - On success, the working folder is committed.
-                if( Repo.GitRepository.Checkout( monitor, issues.Branch.EnsureDevBranch() )
-                    && issues.Execute( monitor, context, Repo, Body )
-                    && issues.Branch.Commit( monitor, $"""
+                if( issues.Branch.Refresh( monitor ) )
+                {
+                    // - Creates the "dev/" branch from the hot branch if needed.
+                    // - Checks out the "dev/" branch.
+                    // - Executes the issues.
+                    // - On success, the working folder is committed.
+                    if( Repo.GitRepository.Checkout( monitor, issues.Branch.EnsureDevBranch() )
+                        && issues.Execute( monitor, context, Repo, Body )
+                        && issues.Branch.Commit( monitor, $"""
                     Fixed {_branchIssues.Count} issue(s).
 
                     {Body.RenderAsString()}
-                    """  ) )
-                {
-                    continue;
+                    """ ) )
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        success = false;
+                    }
                 }
                 else
                 {
-                    success = false;
+                    monitor.Warn( ActivityMonitor.Tags.ToBeInvestigated, $"Branch '{issues.Branch.BranchName.Name}' in '{Repo.DisplayPath}' disappeared. Cannot execute the content issue." );
                 }
             }
             // Whatever the success is, it is not up to the "issue -fix" to switch the branch (on, randomly,

@@ -45,17 +45,16 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     void IssueRequested( IssueEvent e )
     {
         var monitor = e.Monitor;
-        bool hasIssue = false;
+        bool hasSevereIssue = false;
         foreach( var r in e.Repos )
         {
             var info = Get( monitor, r );
             if( info.HasIssue )
             {
-                info.CollectIssues( monitor, e.ScreenType, e.Add );
-                hasIssue = true;
+                info.CollectIssues( monitor, e.ScreenType, e.Add, out hasSevereIssue );
             }
         }
-        if( !hasIssue && ContentIssue != null )
+        if( !hasSevereIssue && ContentIssue != null )
         {
             using( monitor.OpenInfo( "Raising ContentIssue event." ) )
             {

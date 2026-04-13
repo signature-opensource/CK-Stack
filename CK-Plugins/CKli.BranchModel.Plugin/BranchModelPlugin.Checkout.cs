@@ -13,8 +13,8 @@ public sealed partial class BranchModelPlugin
                           CKliEnv context,
                           [Description( "Branch name to checkout." )]
                           string branchName,
-                          [Description( "Creates the branch if it doesn't exist." )]
-                          bool create = false,
+                          [Description( "Don't create the branch if it doesn't exist, instead checks out the closest existing one." )]
+                          bool useFallback = false,
                           [Description( "Consider all the Repos of the current World (even if current path is in a Repo)." )]
                           bool all = false )
     {
@@ -38,7 +38,7 @@ public sealed partial class BranchModelPlugin
         {
             Throw.DebugAssert( b.IsActive );
             bool exists = b.BranchName == name && (!isDevName || b.GitDevBranch != null);
-            if( !exists && create )
+            if( !exists && !useFallback )
             {
                 var info = b.BranchModelInfo;
                 var git = info.Repo.GitRepository.Repository;

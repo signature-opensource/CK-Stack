@@ -27,15 +27,14 @@ public class BuildTests
         var display = (StringScreen)context.Screen;
 
         var inSampleFolder = context.ChangeDirectory( "Samples" );
+
         var newRepo1 = TestHelper.CKliRemotesPath.AppendPart( "bare" ).Combine( "CKt(initialized)/CKt-Sample-Monitoring" );
         var newRepoUrl1 = $"file://{newRepo1}";
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "hosting", "create", newRepoUrl1 )).ShouldBeTrue();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleFolder, "repo", "add", newRepoUrl1 )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleFolder, "repo", "create", newRepoUrl1 )).ShouldBeTrue();
 
         var newRepo2 = TestHelper.CKliRemotesPath.AppendPart( "bare" ).Combine( "CKt(initialized)/CKt-App-Sample" );
         var newRepoUrl2 = $"file://{newRepo2}";
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "hosting", "create", newRepoUrl2 )).ShouldBeTrue();
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleFolder, "repo", "add", newRepoUrl2 )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleFolder, "repo", "create", newRepoUrl2 )).ShouldBeTrue();
 
         display.Clear();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
@@ -58,7 +57,7 @@ public class BuildTests
             var inSampleMonitoring = inSampleFolder.ChangeDirectory( "CKt-Sample-Monitoring" );
             Directory.Exists( inSampleMonitoring.CurrentDirectory ).ShouldBeTrue();
 
-            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "checkout", "dev/stable", "--create" )).ShouldBeTrue();
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "checkout", "dev/stable" )).ShouldBeTrue();
 
             var path = inSampleMonitoring.CurrentDirectory.AppendPart( "CKt.Sample.Monitoring" );
             Directory.CreateDirectory( path );
@@ -106,7 +105,7 @@ public class BuildTests
             var inSampleApp = inSampleFolder.ChangeDirectory( "CKt-App-Sample" );
             Directory.Exists( inSampleApp.CurrentDirectory ).ShouldBeTrue();
 
-            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleApp, "checkout", "dev/stable", "--create" )).ShouldBeTrue();
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleApp, "checkout", "dev/stable" )).ShouldBeTrue();
 
             var path = inSampleApp.CurrentDirectory.AppendPart( "CKt.SomeApp" );
             Directory.CreateDirectory( path );
@@ -150,6 +149,8 @@ public class BuildTests
         }
         #endregion
 
+
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "checkout", "dev/stable" )).ShouldBeTrue();
 
         // The nuget.config can be fixed with a dirty folder (no need to pre-commit here).
         //
@@ -335,8 +336,8 @@ public class BuildTests
         """ );
 
         // To test the "ci build" and "ci *build", we touch the CKt-Core and CKt-PerfectEvent repositories.
-        await TouchProjectAndCommit( context, "CKt-Core/CKt.Core/CKt.Core.csproj" );
-        await TouchProjectAndCommit( context, "CKt-PerfectEvent/CKt.PerfectEvent/CKt.PerfectEvent.csproj" );
+        await Helper.TouchProjectAndCommitAsync( context, "CKt-Core/CKt.Core/CKt.Core.csproj" );
+        await Helper.TouchProjectAndCommitAsync( context, "CKt-PerfectEvent/CKt.PerfectEvent/CKt.PerfectEvent.csproj" );
 
         #region build
         {
@@ -530,15 +531,6 @@ public class BuildTests
             ❰✓❱
             
             """ );
-        }
-
-        static async Task TouchProjectAndCommit( CKliEnv context, string csprojPath )
-        {
-            NormalizedPath path = context.CurrentDirectory.Combine( csprojPath );
-            var doc = XDocument.Load( path );
-            doc.Root!.AddFirst( new XElement( "PropertyGroup", new XElement( "TouchedForTest", true ) ) );
-            XmlHelper.SaveWithoutXmlDeclaration( doc, path );
-            (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "commit", "Touched for test." )).ShouldBeTrue();
         }
         #endregion
 

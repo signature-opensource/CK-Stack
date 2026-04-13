@@ -70,12 +70,21 @@ public sealed partial class BranchModelPlugin
         {
             return false;
         }
+        Throw.DebugAssert( !versionInfo.HasIssue );
         var toFix = versionInfo.LastStables.Where( c => c.Version.Major == major && (minor == -1 || c.Version.Minor == minor) ).Max();
         if( toFix == null )
         {
             monitor.Error( minor != -1
                             ? $"Unable to find any version to fix for 'v{major}.{minor}'."
                             : $"Unable to find any version to fix for 'v{major}'." );
+            return false;
+        }
+        if( toFix == versionInfo.HotZone.LastStable )
+        {
+            monitor.Error( $"""
+                The version to fix '{toFix.Version.ParsedText}' is the current last stable version.
+                Use the regular 'ckli build/publish' or 'ckli ci build/publish' workflows to produce a fix.
+                """ );
             return false;
         }
         // We now know the target version.
@@ -167,6 +176,9 @@ public sealed partial class BranchModelPlugin
             _releaseDatabase.DestroyAllLocalFixRelease( monitor );
             _artifactHandler.DestroyAllLocalFixRelease( monitor );
         }
+
+        // Display (avoid a subsequent 'ckli fix info').
+        context.Screen.Display( workflow.ToRenderable );
         return true;
 
         static bool ParseMajorMinor( ReadOnlySpan<char> s, out int major, out int minor )
