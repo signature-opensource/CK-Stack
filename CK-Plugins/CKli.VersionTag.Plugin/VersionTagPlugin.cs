@@ -686,7 +686,6 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             Throw.DebugAssert( topHot == lastStable || (topHot != null && topHot.Version > lastStable.Version) );
             // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
             hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot, lastAvailableStable );
-
         }
 
         // We capture the invalidTags: may be one day we can create a World.Issue that could
@@ -712,8 +711,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         if( tagConflicts == null )
         {
             // This iterator provides all the versions per repository to the release database and detects
-            // version tags content difference between the tag and the db: publishedReleaseContentIssue is
-            // a manual issue that may be emitted.
+            // version tags content difference between the tag and the Published database:
+            // publishedReleaseContentIssue is a manual issue that may be emitted.
             //
             // Version tags with missing or bad content info are handled by the Build plugin (the issue
             // is implemented in the build plugin because its fix requires builds to be run).

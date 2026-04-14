@@ -206,6 +206,11 @@ sealed class ReleaseDB
                     issues ??= new List<(SVersion V, BuildContentInfo Pub, BuildContentInfo Tag)>();
                     issues.Add( (version, exists, info) );
                 }
+                else
+                {
+                    // Should we automatically cleanup the Local database here?
+                    // If yes, we should also cleanup the artifacts.
+                }
             }
             else
             {
