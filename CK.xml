@@ -155,6 +155,7 @@
     <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model">
       <VersionTag MinVersion="19.0.0" />
     </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-Globalization" />
   </Folder>
   <Folder Name="Device">
     <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
