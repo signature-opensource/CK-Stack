@@ -9,7 +9,8 @@
         <Feed Name="NuGet" Url="https://api.nuget.org/v3/index.json" PushQualityFilter="[pre,]">
           <PushCredentials SecretKey="NUGET_ORG_PUSH_API_KEY" />
         </Feed>
-        <Feed Name="Signature-OpenSource" Url="https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json">
+        <Feed Name="Signature-OpenSource"
+          Url="https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json">
           <PushCredentials SecretKey="AZURE_FEED_SIGNATURE_OPENSOURCE_PAT" />
         </Feed>
       </NuGet>
@@ -155,7 +156,9 @@
     <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model">
       <VersionTag MinVersion="19.0.0" />
     </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-DB-AspNet-Auth" />
+    <Repository Url="https://github.com/signature-opensource/CK-DB-AspNet-Auth">
+      <VersionTag MinVersion="29.1.3" />
+    </Repository>
   </Folder>
   <Folder Name="Device">
     <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
