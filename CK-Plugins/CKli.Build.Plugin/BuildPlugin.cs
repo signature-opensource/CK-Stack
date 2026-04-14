@@ -21,8 +21,6 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     const string _descBranch = "Specify the branch to consider. By default, the current head is considered when in a Repo.";
     const string _descMaxDoP = "Maximal Degree of Parallelism. Defaults to 4.";
     const string _descDryRun = "Only display the build roadmap.";
-    const string _descBuildPublish = "On success, publish the generated packages and asset files.";
-    const string _descNoPublish = "Don't publish the generated packages and asset files.";
 
     readonly VersionTagPlugin _versionTags;
     readonly BranchModelPlugin _branchModel;

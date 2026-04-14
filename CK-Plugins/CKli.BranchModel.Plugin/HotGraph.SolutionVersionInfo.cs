@@ -67,9 +67,11 @@ public sealed partial class HotGraph
             public bool VersionMustBuild => _tagCommit.BuildContentInfo == null;
 
             /// <summary>
-            /// Gets whether a build is required because <see cref="TagCommit"/>'s commit is not the same as the <see cref="GitSolution"/>'s git branch's tip.
+            /// Gets whether a build is required because <see cref="TagCommit"/>'s commit is not the same as
+            /// the <see cref="GitSolution"/>'s git branch's tip (the <see cref="TagCommit.ContentSha"/> is also tested).
             /// </summary>
-            public bool HasCodeChange => _tagCommit.Commit.Sha != _info._solution.GitSolution.GitBranch.Tip.Sha;
+            public bool HasCodeChange => _tagCommit.Commit.Sha != _info._solution.GitSolution.GitBranch.Tip.Sha
+                                            || _tagCommit.ContentSha != _info._solution.GitSolution.GitBranch.Tip.Tree.Sha;
 
             /// <summary>
             /// Gets whether this solution has already been built: both <see cref="VersionMustBuild"/> and <see cref="HasCodeChange"/> are false.
