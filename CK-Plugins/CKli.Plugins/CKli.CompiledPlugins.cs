@@ -702,13 +702,13 @@ sealed class Cmd_migrate＿net8 : PluginCommand
                     (["--hard-reset-all",], "<no description>" ),
                     (["--restore-remotes",], "<no description>" ),
                 ],
-                "Migrate", MethodAsyncReturn.None ) {}
+                "MigrateNet8", MethodAsyncReturn.None ) {}
     protected override ValueTask<bool> HandleCommandAsync( IActivityMonitor monitor, CKliEnv context, CommandLineArguments cmdLine )
     {
         var f0 = cmdLine.EatFlag( Flags[0].Names );
         var f1 = cmdLine.EatFlag( Flags[1].Names );
         if( !cmdLine.Close( monitor ) ) return ValueTask.FromResult( false );
-        return ValueTask.FromResult( ((CKli.Net8Migration.Plugin.Net8MigrationPlugin)Instance).Migrate(
+        return ValueTask.FromResult( ((CKli.Net8Migration.Plugin.Net8MigrationPlugin)Instance).MigrateNet8(
                                            monitor, f0, f1 ) );
     }
 }

@@ -71,9 +71,9 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
 
     [Description( "Migrate Net8 stack." )]
     [CommandPath( "migrate net8" )]
-    public bool Migrate( IActivityMonitor monitor,
-                         bool hardResetAll = false,
-                         bool restoreRemotes = false )
+    public bool MigrateNet8( IActivityMonitor monitor,
+                             bool hardResetAll = false,
+                             bool restoreRemotes = false )
     {
         if( hardResetAll )
         {
