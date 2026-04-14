@@ -672,22 +672,21 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 lastAvailableStable = lastStables.FirstOrDefault( tc => tc.BuildContentInfo != null );
             }
         }
-
-        Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
         // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is "too much higher" than the last
         // stable (this is a strong signal of a bad tag that should be deleted).
-        VersionTagInfo.HotZoneInfo? hotZone = null;    
-        if( topHot != null )
+        VersionTagInfo.HotZoneInfo? hotZone = null;
+        if( lastStable == null )
         {
-            Throw.DebugAssert( lastStable != null );
-            // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
-            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot, lastAvailableStable );
+            // No hot zone.
+            // The build plugin will handle this.
+            monitor.Warn( $"No initial version found in '{repo.DisplayPath}'." );
         }
         else
         {
-            Throw.DebugAssert( lastStable == null );
-            // The build plugin will handle this.
-            monitor.Warn( $"No initial version found in '{repo.DisplayPath}'." );
+            Throw.DebugAssert( topHot == lastStable || (topHot != null && topHot.Version > lastStable.Version) );
+            // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
+            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot, lastAvailableStable );
+
         }
 
         // We capture the invalidTags: may be one day we can create a World.Issue that could
