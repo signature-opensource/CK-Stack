@@ -157,7 +157,7 @@
       <VersionTag MinVersion="19.0.0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-AspNet-Auth">
-      <VersionTag MinVersion="29.1.3" />
+      <VersionTag MinVersion="29.1.2" />
     </Repository>
   </Folder>
   <Folder Name="Device">

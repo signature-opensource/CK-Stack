@@ -88,7 +88,7 @@ public static class CompiledPlugins
             new Cmd_fix＿publish( infos[2].PluginTypes[1] ),
             new Cmd_maintenance＿rebuild＿old( infos[2].PluginTypes[1] ),
             new Cmd_maintenance＿rebuild＿version( infos[2].PluginTypes[1] ),
-            new Cmd_migrate＿net8( infos[5].PluginTypes[0] ),
+            new Cmd_maintenance＿migrate＿net8( infos[5].PluginTypes[0] ),
         };
         var cmds = new Dictionary<string,Command>();
         foreach( var c in pluginCommands )
@@ -100,7 +100,7 @@ public static class CompiledPlugins
        cmds.Add( "fix", null );
        cmds.Add( "ci", null );
        cmds.Add( "maintenance rebuild", null );
-       cmds.Add( "migrate", null );
+       cmds.Add( "maintenance migrate", null );
         return new Generated( infos, pluginCommands, CommandNamespace.UnsafeCreate( cmds ) );
     }
 }
@@ -686,11 +686,11 @@ sealed class Cmd_maintenance＿rebuild＿version : PluginCommand
     }
 }
 [GeneratedCode("CKli", "0.0.8--0234-dev")]
-sealed class Cmd_migrate＿net8 : PluginCommand
+sealed class Cmd_maintenance＿migrate＿net8 : PluginCommand
 {
-    internal Cmd_migrate＿net8( IPluginTypeInfo typeInfo )
+    internal Cmd_maintenance＿migrate＿net8( IPluginTypeInfo typeInfo )
         : base( typeInfo,
-                "migrate net8",
+                "maintenance migrate net8",
                 "Migrate Net8 stack.",
                 -1,
                 -1,
