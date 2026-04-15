@@ -712,8 +712,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         if( tagConflicts == null )
         {
             // This iterator provides all the versions per repository to the release database and detects
-            // version tags content difference between the tag and the db: publishedReleaseContentIssue is
-            // a manual issue that may be emitted.
+            // version tags content difference between the tag and the Published database:
+            // publishedReleaseContentIssue is a manual issue that may be emitted.
             //
             // Version tags with missing or bad content info are handled by the Build plugin (the issue
             // is implemented in the build plugin because its fix requires builds to be run).

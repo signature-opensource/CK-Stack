@@ -79,6 +79,31 @@ public sealed partial class BuildPlugin
                                                 """ ),
                                              unreadableMessages ) );
         }
+        // Ultimate case: the regular tags with a content that appear in the Local database but miss artifacts.
+        // => If it appears in the Published database, then we can remove it from the Local database (this may be done
+        //    in the ReleaseDatabasePlugin.OnExistingVersionTags... whether it misses artifacts or not...).
+        //    For the moment, if it appears in the Published database, we ignore it.
+        // => Otherwise, we must rebuild it.
+        var missingArtifacts = regulars.Where( tc => tc.BuildContentInfo != null
+                                                     && _releaseDatabase.GetBuildContentInfo( monitor, versionTagInfo.Repo, tc.Version ) != null
+                                                     && _releaseDatabase.GetBuildContentInfo( monitor, versionTagInfo.Repo, tc.Version, fromPublished: true ) == null
+                                                     && !_artifactHandler.HasAllArtifacts( monitor, versionTagInfo.Repo, tc.Version, tc.BuildContentInfo, out _ ) ).ToArray();
+        if( missingArtifacts.Length > 0 )
+        {
+            monitor.Info( $"""
+                The {missingArtifacts.Length} following tags in '{versionTagInfo.Repo.DisplayPath}' must be rebuilt (expected artifacts are missing):
+                {missingArtifacts.Select( tc => $"- {tc.Version}:{Environment.NewLine}{tc.TagMessage}{Environment.NewLine}" ).Concatenate( Environment.NewLine )}
+                """ );
+            collector( new TagsRebuildIssue( this,
+                                             versionTagInfo,
+                                             $"{missingArtifacts.Length} tags have missing artifacts (see logs for details).",
+                                             screenType.Text( $"""
+                                                {missingArtifacts.Select( t => t.Version.ToString() ).Concatenate()}
+
+                                                These commits must be rebuilt to produce the packages and asset files.
+                                                """ ),
+                                             missingArtifacts ) );
+        }
     }
 
     sealed class TagsRebuildIssue : World.Issue

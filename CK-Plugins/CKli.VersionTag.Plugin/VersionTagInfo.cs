@@ -1,5 +1,7 @@
 using CK.Core;
+using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
+using CKli.ReleaseDatabase.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
@@ -634,6 +636,16 @@ public sealed partial class VersionTagInfo : RepoInfo
         {
             collector( _hotZone.HotZoneIssue );
         }
+        // Last but not least, the versioned tags that are perfectly valid BUT:
+        // - Appear in the Published database with a different content
+        //      => The manual issue _publishedReleaseContentIssue above.
+        //      - (When the version appear in Local database and the content differ, the database is updated with the tag content.)
+        // - Other issues are handled by the BuildPlugin:
+        //   - A tag that doesn't appear in the Published database nor in the Local database => This is a more a Debug.Assert
+        //     than an issue (content are inserted or updated in the Local database when VersionInfoTag are created).
+        //   - A tag that appears in the Local database but miss some of their assets in our $Local/ folder
+        //     => The BuildPlugin will emit a "rebuild issue".
+        //
 
         static string ToString( (SVersion V, Tag T) t ) => $"'{t.V.ParsedText}' on '{t.T.Target.Sha}'";
     }
