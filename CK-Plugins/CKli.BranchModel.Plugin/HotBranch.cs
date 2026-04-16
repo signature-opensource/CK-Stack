@@ -33,11 +33,10 @@ public sealed class HotBranch
         return new HotBranch( name, info, link, gitDevBranch );
     }
 
-    static void DoCreate( IActivityMonitor monitor, GitRepository repo, BranchName name, out BranchLink? link, out Branch gitDevBranch )
+    static void DoCreate( IActivityMonitor monitor, GitRepository repo, BranchName name, out BranchLink? link, out Branch? gitDevBranch )
     {
         var gitBranch = repo.GetBranch( monitor, name.Name, missingLocalAndRemote: CK.Core.LogLevel.None );
-        // Ignore the remote for the "dev/" branch.
-        gitDevBranch = repo.Repository.Branches[name.DevName];
+        gitDevBranch = repo.GetBranch( monitor, name.DevName, missingLocalAndRemote: CK.Core.LogLevel.None );
         if( gitBranch != null )
         {
             link = gitDevBranch == null

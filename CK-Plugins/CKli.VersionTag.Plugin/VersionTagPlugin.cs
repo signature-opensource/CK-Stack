@@ -310,7 +310,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     {
                         updateRemoteTagsWarning.Append( $"""
                             - {repo.DisplayPath}:
-                              '{pushTagBuffer.Select( t => t.FriendlyName ).Concatenate("', '")}'
+                              '{pushTagBuffer.Select( t => t.FriendlyName ).Concatenate( "', '" )}'
 
 
                             """ );
@@ -566,7 +566,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 if( newOne.Commit.Sha != invalid.T.Target.Sha )
                 {
                     tagConflicts ??= new();
-                    tagConflicts.Add( (invalid, (newOne.Version,newOne.Tag), TagConflict.InvalidTagOnWrongCommit) );
+                    tagConflicts.Add( (invalid, (newOne.Version, newOne.Tag), TagConflict.InvalidTagOnWrongCommit) );
                 }
                 // Invalidated tag. Forget it.
                 continue;
@@ -619,7 +619,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     }
                 }
                 tagConflicts ??= new();
-                tagConflicts.Add( ((exists.Version, exists.Tag), (newOne.Version, newOne.Tag), TagConflict.DuplicatedVersionTag ) );
+                tagConflicts.Add( ((exists.Version, exists.Tag), (newOne.Version, newOne.Tag), TagConflict.DuplicatedVersionTag) );
             }
             else
             {
@@ -672,22 +672,21 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 lastAvailableStable = lastStables.FirstOrDefault( tc => tc.BuildContentInfo != null );
             }
         }
-
-        Throw.DebugAssert( topHot == lastStable || (topHot != null && lastStable != null && topHot.Version > lastStable.Version) );
         // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is "too much higher" than the last
         // stable (this is a strong signal of a bad tag that should be deleted).
-        VersionTagInfo.HotZoneInfo? hotZone = null;    
-        if( topHot != null )
+        VersionTagInfo.HotZoneInfo? hotZone = null;
+        if( lastStable == null )
         {
-            Throw.DebugAssert( lastStable != null );
-            // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
-            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot, lastAvailableStable );
+            // No hot zone.
+            // The build plugin will handle this.
+            monitor.Warn( $"No initial version found in '{repo.DisplayPath}'." );
         }
         else
         {
-            Throw.DebugAssert( lastStable == null );
-            // The build plugin will handle this.
-            monitor.Warn( $"No initial version found in '{repo.DisplayPath}'." );
+            Throw.DebugAssert( topHot == lastStable || (topHot != null && topHot.Version > lastStable.Version) );
+            // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
+            hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot, lastAvailableStable );
+
         }
 
         // We capture the invalidTags: may be one day we can create a World.Issue that could
@@ -713,8 +712,8 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         if( tagConflicts == null )
         {
             // This iterator provides all the versions per repository to the release database and detects
-            // version tags content difference between the tag and the db: publishedReleaseContentIssue is
-            // a manual issue that may be emitted.
+            // version tags content difference between the tag and the Published database:
+            // publishedReleaseContentIssue is a manual issue that may be emitted.
             //
             // Version tags with missing or bad content info are handled by the Build plugin (the issue
             // is implemented in the build plugin because its fix requires builds to be run).
@@ -838,7 +837,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             _v2c = v2c;
         }
 
-        internal IEnumerable<(SVersion,BuildContentInfo)> GetVersions()
+        internal IEnumerable<(SVersion, BuildContentInfo)> GetVersions()
         {
             foreach( var tc in _v2c.Values )
             {

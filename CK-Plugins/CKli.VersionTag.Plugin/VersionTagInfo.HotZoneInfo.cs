@@ -27,7 +27,7 @@ public sealed partial class VersionTagInfo
         internal static HotZoneInfo Create( IActivityMonitor monitor, World world, Repo repo, TagCommit lastStable, TagCommit topHot, TagCommit? lastAvailableStable )
         {
             World.Issue? hotZoneIssue = null;
-            var hotSupremum = SVersion.Create( topHot.Version.Major + 1, 0, 0 );
+            var hotSupremum = SVersion.Create( lastStable.Version.Major + 1, 0, 0 );
             if( topHot.Version >= hotSupremum )
             {
                 var message = $"""
@@ -36,7 +36,7 @@ public sealed partial class VersionTagInfo
                               This should be fixed manually.
                               """;
 
-                monitor.Warn( message );
+                monitor.Warn( $"Hot zone issue in '{repo.DisplayPath}': {message}" );
                 hotZoneIssue = World.Issue.CreateManual( "Hot zone issue detected.", world.ScreenType.Text( message ), repo );
             }
             return new HotZoneInfo( lastStable, topHot, hotZoneIssue, lastAvailableStable );
