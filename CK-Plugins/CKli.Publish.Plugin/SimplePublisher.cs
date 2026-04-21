@@ -76,9 +76,9 @@ sealed partial class SimplePublisher
                     step = await OnEndOfWorldAsync( monitor, cancel ).ConfigureAwait( false );
                     break;
             }
-            disposableGroup?.Dispose();
             if( step == null ) return false;
         }
+        disposableGroup?.Dispose();
         _state.World.StackRepository.PushChanges( monitor );
         return true;
     }
@@ -99,11 +99,15 @@ sealed partial class SimplePublisher
 
     async Task<PublishState.Cursor?> OnInPackagesAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
     {
-        if( !await _packageSender.SendAsync( monitor, repo.PublishVersion, repo.BuildContentInfo.Produced, cancel ).ConfigureAwait( false ) )
+        var toPush = repo.BuildContentInfo.Produced;
+        using( monitor.OpenTrace( $"Pushing {toPush} packages." ) )
         {
-            return null;
+            if( !await _packageSender.SendAsync( monitor, repo.PublishVersion, toPush, cancel ).ConfigureAwait( false ) )
+            {
+                return null;
+            }
         }
-        return await CreateRelease( monitor, repo, repo.BuildContentInfo.Produced.Length, cancel ).ConfigureAwait( false );
+        return await CreateRelease( monitor, repo, toPush.Length, cancel ).ConfigureAwait( false );
     }
 
     async Task<PublishState.Cursor?> CreateRelease( IActivityMonitor monitor, RepoPublishInfo repo, int forwardLength, CancellationToken cancel )
