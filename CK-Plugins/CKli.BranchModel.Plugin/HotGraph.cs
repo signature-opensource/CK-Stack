@@ -166,12 +166,18 @@ public sealed partial class HotGraph
 
     /// <summary>
     /// Mutate this graph by adding the <paramref name="solutions"/> to the <see cref="DevSolutions"/>.
+    /// <para>
+    /// This is idempotent. When <paramref name="hasChanged"/> is true, the graph has been reordered according
+    /// to the updated relationships between solutions.
+    /// </para>
     /// </summary>
     /// <param name="monitor">The monitor.</param>
-    /// <param name="solutions">The solutions.</param>
+    /// <param name="solutions">The solutions that must be considered from the "dev/" branch.</param>
+    /// <param name="hasChanged">True if the graph has changed, false otherwise.</param>
     /// <returns>True on success, false on error.</returns>
-    public bool ConsiderBuildImpact( IActivityMonitor monitor, IEnumerable<Solution> solutions )
+    public bool ConsiderBuildImpact( IActivityMonitor monitor, IEnumerable<Solution> solutions, out bool hasChanged )
     {
+        hasChanged = false;
         bool success = true;
         foreach( var s in solutions )
         {
@@ -196,23 +202,31 @@ public sealed partial class HotGraph
                 }
             }
         }
-        if( success  && _maxRank == -1 )
+        if( success )
         {
-            success &= TopologicalSort( monitor );
+            if( _maxRank == -1 )
+            {
+                hasChanged = true;
+                success &= TopologicalSort( monitor );
+            }
+            else
+            {
+                monitor.Trace( "Considering build impacts didn't change the graph." );
+            }
         }
         return success;
     }
 
-    internal bool AddSolution( IActivityMonitor monitor, Repo repo, HotBranch actual, bool isPivot, bool isActiveDev )
+    internal bool AddSolution( IActivityMonitor monitor, Repo repo, HotBranch actual, bool isPivot, bool isDevSolution )
     {
         Throw.DebugAssert( _solutions[repo.Index] == null );
         Throw.DebugAssert( actual.GitBranch != null );
-        Throw.DebugAssert( "IsDevActive => We are on the theoretical graph branch.", !isActiveDev || actual.BranchName == _branchName );
+        Throw.DebugAssert( "IsDevActive => We are on the theoretical graph branch.", !isDevSolution || actual.BranchName == _branchName );
 
-        var shallow = _shallowSolution.GetShallowSolution( monitor, repo, (isActiveDev ? actual.GitDevBranch : null) ?? actual.GitBranch );
+        var shallow = _shallowSolution.GetShallowSolution( monitor, repo, (isDevSolution ? actual.GitDevBranch : null) ?? actual.GitBranch );
         if( shallow == null ) return false;
 
-        var s = new Solution( this, repo, actual, shallow, isPivot, isActiveDev );
+        var s = new Solution( this, repo, actual, shallow, isPivot, isDevSolution );
         _solutions[repo.Index] = s;
         _orderedSolutions[repo.Index] = s;
         return RegisterProjects( monitor, s, shallow );

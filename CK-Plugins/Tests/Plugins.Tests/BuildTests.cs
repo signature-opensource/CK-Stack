@@ -545,7 +545,7 @@ public class BuildTests
         var nonPackableSample = mode == "NonPackableSample";
         var clonedFolder = TestHelper.InitializeClonedFolder( $"CKt_publish_PerfectEvent-{mode}" );
         var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
-        var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds ).SetScreen( new StringScreen( useDebugRenderer: true ) );
+        var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds );
         var display = (StringScreen)context.Screen;
 
         // From CKt-PerfectEvent (the NuGet.config has been renamed to nuget.config).
@@ -571,17 +571,17 @@ public class BuildTests
 
         display.ToString().ShouldBe(
               """
-                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0[GRAY]   ⮐
-                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0[GRAY]   ⮐
-              1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [BLUE]v0.3.2[GRAY]    [GREEN]→ v0.3.3 🡡[GRAY] [Italic](DependencyUpdate, CodeChange)[Regular]            ⮐
-                                                                           [BLACK,darkmagenta]U[GRAY,black] [DARKGRAY]CKt.ActivityMonitor: 0.1.1--ci.5 → 0.1.0[GRAY]⮐
-                ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3[GRAY]   ⮐
-                ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [BLUE]v0.0.0 🡡[GRAY]⮐
-              2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [BLUE]v0.0.0[GRAY]    [GREEN]→ v0.0.1 🡡[GRAY] [Italic](Upstream)[Regular]                                ⮐
-              Required build for 2 from the 1 pivots out of 6 repositories.⮐
-              [BLACK,darkmagenta]U[GRAY,black] 1 updates from upstreams (not using '*publish' here).⮐
-              [BLUE]🡡 3 repositories must be published.[GRAY]⮐
-              [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
+                - →·   CKt-Core                      v1.0.0   
+                - →·   CKt-ActivityMonitor           v0.1.0   
+              1 ╓  ⊙   CKt-PerfectEvent              v0.3.2    → v0.3.3 🡡 (DependencyUpdate, CodeChange)            
+                                                                           U CKt.ActivityMonitor: 0.1.1--ci.5 → 0.1.0
+                ║      CKt-Monitoring                v0.2.3   
+                ╙      Samples/CKt-App-Sample        v0.0.0 🡡
+              2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0    → v0.0.1 🡡 (Upstream, CodeChange)                    
+              Required build for 2 from the 1 pivots out of 6 repositories.
+              U 1 updates from upstreams (not using '*publish' here).
+              🡡 3 repositories must be published.
+              ❰✓❱
           
               """ );
 

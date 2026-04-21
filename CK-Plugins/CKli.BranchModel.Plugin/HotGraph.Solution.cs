@@ -7,7 +7,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using static CKli.BranchModel.Plugin.HotGraph;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -15,6 +14,10 @@ public sealed partial class HotGraph
 {
     /// <summary>
     /// Models a <see cref="HotGraph"/>'s solution bound to a <see cref="Branch"/>.
+    /// <para>
+    /// The graph starts with a set of <see cref="DevSolutions"/> that is a subset of the <see cref="Solutions"/> that can be
+    /// extended thanks to <see cref="ConsiderBuildImpact(IActivityMonitor, IEnumerable{Solution}, out bool)"/>. 
+    /// </para>
     /// </summary>
     public sealed class Solution : IComparable<Solution>
     {
@@ -127,6 +130,15 @@ public sealed partial class HotGraph
 
         /// <summary>
         /// Gets whether this solution belongs to the current <see cref="HotGraph.DevSolutions"/>.
+        /// <para>
+        /// To be a "dev solution", this <see cref="HotBranch"/> must be the <see cref="HotGraph.BranchName"/> but this
+        /// doesn't mean that the "dev/" git branch exists. The <see cref="GitSolution"/> is bound to the regular branch
+        /// when there is no "dev/" branch but if it exists then the GitSolution is bound to it.
+        /// </para>
+        /// <para>
+        /// Being a "dev solution" is independent of any "MustBuild" consideration. A "dev/" branch may exist and be useless
+        /// or excluded from a given "build set" (for any reason), and a solution may require a build even if <see cref="CanBeDevSolution"/> is false.
+        /// </para>
         /// </summary>
         public bool IsDevSolution => _isDevSolution;
 
@@ -154,7 +166,6 @@ public sealed partial class HotGraph
 
         internal SolutionVersionInfo? ComputeVersionInfo( IActivityMonitor monitor, VersionTagInfo? vInfo )
         {
-            Throw.DebugAssert( _versionInfo == null );
             Throw.DebugAssert( _solution != null );
             // When VersionTagInfo has issue it is null.
             if( vInfo == null ) return null;
@@ -162,43 +173,50 @@ public sealed partial class HotGraph
             Throw.DebugAssert( !vInfo.HasIssue );
             Throw.DebugAssert( vInfo.Repo == Repo );
 
-            var baseTagCommit = vInfo.HotZone.LastStable;
-            var commitsLog = Repo.GitRepository.Repository.Commits.QueryBy( new CommitFilter()
+            if( _versionInfo == null || _versionInfo.IsDirty )
             {
-                IncludeReachableFrom = _solution.GitBranch.Tip,
-                ExcludeReachableFrom = baseTagCommit.Commit,
-                SortBy = CommitSortStrategies.Time | CommitSortStrategies.Reverse
-            } );
-            var commitsFromBaseBuild = commitsLog.ToList();
-
-            var tagCommitsFromBaseBuild = new List<TagCommit>();
-            foreach( var c in commitsFromBaseBuild )
-            {
-                var tc = vInfo.TagCommitsBySha.GetValueOrDefault( c.Sha );
-                if( tc != null )
+                // The SolutionVersionInfo depends on the currentTip.
+                // We store this commit's sha in the SolutionVersionInfo: IsDirty uses it.
+                var currentTip = _solution.GitBranch.Tip;
+                var baseTagCommit = vInfo.HotZone.LastStable;
+                var commitsLog = Repo.GitRepository.Repository.Commits.QueryBy( new CommitFilter()
                 {
-                    var v = tc.Version;
-                    if( v < baseTagCommit.Version )
+                    IncludeReachableFrom = currentTip,
+                    ExcludeReachableFrom = baseTagCommit.Commit,
+                    SortBy = CommitSortStrategies.Time | CommitSortStrategies.Reverse
+                } );
+                var commitsFromBaseBuild = commitsLog.ToList();
+
+                var tagCommitsFromBaseBuild = new List<TagCommit>();
+                foreach( var c in commitsFromBaseBuild )
+                {
+                    var tc = vInfo.TagCommitsBySha.GetValueOrDefault( c.Sha );
+                    if( tc != null )
                     {
-                        monitor.Warn( $"Ignoring {tc} in '{_solution}' as it is lower than the last version '{baseTagCommit.Version.ParsedText}'." );
-                    }
-                    else
-                    {
-                        tagCommitsFromBaseBuild.Add( tc );
+                        var v = tc.Version;
+                        if( v < baseTagCommit.Version )
+                        {
+                            monitor.Warn( $"Ignoring {tc} in '{_solution}' as it is lower than the last version '{baseTagCommit.Version.ParsedText}'." );
+                        }
+                        else
+                        {
+                            tagCommitsFromBaseBuild.Add( tc );
+                        }
                     }
                 }
+                // Temporary: this works for "stable" only scenario. With multiple
+                // hot branches this will be more complicated.
+                //
+                // Note: TagCommit.CompareTo reverts the SVersion.CompareTo order.
+                //
+                var lastAnyBuild = tagCommitsFromBaseBuild.Min() ?? baseTagCommit;
+                if( lastAnyBuild.BuildContentInfo == null )
+                {
+                    monitor.Warn( $"Last any build tag for '{_solution}' is '{lastAnyBuild.Version.ParsedText}'. It requires a build." );
+                }
+                _versionInfo = new SolutionVersionInfo( this, vInfo, currentTip.Sha, lastAnyBuild, commitsFromBaseBuild, tagCommitsFromBaseBuild );
             }
-            // Temporary: this works for "stable" only scenario. With multiple
-            // hot branches this will be more complicated.
-            //
-            // Note: TagCommit.CompareTo reverts the SVersion.CompareTo order.
-            //
-            var lastAnyBuild = tagCommitsFromBaseBuild.Min() ?? baseTagCommit;
-            if( lastAnyBuild.BuildContentInfo == null )
-            {
-                monitor.Warn( $"Last any build tag for '{_solution}' is '{lastAnyBuild.Version.ParsedText}'. It requires a build." );
-            }
-            return _versionInfo = new SolutionVersionInfo( this, vInfo, lastAnyBuild, commitsFromBaseBuild, tagCommitsFromBaseBuild );
+            return _versionInfo;
         }
 
         /// <summary>
@@ -220,7 +238,6 @@ public sealed partial class HotGraph
             _directRequirements.Clear();
             _allRequirements.Clear();
             _externalDependencies.Clear();
-            _versionInfo = null;
         }
 
         internal bool UpdateRank( IActivityMonitor monitor,

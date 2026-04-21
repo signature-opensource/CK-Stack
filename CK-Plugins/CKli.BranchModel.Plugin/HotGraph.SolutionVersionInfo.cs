@@ -19,6 +19,7 @@ public sealed partial class HotGraph
     {
         readonly Solution _solution;
         readonly VersionTagInfo _info;
+        readonly string _builtTipSha;
         readonly TagCommit _lastAnyBuild;
         readonly IReadOnlyList<Commit> _commitsFromBaseBuild;
         readonly IReadOnlyList<TagCommit> _tagCommitsFromBaseBuild;
@@ -27,6 +28,7 @@ public sealed partial class HotGraph
 
         internal SolutionVersionInfo( Solution solution,
                                       VersionTagInfo info,
+                                      string builtTipSha,
                                       TagCommit lastAnyBuild,
                                       List<Commit> commitsFromBaseBuild,
                                       List<TagCommit> tagCommitsFromBaseBuild )
@@ -34,10 +36,14 @@ public sealed partial class HotGraph
             Throw.DebugAssert( info.HotZone != null && info.HotZone.HotZoneIssue == null );
             _solution = solution;
             _info = info;
+            _builtTipSha = builtTipSha;
             _lastAnyBuild = lastAnyBuild;
             _commitsFromBaseBuild = commitsFromBaseBuild;
             _tagCommitsFromBaseBuild = tagCommitsFromBaseBuild;
         }
+
+
+        internal bool IsDirty => _builtTipSha != _solution.GitSolution.GitBranch.Tip.Sha;
 
         /// <summary>
         /// Captures the last <see cref="TagCommit"/> to consider in a build context (branch and whether we are building

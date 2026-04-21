@@ -171,7 +171,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// The branch name.
     /// At least one of the <paramref name="pivots"/> must have a corresponding active <see cref="HotBranch"/>.
     /// </param>
-    /// <param name="ciBuild">True to obtain the graph from the CI point of view.</param>
+    /// <param name="isCIBuild">True to obtain the graph from the CI point of view.</param>
     /// <param name="pivots">
     /// Optional pivots of the graph.
     /// <list type="bullet">
@@ -180,7 +180,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// </list>
     /// </param>
     /// <returns>The graph or null on error.</returns>
-    public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, bool ciBuild, IReadOnlyList<Repo> pivots )
+    public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, bool isCIBuild, IReadOnlyList<Repo> pivots )
     {
         // Normalize Pivots/AllRepos.
         var allRepos = World.GetAllDefinedRepo( monitor );
@@ -252,17 +252,14 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                     bool isContainedInPivots = !hasPivots || pivots.Contains( repo );
 
                     // Should we initially consider the "dev/"?
-                    // If the repo has not the theoretical graph branch, we don't want to consider the base branch's "dev/":
-                    // when building "-alpha" and the repo is only in "stable": a "-alpha" will be built (and the "alpha"
-                    // branch created) if and only if a built upstream impacts it.
-                    bool canBeDevSolution = hotBranch.BranchName == branchName;
+                    // - If the repo has not the theoretical graph branch, we don't want to consider the base branch's "dev/":
+                    //   when building "-alpha" and the repo is only in "stable": a "-alpha" will be built (and the "alpha"
+                    //   branch created) if and only if a built upstream impacts it (this is the CanBeDevSolution).
+                    // - When "ci building", we always consider the "dev/" solution when possible.
+                    //   But for non-ci builds, we initially consider the "/dev" only for the repos that are in pivots.
+                    bool isDevSolution = (hotBranch.BranchName == branchName) && (isCIBuild || isContainedInPivots);
 
-                    bool isDevSolution = canBeDevSolution;
-                    // - But always considering "/dev" if it exists is right for the "ciBuild" mode. For non-ci builds, we
-                    //   initially consider the "/dev" only for the repos that are in pivots.
-                    if( !ciBuild ) canBeDevSolution &= isContainedInPivots;
-
-                    if( !graph.AddSolution( monitor, repo, hotBranch, hasPivots && isContainedInPivots, canBeDevSolution ) )
+                    if( !graph.AddSolution( monitor, repo, hotBranch, hasPivots && isContainedInPivots, isDevSolution ) )
                     {
                         return null;
                     }

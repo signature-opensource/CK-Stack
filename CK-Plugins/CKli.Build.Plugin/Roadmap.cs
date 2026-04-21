@@ -5,7 +5,9 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
+using NuGet.Common;
 using System;
+using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -31,12 +33,12 @@ public sealed partial class Roadmap
     int _buildSolutionCount;
     int _publishSolutionCount;
 
-    internal Roadmap( VersionTagPlugin versionTags,
-                      HotGraph graph,
-                      HotGraph.PackageUpdater packageUpdater,
-                      bool isPullBuild,
-                      bool isCIBuild,
-                      bool mustPublish )
+    Roadmap( VersionTagPlugin versionTags,
+             HotGraph graph,
+             HotGraph.PackageUpdater packageUpdater,
+             bool isPullBuild,
+             bool isCIBuild,
+             bool mustPublish )
     {
         _versionTags = versionTags;
         _graph = graph;
@@ -61,6 +63,57 @@ public sealed partial class Roadmap
         _orderedSolutions = ImmutableCollectionsMarshal.AsImmutableArray( buildSolutions );
         _packageMapping = new Mapping( packageUpdater, _orderedSolutions, isCIBuild );
         _pivots = ImmutableCollectionsMarshal.AsImmutableArray( pivots );
+    }
+
+    internal static Roadmap? Create( IActivityMonitor monitor,
+                                     VersionTagPlugin versionTags,
+                                     ReleaseDatabasePlugin releaseDatabase,
+                                     ArtifactHandlerPlugin artifactHandler,
+                                     HotGraph graph,
+                                     bool isPullBuild,
+                                     bool isCIBuild,
+                                     bool mustPublish )
+    {
+
+        // TODO: Refactor this... But this will introduce a mutable roadmap (just like the graph).
+        //       Current implementation is not elegant but may be simpler & safer than its mutable version.
+        Roadmap? roadmap;
+        bool hasChanged;
+        do
+        {
+            // Computes the PackageUpdater. This is at the level of the HotGraph and handles:
+            // - Existing built versions for packages produced by the World.
+            // - The VersionTagPlugin World's configuration packages.
+            // - And the external package discrepancies across the World.
+            //
+            // At this stage, this cannot contain the target build versions of the Roadmap: this is why
+            // the Roadmap uses a PackageMapping that wraps the HotGraph package mappings to first consider the target versions.
+            //
+            // (Introducing this layer enables the build process to rely on this PackageMapping as a read only structure that
+            // is de facto concurrent-safe: before April 2026, a ConcurrentDictionary was used as a layer above the
+            // PackageUpdater.Mappings that was updated by the RoadmapExecutor.DoBuildAsync after each build.)
+            //
+            var packageUpdater = graph.GetPackageUpdater( monitor );
+            if( packageUpdater == null ) return null;
+
+            roadmap = new Roadmap( versionTags, graph, packageUpdater, isPullBuild, isCIBuild, mustPublish );
+            if( !roadmap.Initialize( monitor ) )
+            {
+                return null;
+            }
+            var buildSolutions = roadmap.OrderedSolutions.Where( s => s.MustBuild ).Select( s => s.Solution );
+            if( !graph.ConsiderBuildImpact( monitor, buildSolutions, out hasChanged ) )
+            {
+                return null;
+            }
+        }
+        while( hasChanged );
+
+        if( !roadmap.ConcludeInitialization( monitor, releaseDatabase, artifactHandler ) )
+        {
+            return null;
+        }
+        return roadmap;
     }
 
     /// <summary>
@@ -113,7 +166,7 @@ public sealed partial class Roadmap
     /// </summary>
     public IPackageMapping PackageMapping => _packageMapping;
 
-    internal bool Initialize( IActivityMonitor monitor, ReleaseDatabasePlugin releaseDatabase, ArtifactHandlerPlugin artifactHandler )
+    internal bool Initialize( IActivityMonitor monitor )
     {
         foreach( var s in _orderedSolutions )
         {
@@ -123,6 +176,13 @@ public sealed partial class Roadmap
             }
         }
         Throw.DebugAssert( _orderedSolutions.Count( s => s.MustBuild ) == _buildSolutionCount );
+        return true;
+    }
+
+    bool ConcludeInitialization( IActivityMonitor monitor,
+                                 ReleaseDatabasePlugin releaseDatabase,
+                                 ArtifactHandlerPlugin artifactHandler )
+    {
         bool success = true;
         int idxBuildNumber = 1;
         foreach( var s in _orderedSolutions )

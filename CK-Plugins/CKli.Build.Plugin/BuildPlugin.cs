@@ -349,27 +349,11 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         var hotGraph = _branchModel.GetHotGraph( monitor, branchName, isCIBuild, pivots );
         if( hotGraph == null ) return null;
 
-        // Computes the PackageUpdater. This is at the level of the HotGraph and handles:
-        // - Existing built versions for packages produced by the World.
-        // - The VersionTagPlugin World's configuration packages.
-        // - And the external package discrepancies across the World.
-        //
-        // At this stage, this cannot contain the target build versions of the Roadmap: this is why
-        // the Roadmap uses a PackageMapping that wraps the HotGraph package mappings to first consider the target versions.
-        //
-        // (Introducing this layer enables the build process to rely on this PackageMapping as a read only structure that
-        // is de facto concurrent safe: before April 2026, a ConcurrentDictionary was used as a layer above the
-        // PackageUpdater.Mappings that was updated by the RoadmapExecutor.DoBuildAsync after each build.)
-        //
-        var packageUpdater = hotGraph.GetPackageUpdater( monitor );
-        if( packageUpdater == null ) return null;
-
-        var roadmap = new Roadmap( _versionTags, hotGraph, packageUpdater, isPullBuild, isCIBuild, mustPublish );
-        if( !roadmap.Initialize( monitor, _releaseDatabase, _artifactHandler ) )
+        var roadmap = Roadmap.Create( monitor, _versionTags, _releaseDatabase, _artifactHandler, hotGraph, isPullBuild, isCIBuild, mustPublish );
+        if( roadmap != null  )
         {
-            return null;
+            context.Screen.Display( roadmap.ToRenderable );
         }
-        context.Screen.Display( roadmap.ToRenderable );
         return roadmap;
 
         static string GetBranchName( IActivityMonitor monitor, Repo r )
