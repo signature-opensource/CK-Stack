@@ -108,8 +108,6 @@ public sealed partial class HotGraph
         /// </summary>
         public TagCommit BaseBuild => _info.HotZone!.LastStable;
 
-
-
         /// <summary>
         /// Gets the last built version to consider in the <see cref="Solution.Branch"/> and CI build context.
         /// </summary>

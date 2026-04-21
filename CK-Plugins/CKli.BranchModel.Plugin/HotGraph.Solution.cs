@@ -156,10 +156,11 @@ public sealed partial class HotGraph
         {
             Throw.DebugAssert( _versionInfo == null );
             Throw.DebugAssert( _solution != null );
+            // When VersionTagInfo has issue it is null.
             if( vInfo == null ) return null;
 
-            Throw.DebugAssert( vInfo.Repo == Repo );
             Throw.DebugAssert( !vInfo.HasIssue );
+            Throw.DebugAssert( vInfo.Repo == Repo );
 
             var baseTagCommit = vInfo.HotZone.LastStable;
             var commitsLog = Repo.GitRepository.Repository.Commits.QueryBy( new CommitFilter()

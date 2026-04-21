@@ -6,6 +6,7 @@ using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
 using System;
 using System.Collections.Immutable;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -73,6 +74,13 @@ public sealed class PublishPlugin : PrimaryPluginBase
     {
         if( e.ShouldPublish )
         {
+            // "ckli publish", when everything has already been published, may trigger a check of the remote feeds here.
+            //
+            // if( e.Roadmap.SolutionPublishCount == 0 )
+            // {
+            //    monitor.Info( $"Checking that remote feeds contain the packages." );
+            // }
+            // else 
             if( !await PublishAsync( monitor, World, _artifactHandler, _releaseDatabase, _versionTag, e.BuildDate, e.Roadmap, cancel ) )
             {
                 e.SetFailed();

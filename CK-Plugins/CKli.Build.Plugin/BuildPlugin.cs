@@ -290,7 +290,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return false;
         }
         // Here, results.Length can be 0: everything was already built, we blindly raise the event,
-        // it's upt to the listeners to handle this (roadmap.SolutionBuildCount and SolutionPublishCount can be 0).
+        // it's up to the listeners to handle this (roadmap.SolutionBuildCount and SolutionPublishCount can be 0).
         if( _onRoadmapBuild.HasHandlers )
         {
             var e = new RoadmapBuildEventArgs( monitor, roadmap );
