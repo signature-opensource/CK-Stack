@@ -138,7 +138,7 @@ public sealed partial class HotGraph
             {
                 if( _p2s.TryGetValue( packageId, out var s ) )
                 {
-                    var sv = _versions[s.OrderedIndex];
+                    var sv = _versions[s.Repo.Index];
                     var last = _ciBuild ? sv.LastBuildInCI : sv.LastBuildInNonCI;
                     return last.VersionMustBuild
                             ? null

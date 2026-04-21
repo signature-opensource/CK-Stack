@@ -30,7 +30,7 @@ public class InitializationTests
         var display = (StringScreen)context.Screen;
 
         // ckli migrate net8
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "migrate", "net8" )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "maintenance", "migrate", "net8" )).ShouldBeTrue();
 
         // The "migrate net8" leaves a possibly useless "dev/stable" branch in the repositories and
         // this is intended (for the real life). This is a BranchModel issue:

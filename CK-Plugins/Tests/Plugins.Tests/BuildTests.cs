@@ -339,7 +339,7 @@ public class BuildTests
         await Helper.TouchProjectAndCommitAsync( context, "CKt-Core/CKt.Core/CKt.Core.csproj" );
         await Helper.TouchProjectAndCommitAsync( context, "CKt-PerfectEvent/CKt.PerfectEvent/CKt.PerfectEvent.csproj" );
 
-        #region build
+        #region ci build
         {
             // From stack root (or if --all is specified): all solutions are pivots <==> none of them is.
             // (in this case *build is the same as build).
@@ -549,7 +549,7 @@ public class BuildTests
         // From CKt-PerfectEvent (the NuGet.config has been renamed to nuget.config).
         // The CKt-Monitoring and App sample are "nothing".
         // CKt-Sample-Monitoring is a downstream repo that must be built.
-        // We inject <IsPackable>false</IsPackable> in CKt.Sample.Monitoring.csproj in "nonPackableSample" mode.
+        // We inject <IsPackable>false</IsPackable> in CKt.Sample.Monitoring.csproj in "NonPackableSample" mode.
         var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
 
         if( nonPackableSample )
@@ -569,16 +569,16 @@ public class BuildTests
 
         display.ToString().ShouldBe(
               """
-                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0[GRAY]⮐
-              1 - [BLACK,darkyellow]→· [GRAY,black]  [GREEN]CKt-ActivityMonitor[GRAY]           [BLUE]v0.1.0[GRAY] [GREEN]→ v0.1.1 🡡[GRAY] [Italic](DependencyUpdate, CodeChange)[Regular] ⮐
-                                                                        [BLACK,darkmagenta]U[GRAY,black] [DARKGRAY]CKt.Core: 1.0.1--ci.4 → 1.0.0[GRAY]⮐
-              2 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [BLUE]v0.3.2[GRAY] [GREEN]→ v0.3.3 🡡[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
-              3 ║      [GREEN]CKt-Monitoring[GRAY]                [BLUE]v0.2.3[GRAY] [GREEN]→ v0.2.4 🡡[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
-              4 ╙      [GREEN]Samples/CKt-App-Sample[GRAY]        [BLUE]v0.0.0[GRAY] [GREEN]→ v0.0.1 🡡[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
-              5 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [BLUE]v0.0.0[GRAY] [GREEN]→ v0.0.1 🡡[GRAY] [Italic](Upstream, CodeChange)[Regular]         ⮐
-              Required build for 5 from the 1 pivots out of 6 repositories.⮐
+                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-Core[GRAY]                      [DARKBLUE]v1.0.0[GRAY]   ⮐
+                - [BLACK,darkyellow]→· [GRAY,black]  [DARKGRAY]CKt-ActivityMonitor[GRAY]           [DARKBLUE]v0.1.0[GRAY]   ⮐
+              1 ╓ [BLACK,darkyellow] ⊙ [GRAY,black]  [GREEN]CKt-PerfectEvent[GRAY]              [BLUE]v0.3.2[GRAY]    [GREEN]→ v0.3.3 🡡[GRAY] [Italic](DependencyUpdate, CodeChange)[Regular]            ⮐
+                                                                           [BLACK,darkmagenta]U[GRAY,black] [DARKGRAY]CKt.ActivityMonitor: 0.1.1--ci.5 → 0.1.0[GRAY]⮐
+                ║      [DARKGRAY]CKt-Monitoring[GRAY]                [DARKBLUE]v0.2.3[GRAY]   ⮐
+                ╙      [DARKGRAY]Samples/CKt-App-Sample[GRAY]        [BLUE]v0.0.0 🡡[GRAY]⮐
+              2 - [BLACK,darkyellow] ·→[GRAY,black]  [GREEN]Samples/CKt-Sample-Monitoring[GRAY] [BLUE]v0.0.0[GRAY]    [GREEN]→ v0.0.1 🡡[GRAY] [Italic](Upstream)[Regular]                                ⮐
+              Required build for 2 from the 1 pivots out of 6 repositories.⮐
               [BLACK,darkmagenta]U[GRAY,black] 1 updates from upstreams (not using '*publish' here).⮐
-              [BLUE]🡡 5 repositories must be published.[GRAY]⮐
+              [BLUE]🡡 3 repositories must be published.[GRAY]⮐
               [BLACK,darkgreen]❰✓❱[GRAY,black]⮐
           
               """ );

@@ -59,7 +59,7 @@ public sealed partial class BranchModelPlugin
         var branchSpec = World.Name.LTSName != null
                             ? $"{World.Name.LTSName}/fix/v{major}.*"
                             : $"fix/v{major}.*";
-        if( !repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, originOnly: true, branchSpec ) )
+        if( !repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, branchSpec ) )
         {
             return false;
         }
@@ -370,7 +370,7 @@ public sealed partial class BranchModelPlugin
                         {
                             var ltsName = next.Repo.World.Name.LTSName;
                             var branchSpec = ltsName != null ? $"{ltsName}/fix/v*" : "fix/v*";
-                            if( !next.Repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, originOnly: true, branchSpec ) )
+                            if( !next.Repo.GitRepository.FetchRemoteBranches( monitor, withTags: true, branchSpec ) )
                             {
                                 return null;
                             }
@@ -430,10 +430,10 @@ public sealed partial class BranchModelPlugin
             {
                 // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the initial nominal case:
                 // the commit referenced by the /fix branch contains the code to fix.
-                if( bFix.Tip.Tree.Sha != toFix.ContentSha )
+                if( bFix.Tip.Tree.Sha != toFix.Commit.Tree.Sha )
                 {
                     // The /fix branch must contain the commit to fix.
-                    var versionedParent = versionTags.Get( monitor, repo ).FindFirst( bFix.Commits, out _ );
+                    var versionedParent = versionTags.Get( monitor, repo ).FindFirst( bFix.Commits );
                     if( versionedParent != toFix )
                     {
                         if( !moveBranch )

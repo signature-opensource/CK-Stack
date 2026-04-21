@@ -17,7 +17,7 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
     readonly SVersion _version;
     readonly Commit _commit;
     readonly string _sha;
-    readonly string _contentSha;
+    //readonly string _contentSha;
     readonly bool _isFakeVersion;
     readonly bool _isDeprecatedVersion;
     Tag _tag;
@@ -30,7 +30,7 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
         _commit = commit;
         _tag = tag;
         _sha = commit.Sha;
-        _contentSha = commit.Tree.Sha;
+        //_contentSha = commit.Tree.Sha;
         _isFakeVersion = _version.BuildMetaData.Equals( "fake", StringComparison.Ordinal );
         _isDeprecatedVersion = !_isFakeVersion && _version.BuildMetaData.Contains( "deprecated", StringComparison.Ordinal );
     }
@@ -44,10 +44,10 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
     /// </summary>
     public string Sha => _sha;
 
-    /// <summary>
-    /// Gets the content sha of this commit.
-    /// </summary>
-    public string ContentSha => _contentSha;
+    ///// <summary>
+    ///// Gets the content sha of this commit.
+    ///// </summary>
+    //public string ContentSha => _contentSha;
 
     /// <summary>
     /// Gets whether this version tag is "+fake" one: it is here only

@@ -152,7 +152,7 @@ public sealed partial class VersionTagInfo : RepoInfo
     public IReadOnlyDictionary<SVersion, TagCommit> TagCommits => _v2C;
 
     /// <summary>
-    /// Gets the versioned tag commit indexed by their <see cref="TagCommit.Sha"/> and <see cref="TagCommit.ContentSha"/>.
+    /// Gets the versioned tag commit indexed by their <see cref="TagCommit.Sha"/>.
     /// </summary>
     public IReadOnlyDictionary<string, TagCommit> TagCommitsBySha
     {
@@ -160,11 +160,10 @@ public sealed partial class VersionTagInfo : RepoInfo
         {
             if( _sha2C == null )
             {
-                _sha2C = new Dictionary<string, TagCommit>( _v2C.Count * 2 );
+                _sha2C = new Dictionary<string, TagCommit>( _v2C.Count );
                 foreach( var tc in _v2C.Values )
                 {
                     _sha2C.Add( tc.Sha, tc );
-                    _sha2C.Add( tc.ContentSha, tc );
                 }
             }
             return _sha2C;
@@ -204,22 +203,15 @@ public sealed partial class VersionTagInfo : RepoInfo
     /// Finds the first version tag in a commit list.
     /// </summary>
     /// <param name="commits">The list of commits to lookup.</param>
-    /// <param name="foundContentSha">True if the commit has been found by its <see cref="Commit.Tree"/> content sha.</param>
     /// <returns>The first match or null.</returns>
-    public TagCommit? FindFirst( IEnumerable<Commit> commits, out bool foundContentSha )
+    public TagCommit? FindFirst( IEnumerable<Commit> commits )
     {
-        foundContentSha = false;
         // Build the index if not yet built.
         var index = TagCommitsBySha;
         foreach( Commit c in commits )
         {
             if( index.TryGetValue( c.Sha, out var tc ) )
             {
-                return tc;
-            }
-            if( index.TryGetValue( c.Tree.Sha, out tc ) )
-            {
-                foundContentSha = true;
                 return tc;
             }
         }
@@ -388,42 +380,30 @@ public sealed partial class VersionTagInfo : RepoInfo
         // build commit has not already been released from another commit with a different version (otherwise we would be
         // in the case above where the version exists).
         var already = Find( buildCommit, out var foundContentSha );
-        if( already != null )
+        // If the commit has been found by its content Sha, then this is a valid scenario.
+        if( already != null && !foundContentSha )
         {
+            // Already released under a different version.
             if( already.IsFakeVersion )
             {
                 // The Commit is tagged with a +Fake version.
-                // If the commit to build is exactly this one, this is more than weird and we reject this
-                // (almost the same case as the above where a Fake version should be produced).
-                // But if the commit has been found by its content Sha, then this MAY be a valid scenario.
-                if( !foundContentSha )
-                {
-                    monitor.Error( $"""
-                    Commit '{buildCommit.Sha}' is tagged with a fake version '{already.Version.ParsedText}' in '{Repo.DisplayPath}'.
-                    Producing version 'v{version}' from it is forbidden.
+                // This is more than weird and we reject this (almost the same case as the above where a Fake version should be produced).
+                monitor.Error( $"""
+                Commit '{buildCommit.Sha}' is tagged with a fake version '{already.Version.ParsedText}' in '{Repo.DisplayPath}'.
+                Producing version 'v{version}' from it is forbidden.
 
-                    Fake version tags are here to allow explicit gaps in versions: this version should not be produced.
-                    """ );
-                    return false;
-                }
-                return true;
+                Fake version tags are here to allow explicit gaps in versions: this version should not be produced.
+                """ );
             }
-            // This is where the --ci build should be allowed (for 0000 version in Debug).
-            monitor.Error( foundContentSha
-                            ? $"""
-                            Invalid build commit '{buildCommit.Sha}' for version 'v{version}' in '{Repo.DisplayPath}'.
-                            This commit contains the exact same code as the version 'v{already.Version}' released on {already.Commit.Committer.When} by commit '{already.Sha}'.
-                            
-                            If publishing 2 different versions of the exact same code is really what is intended, please alter
-                            any file with a minor modification.
-                            """
-                            : $"""
+            else
+            {
+                monitor.Error( $"""
                             Invalid build commit '{buildCommit.Sha}' for version 'v{version}' in '{Repo.DisplayPath}'.
                             This commit has already released the version 'v{already.Version}' on {already.Commit.Committer.When}.
 
                             The same commit cannot produce 2 different versions.
                             """ );
-
+            }
             return false;
         }
         return true;
@@ -527,14 +507,11 @@ public sealed partial class VersionTagInfo : RepoInfo
     {
         Throw.DebugAssert( !_v2C.ContainsKey( version ) );
         Throw.DebugAssert( _sha2C != null );
-        Throw.DebugAssert( "This must have been checked by TryGetCommitBuildInfo.",
-                             !_sha2C.ContainsKey( buildCommit.Sha )
-                             && !_sha2C.ContainsKey( buildCommit.Tree.Sha ) );
+        Throw.DebugAssert( "This must have been checked by TryGetCommitBuildInfo.", !_sha2C.ContainsKey( buildCommit.Sha ) );
 
         var newOne = new TagCommit( version, buildCommit, t );
         _v2C.Add( version, newOne );
         _sha2C.Add( newOne.Sha, newOne );
-        _sha2C.Add( newOne.ContentSha, newOne );
         if( version.IsStable )
         {
             var idx = _lastStables.BinarySearch( newOne );
@@ -557,7 +534,6 @@ public sealed partial class VersionTagInfo : RepoInfo
             if( _sha2C != null )
             {
                 _sha2C.Remove( tc.Sha );
-                _sha2C.Remove( tc.ContentSha );
             }
             if( version.IsStable )
             {

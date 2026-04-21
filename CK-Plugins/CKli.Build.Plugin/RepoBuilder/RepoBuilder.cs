@@ -9,6 +9,7 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using static CK.Core.AsyncLock;
 
 namespace CKli.Build.Plugin;
 
@@ -200,7 +201,7 @@ public class RepoBuilder : RepoInfo
                             buildInfo.InformationalVersion,
                             buildInfo.FileVersion,
                             buildInfo.ReleaseConfiguration )
-               && (!runTest || DotNetTest( monitor ))
+               && (!runTest || DotNetTest( monitor, buildInfo.ReleaseConfiguration ))
                && DotNetPack( monitor, buildInfo.Version, buildInfo.ReleaseConfiguration, packOutputPath );
     }
 
@@ -228,10 +229,11 @@ public class RepoBuilder : RepoInfo
     /// Helper that calls "dotnet test".
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
+    /// <param name="release">Whether the build is in debug or in release.</param>
     /// <returns>True on tests success, false otherwise.</returns>
-    protected bool DotNetTest( IActivityMonitor monitor )
+    protected bool DotNetTest( IActivityMonitor monitor, bool release )
     {
-        if( !Repo.RunDotnet( monitor, $"test -tl:off --nologo --no-build" ) )
+        if( !Repo.RunDotnet( monitor, $"test -tl:off -c {(release ? "Release" : "Debug")} --nologo --no-build" ) )
         {
             return false;
         }

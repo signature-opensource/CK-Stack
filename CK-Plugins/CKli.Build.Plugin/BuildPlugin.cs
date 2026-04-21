@@ -333,7 +333,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                     return null;
                 }
             }
-            monitor.Info( ScreenType.CKliScreenTag, $"Considering current branch '{branch}' as the --branch <name> to build." );
+            monitor.Info( ScreenType.CKliScreenTag, $"Selecting --branch '{branch}'." );
         }
         // If we are not on a known branch (defined by the Branch Model), give up.
         var branchName = _branchModel.GetValidBranchName( monitor, branch );
@@ -341,10 +341,12 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         {
             return null;
         }
+        // We have a branch name. 
+
         // When --all is specified, all the repositories are pivots and the actual branch name considered by
         // the hot graph will be the most instable one of all the repositories (but at least as stable as the
         // branchName resolved above of course).
-        var hotGraph = _branchModel.GetHotGraph( monitor, branchName, pivots );
+        var hotGraph = _branchModel.GetHotGraph( monitor, branchName, isCIBuild, pivots );
         if( hotGraph == null ) return null;
 
         // Computes the PackageUpdater. This is at the level of the HotGraph and handles:

@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using static CKli.BranchModel.Plugin.HotGraph;
 
 namespace CKli.BranchModel.Plugin;
 
@@ -14,32 +15,35 @@ public sealed partial class HotGraph
 {
     /// <summary>
     /// Models a <see cref="HotGraph"/>'s solution bound to a <see cref="Branch"/>.
-    /// <para>
-    /// Solutions are ordered by <see cref="Rank"/> and then by <see cref="Repo.Index"/>, the <see cref="OrderedIndex"/>
-    /// is the index in the <see cref="HotGraph.OrderedSolutions"/> array.
-    /// </para>
     /// </summary>
     public sealed class Solution : IComparable<Solution>
     {
         readonly HotGraph _graph;
+        readonly Repo _repo;
         readonly HotBranch _actual;
-        readonly GitSolution _solution;
         readonly List<Solution> _directRequirements;
         readonly HashSet<Solution> _allRequirements;
         readonly List<PackageInstance> _externalDependencies;
-        SolutionVersionInfo? _versionInfo;
-        string? _toString;
-        int _rank;
         readonly bool _isPivot;
+        string? _toString;
+
+        internal Solution? _nextDevSolution;
+        GitSolution _solution;
+        SolutionVersionInfo? _versionInfo;
+        int _rank;
         bool _isPivotUpstream;
         bool _isPivotDownstream;
+        bool _isDevSolution;
 
         internal Solution( HotGraph graph,
+                           Repo repo,
                            HotBranch actual,
                            GitSolution solution,
-                           bool isPivot )
+                           bool isPivot,
+                           bool isDevSolution )
         {
             _graph = graph;
+            _repo = repo;
             _actual = actual;
             _solution = solution;
             _isPivot = isPivot;
@@ -47,6 +51,22 @@ public sealed partial class HotGraph
             _allRequirements = new HashSet<Solution>();
             _externalDependencies = new List<PackageInstance>();
             _rank = -1;
+            if( isDevSolution )
+            {
+                SetDevSolution( graph, solution );
+            }
+        }
+
+        internal GitSolution SetDevSolution( HotGraph graph, GitSolution solution )
+        {
+            Throw.DebugAssert( !_isDevSolution );
+            _isDevSolution = true;
+            _nextDevSolution = graph._firstDevSolution;
+            graph._firstDevSolution = this;
+            ++graph._devSolutionCount;
+            var previous = _solution;
+            _solution = solution;
+            return previous;
         }
 
         /// <summary>
@@ -57,7 +77,7 @@ public sealed partial class HotGraph
         /// <summary>
         /// Gets the repository.
         /// </summary>
-        public Repo Repo => _solution.Repo;
+        public Repo Repo => _repo;
 
         /// <summary>
         /// Gets the branch name from which this <see cref="GitSolution"/> has been read: it is the closest
@@ -81,7 +101,8 @@ public sealed partial class HotGraph
         public IReadOnlySet<Solution> AllRequirements => _allRequirements;
 
         /// <summary>
-        /// Gets the shallow solution. This is loaded from the "dev/<see cref="Branch"/>" branch if it exists or from the <see cref="Branch"/>.
+        /// Gets the shallow solution. This may loaded from the "dev/<see cref="Branch"/>" branch if it exists and <see cref="IsDevSolution"/>
+        /// is true, or from the regular <see cref="Branch"/>.
         /// </summary>
         public GitSolution GitSolution => _solution;
 
@@ -105,6 +126,16 @@ public sealed partial class HotGraph
         public bool IsPivotDownstream => _isPivotDownstream;
 
         /// <summary>
+        /// Gets whether this solution belongs to the current <see cref="HotGraph.DevSolutions"/>.
+        /// </summary>
+        public bool IsDevSolution => _isDevSolution;
+
+        /// <summary>
+        /// Gets whether this solution can be <see cref="IsDevSolution"/>: this <see cref="HotBranch"/> is the <see cref="HotGraph.BranchName"/>.
+        /// </summary>
+        public bool CanBeDevSolution => _actual.BranchName == _graph.BranchName;
+
+        /// <summary>
         /// Gets the index of this solution in <see cref="HotGraph.OrderedSolutions"/>.
         /// </summary>
         public int OrderedIndex { get; internal set; }
@@ -124,7 +155,9 @@ public sealed partial class HotGraph
         internal SolutionVersionInfo? ComputeVersionInfo( IActivityMonitor monitor, VersionTagInfo? vInfo )
         {
             Throw.DebugAssert( _versionInfo == null );
+            Throw.DebugAssert( _solution != null );
             if( vInfo == null ) return null;
+
             Throw.DebugAssert( vInfo.Repo == Repo );
             Throw.DebugAssert( !vInfo.HasIssue );
 
@@ -175,6 +208,18 @@ public sealed partial class HotGraph
             if( other == null ) return 1;
             int cmp = _rank.CompareTo( other._rank );
             return cmp != 0 ? cmp : _solution.Repo.Index.CompareTo( other._solution.Repo.Index );
+        }
+
+        internal void ResetRank()
+        {
+            Throw.DebugAssert( _rank >= 0 );
+            _rank = -1;
+            _isPivotUpstream = false;
+            _isPivotDownstream = false;
+            _directRequirements.Clear();
+            _allRequirements.Clear();
+            _externalDependencies.Clear();
+            _versionInfo = null;
         }
 
         internal bool UpdateRank( IActivityMonitor monitor,

@@ -5,6 +5,7 @@ using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -166,7 +167,11 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// </para>
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
-    /// <param name="branchName">The branch name.</param>
+    /// <param name="branchName">
+    /// The branch name.
+    /// At least one of the <paramref name="pivots"/> must have a corresponding active <see cref="HotBranch"/>.
+    /// </param>
+    /// <param name="ciBuild">True to obtain the graph from the CI point of view.</param>
     /// <param name="pivots">
     /// Optional pivots of the graph.
     /// <list type="bullet">
@@ -175,8 +180,11 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
     /// </list>
     /// </param>
     /// <returns>The graph or null on error.</returns>
-    public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, IReadOnlyList<Repo> pivots )
+    public HotGraph? GetHotGraph( IActivityMonitor monitor, BranchName branchName, bool ciBuild, IReadOnlyList<Repo> pivots )
     {
+        // Normalize Pivots/AllRepos.
+        var allRepos = World.GetAllDefinedRepo( monitor );
+        if( allRepos == null ) return null;
         bool hasPivots = pivots.Count != 0 && pivots.Count != World.Layout.Count;
         // Avoid checking the order if the provided pivots are all the repositories.
         if( hasPivots )
@@ -189,21 +197,19 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 }
             }
         }
+        else
+        {
+            // No pivot => all repositories are pivots.
+            pivots = allRepos;
+        }
         var displayPivots = hasPivots
                                 ? $"'{pivots.Select( r => r.DisplayPath.Path ).Concatenate( "', '" )}'"
                                 : "all repositories";
         using( monitor.OpenTrace( $"Computing Hot Graph from '{branchName}' for {displayPivots}." ) )
         {
-            var allRepos = World.GetAllDefinedRepo( monitor );
-            if( allRepos == null ) return null;
             if( !TryGetAllWithoutIssue( monitor, out _ )  )
             {
                 return null;
-            }
-            // No pivot => all repositories are pivots.
-            if( !hasPivots )
-            {
-                pivots = allRepos;
             }
             using( monitor.OpenInfo( pivots.Count == allRepos.Count
                                         ? $"Considering branch '{branchName}' from all {allRepos.Count} repositories."
@@ -214,24 +220,57 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                 var externalPackages = _versionTags.GetPackagesConfiguration( monitor );
                 if( externalPackages == null ) return null;
 
-                var graph = new HotGraph( branchName, allRepos, pivots, _versionTags, externalPackages );
+                var graph = new HotGraph( branchName, allRepos, pivots, _versionTags, _shallowSolution, externalPackages );
                 Throw.DebugAssert( graph.HasPivots == hasPivots );
+                // We must start from the pivots, from their "dev/" branch if it exists. From the solution in the "dev/" branch,
+                // we read their produced projects and fill the graph Dictionary<string, Solution> ProducedPackages.
+                //
+                // Once the pivots have been read from their "dev/", then for the others (the non-pivots solutions):
+                // - Downstream repositories must always be read from their "dev/" branch: we want the pivots to impact the
+                //   "current version" of the downstream code.
+                // - For upstream repositories, it depends on pullBuild:
+                //   - pullBuild is false (build/publish) => upstream must be read from the regular branch.
+                //   - pullBuild is true (*build/*publish) => upstream must be read from the "dev/" branch and their
+                //     downstream repositories also read from the "dev/" branch. Repositories that are eventually not
+                //     downstream nor upstreams must be read from their regular branch.
+                //
+                // The problem here is that whether a non-pivot repository is a downstream, an upstream, or nothing depends
+                // on... the branch.
+                //
+                // The graph obtained from "regular" branches and the one from the "dev/" branches are structurally
+                // different, they may (accidentally) be similar: there are 2 graphs.
+                //
                 foreach( var repo in allRepos )
                 {
-                    // Consider the closest Git branch that exists in the repository (at the BranchName level), then, if the 
-                    // branch has a "dev/" branch, use it: the shallow solution is based on the "current" code base that is "dev/"
-                    // if it exists. This may be an option here but it's currently pointless to ignore the "dev/" branch and consider
-                    // the regular branch because commits on the regular branch should have a version tag and its content is known:
-                    // regular branches belong to the past.
+                    // Consider the closest Git branch that exists in the repository (at the BranchName level).
                     var branchInfo = Get( monitor, repo );
-                    var b = branchInfo.GetClosestActiveBranch( branchName );
-                    Throw.DebugAssert( "There is no Branch Model issue: the closest branch necessarily exists.", b?.GitBranch != null );
-                    var shallow = _shallowSolution.GetShallowSolution( monitor, repo, b.GitDevBranch ?? b.GitBranch );
-                    if( shallow == null ) return null;
-                    if( !graph.AddSolution( monitor, repo, b, shallow, hasPivots ? pivots.Contains( repo ) : false ) )
+                    var hotBranch= branchInfo.GetClosestActiveBranch( branchName );
+                    Throw.DebugAssert( "There is no Branch Model issue: the closest hot branch necessarily exists.", hotBranch?.GitBranch != null );
+
+                    // Invariant (arbitrary choice): solution.IsPivot => graph.HasPivot (ie. !graph.HasPivot => !solution.IsPivot).
+                    // It means that when !graph.HasPivots, then every solution is contained in the Pivots.
+                    bool isContainedInPivots = !hasPivots || pivots.Contains( repo );
+
+                    // Should we initially consider the "dev/"?
+                    // If the repo has not the theoretical graph branch, we don't want to consider the base branch's "dev/":
+                    // when building "-alpha" and the repo is only in "stable": a "-alpha" will be built (and the "alpha"
+                    // branch created) if and only if a built upstream impacts it.
+                    bool canBeDevSolution = hotBranch.BranchName == branchName;
+
+                    bool isDevSolution = canBeDevSolution;
+                    // - But always considering "/dev" if it exists is right for the "ciBuild" mode. For non-ci builds, we
+                    //   initially consider the "/dev" only for the repos that are in pivots.
+                    if( !ciBuild ) canBeDevSolution &= isContainedInPivots;
+
+                    if( !graph.AddSolution( monitor, repo, hotBranch, hasPivots && isContainedInPivots, canBeDevSolution ) )
                     {
                         return null;
                     }
+                }
+                if( graph.DevSolutions.Count == 0 )
+                {
+                    monitor.Error( $"Unable to find at least one repository with branch '{branchName.Name}' among {pivots.Count} repositories." );
+                    return null;
                 }
                 // The solutions have been successfully added. The mappings from "package name" (that are the project names)
                 // to the solutions are non ambiguous. We can start the topological sort.

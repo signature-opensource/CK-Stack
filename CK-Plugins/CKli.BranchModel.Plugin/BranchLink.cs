@@ -26,8 +26,7 @@ public sealed partial class BranchLink
     {
         FailOnConflict = true,
         SkipReuc = true,
-        FastForwardStrategy =
-        FastForwardStrategy.NoFastForward
+        FastForwardStrategy = FastForwardStrategy.NoFastForward
     };
 
     readonly Branch _branch;
@@ -376,7 +375,7 @@ public sealed partial class BranchLink
                 if( removeBranch )
                 {
                     // Removes it.
-                    r.Branches.Remove( branch );
+                    RemoveAhead( r, branch );
                     monitor.Trace( $"Branch '{branch.FriendlyName}' was useless, it has been deleted." );
                 }
                 return baseBranch;
@@ -418,7 +417,7 @@ public sealed partial class BranchLink
             // Removes the ahead.
             if( removeBranch )
             {
-                r.Branches.Remove( branch );
+                RemoveAhead( r, branch );
             }
             monitor.Trace( $"Branch '{branch.FriendlyName}' has been integrated in its base '{baseBranch.FriendlyName}'{(removeBranch ? " and deleted" : "")}." );
             return baseBranch;
@@ -442,6 +441,15 @@ public sealed partial class BranchLink
         }
     }
 
+    static void RemoveAhead( Repository r, Branch branch, bool withTrackedBranch = true )
+    {
+        if( withTrackedBranch )
+        {
+            var t = branch.TrackedBranch;
+            if( t != null ) r.Branches.Remove( t );
+        }
+        r.Branches.Remove( branch );
+    }
 
     BranchLink( Branch b, Branch? ahead, string aheadName, int aheadBy, int behindBy )
     {
