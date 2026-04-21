@@ -94,6 +94,7 @@ public class BuildTests
             var deployFolder = inSampleMonitoring.CurrentDirectory.AppendPart( ArtifactHandlerPlugin.DeployFolderName );
             Directory.CreateDirectory( deployFolder );
             File.WriteAllText( deployFolder.AppendPart( "GenerateAssets.cs" ), """
+                #:property PublishAot=false
                 File.WriteAllText( $"Assets/Install-{args[0]}.txt", $"I'm the install manual of CKt-Sample-Monitoring version '{args[0]}'." );
                 """ );
             File.WriteAllText( deployFolder.AppendPart( ".gitignore" ), "Assets/" );
@@ -140,6 +141,7 @@ public class BuildTests
             var deployFolder = inSampleApp.CurrentDirectory.AppendPart( ArtifactHandlerPlugin.DeployFolderName );
             Directory.CreateDirectory( deployFolder );
             File.WriteAllText( deployFolder.AppendPart( "GenerateAssets.cs" ), """
+                #:property PublishAot=false
                 Directory.CreateDirectory( "Assets/ZipDemo" );
                 File.WriteAllText( $"Assets/ZipDemo/Install-{args[0]}.txt", "I'm the install manual of CKt.SomeApp version '{args[0]}'." );
                 File.WriteAllText( $"Assets/ZipDemo/AnotherFile.txt", "Another file..." );
