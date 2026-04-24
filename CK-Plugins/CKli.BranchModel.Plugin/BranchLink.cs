@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.Core;
 using LibGit2Sharp;
 using System;
+using System.Security.AccessControl;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;
@@ -328,7 +329,6 @@ public sealed partial class BranchLink
         }
     }
 
-
     /// <summary>
     /// Tries to merge the <paramref name="branch"/> (the "ahead" branch) in its <paramref name="baseBranch"/>.
     /// On success, the ahead branch is deleted and a new, updated, base branch is returned.
@@ -375,8 +375,10 @@ public sealed partial class BranchLink
                 if( removeBranch )
                 {
                     // Removes it.
-                    RemoveAhead( r, branch );
-                    monitor.Trace( $"Branch '{branch.FriendlyName}' was useless, it has been deleted." );
+                    if( RemoveAhead( monitor, git, r, branch ) )
+                    {
+                        monitor.Trace( $"Branch '{branch.FriendlyName}' was useless, it has been deleted." );
+                    }
                 }
                 return baseBranch;
             }
@@ -417,7 +419,8 @@ public sealed partial class BranchLink
             // Removes the ahead.
             if( removeBranch )
             {
-                RemoveAhead( r, branch );
+                // On failure, error will be emitted (we keep the following trace).
+                RemoveAhead( monitor, git, r, branch );
             }
             monitor.Trace( $"Branch '{branch.FriendlyName}' has been integrated in its base '{baseBranch.FriendlyName}'{(removeBranch ? " and deleted" : "")}." );
             return baseBranch;
@@ -441,14 +444,28 @@ public sealed partial class BranchLink
         }
     }
 
-    static void RemoveAhead( Repository r, Branch branch, bool withTrackedBranch = true )
+    static bool RemoveAhead( IActivityMonitor monitor, GitRepository git, Repository r, Branch branch, bool withRemote = true )
     {
-        if( withTrackedBranch )
+        bool success = true;
+        if( withRemote )
         {
             var t = branch.TrackedBranch;
-            if( t != null ) r.Branches.Remove( t );
+            if( t != null )
+            {
+                var remoteName = t.RemoteName;
+                if( remoteName != null )
+                {
+                    if( !git.GetRemote( monitor, remoteName, forWrite: true, out var remote, out var creds ) )
+                    {
+                        return false;
+                    }
+                    success = git.Push( monitor, remote, creds, [$"+:{t.CanonicalName}"] );
+                }
+                r.Branches.Remove( t );
+            }
         }
         r.Branches.Remove( branch );
+        return success;
     }
 
     BranchLink( Branch b, Branch? ahead, string aheadName, int aheadBy, int behindBy )

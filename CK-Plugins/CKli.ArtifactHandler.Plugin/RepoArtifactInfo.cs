@@ -94,7 +94,7 @@ public sealed class RepoArtifactInfo : RepoInfo
             if( File.Exists( target ) )
             {
                 if( !FileHelper.DeleteFile( monitor, target )
-                    || !NuGetHelper.ClearGlobalCache( monitor, packageId, versionString ) )
+                    || !NuGetHelper.Cache.RemovePackage( monitor, packageId, SVersion.Parse( versionString ) ) )
                 {
                     return null;
                 }

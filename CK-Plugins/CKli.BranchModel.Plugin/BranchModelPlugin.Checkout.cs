@@ -55,8 +55,8 @@ public sealed partial class BranchModelPlugin
                     // of any configured link type (the branch must start somewhere).
                     bHot = BranchLink.CreateAheadBranch( info.Repo.GitRepository, b.GitBranch.Tip, name.Name );
                 }
-                // Branch bHot is okay. GetClosestActiveBranches checked that no
-                // orphan "dev/" exists for the branch.
+                // Branch bHot is okay.
+                // GetClosestActiveBranches checked that no orphan "dev/" exists for the branch.
                 Throw.DebugAssert( git.Branches[name.DevName] == null );
                 if( isDevName )
                 {

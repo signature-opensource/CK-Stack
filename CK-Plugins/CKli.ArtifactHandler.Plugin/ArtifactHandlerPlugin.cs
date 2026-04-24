@@ -246,7 +246,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
         {
             foreach( var p in buildContentInfo.Produced )
             {
-                if( removeFromNuGetGlobalCache ) NuGetHelper.ClearGlobalCache( monitor, p, version.ToString() );
+                if( removeFromNuGetGlobalCache ) NuGetHelper.Cache.RemovePackage( monitor, p, version );
                 success &= FileHelper.DeleteFile( monitor, Path.Combine( _localNuGetPath, $"{p}.{version}.nupkg" ) );
             }
         }
@@ -270,7 +270,7 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
                 {
                     FileHelper.DeleteFile( monitor, packagePath );
                     string packageId = new( name.Slice( 0, packageLength ) );
-                    NuGetHelper.ClearGlobalCache( monitor, packageId, version.ToString() );
+                    NuGetHelper.Cache.RemovePackage( monitor, packageId, version );
                     monitor.Trace( $"Deleted local fix package '{name}'." );
                 }
             }
