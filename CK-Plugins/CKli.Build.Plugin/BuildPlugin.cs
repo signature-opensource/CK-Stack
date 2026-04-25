@@ -515,10 +515,19 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
                 {
                     return null;
                 }
+
                 // Local fix builds have no release tag. If the release local database is reset, we lose them
                 // but this is not an issue, this is used as an optimization that avoids rebuilding origins when
                 // an impacted repo needs to be rebuilt.
-                if( !buildResult.Version.IsLocalFix() )
+                bool isLocalFix = buildResult.Version.IsLocalFix();
+                monitor.Info( $"""
+                    {(isLocalFix
+                        ? "Not setting (local fix build are only registered in the local release database)"
+                        : "Setting")
+                    } build tag 'v{buildInfo.Version}' on '{repoBuilder.Repo.DisplayPath}' (commit: {buildInfo.BuildCommit.Sha}):
+                    {content.ToString()}
+                    """ );
+                if( !isLocalFix )
                 {
                     if( !buildInfo.ApplyReleaseBuildTag( monitor, context, content.ToString() ) )
                     {
