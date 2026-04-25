@@ -134,9 +134,11 @@ public sealed partial class Roadmap
 
             // If the upstream doesn't force a Major, we must compute the change from the code in this repository
             // and eventually compute the target version.
+            // If we are building from the upstreams or the dependencies must be updated, then we need one more
+            // commit to update the dependencies.
             SVersion targetVersion = ComputeTargetVersion( monitor,
                                                            ref vChange,
-                                                           mustAddCommit: buildReason != MustBuildReason.CodeChange );
+                                                           mustAddCommit: (buildReason & (MustBuildReason.Upstream|MustBuildReason.DependencyUpdate)) != 0 );
 
             _buildInfo = new BuildInfo( this,
                                         buildReason,

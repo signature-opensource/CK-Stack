@@ -183,9 +183,9 @@ public class BuildTests
         // and the BranchModel/HotBranch/ContentIssue.
         //
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue", "--fix" )).ShouldBeTrue();
-        display.Clear();
 
         // No more issue.
+        display.Clear();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "issue" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
             ❰✓❱

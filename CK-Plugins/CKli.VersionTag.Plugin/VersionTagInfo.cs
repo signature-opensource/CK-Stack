@@ -318,7 +318,7 @@ public sealed partial class VersionTagInfo : RepoInfo
             monitor.Error( $"""
                     Invalid Commit/Version topology in '{Repo.DisplayPath}'.
 
-                    To build the version 'v{version}', the commit '{buildCommit.Sha}' must be a parent of commit '{buildCommit.Sha}' with version 'v{baseCommit.Version}' built on {baseCommit.Commit.Committer.When}.
+                    To build the version 'v{version}', the commit '{buildCommit.Sha}' must be a parent of commit '{baseCommit.Sha}' with version 'v{baseCommit.Version}' built on {baseCommit.Commit.Committer.When}.
                     """ );
             return null;
         }

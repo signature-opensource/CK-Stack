@@ -246,24 +246,22 @@ public sealed partial class BuildPlugin
                 bool hasDev = b.GitDevBranch != null;
                 if( solution.Roadmap.IsCIBuild )
                 {
-                    if( b.GitDevBranch == null )
-                    {
-                        workingBranch = b.EnsureDevBranch();
-                        canAmend = true;
-                    }
-                    else
-                    {
-                        workingBranch = b.GitDevBranch;
-                    }
+                    workingBranch = b.EnsureDevBranch();
                 }
                 else
                 {
-                    if( hasDev && !b.IntegrateDevBranch( monitor ) )
+                    if( b.GitDevBranch != null )
                     {
-                        return false;
+                        // Allow amend to update dependencies only if a merge commit
+                        // has been created.
+                        var before = b.GitBranch.Tip.Sha;
+                        if( !b.IntegrateDevBranch( monitor ) )
+                        {
+                            return false;
+                        }
+                        canAmend = b.GitBranch.Tip.Sha != before;
                     }
                     workingBranch = b.GitBranch;
-                    canAmend = true;
                 }
                 if( !solution.Repo.GitRepository.Checkout( monitor, workingBranch ) )
                 {
