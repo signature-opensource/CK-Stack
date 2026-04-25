@@ -39,34 +39,26 @@ sealed partial class IssueBuilder
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null );
-            var git = Repo.GitRepository.Repository;
+            var git = Repo.GitRepository;
             bool success = true;
             foreach( var r in _removables )
             {
-                bool switchSuccess = true;
+                bool localSuccess = true;
                 if( r.Branch.IsCurrentRepositoryHead )
                 {
                     if( r.BaseOrName is Branch branchBase )
                     {
                         monitor.Info( $"Branch to remove is the current head. Switching to its base branch '{branchBase.FriendlyName}'." );
-                        if( !Repo.GitRepository.Checkout( monitor, branchBase ) )
+                        if( !git.Checkout( monitor, branchBase ) )
                         {
                             success = false;
-                            switchSuccess = false;
+                            localSuccess = false;
                         }
                     }
                 }
-                if( switchSuccess )
+                if( localSuccess )
                 {
-                    try
-                    {
-                        git.Branches.Remove( r.Branch );
-                    }
-                    catch( Exception ex )
-                    {
-                        monitor.Error( $"Unable to remove branch '{r.Branch.FriendlyName}'.", ex );
-                        success = false;
-                    }
+                    success &= git.DeleteBranch( monitor, r.Branch, DeleteGitBranchMode.WithTrackedBranch );
                 }
             }
             return ValueTask.FromResult( success );

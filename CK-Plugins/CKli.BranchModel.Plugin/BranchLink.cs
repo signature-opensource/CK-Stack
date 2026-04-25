@@ -2,7 +2,6 @@ using CK.Core;
 using CKli.Core;
 using LibGit2Sharp;
 using System;
-using System.Security.AccessControl;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.BranchModel.Plugin;
@@ -65,6 +64,7 @@ public sealed partial class BranchLink
                 {
                     return IssueKind.Useless;
                 }
+                return IssueKind.None;
             }
             if( _behindBy != 0 )
             {
@@ -91,7 +91,7 @@ public sealed partial class BranchLink
     public BranchLink? IntegrateAhead( IActivityMonitor monitor, GitRepository repo )
     {
         if( _ahead == null ) return this;
-        var newBase = IntegrateMerge( monitor, repo, _ahead!, _branch );
+        var newBase = IntegrateMerge( monitor, repo, _ahead, _branch );
         return newBase == null
                 ? null
                 : new BranchLink( newBase, null, _aheadName, 0, 0 );
@@ -175,16 +175,16 @@ public sealed partial class BranchLink
     }
 
     /// <summary>
-    /// Ensures that <see cref="Ahead"/> branch exists: if the ahead branch is missing, a
-    /// new empty commit is created for the new branch.
+    /// Ensures that <see cref="Ahead"/> branch exists.
     /// </summary>
     /// <param name="repo">The repository.</param>
+    /// <param name="withEmptyInitializationCommit">True to create new empty initialization commit if the ahead branch is missing.</param>
     /// <returns>An updated link (replaces this one).</returns>
-    public BranchLink EnsureAhead( GitRepository repo )
+    public BranchLink EnsureAhead( GitRepository repo, bool withEmptyInitializationCommit = false )
     {
         Throw.CheckArgument( repo.Repository == RepositoryOf( Branch ) );
         if( _ahead != null ) return this;
-        Branch ahead = CreateAheadBranch( repo, _branch.Tip, _aheadName );
+        Branch ahead = CreateAheadBranch( repo, _branch.Tip, _aheadName, withEmptyInitializationCommit );
         return new BranchLink( _branch, ahead, _aheadName, 1, 0 );
     }
 
@@ -214,19 +214,12 @@ public sealed partial class BranchLink
 
     static IRepository RepositoryOf( IBelongToARepository o ) => o.Repository;
 
-    /// <summary>
-    /// Creates an "empty ahead commit" from a base commit for a new branch.
-    /// If a remote "origin" branch exists, the local branch is created on its Tip.
-    /// </summary>
-    /// <param name="git">The git repository.</param>
-    /// <param name="baseCommit">The base commit.</param>
-    /// <param name="aheadBranchName">The name of the branch to create.</param>
-    /// <returns>The git branch.</returns>
-    internal static Branch CreateAheadBranch( GitRepository git, Commit baseCommit, string aheadBranchName )
+    internal static Branch CreateAheadBranch( GitRepository git, Commit baseCommit, string aheadBranchName, bool withEmptyInitializationCommit )
     {
         var repository = git.Repository;
         Throw.DebugAssert( repository == RepositoryOf( baseCommit ) );
         // Lookup for an existing "origin" remote.
+        // (Reproduces GitRepository.GetBranch method - AROBAS).
         string remoteName = "origin/" + aheadBranchName;
         var remote = repository.Branches[remoteName];
         if( remote != null )
@@ -235,237 +228,83 @@ public sealed partial class BranchLink
             b = repository.Branches.Update( b, u => u.TrackedBranch = remote.CanonicalName );
             return b;
         }
-        // No corresponding remote branch: "empty ahead commit".
-        var c = repository.ObjectDatabase.CreateCommit( baseCommit.Author,
-                                                        git.Committer, $"""
-                                                        Initializing '{aheadBranchName}'.
-
-                                                        """,
-                                                        baseCommit.Tree,
-                                                        [baseCommit],
-                                                        prettifyMessage: false );
+        // No corresponding remote branch: "empty ahead commit" if withEmptyInitializationCommit.
+        var c = withEmptyInitializationCommit
+                    ? repository.ObjectDatabase.CreateCommit( baseCommit.Author,
+                                                              git.Committer, $"""
+                                                              Initializing '{aheadBranchName}'.
+                                                              
+                                                              """,
+                                                              baseCommit.Tree,
+                                                              [baseCommit],
+                                                              prettifyMessage: false )
+                    : baseCommit;
         return repository.Branches.Add( aheadBranchName, c );
     }
 
     /// <summary>
-    /// Tries to merge the <paramref name="baseBranch"/> in the <paramref name="branch"/> (the "ahead" branch).
+    /// Tries to merge the <paramref name="baseBranch"/> in the <paramref name="aheadBranch"/> (the "ahead" branch).
     /// On success, the updated ahead branch is returned.
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
     /// <param name="git">The repository.</param>
-    /// <param name="branch">The (ahead) branch.</param>
+    /// <param name="aheadBranch">The ahead branch.</param>
     /// <param name="baseBranch">The base branch.</param>
     /// <param name="errorLevel">Log level to use on error.</param>
     /// <returns>The updated ahead branch on success, null on error.</returns>
     public static Branch? SynchronizeMerge( IActivityMonitor monitor,
                                             GitRepository git,
-                                            Branch branch,
+                                            Branch aheadBranch,
                                             Branch baseBranch,
                                             LogLevel errorLevel = LogLevel.Error )
     {
-        Throw.CheckArgument( git.Repository == RepositoryOf( branch ) && git.Repository == RepositoryOf( baseBranch ) );
+        Throw.CheckArgument( git.Repository == RepositoryOf( aheadBranch ) && git.Repository == RepositoryOf( baseBranch ) );
 
-        try
+        if( !git.MergeBranch( monitor, ref aheadBranch, baseBranch ) )
         {
-            var r = git.Repository;
-
-            // If the base or the ahead is the currently checked out branch, it must be clean.
-            bool branchIsCheckedOut = branch.IsCurrentRepositoryHead;
-            bool baseBranchIsCheckedOut = baseBranch.IsCurrentRepositoryHead;
-            if( (branchIsCheckedOut || baseBranchIsCheckedOut) && !git.CheckCleanCommit( monitor ) )
-            {
-                return null;
-            }
-
-            // Useless ahead case.
-            if( baseBranch.Tip.Sha == branch.Tip.Sha )
-            {
-                return branch;
-            }
-
-            // If the ahead branch is checked out, we must use the simple API to easily update the index.
-            if( branchIsCheckedOut )
-            {
-                if( r.Merge( baseBranch, git.Committer, _mergeOptions ).Status == MergeStatus.Conflicts )
-                {
-                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
-                }
-                branch = r.Head;
-            }
-            else
-            {
-                var result = r.ObjectDatabase.MergeCommits( baseBranch.Tip, branch.Tip, _mergeTreeOptions );
-                if( result.Status != MergeTreeStatus.Succeeded )
-                {
-                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
-                }
-                var commit = r.ObjectDatabase.CreateCommit( author: git.Committer,
-                                                            committer: git.Committer,
-                                                            message: $"Synchronizing '{baseBranch.FriendlyName}' into '{branch.FriendlyName}'.",
-                                                            result.Tree,
-                                                            [baseBranch.Tip, branch.Tip],
-                                                            prettifyMessage: true );
-                r.Refs.UpdateTarget( branch.Reference, commit.Id );
-                branch = r.Branches[branch.CanonicalName];
-            }
-            return branch;
-        }
-        catch( Exception ex )
-        {
-            monitor.Error( $"""
-                Error while synchronizing branch '{baseBranch.FriendlyName}' into '{branch.FriendlyName}' in '{git.DisplayPath}'.
-                This must be manually fixed.
-                """, ex );
             return null;
         }
-
-        static Branch? ManualMergeRequiredError( IActivityMonitor monitor, GitRepository git, Branch branch, Branch baseBranch )
-        {
-            monitor.Error( $"""
-                    Unable to synchronize branch ''{baseBranch.FriendlyName}' into '{branch.FriendlyName}' in '{git.DisplayPath}'.
-                    Merge conflict must be manually resolved.
-                    """ );
-            return null;
-        }
+        return aheadBranch;
     }
 
     /// <summary>
-    /// Tries to merge the <paramref name="branch"/> (the "ahead" branch) in its <paramref name="baseBranch"/>.
+    /// Tries to merge the <paramref name="aheadBranch"/> into its <paramref name="baseBranch"/>.
     /// On success, the ahead branch is deleted and a new, updated, base branch is returned.
     /// <para>
-    /// If branch is checked out then the base branch is automatically checked out. 
+    /// If the ahead branch is checked out then the base branch is automatically checked out. 
     /// </para>
     /// </summary>
     /// <param name="monitor">The required monitor.</param>
     /// <param name="git">The repository.</param>
-    /// <param name="branch">The (ahead) branch.</param>
+    /// <param name="aheadBranch">The (ahead) branch.</param>
     /// <param name="baseBranch">The base branch.</param>
-    /// <param name="removeBranch">False to not delete <paramref name="branch"/> on success.</param>
+    /// <param name="removeBranch">False to not delete <paramref name="aheadBranch"/> on success.</param>
     /// <param name="errorLevel">Log level to use on error.</param>
     /// <returns>The updated base branch on success, null on error.</returns>
     public static Branch? IntegrateMerge( IActivityMonitor monitor,
                                           GitRepository git,
-                                          Branch branch,
+                                          Branch aheadBranch,
                                           Branch baseBranch,
                                           bool removeBranch = true,
                                           LogLevel errorLevel = LogLevel.Error )
     {
-        Throw.CheckArgument( git.Repository == RepositoryOf( branch ) && git.Repository == RepositoryOf( baseBranch ) );
-        try
-        {
-            var r = git.Repository;
+        Throw.CheckArgument( git.Repository == RepositoryOf( aheadBranch ) && git.Repository == RepositoryOf( baseBranch ) );
 
-            // If the base or the ahead is the currently checked out branch, it must be clean.
-            bool branchIsCheckedOut = branch.IsCurrentRepositoryHead;
-            bool baseBranchIsCheckedOut = baseBranch.IsCurrentRepositoryHead;
-            if( (branchIsCheckedOut || baseBranchIsCheckedOut) && !git.CheckCleanCommit( monitor ) )
-            {
-                return null;
-            }
+        bool aheadIsCheckedOut = aheadBranch.IsCurrentRepositoryHead;
 
-            // Useless ahead case: If the ahead branch is currently checked out, check out the base.
-            if( branch.Tip.Tree.Id == baseBranch.Tip.Tree.Id )
-            {
-                // This may be too much here... We may change this to do this only if the branch's parent
-                // is the baseBranch ("empty ahead commit" case only).
-                if( branchIsCheckedOut && !git.Checkout( monitor, baseBranch ) )
-                {
-                    return null;
-                }
-                if( removeBranch )
-                {
-                    // Removes it.
-                    if( RemoveAhead( monitor, git, r, branch ) )
-                    {
-                        monitor.Trace( $"Branch '{branch.FriendlyName}' was useless, it has been deleted." );
-                    }
-                }
-                return baseBranch;
-            }
-            // If baseBranch is checked out, we must use the simple API to easily update the index.
-            if( baseBranchIsCheckedOut )
-            {
-                if( r.Merge( branch, git.Committer, _mergeOptions ).Status == MergeStatus.Conflicts )
-                {
-                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
-                }
-                baseBranch = r.Head;
-            }
-            else
-            {
-                var result = r.ObjectDatabase.MergeCommits( branch.Tip, baseBranch.Tip, _mergeTreeOptions );
-                if( result.Status != MergeTreeStatus.Succeeded )
-                {
-                    Throw.DebugAssert( result.Tree == null );
-                    return ManualMergeRequiredError( monitor, git, branch, baseBranch );
-                }
-                Throw.DebugAssert( result.Tree != null );
-                var commit = r.ObjectDatabase.CreateCommit( author: git.Committer,
-                                                            committer: git.Committer,
-                                                            message: $"Integrating '{branch.FriendlyName}' in '{baseBranch.FriendlyName}'.",
-                                                            result.Tree,
-                                                            [branch.Tip, baseBranch.Tip],
-                                                            prettifyMessage: true );
-                r.Refs.UpdateTarget( baseBranch.Reference, commit.Id );
-                // Not sure if a better way to refresh the Branch/Tip exists.
-                baseBranch = r.Branches[baseBranch.CanonicalName];
-                // If the ahead branch is currently checked out, check out the base.
-                if( branchIsCheckedOut && !git.Checkout( monitor, baseBranch ) )
-                {
-                    // If this fail, we are left with a "useless ahead branch" and this is fine.
-                    return null;
-                }
-            }
-            // Removes the ahead.
-            if( removeBranch )
-            {
-                // On failure, error will be emitted (we keep the following trace).
-                RemoveAhead( monitor, git, r, branch );
-            }
-            monitor.Trace( $"Branch '{branch.FriendlyName}' has been integrated in its base '{baseBranch.FriendlyName}'{(removeBranch ? " and deleted" : "")}." );
-            return baseBranch;
-        }
-        catch( Exception ex )
+        if( !git.MergeBranch( monitor, ref baseBranch, aheadBranch ) )
         {
-            monitor.Error( $"""
-                Error while integrating branch '{branch.FriendlyName}' in its base '{baseBranch.FriendlyName}' in '{git.DisplayPath}'.
-                This must be manually fixed.
-                """, ex );
             return null;
         }
-
-        static Branch? ManualMergeRequiredError( IActivityMonitor monitor, GitRepository git, Branch branch, Branch baseBranch )
+        if( aheadIsCheckedOut && !git.Checkout( monitor, baseBranch ) )
         {
-            monitor.Error( $"""
-                    Unable to integrate branch '{branch.FriendlyName}' into '{baseBranch.FriendlyName}' in '{git.DisplayPath}'.
-                    Merge conflict must be manually resolved.
-                    """ );
             return null;
         }
-    }
-
-    static bool RemoveAhead( IActivityMonitor monitor, GitRepository git, Repository r, Branch branch, bool withRemote = true )
-    {
-        bool success = true;
-        if( withRemote )
+        if( removeBranch && !git.DeleteBranch( monitor, aheadBranch, DeleteGitBranchMode.WithTrackedBranch ) )
         {
-            var t = branch.TrackedBranch;
-            if( t != null )
-            {
-                var remoteName = t.RemoteName;
-                if( remoteName != null )
-                {
-                    if( !git.GetRemote( monitor, remoteName, forWrite: true, out var remote, out var creds ) )
-                    {
-                        return false;
-                    }
-                    success = git.Push( monitor, remote, creds, [$"+:{t.CanonicalName}"] );
-                }
-                r.Branches.Remove( t );
-            }
+            return null;
         }
-        r.Branches.Remove( branch );
-        return success;
+        return baseBranch;
     }
 
     BranchLink( Branch b, Branch? ahead, string aheadName, int aheadBy, int behindBy )

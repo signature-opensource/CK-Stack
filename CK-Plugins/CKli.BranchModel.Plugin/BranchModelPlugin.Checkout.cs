@@ -53,7 +53,7 @@ public sealed partial class BranchModelPlugin
                         """, info.Repo.GitRepository.GetBranch( monitor, name.Name, CK.Core.LogLevel.None ) == null );
                     // Since the branch doesn't exist, we create it from its closest active branch regardless
                     // of any configured link type (the branch must start somewhere).
-                    bHot = BranchLink.CreateAheadBranch( info.Repo.GitRepository, b.GitBranch.Tip, name.Name );
+                    bHot = BranchLink.CreateAheadBranch( info.Repo.GitRepository, b.GitBranch.Tip, name.Name, withEmptyInitializationCommit: false );
                 }
                 // Branch bHot is okay.
                 // GetClosestActiveBranches checked that no orphan "dev/" exists for the branch.
@@ -61,7 +61,7 @@ public sealed partial class BranchModelPlugin
                 if( isDevName )
                 {
                     // We must create the "dev/" branch.
-                    bHot = BranchLink.CreateAheadBranch( info.Repo.GitRepository, bHot.Tip, name.DevName );
+                    bHot = BranchLink.CreateAheadBranch( info.Repo.GitRepository, bHot.Tip, name.DevName, withEmptyInitializationCommit: false );
                 }
                 success &= b.Repo.GitRepository.Checkout( monitor, bHot );
             }

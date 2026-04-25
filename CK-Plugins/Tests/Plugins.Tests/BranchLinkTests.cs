@@ -64,14 +64,14 @@ public class BranchLinkTests
         var monitor = TestHelper.Monitor;
         using var repo = GetGitRepository();
 
-        // Useless Ahead vanishes.
+        // Useless Ahead vanishes even with empty initialization commit.
         {
             var mainBranch = repo.GetBranch( monitor, "main" ).ShouldNotBeNull();
             var mainLink = BranchLink.Create( mainBranch, "dev/main" );
             mainLink.Ahead.ShouldBeNull();
             mainLink.Issue.ShouldBe( BranchLink.IssueKind.None );
 
-            mainLink = mainLink.EnsureAhead( repo ).ShouldNotBeNull();
+            mainLink = mainLink.EnsureAhead( repo, withEmptyInitializationCommit: true ).ShouldNotBeNull();
             mainLink.Ahead.ShouldNotBeNull();
             mainLink.Issue.ShouldBe( BranchLink.IssueKind.Useless );
 
@@ -104,17 +104,10 @@ public class BranchLinkTests
             repo.CurrentBranchName.ShouldBe( "main" );
             mainLink.Ahead.ShouldBeNull();
 
-            // main -> +
-            //         |\
-            //         | + "Some message."
-            //         | |
-            //         | + "Initializing 'dev/main'.
-            //         |/
-            //         +
-            mainLink.Branch.Tip.Parents.Count().ShouldBe( 2 );
-            var inDev = mainLink.Branch.Tip.Parents.Single( c => c.Message.StartsWith( "Some message. (1)" ) );
-            inDev = inDev.Parents.Single( c => c.Message.StartsWith( "Initializing 'dev/main'." ) );
-            inDev.Parents.Single().Sha.ShouldBe( mainBranch.Tip.Sha );
+            // main -> + "Some message. (1)"
+            //         |
+            //         + "Initial commit automatically created."
+            mainLink.Branch.Commits.Count().ShouldBe( 2 );
         }
 
         // Integrating ahead (while base branch is checked out).
@@ -143,17 +136,12 @@ public class BranchLinkTests
             repo.CurrentBranchName.ShouldBe( "main" );
             mainLink.Ahead.ShouldBeNull();
 
-            // main -> +
-            //         |\
-            //         | + "Some message."
-            //         | |
-            //         | + "Initializing 'dev/main'.
-            //         |/
-            //         +
-            mainLink.Branch.Tip.Parents.Count().ShouldBe( 2 );
-            var inDev = mainLink.Branch.Tip.Parents.Single( c => c.Message.StartsWith( "Some message. (2)" ) );
-            inDev = inDev.Parents.Single( c => c.Message.StartsWith( "Initializing 'dev/main'." ) );
-            inDev.Parents.Single().Sha.ShouldBe( mainBranch.Tip.Sha );
+            // main -> + "Some message. (2)"
+            //         |
+            //         + "Some message. (1)"
+            //         |
+            //         + "Initial commit automatically created."
+            mainLink.Branch.Commits.Count().ShouldBe( 3 );
         }
 
         // Integrating ahead (amending the "empty ahead commit").
@@ -162,7 +150,7 @@ public class BranchLinkTests
             var mainLink = BranchLink.Create( mainBranch, "dev/main" );
             mainLink.Ahead.ShouldBeNull();
 
-            mainLink = mainLink.EnsureAhead( repo );
+            mainLink = mainLink.EnsureAhead( repo, withEmptyInitializationCommit: true );
             mainLink.Ahead.ShouldNotBeNull();
             repo.Checkout( monitor, mainLink.Ahead );
             mainLink.Issue.ShouldBe( BranchLink.IssueKind.Useless );
@@ -175,14 +163,14 @@ public class BranchLinkTests
             mainLink.Branch.Tip.Sha.ShouldNotBe( mainBranch.Tip.Sha );
             mainLink.Ahead.ShouldBeNull();
 
-            // main -> +
-            //         |\
-            //         | + "Some message."
-            //         |/
-            //         +
-            mainLink.Branch.Tip.Parents.Count().ShouldBe( 2 );
-            var inDev = mainLink.Branch.Tip.Parents.Single( c => c.Message.StartsWith( "Some message. (3)" ) );
-            inDev.Parents.Single().Sha.ShouldBe( mainBranch.Tip.Sha );
+            // main -> + "Some message. (3)"
+            //         |
+            //         + "Some message. (2)"
+            //         |
+            //         + "Some message. (1)"
+            //         |
+            //         + "Initial commit automatically created."
+            mainLink.Branch.Commits.Count().ShouldBe( 4 );
         }
     }
 
@@ -199,7 +187,7 @@ public class BranchLinkTests
         {
             // Ensure ahead (creates the "empty ahead commit").
             var mainLink = BranchLink.Create( repo.EnsureBranch( monitor, "main" ).ShouldNotBeNull(), "dev/main" )
-                                     .EnsureAhead( repo )
+                                     .EnsureAhead( repo, withEmptyInitializationCommit: true )
                                      .ShouldNotBeNull();
             mainLink.Issue.ShouldBe( BranchLink.IssueKind.Useless );
 

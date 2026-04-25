@@ -4,8 +4,8 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="CK.PerfectEvent" Version="26.0.2" />
-    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0244-dev" />
-    <PackageVersion Include="CKli.ShallowSolution.Plugin" Version="0.0.8--0244-dev" />
+    <PackageVersion Include="CKli.Plugins.Core" Version="0.0.8--0252-dev" />
+    <PackageVersion Include="CKli.ShallowSolution.Plugin" Version="0.0.8--0252-dev" />
     <PackageVersion Include="CSemVer" Version="13.0.0" />
     <PackageVersion Include="NuGet.Credentials" Version="7.3.1" />
     <PackageVersion Include="NuGet.Protocol" Version="7.3.1" />

@@ -92,7 +92,7 @@ public sealed partial class BranchModelPlugin
         // We are on the origin of the fix, we have fetched all the fix branches for the major: we try to merge
         // any remote work in this scope into our local repository. It is a kind of "scoped pull" that guaranties
         // that we start a fix with an up-to-date local code of the fix origin.
-        if( !repo.GitRepository.MergeTrackedBranches( monitor, continueOnError: true, fromAllRemotes: true, branchSpec ) )
+        if( !repo.GitRepository.MergeRemoteBranches( monitor, continueOnError: true, fromAllRemotes: true, branchSpec ) )
         {
             monitor.Error( "The merge conflicts must be resolved before starting the fix." );
             return false;
@@ -312,10 +312,10 @@ public sealed partial class BranchModelPlugin
                 // Skips null marker.
                 if( commit == null ) continue;
                 var targetVersion = SVersion.Create( commit.Version.Major, commit.Version.Minor, commit.Version.Patch + 1 );
-                if( !info.Repo.GitRepository.MergeTrackedBranches( monitor,
-                                                                    continueOnError: false,
-                                                                    fromAllRemotes: false,
-                                                                    $"{info.Repo.World.Name.LTSName}/fix/v{targetVersion.Major}.{targetVersion.Minor}" ) )
+                if( !info.Repo.GitRepository.MergeRemoteBranches( monitor,
+                                                                  continueOnError: false,
+                                                                  fromAllRemotes: false,
+                                                                  $"{info.Repo.World.Name.LTSName}/fix/v{targetVersion.Major}.{targetVersion.Minor}" ) )
                 {
                     return false;
                 }

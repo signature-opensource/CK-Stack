@@ -188,15 +188,16 @@ public sealed class HotBranch
     /// <summary>
     /// Ensures that <see cref="GitDevBranch"/> exists.
     /// </summary>
+    /// <param name="withEmptyInitializationCommit">True to create new empty initialization commit if the ahead branch is missing.</param>
     /// <returns>The "dev/" branch.</returns>
     [MemberNotNull( nameof( GitDevBranch ) )]
-    public Branch EnsureDevBranch()
+    public Branch EnsureDevBranch( bool withEmptyInitializationCommit = false )
     {
         Throw.CheckState( IsActive );
         if( _gitDevBranch == null )
         {
             Throw.DebugAssert( _link.Ahead == null );
-            _link = _link.EnsureAhead( Repo.GitRepository );
+            _link = _link.EnsureAhead( Repo.GitRepository, withEmptyInitializationCommit );
             _gitDevBranch = _link.Ahead;
         }
         Throw.DebugAssert( GitDevBranch != null );

@@ -41,7 +41,7 @@ public sealed partial class BranchModelInfo
         protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null );
-            BranchLink.CreateAheadBranch( Repo.GitRepository, _mainOrMaster.Tip, _root.BranchName.Name );
+            BranchLink.CreateAheadBranch( Repo.GitRepository, _mainOrMaster.Tip, _root.BranchName.Name, withEmptyInitializationCommit: true );
             return ValueTask.FromResult( true );
         }
     }
