@@ -70,36 +70,66 @@ public sealed partial class Roadmap
             }
             if( mustBuildFromUpstreams )
             {
-                buildReason |= MustBuildReason.Upstream;
+                buildReason |= MustBuildReason.UpstreamBuild;
             }
             // If some packages must be updated, always build.
-            // - The AlreadyBuiltMapping enables to fix any intra World package references.
+            // - The alreadyBuiltMapping enables to fix any intra World package references.
             // - The WorldConfiguredMapping applies the VersionTag plugin configuration.
             // - The DiscrepanciesMapping unifies external versions (to the max existing version).
             //
             // The PackagesUpdateDetails collects up to 3 PackageMapper with the package updates for this
             // solution. The display of the roadmap renders them (with the 'U', 'C' and 'D' letters).
+            //
+            var alreadyBuiltMapping = _roadmap._packageUpdater.GetAlreadyBuiltMapping( _roadmap._isCIBuild );
             var packageUpdates = new PackagesUpdateDetails();
             if( _solution.GitSolution.HasUpdates( packageUpdates.Add,
-                                                  mustBuildFromUpstreams ? null : _roadmap._packageUpdater.GetAlreadyBuiltMapping( _roadmap._isCIBuild ),
+                                                  mustBuildFromUpstreams ? null : alreadyBuiltMapping,
                                                   _roadmap._packageUpdater.WorldConfiguredMapping,
                                                   _roadmap._packageUpdater.DiscrepanciesMapping ) )
             {
                 buildReason |= MustBuildReason.DependencyUpdate;
             }
+            Throw.DebugAssert( buildReason == MustBuildReason.None || (buildReason & (MustBuildReason.UpstreamBuild | MustBuildReason.DependencyUpdate)) != 0 );
+
+            // If build is not required here, we check the lastBuild version.
+            //
+            // When the last build consumes packages in the alreadyBuiltMapping, it means that we are a solution
+            // that is impacted by the upstreams but none of our upstreams must be built AND our *.csproj are
+            // up to date. This happens when a our upstreams have been built, our *.csproj have been updated but
+            // our build failed miserably: the last build tag has not been updated with the upstreams versions.
+            // But the last build tag may be a +fake or a +deprecated: we decide to always trigger a build in such
+            // cases.
 
             _lastBuild = _versionInfo.GetLastBuild( _roadmap._isCIBuild );
-
-            // Pivot dependent conditions: if nothing saves the build, then this solution won't be built.
-            bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
             if( buildReason == MustBuildReason.None )
             {
+                if( _lastBuild.VersionMustBuild )
+                {
+                    Throw.DebugAssert( _lastBuild.TagCommit.IsFakeVersion || _lastBuild.TagCommit.IsDeprecatedVersion );
+                    buildReason |= _lastBuild.TagCommit.IsFakeVersion
+                                    ? MustBuildReason.FakeVersion
+                                    : MustBuildReason.DeprecatedVersion;
+                }
+                else
+                {
+                    Throw.DebugAssert( _lastBuild.TagCommit.BuildContentInfo != null );
+                    foreach( var c in _lastBuild.TagCommit.BuildContentInfo.Consumed )
+                    {
+                        if( alreadyBuiltMapping.TryGetMappedVersion( c.PackageId, c.Version, out var mapped ) && c.Version != mapped )
+                        {
+                            buildReason |= MustBuildReason.UpstreamVersion;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if( buildReason == MustBuildReason.None )
+            {
+                // Pivot dependent conditions: this build can be skipped if .
+                bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
                 if( !canSkip )
                 {
-                    if( _lastBuild.VersionMustBuild )
-                    {
-                        buildReason |= MustBuildReason.Version;
-                    }
                     if( _lastBuild.HasCodeChange )
                     {
                         buildReason |= MustBuildReason.CodeChange;
@@ -109,7 +139,7 @@ public sealed partial class Roadmap
                 {
                     // We compute the version change not for us (this solution will not be built) but for
                     // the downstream solutions to correctly propagate the change level (here it may be None).
-                    vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _lastBuild.TagCommit.Version );
+                    vChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, _lastBuild.TagCommit.Version, _lastBuild.TagCommit.IsFakeVersion );
                     _buildInfo = new BuildInfo( this,
                                                 MustBuildReason.None,
                                                 vChange,
@@ -123,10 +153,6 @@ public sealed partial class Roadmap
             }
             Throw.DebugAssert( "We must build.", buildReason != MustBuildReason.None );
             // Since we must build, let's update the reason with all its reasons for coherency (and its costs nothing).
-            if( _lastBuild.VersionMustBuild )
-            {
-                buildReason |= MustBuildReason.Version;
-            }
             if( _lastBuild.HasCodeChange )
             {
                 buildReason |= MustBuildReason.CodeChange;
@@ -138,7 +164,7 @@ public sealed partial class Roadmap
             // commit to update the dependencies.
             SVersion targetVersion = ComputeTargetVersion( monitor,
                                                            ref vChange,
-                                                           mustAddCommit: (buildReason & (MustBuildReason.Upstream|MustBuildReason.DependencyUpdate)) != 0 );
+                                                           mustAddCommit: (buildReason & (MustBuildReason.UpstreamBuild|MustBuildReason.DependencyUpdate)) != 0 );
 
             _buildInfo = new BuildInfo( this,
                                         buildReason,
@@ -183,7 +209,7 @@ public sealed partial class Roadmap
             return true;
         }
 
-        static VersionChange ComputeVersionChange( SVersion vBase, SVersion vTarget )
+        static VersionChange ComputeVersionChange( SVersion vBase, SVersion vTarget, bool targetIsFake )
         {
             Throw.DebugAssert( vBase <= vTarget );
             VersionChange c;
@@ -192,20 +218,20 @@ public sealed partial class Roadmap
                 if( vBase.Minor == vTarget.Minor )
                 {
                     Throw.DebugAssert( "Either we are on the last stable release or a prerelease of the next patch.",
-                                        vBase == vTarget || vBase.Patch == vTarget.Patch - 1 );
-                    c = vBase.Patch == vTarget.Patch - 1
-                            ? VersionChange.Patch
-                            :  VersionChange.None;
+                                        targetIsFake || (vBase == vTarget || vBase.Patch == vTarget.Patch - 1) );
+                    c = vBase.Patch == vTarget.Patch
+                            ? VersionChange.None
+                            :  VersionChange.Patch;
                 }
                 else
                 {
-                    Throw.DebugAssert( vBase.Minor == vTarget.Minor - 1 && vTarget.Patch == 0 );
+                    Throw.DebugAssert( targetIsFake || (vBase.Minor == vTarget.Minor - 1 && vTarget.Patch == 0) );
                     c = VersionChange.Minor;
                 }
             }
             else
             {
-                Throw.DebugAssert( vBase.Major == vTarget.Major - 1 && vTarget.Minor == 0 && vTarget.Patch == 0 );
+                Throw.DebugAssert( targetIsFake || (vBase.Major == vTarget.Major - 1 && vTarget.Minor == 0 && vTarget.Patch == 0) );
                 c = VersionChange.Major;
             }
             return c;
@@ -231,7 +257,7 @@ public sealed partial class Roadmap
                 // keeping the highest among existing versions for this prerelease in the hot commits.
                 foreach( var tc in _versionInfo.TagCommitsFromBaseBuild )
                 {
-                    var existingChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, tc.Version );
+                    var existingChange = ComputeVersionChange( _versionInfo.BaseBuild.Version, tc.Version, tc.IsFakeVersion );
                     if( vChange < existingChange )
                     {
                         vChange = existingChange;

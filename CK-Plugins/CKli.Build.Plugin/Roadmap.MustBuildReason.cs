@@ -19,23 +19,32 @@ public sealed partial class Roadmap
         /// <summary>
         /// An upstream repository must be built.
         /// </summary>
-        Upstream = 1,
+        UpstreamBuild = 1,
 
         /// <summary>
-        /// The <see cref="HotGraph.SolutionVersionInfo.VersionMustBuild"/> is true.
+        /// An upstream repository has been built, the solution must be built.
         /// </summary>
-        Version = 2,
+        UpstreamVersion = 2,
+
+        /// <summary>
+        /// The <see cref="HotGraph.SolutionVersionInfo.GetLastBuild(bool)"/> has a "+fake" version.
+        /// </summary>
+        FakeVersion = 4,
+
+        /// <summary>
+        /// The <see cref="HotGraph.SolutionVersionInfo.GetLastBuild(bool)"/> has a "+deprecated" version.
+        /// </summary>
+        DeprecatedVersion = 8,
 
         /// <summary>
         /// One or more package dependencies must be updated.
         /// </summary>
-        DependencyUpdate = 4,
+        DependencyUpdate = 16,
 
         /// <summary>
         /// Code changed.
-        /// This can be combined with any other reasons.
         /// </summary>
-        CodeChange = 8
+        CodeChange = 32,
     }
 
 }

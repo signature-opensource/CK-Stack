@@ -177,7 +177,7 @@ public class BuildTests
 
             """ );
         // ... so we commit.
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleFolder, "commit", "Initialized files." )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleFolder, "commit", "Initialized CKt-Sample-Monitoring and CKt-App-Sample." )).ShouldBeTrue();
 
         // This created the missing nuget.config file: this is the work of the CommonFiles plugin
         // and the BranchModel/HotBranch/ContentIssue.
@@ -592,6 +592,266 @@ public class BuildTests
 
         Directory.Exists( nugetOrgFeed.AppendPart( "ckt.sample.monitoring" ) ).ShouldBe( !nonPackableSample );
         Directory.Exists( sosFeed.AppendPart( "ckt.sample.monitoring" ) ).ShouldBe( !nonPackableSample );
+
+    }
+
+    [Test]
+    public async Task intermediate_build_error_Async()
+    {
+        Helper.SetFileSystemWritePAT();
+
+        var clonedFolder = TestHelper.InitializeClonedFolder();
+        var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
+        var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds );
+        var display = (StringScreen)context.Screen;
+
+        // Same context as CKt_publish_PerfectEvent_Async test above...
+        //
+        // ... except that we inject an error in the CKt-Sample-Monitoring build
+        //     so that during the 2nd build, the CKt-PerfectEvent is already available
+        //     in v0.3.3: the fact that it must be updated in CKt-Sample-Monitoring must be
+        //     detected and CKt-Sample-Monitoring must be built (v0.0.0 → v0.0.1).
+        //
+        var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
+
+        var inSampleMonitoring = context.ChangeDirectory( "Samples/CKt-Sample-Monitoring" );
+        File.WriteAllText( inSampleMonitoring.CurrentDirectory.Combine( "CKt.Sample.Monitoring/Bug.cs" ), "I'm not a valid C# file at all." );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "commit", "Added bug file." )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish" )).ShouldBeFalse();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.0   
+                - →·   CKt-ActivityMonitor           v0.1.0   
+              1 ╓  ⊙   CKt-PerfectEvent              v0.3.2    → v0.3.3 🡡 (DependencyUpdate, CodeChange)            
+                                                                           U CKt.ActivityMonitor: 0.1.1--ci.5 → 0.1.0
+                ║      CKt-Monitoring                v0.2.3   
+                ╙      Samples/CKt-App-Sample        v0.0.0 🡡
+              2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0    → v0.0.1 🡡 (UpstreamBuild, CodeChange)               
+              Required build for 2 from the 1 pivots out of 6 repositories.
+              U 1 updates from upstreams (not using '*publish' here).
+              🡡 3 repositories must be published.
+              ❌ Failed
+          
+              """ );
+
+        // Fix the bug (just to be coherent: since we --dry-run, this is useless).
+        FileHelper.DeleteFile( TestHelper.Monitor, inSampleMonitoring.CurrentDirectory.Combine( "CKt.Sample.Monitoring/Bug.cs" ) );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "commit", "Removed bug." )).ShouldBeTrue();
+
+        // Note the "UpstreamVersion" that replaced the previous "UpstreamBuild".
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.0   
+                - →·   CKt-ActivityMonitor           v0.1.0   
+                ╓  ⊙   CKt-PerfectEvent              v0.3.3 🡡
+                ║      CKt-Monitoring                v0.2.3   
+                ╙      Samples/CKt-App-Sample        v0.0.0 🡡
+              1 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0    → v0.0.1 🡡 (UpstreamVersion, CodeChange)
+              Required build for 1 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 3 repositories must be published.
+              ❰✓❱
+          
+              """ );
+
+        // Make a code change in CKt-App-Sample: this doesn't change anything.
+        var inAppSample = context.ChangeDirectory( "Samples/CKt-App-Sample" );
+        File.WriteAllText( inAppSample.CurrentDirectory.Combine( "CKt.SomeApp/DoMore.cs" ), "// More feature..." );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "commit", "Added feature." )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.0   
+                - →·   CKt-ActivityMonitor           v0.1.0   
+                ╓  ⊙   CKt-PerfectEvent              v0.3.3 🡡
+                ║      CKt-Monitoring                v0.2.3   
+                ╙      Samples/CKt-App-Sample        v0.0.0 🡡
+              1 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0    → v0.0.1 🡡 (UpstreamVersion, CodeChange)
+              Required build for 1 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 3 repositories must be published.
+              ❰✓❱
+          
+              """ );
+
+        // Make a code change in CKt-ActivityMonitor: this doesn't change anything with "publish", but with "*publish"
+        // everything except CKt-Core is impacted: it's a Feature, Minors are incremented.
+        var inActivityMonitor = context.ChangeDirectory( "CKt-ActivityMonitor" );
+        File.WriteAllText( inActivityMonitor.CurrentDirectory.Combine( "CKt.ActivityMonitor/Touch.cs" ), "// Touched." );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inActivityMonitor, "commit", "feat: new feature in ActivityMonitor." )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.0   
+                - →·   CKt-ActivityMonitor           v0.1.0   
+                ╓  ⊙   CKt-PerfectEvent              v0.3.3 🡡
+                ║      CKt-Monitoring                v0.2.3   
+                ╙      Samples/CKt-App-Sample        v0.0.0 🡡
+              1 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0    → v0.0.1 🡡 (UpstreamVersion, CodeChange)
+              Required build for 1 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 3 repositories must be published.
+              ❰✓❱
+          
+              """ );
+
+        // CKt-Core has a code change (from its v1.0.0) but this is only a fix that must be built and published (v1.0.1).
+        // The others have an increased Minor because of the "feat:" in ActivityMonitor.
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "*publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+              1 - →·   CKt-Core                      v1.0.0 → v1.0.1 🡡 (CodeChange)               
+              2 - →·   CKt-ActivityMonitor           v0.1.0 → v0.2.0 🡡 (UpstreamBuild, CodeChange)
+              3 ╓  ⊙   CKt-PerfectEvent              v0.3.3 → v0.4.0 🡡 (UpstreamBuild)            
+              4 ║      CKt-Monitoring                v0.2.3 → v0.3.0 🡡 (UpstreamBuild, CodeChange)
+              5 ╙      Samples/CKt-App-Sample        v0.0.0 → v0.1.0 🡡 (UpstreamBuild, CodeChange)
+              6 -  ·→  Samples/CKt-Sample-Monitoring v0.0.0 → v0.1.0 🡡 (UpstreamBuild, CodeChange)
+              Required build for 6 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 6 repositories must be published.
+              ❰✓❱
+          
+              """ );
+    }
+
+    [Test]
+    public async Task intermediate_ci_build_error_Async()
+    {
+        Helper.SetFileSystemWritePAT();
+
+        var clonedFolder = TestHelper.InitializeClonedFolder();
+        var remotes = TestHelper.OpenRemotes( "CKt(with_sample)" );
+        var context = remotes.Clone( clonedFolder, ConfigureFakeFeeds );
+        var display = (StringScreen)context.Screen;
+
+        // Same context as CKt_publish_PerfectEvent_Async test above...
+        //
+        // ... except that we inject an error in the CKt-Sample-Monitoring build
+        //     so that during the 2nd build, the CKt-PerfectEvent is already available
+        //     in v0.3.3: the fact that it must be updated in CKt-Sample-Monitoring must be
+        //     detected and CKt-Sample-Monitoring must be built (v0.0.0 → v0.0.1).
+        //
+        // And because the initial state is fully ci built, we need to inject a code change in the
+        // CKt-PerfectEvent to trigger its build.
+        //
+        var inPerfectEvent = context.ChangeDirectory( "CKt-PerfectEvent" );
+        File.WriteAllText( inPerfectEvent.CurrentDirectory.Combine( "Touch.txt" ), "Touching CKt-PerfectEvent." );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "commit", "Touching CKt-PerfectEvent." )).ShouldBeTrue();
+
+        var inSampleMonitoring = context.ChangeDirectory( "Samples/CKt-Sample-Monitoring" );
+        File.WriteAllText( inSampleMonitoring.CurrentDirectory.Combine( "CKt.Sample.Monitoring/Bug.cs" ), "I'm not a valid C# file at all." );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "commit", "Added bug file." )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "ci", "publish" )).ShouldBeFalse();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.1--ci.4
+                - →·   CKt-ActivityMonitor           v0.1.1--ci.5
+              1 ╓  ⊙   CKt-PerfectEvent              v0.3.3--ci.5 → v0.3.3--ci.6 🡡 (CodeChange)               
+                ║      CKt-Monitoring                v0.2.4--ci.5
+                ╙      Samples/CKt-App-Sample        v0.0.1--ci.1
+              2 -  ·→  Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.3 🡡 (UpstreamBuild, CodeChange)
+              Required build for 2 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 2 repositories must be published.
+              ❌ Failed
+          
+              """ );
+
+        // Fix the bug (just to be coherent: since we --dry-run, this is useless).
+        FileHelper.DeleteFile( TestHelper.Monitor, inSampleMonitoring.CurrentDirectory.Combine( "CKt.Sample.Monitoring/Bug.cs" ) );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inSampleMonitoring, "commit", "Removed bug." )).ShouldBeTrue();
+
+        // Note the "UpstreamVersion" that replaced the previous "UpstreamBuild".
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "ci", "publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.1--ci.4   
+                - →·   CKt-ActivityMonitor           v0.1.1--ci.5   
+                ╓  ⊙   CKt-PerfectEvent              v0.3.3--ci.6 🡡
+                ║      CKt-Monitoring                v0.2.4--ci.5   
+                ╙      Samples/CKt-App-Sample        v0.0.1--ci.1   
+              1 -  ·→  Samples/CKt-Sample-Monitoring v0.0.1--ci.1    → v0.0.1--ci.4 🡡 (UpstreamVersion, CodeChange)
+              Required build for 1 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 2 repositories must be published.
+              ❰✓❱
+          
+              """ );
+
+        // Make a code change in CKt-App-Sample: this doesn't change anything.
+        var inAppSample = context.ChangeDirectory( "Samples/CKt-App-Sample" );
+        File.WriteAllText( inAppSample.CurrentDirectory.Combine( "CKt.SomeApp/DoMore.cs" ), "// More feature..." );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inAppSample, "commit", "Added feature." )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "ci", "publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.1--ci.4   
+                - →·   CKt-ActivityMonitor           v0.1.1--ci.5   
+                ╓  ⊙   CKt-PerfectEvent              v0.3.3--ci.6 🡡
+                ║      CKt-Monitoring                v0.2.4--ci.5   
+                ╙      Samples/CKt-App-Sample        v0.0.1--ci.1   
+              1 -  ·→  Samples/CKt-Sample-Monitoring v0.0.1--ci.1    → v0.0.1--ci.4 🡡 (UpstreamVersion, CodeChange)
+              Required build for 1 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 2 repositories must be published.
+              ❰✓❱
+          
+              """ );
+
+        // Make a code change in CKt-ActivityMonitor: this doesn't change anything with "publish", but with "*publish"
+        // everything except CKt-Core is impacted.
+        var inActivityMonitor = context.ChangeDirectory( "CKt-ActivityMonitor" );
+        File.WriteAllText( inActivityMonitor.CurrentDirectory.Combine( "CKt.ActivityMonitor/Touch.cs" ), "// Touched." );
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inActivityMonitor, "commit", "Touched." )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "ci", "publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.1--ci.4   
+                - →·   CKt-ActivityMonitor           v0.1.1--ci.5   
+                ╓  ⊙   CKt-PerfectEvent              v0.3.3--ci.6 🡡
+                ║      CKt-Monitoring                v0.2.4--ci.5   
+                ╙      Samples/CKt-App-Sample        v0.0.1--ci.1   
+              1 -  ·→  Samples/CKt-Sample-Monitoring v0.0.1--ci.1    → v0.0.1--ci.4 🡡 (UpstreamVersion, CodeChange)
+              Required build for 1 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 2 repositories must be published.
+              ❰✓❱
+          
+              """ );
+
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "ci", "*publish", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe(
+              """
+                - →·   CKt-Core                      v1.0.1--ci.4
+              1 - →·   CKt-ActivityMonitor           v0.1.1--ci.5 → v0.1.1--ci.6 🡡 (CodeChange)               
+              2 ╓  ⊙   CKt-PerfectEvent              v0.3.3--ci.6 → v0.3.3--ci.7 🡡 (UpstreamBuild)            
+              3 ║      CKt-Monitoring                v0.2.4--ci.5 → v0.2.4--ci.6 🡡 (UpstreamBuild)            
+              4 ╙      Samples/CKt-App-Sample        v0.0.1--ci.1 → v0.0.1--ci.3 🡡 (UpstreamBuild, CodeChange)
+              5 -  ·→  Samples/CKt-Sample-Monitoring v0.0.1--ci.1 → v0.0.1--ci.5 🡡 (UpstreamBuild, CodeChange)
+              Required build for 5 from the 1 pivots out of 6 repositories.
+              (No dependency updates other than the ones from the upstreams are needed.)
+              🡡 5 repositories must be published.
+              ❰✓❱
+          
+              """ );
 
     }
 
