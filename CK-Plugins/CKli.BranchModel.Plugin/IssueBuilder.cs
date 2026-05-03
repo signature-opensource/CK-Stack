@@ -105,6 +105,4 @@ sealed partial class IssueBuilder
         }
 
     }
-
-
 }

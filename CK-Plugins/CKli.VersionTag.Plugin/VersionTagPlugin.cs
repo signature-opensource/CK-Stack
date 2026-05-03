@@ -7,9 +7,12 @@ using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.ComponentModel.Design.Serialization;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Xml.Linq;
+using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.VersionTag.Plugin;
 
@@ -39,7 +42,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
     }
 
     /// <summary>
-    /// Sets <see cref="XMinVersion"/> for a Repo.
+    /// Sets <see cref="XNames.MinVersion"/> for a Repo.
     /// This must be called before the <see cref="VersionTagInfo"/> for the Repo is obtained.
     /// This is required for .Net 8 migration. This can be removed one day. 
     /// </summary>
@@ -196,6 +199,322 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         }
     }
 
+    [Description( """
+        Deprecates a version tag by ensuring that an associated "+deprecated" tag appears on the same commit and propagates this deprecation to all its downstream packages.
+        The tag annotation contains the actual "Expiration" date at which the packages must be unlisted or deleted from any feeds: this must be set thanks to the --immediate flag or --days option.
+        """ )]
+    [CommandPath( "version deprecate" )]
+    public bool DeprecateVersion( IActivityMonitor monitor,
+                                  CKliEnv context,
+                                  [Description("The version to deprecate.")]
+                                  string version,
+                                  [Description("""Appear in the tag annotation. Defaults to "(unspecified)".""")]
+                                  string? reason = null,
+                                  [Description("Specify the actual deprecation delay in days. This option excludes --immediate.")]
+                                  string? days = null,
+                                  [Description("Apply the deprecation immediately. This flag excludes --days.")]
+                                  bool immediate = false,
+                                  [Description("Allow the deprecated tag to already exist and updates it (must not already be expired).")]
+                                  bool allowUpdate = false )
+    {
+        // Before deprecating a version, we make sure that no version issue exist on any repo (a deprecation
+        // can impact any number of repositories).
+        // We check this before resolving the current repository.
+        var all = World.GetAllDefinedRepo( monitor );
+        if( all == null ) return false;
+        var haveIssues = all.Where( r => Get( monitor, r ) == null ).ToList();
+        if( haveIssues.Count > 0 )
+        {
+            monitor.Error( $"""
+                No version issues must exist before deprecating a version.
+                Please fix version issues in '{haveIssues.Select( r => r.DisplayPath.Path ).Concatenate("', '")}' before retrying.
+                """ );
+            return false;
+        }
+        var repo = World.GetDefinedRepo( monitor, context.CurrentDirectory );
+        if( repo == null )
+        {
+            return false;
+        }
+        var v = SVersion.TryParse( version );
+        if( !v.IsValid )
+        {
+            monitor.Error( $"Unable to parse version '{version}': {v.ErrorMessage}" );
+            return false;
+        }
+        var info = Get( monitor, repo );
+        Throw.DebugAssert( !info.HasIssue );
+        int daysDelay = -1;
+        if( immediate )
+        {
+            if( days != null )
+            {
+                monitor.Error( "Flag --immediate and option --days cannot be specified at the same time." );
+                return false;
+            }
+            daysDelay = 0;
+        }
+        else if( days != null )
+        {
+            if( !int.TryParse( days, out daysDelay ) || daysDelay <= 0 )
+            {
+                monitor.Error( "Invalid --days. Must be a positive integer." );
+                return false;
+            }
+        }
+        if( !info.TagCommits.TryGetValue( v, out var existing ) )
+        {
+            monitor.Error( $"Unable to find version tag 'v{v}' in '{repo.DisplayPath}'." );
+            return false;
+        }
+        if( existing.IsFakeVersion )
+        {
+            monitor.Error( $"""
+                Version 'v{v}' is a '+fake' version.
+                You can use 'ckli tag delete' to remove the tag if needed.
+                """ );
+            return false;
+        }
+
+        // Ensures that:
+        //  - The +deprecated tag exists in this repo (creates or updates it).
+        //  - And that it appears in the DeferredPushRefSpec ("+refs/tags/...").
+        //  - And if HasExpired, the deprecated tag version appears in the DeferredPushRefSpec (in order to remove it ":refs/tags/...").
+        DeprecatedTagInfo? tagInfo = EnsureRootDeprecatedTag( monitor, repo, existing, reason, daysDelay, allowUpdate );
+        if( tagInfo == null )
+        {
+            return false;
+        }
+        var releaseInfo = _releaseDatabase.GetReleaseInfo( monitor, repo, v, LogLevel.None );
+        if( releaseInfo == null )
+        {
+            monitor.Info( ScreenType.CKliScreenTag,
+                          $"""
+                          Deprecated version '{existing.Version.ParsedText}' not found in local nor release database.
+                          """ );
+            return true;
+        }
+        var visited = new HashSet<RepoReleaseInfo>() { releaseInfo };
+        EnsureImpliedDeprecatedTag( monitor, releaseInfo, visited, path: [releaseInfo], tagInfo.DaysDelay, tagInfo.Expiration );
+
+        bool success = true;
+        using( monitor.OpenInfo( $"Pushing tags creation (and suppression if any) to remote origin repositories." ) )
+        {
+            foreach( var r in visited )
+            {
+                success &= r.Repo.GitRepository.PushTags( monitor, [] );
+            }
+        }
+        return success;
+
+
+        static DeprecatedTagInfo? EnsureRootDeprecatedTag( IActivityMonitor monitor,
+                                                           Repo repo,
+                                                           TagCommit existing,
+                                                           string? reason,
+                                                           int daysDelay,
+                                                           bool allowUpdate )
+        {
+            var tagInfo = existing.DeprecatedInfo;
+            if( tagInfo == null )
+            {
+                if( daysDelay == -1 )
+                {
+                    monitor.Error( "To create a new deprecation tag, flag --immediate or option --days must be specified." );
+                    return null;
+                }
+                return CreateDeprecationTag( monitor, repo, existing, reason, daysDelay );
+            }
+            if( tagInfo.HasExpired )
+            {
+                monitor.Warn( $"""
+                Version 'v{existing.Version}' has already expired:
+                {existing.TagMessage}
+
+                """ );
+                // We return the expired tagInfo.
+                return tagInfo;
+            }
+            // Updated +deprecated tag.
+            if( !allowUpdate )
+            {
+                monitor.Error( $"""
+                    This version is already 'v{existing.Version}':
+                    {existing.TagMessage}
+
+                    Use --allow-update to update it.
+                    """ );
+                return null;
+            }
+            // Normalize empty reason to null.
+            reason = string.IsNullOrWhiteSpace( reason ) ? null : reason;
+            if( daysDelay == -1 && reason == null )
+            {
+                monitor.Error( $"""
+                    To update 'v{existing.Version}', at least --immediate, --days and/or --reason must be specified.
+                    """ );
+                return null;
+            }
+            var newExpiration = daysDelay != -1
+                                    ? DateOnly.FromDateTime( DateTime.UtcNow.AddDays( daysDelay ) )
+                                    : tagInfo.Expiration;
+
+            return newExpiration == tagInfo.Expiration && (reason == null || reason == tagInfo.Reason)
+                    ? tagInfo
+                    : UpdateExistingDeprecationTag( monitor, repo, existing, tagInfo, reason, daysDelay, newExpiration );
+        }
+
+    }
+
+    static void AddTag( Repo repo, TagCommit existing, DeprecatedTagInfo tagInfo, string name )
+    {
+        repo.GitRepository.Repository.Tags.Add( name,
+                                                existing.Commit,
+                                                repo.GitRepository.Committer,
+                                                tagInfo.ToString(),
+                                                allowOverwrite: true );
+        repo.GitRepository.DeferredPushRefSpecs.Add( $"+refs/tags/{name}" );
+    }
+
+    static DeprecatedTagInfo UpdateExistingDeprecationTag( IActivityMonitor monitor,
+                                                           Repo repo,
+                                                           TagCommit existingCommit,
+                                                           DeprecatedTagInfo existingTagInfo,
+                                                           string? reason,
+                                                           int daysDelay,
+                                                           DateOnly expiration )
+    {
+        existingTagInfo = new DeprecatedTagInfo( existingTagInfo.ContentInfo,
+                                                 expiration,
+                                                 daysDelay != -1 ? daysDelay : existingTagInfo.DaysDelay,
+                                                 reason != null ? reason : existingTagInfo.Reason );
+
+        var name = existingCommit.Tag.FriendlyName;
+        AddTag( repo, existingCommit, existingTagInfo, name );
+        if( existingTagInfo.HasExpired )
+        {
+            var n = existingCommit.Version.WithBuildMetaData( null ).ToString();
+            var vN = 'v' + n;
+            monitor.Info( ScreenType.CKliScreenTag, $"Deprecation tag expired. Removing '{vN}' tag (from local and remote) in '{repo.DisplayPath}'." );
+
+            var localTags = repo.GitRepository.Repository.Tags;
+            if( localTags[n] != null )
+            {
+                localTags.Remove( n );
+            }
+            if( localTags[vN] != null )
+            {
+                localTags.Remove( vN );
+            }
+            repo.GitRepository.DeferredPushRefSpecs.Add( $":refs/tags/{n}" );
+            repo.GitRepository.DeferredPushRefSpecs.Add( $":refs/tags/{vN}" );
+        }
+        else
+        {
+            monitor.Info( ScreenType.CKliScreenTag, $"Version tag '{name}' has been updated in '{repo.DisplayPath}'." );
+        }
+        return existingTagInfo;
+    }
+
+    static DeprecatedTagInfo CreateDeprecationTag( IActivityMonitor monitor, Repo repo, TagCommit existing, string? reason, int daysDelay )
+    {
+        Throw.DebugAssert( "We used GetWithoutIssue and existing is not a +fake.", existing.BuildContentInfo != null );
+        var tagInfo = new DeprecatedTagInfo( existing.BuildContentInfo,
+                                             DateOnly.FromDateTime( DateTime.UtcNow.AddDays( daysDelay ) ),
+                                             daysDelay,
+                                             reason ?? DeprecatedTagInfo.UnspecifiedReason );
+
+        var name = $"v{existing.Version}+deprecated";
+        AddTag( repo, existing, tagInfo, name );
+        if( tagInfo.HasExpired )
+        {
+            monitor.Info( ScreenType.CKliScreenTag, $"Deprecation tag expired. Removing '{existing.Version.ParsedText}' tag (from local and remote) in '{repo.DisplayPath}'." );
+
+            var localTags = repo.GitRepository.Repository.Tags;
+            if( localTags[existing.Version.ParsedText] != null )
+            {
+                localTags.Remove( existing.Version.ParsedText );
+            }
+            repo.GitRepository.DeferredPushRefSpecs.Add( $":refs/tags/{existing.Version.ParsedText}" );
+        }
+        else
+        {
+            monitor.Info( ScreenType.CKliScreenTag, $"Version tag '{name}' has been created in '{repo.DisplayPath}'." );
+        }
+        return tagInfo;
+    }
+
+    void EnsureImpliedDeprecatedTag( IActivityMonitor monitor,
+                                     RepoReleaseInfo origin,
+                                     HashSet<RepoReleaseInfo> visited,
+                                     List<RepoReleaseInfo> path,
+                                     int daysDelay,
+                                     DateOnly expiration )
+    {
+        Throw.DebugAssert( path[^1] == origin );
+        foreach( var impact in origin.GetDirectConsumers( monitor ) )
+        {
+            if( visited.Add( impact ) )
+            {
+                var versionInfo = Get( monitor, impact.Repo );
+                Throw.DebugAssert( "No version issue on any repo.", !versionInfo.HasIssue );
+                if( !versionInfo.TagCommits.TryGetValue( impact.Version, out var tagCommit ) )
+                {
+                    monitor.Warn( $"""
+                        Version tag 'v{impact.Version}' in '{impact.Repo.DisplayPath}' not found.
+                        {StoppingDeprecationMessage(monitor,impact)}
+                        """ );
+                }
+                else if( tagCommit.IsFakeVersion )
+                {
+                    monitor.Warn( $"""
+                        Tag 'v{impact.Version}' in '{impact.Repo.DisplayPath}' is a +fake one.
+                        {StoppingDeprecationMessage( monitor, impact )}
+                        """ );
+                }
+                else
+                {
+                    // Tag exists and is not a fake one: it may already be deprecated.
+                    var tagInfo = tagCommit.DeprecatedInfo;
+                    if( tagInfo != null )
+                    {
+                        // If the existing deprecation is planned but later than the
+                        // current one: the earlier obviously wins.
+                        if( tagInfo.Expiration > expiration )
+                        {
+                            tagInfo = UpdateExistingDeprecationTag( monitor,
+                                                                    impact.Repo,
+                                                                    tagCommit,
+                                                                    tagInfo,
+                                                                    reason: null,
+                                                                    tagInfo.DaysDelay,
+                                                                    expiration );
+                        }
+                        // Even if this one is already deprecated, continue the propagation.
+                    }
+                    else
+                    {
+                        var sb = new StringBuilder( "Deprecated by " );
+                        for( int i = path.Count - 1; i >= 0; --i )
+                        {
+                            var c = path[ i ];
+                            sb.Append( c.Repo.DisplayPath ).Append( '/' ).Append( c.Version );
+                            if( i > 0 ) sb.Append( " <- " );
+                        }
+                        tagInfo = CreateDeprecationTag( monitor, impact.Repo, tagCommit, reason: sb.ToString(), daysDelay );
+                    }
+                    path.Add( impact );
+                    EnsureImpliedDeprecatedTag( monitor, impact, visited, path, daysDelay, expiration );
+                    path.RemoveAt( path.Count - 1 );
+                }
+            }
+        }
+
+        static string StoppingDeprecationMessage( IActivityMonitor monitor, RepoReleaseInfo i )
+        {
+            return $"Stopping deprecation propagation on '{i}' and its direct consumers ('{i.GetDirectConsumers( monitor ).Select( i => i.ToString() ).Concatenate( "', '" )}').";
+        }
+    }
 
     /// <summary>
     /// Rebuilds the published and local databases.
@@ -496,11 +815,12 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         var isExecutingIssue = PrimaryPluginContext.Command is CKliIssue;
 
         List<Tag>? removableTags = null;
+        List<Tag>? badDeprecatedTags = null;
         // Collects conflicting tags.
         List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts = null;
 
         // First pass. Enumerates all the tags to keep all +invalid and
-        // tags in the MajorRange.
+        // tags in the MajorRange, excluding +deprecated tags that cannot be parsed.
         // This list is temporary (first pass) to build the v2c index.
         List<TagCommit> validTags = new List<TagCommit>();
         Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags = null;
@@ -548,10 +868,23 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             // This is required, for instance, to be able to produce a 4.0.1 fix after the deprecated 4.0.0 version.
             //
             // As opposed to +invalid tags, +deprecated tags must never be deleted. They memorize the
-            // existence of a version.
+            // existence of a version and contain the BuildContentInfo of the deprecated version: if they
+            // cannot br parsed (reason, expiration, build content), we catch them here (these are issues) to
+            // avoid complex error handling.
             //
-            var tc = new TagCommit( v, c, t );
-            validTags.Add( tc );
+            bool isFakeVersion = v.BuildMetaData.Equals( "fake", StringComparison.Ordinal );
+            bool isDeprecatedVersion = !isFakeVersion && v.BuildMetaData.Contains( "deprecated", StringComparison.Ordinal );
+            DeprecatedTagInfo? deprecatedInfo = null;
+            if( isDeprecatedVersion && !DeprecatedTagInfo.TryParse( t.Annotation?.Message, out deprecatedInfo ) )
+            {
+                badDeprecatedTags ??= new List<Tag>();
+                badDeprecatedTags.Add( t );
+            }
+            else
+            {
+                var tc = new TagCommit( v, c, t, isFakeVersion, deprecatedInfo );
+                validTags.Add( tc );
+            }
         }
         // Second pass: filters out the invalid tags and produces the v2C index
         //              along with potential tag conflicts.
@@ -568,7 +901,11 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     tagConflicts ??= new();
                     tagConflicts.Add( (invalid, (newOne.Version, newOne.Tag), TagConflict.InvalidTagOnWrongCommit) );
                 }
-                // Invalidated tag. Forget it.
+                else
+                {
+                    removableTags ??= new();
+                    removableTags.Add( newOne.Tag );
+                }
                 continue;
             }
             if( v2c.TryGetValue( newOne.Version, out var exists ) )
@@ -583,13 +920,19 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                 }
                 // But this is not the only conflict...
                 // Actually, the only "valid" (expected) conflict is between a Deprecated and regular version.
+                //
+                // Because we previously excluded bad +deprecated tags, we can keep the code simple here.
+                //
                 if( exists.IsDeprecatedVersion && newOne.IsRegularVersion )
                 {
-                    // The collected tag is the deprecated one. We have nothing to do except that the regular
-                    // version can be deleted.
-                    removableTags ??= new List<Tag>();
-                    removableTags.Add( newOne.Tag );
-                    Throw.DebugAssert( "The topHot cannot be the newOne (it may be exists).", topHot != newOne );
+                    // The collected tag is the deprecated one.
+                    // We have nothing to do except that the regular version can be deleted IIF the deprecation expired.
+                    if( exists.DeprecatedInfo.HasExpired )
+                    {
+                        removableTags ??= new List<Tag>();
+                        removableTags.Add( newOne.Tag );
+                    }
+                    Throw.DebugAssert( "The topHot cannot be the newOne (but it may be the exists deprecated one).", topHot != newOne );
                     continue;
                 }
                 if( newOne.IsDeprecatedVersion && exists.IsRegularVersion )
@@ -597,8 +940,13 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                     // The collected tag is replaced with the deprecated one.
                     // The regular tag can be removed.
                     v2c[newOne.Version] = newOne;
-                    removableTags ??= new List<Tag>();
-                    removableTags.Add( exists.Tag );
+                    if( newOne.DeprecatedInfo.HasExpired )
+                    {
+                        removableTags ??= new List<Tag>();
+                        removableTags.Add( exists.Tag );
+                    }
+                    // topHot may become deprecated.
+                    // If no better topHot pops, this is annoying (see below).
                     if( topHot == exists ) topHot = newOne;
                     continue;
                 }
@@ -635,6 +983,12 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         {
             monitor.Warn( $"One or more tags have been ignored in '{repo.DisplayPath}'. Use 'ckli tag list' to identify them." );
         }
+        // topHot can be +deprecated... The correct workflow should be to deprecate a version after having produced at least one next version.
+        // If this happens, we can:
+        // - Restore the regular tag:
+        //   - If it appears in the removableTags, by removing it (easy).
+        //   - otherwise, recreating it from the content info in the deprecated tag.
+        // - Do nothing (current choice).
 
         // LastStables are used by ckli fix. They must be sorted (in reverse version order, TagCommit.CompareTo does that).
         // We use an explicit for each loop so we also compute the lowestCI tag to support auto-deletion of obsolete CI builds.
@@ -658,18 +1012,20 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
         if( lastStables.Count > 0 )
         {
             lastStable = lastStables[0];
-            // Handle obsolete CI builds.
-            if( lowestCI != null && lowestCI.Version < lastStable.Version )
+            // Handle obsolete CI builds (do nothing if the lastStable is deprecated).
+            if( lowestCI != null && !lastStable.IsDeprecatedVersion && lowestCI.Version < lastStable.Version )
             {
                 AutoDeleteObsoleteCIReleases( monitor, repo, removableTags, v2c, lastStable, lowestCI );
             }
-            if( lastStable.BuildContentInfo != null )
+            if( !(lastStable.IsDeprecatedVersion && lastStable.DeprecatedInfo.HasExpired)
+                && lastStable.BuildContentInfo != null )
             {
                 lastAvailableStable = lastStable;
             }
             else
             {
-                lastAvailableStable = lastStables.FirstOrDefault( tc => tc.BuildContentInfo != null );
+                lastAvailableStable = lastStables.FirstOrDefault( tc => !(tc.IsDeprecatedVersion && tc.DeprecatedInfo.HasExpired)
+                                                                        && tc.BuildContentInfo != null );
             }
         }
         // Two HotZone issues: no version tags (Build plugin can auto fix that) and a top hot that is "too much higher" than the last
@@ -686,11 +1042,10 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             Throw.DebugAssert( topHot == lastStable || (topHot != null && topHot.Version > lastStable.Version) );
             // The HotZoneInfo will create the required manual fix if topHot.Version >= (lastStable.Major + 1, 0, 0).
             hotZone = VersionTagInfo.HotZoneInfo.Create( monitor, World, repo, lastStable, topHot, lastAvailableStable );
-
         }
 
         // We capture the invalidTags: may be one day we can create a World.Issue that could
-        // remove them (we must ensure that the hidden version tags are removed in other repositories:
+        // remove them (we must ensure that the invalidated version tags are removed in other repositories:
         // the origin remote may be enough).
         //
         // We capture tagConflicts: these MUST be fixed. Most of the branch/build commands will require
@@ -740,6 +1095,7 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                                    removableTags,
                                    invalidTags,
                                    tagConflicts,
+                                   badDeprecatedTags,
                                    publishedReleaseContentIssue,
                                    hasMissingContentInfo );
 

@@ -97,8 +97,9 @@ public sealed class RepoReleaseInfo
 
     /// <summary>
     /// Overridden to return the Repo display path and the released version.
+    /// The format is "Repo/v{Version}" that intentionally differs from the <see cref="PackageInstance.ToString()"/>.
     /// </summary>
-    /// <returns>Repo display path/released version.</returns>
-    public override string ToString() => $"{_repo.DisplayPath}/{_repoKey.Version}";
+    /// <returns>Repo display path/v{Released version}.</returns>
+    public override string ToString() => $"{_repo.DisplayPath}/v{_repoKey.Version}";
 
 }

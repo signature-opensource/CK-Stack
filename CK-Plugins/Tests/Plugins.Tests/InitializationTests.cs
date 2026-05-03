@@ -71,7 +71,7 @@ public class InitializationTests
             │ │ Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             │ │ On success, the tag content is updated.
             │ │ When the commit cannot be successfully recompiled, the command 'ckli maintenance rebuild old'
-            │ │ can retry and sets a "+deprecated" version on the old commits on failure.
+            │ │ can try to build them and sets a "+invalid" tag on failure.
             > CKt-ActivityMonitor (3)
             │ > Removable branches.
             │ │ - 'dev/stable' is merged into 'stable'.
@@ -85,7 +85,7 @@ public class InitializationTests
             │ │ Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             │ │ On success, the tag content is updated.
             │ │ When the commit cannot be successfully recompiled, the command 'ckli maintenance rebuild old'
-            │ │ can retry and sets a "+deprecated" version on the old commits on failure.
+            │ │ can try to build them and sets a "+invalid" tag on failure.
             > CKt-PerfectEvent (3)
             │ > Removable branches.
             │ │ - 'dev/stable' is merged into 'stable'.
@@ -99,7 +99,7 @@ public class InitializationTests
             │ │ Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             │ │ On success, the tag content is updated.
             │ │ When the commit cannot be successfully recompiled, the command 'ckli maintenance rebuild old'
-            │ │ can retry and sets a "+deprecated" version on the old commits on failure.
+            │ │ can try to build them and sets a "+invalid" tag on failure.
             > CKt-Monitoring (3)
             │ > Removable branches.
             │ │ - 'dev/stable' is merged into 'stable'.
@@ -113,7 +113,7 @@ public class InitializationTests
             │ │ Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             │ │ On success, the tag content is updated.
             │ │ When the commit cannot be successfully recompiled, the command 'ckli maintenance rebuild old'
-            │ │ can retry and sets a "+deprecated" version on the old commits on failure.
+            │ │ can try to build them and sets a "+invalid" tag on failure.
             ❰✓❱
 
             """ );
@@ -125,6 +125,20 @@ public class InitializationTests
 
         // ckli branch push stable
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "branch", "push", "stable" )).ShouldBeTrue();
+
+        display.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "ci", "build", "--dry-run" )).ShouldBeTrue();
+        display.ToString().ShouldBe( """
+            1 -  CKt-Core            v1.0.0 → v1.0.1--ci.3 🡡 (CodeChange)               
+            2 -  CKt-ActivityMonitor v0.1.0 → v0.1.1--ci.4 🡡 (UpstreamBuild, CodeChange)
+            3 ╓  CKt-PerfectEvent    v0.3.2 → v0.3.3--ci.4 🡡 (UpstreamBuild, CodeChange)
+            4 ╙  CKt-Monitoring      v0.2.3 → v0.2.4--ci.4 🡡 (UpstreamBuild, CodeChange)
+            Required build for 4 repositories across the 4 repositories.
+            (No dependency updates other than the ones from the upstreams are needed.)
+            🡡 4 repositories can be published.
+            ❰✓❱
+
+            """ );
     }
 
     [Explicit]
@@ -149,10 +163,10 @@ public class InitializationTests
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(initialized)" );
         var context = remotes.Clone( clonedFolder );
+        var display = (StringScreen)context.Screen;
 
         // cd CK-Core.
         var cktCoreContext = context.ChangeDirectory( "CKt-Core" );
-        var display = (StringScreen)cktCoreContext.Screen;
 
         // From CKt_init:
         var localNuGetFeed = context.CurrentStackPath.Combine( "$Local/NuGet" );

@@ -153,6 +153,8 @@ public sealed partial class BranchLink
 
     /// <summary>
     /// Collects this link's issue if any.
+    /// IssueKind.Useless is an issue here because we are collecting the issues for the issue command
+    /// (<see cref="IssueBuilder.OnUselessBranch(Branch, Branch)"/> is called).
     /// </summary>
     /// <param name="issues">The collector for issues.</param>
     internal void CollectIssue( IssueBuilder issues )

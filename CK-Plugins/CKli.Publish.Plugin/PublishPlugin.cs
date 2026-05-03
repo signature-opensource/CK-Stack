@@ -81,7 +81,7 @@ public sealed class PublishPlugin : PrimaryPluginBase
             //    monitor.Info( $"Checking that remote feeds contain the packages." );
             // }
             // else 
-            if( !await PublishAsync( monitor, World, _artifactHandler, _releaseDatabase, _versionTag, e.BuildDate, e.Roadmap, cancel ) )
+            if( !await PublishAsync( monitor, World, _artifactHandler, _releaseDatabase, _versionTag, e.BuildDate, e.Roadmap, cancel ).ConfigureAwait( false ) )
             {
                 e.SetFailed();
             }
@@ -96,7 +96,11 @@ public sealed class PublishPlugin : PrimaryPluginBase
                                         Roadmap roadmap,
                                         CancellationToken cancel )
         {
-            var packageSender = PackageSender.Create( monitor, roadmap.Graph.BranchName.Name, roadmap.IsCIBuild, artifactHandler, world.StackRepository.SecretsStore );
+            var packageSender = PackageSender.Create( monitor,
+                                                      roadmap.Graph.BranchName.Name,
+                                                      roadmap.IsCIBuild,
+                                                      artifactHandler,
+                                                      world.StackRepository.SecretsStore );
             if( packageSender == null ) return Task.FromResult( false );
 
             var state = PublishState.Load( monitor, world );

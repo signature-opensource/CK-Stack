@@ -106,7 +106,7 @@ foreach ($repo in $repos) {
     # Git cleanup
     # --------------------------------------------------------------
     git reflog expire --expire=now --expire-unreachable=now --all
-    git prune
+    git gc --prune=now
     git repack -ad
 
     # --------------------------------------------------------------

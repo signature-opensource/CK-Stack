@@ -11,6 +11,7 @@ using LibGit2Sharp;
 using System;
 using System.IO;
 using System.Threading.Tasks;
+using static CK.Core.CheckedWriteStream;
 using LogLevel = CK.Core.LogLevel;
 
 namespace CKli.Build.Plugin;
@@ -437,66 +438,41 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // we don't care: we restore the current state.
         //
         var git = versionInfo.Repo.GitRepository;
-        if( !git.CheckCleanCommit( monitor ) )
-        {
-            return null;
-        }
-
         Branch currentHead = git.Repository.Head;
         bool mustCheckOut = currentHead.Tip.Tree.Sha != buildCommit.Tree.Sha;
         if( mustCheckOut )
         {
             monitor.Trace( $"Current working folder content is not the same as the commit '{buildCommit.Sha}' to build. Checking out a detached head." );
-            Commands.Checkout( git.Repository, buildCommit );
+            if( !git.Checkout( monitor, buildCommit ) )
+            {
+                return null;
+            }
         }
-        var result = await DoCoreBuildAsync( monitor,
-                                             context,
-                                             repoBuilder,
-                                             _releaseDatabase,
-                                             buildInfo,
-                                             runTest.Value ).ConfigureAwait( false );
+        else
+        {
+            if( !git.CheckCleanCommit( monitor ) )
+            {
+                return null;
+            }
+        }
+        BuildResult? result = null;
+        try
+        {
+            result = await DoCoreBuildAsync( monitor,
+                                                 context,
+                                                 repoBuilder,
+                                                 _releaseDatabase,
+                                                 buildInfo,
+                                                 runTest.Value ).ConfigureAwait( false );
+        }
+        catch( Exception ex )
+        {
+            monitor.Error( $"Build failed for '{versionInfo.Repo.DisplayPath}' on commit '{buildCommit.Sha}'.", ex );
+        }
         if( mustCheckOut )
         {
-            try
-            {
-                monitor.Trace( "Restoring working folder to its previous head." );
-                Commands.Checkout( git.Repository, currentHead, new CheckoutOptions { CheckoutModifiers = CheckoutModifiers.Force } );
-
-                // When rebuilding old commit points, ignored artifacts may remains on the file system.
-                // We are rather aggressive here and try to cleanup the file system. 
-                git.ResetHard( monitor, out var remainingUntrackedFiles, tryDeleteUntrackedFiles: true );
-
-                // It may seem logical here to not include untracked files here (and ask only for ignored ones)
-                // but when setting IncludeUntracked and RecurseUntrackedDirs to false here and building CKt-Core/v1.0.0,
-                // this removes CKt.Core/bin and /obj but leaves CodeCakeBuilder/bin and /obj...
-                // That is PRECISELY what we want to remove :-(.
-                // So let IncludeUntracked be true here.
-                var status = git.Repository.RetrieveStatus( new StatusOptions
-                {
-                    DetectRenamesInIndex = false,
-                    IncludeIgnored = true
-                } );
-                foreach( var e in status.Ignored )
-                {
-                    var eName = e.FilePath;
-                    var fullPath = Path.Combine( git.WorkingFolder, eName );
-                    if( eName[^1] == '/' )
-                    {
-                        FileHelper.DeleteFolder( monitor, fullPath );
-                    }
-                    else
-                    {
-                        FileHelper.DeleteFile( monitor, fullPath );
-                    }
-                }
-
-                FileHelper.DeleteEmptyFoldersBelow( monitor, git.WorkingFolder, LogLevel.Warn );
-            }
-            catch( Exception ex )
-            {
-                monitor.Error( $"Error while restoring '{git.DisplayPath}' back to '{currentHead}'.", ex );
-                result = null;
-            }
+            monitor.Trace( "Restoring working folder to its previous head." );
+            git.Checkout( monitor, currentHead, deleteIgnored: true );
         }
         return result;
 
@@ -538,5 +514,4 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
             return buildResult;
         }
     }
-
 }

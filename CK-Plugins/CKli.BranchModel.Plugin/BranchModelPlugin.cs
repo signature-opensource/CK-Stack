@@ -50,10 +50,7 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
         foreach( var r in e.Repos )
         {
             var info = Get( monitor, r );
-            if( info.HasIssue )
-            {
-                info.CollectIssues( monitor, e.ScreenType, e.Add, out hasSevereIssue );
-            }
+            info.CollectIssues( monitor, e.ScreenType, e.Add, out hasSevereIssue );
         }
         if( !hasSevereIssue && ContentIssue != null )
         {
@@ -259,7 +256,9 @@ public sealed partial class BranchModelPlugin : PrimaryRepoPlugin<BranchModelInf
                     //   But for non-ci builds, we initially consider the "/dev" only for the repos that are in pivots.
                     bool isDevSolution = (hotBranch.BranchName == branchName) && (isCIBuild || isContainedInPivots);
 
-                    if( !graph.AddSolution( monitor, repo, hotBranch, hasPivots && isContainedInPivots, isDevSolution ) )
+                    // isDevSolution may transition from false to true if the solution failed to be read in the
+                    // regular branch but is valid in the "dev/".
+                    if( !graph.AddSolution( monitor, repo, hotBranch, hasPivots && isContainedInPivots, ref isDevSolution ) )
                     {
                         return null;
                     }

@@ -111,6 +111,12 @@ public sealed partial class Roadmap
         /// </summary>
         public BuildResult? BuildResult => _buildResult;
 
+        internal BuildResult[]? SetSingleBuildResult( BuildResult r )
+        {
+            _buildResult = r;
+            return [r];
+        }
+
         internal Task<BuildResult?> BuildAsync( BuildPlugin.RoadmapExecutor builder )
         {
             if( _buildTask != null ) return _buildTask;
@@ -127,14 +133,15 @@ public sealed partial class Roadmap
             if( _directRequirements.Length > 0 )
             {
                 // Checks that all required builds went fine (or return null).
-                BuildResult?[] req = await Task.WhenAll( _directRequirements.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray() );
+                var all = _directRequirements.Where( s => s.MustBuild ).Select( s => s.BuildInfo!.BuildAsync( builder ) ).ToArray();
+                BuildResult?[] req = await Task.WhenAll( all ).ConfigureAwait( false );
                 foreach( var r in req )
                 {
                     if( r == null ) return null;
                 }
             }
             // Building requirements succeed: running this build.
-            _buildResult = await builder.BuildAsync( this );
+            _buildResult = await builder.BuildAsync( this ).ConfigureAwait( false );
             return _buildResult;
         }
 

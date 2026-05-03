@@ -15,6 +15,7 @@ public sealed partial class BranchModelInfo : RepoInfo
 
     // Deferred initialization.
     ImmutableArray<HotBranch> _branches;
+    // The IssueKind.Useless is not considered here.
     bool _hasIssue;
 
     internal BranchModelInfo( Repo repo, BranchNamespace ns, BranchModelPlugin plugin )
@@ -70,6 +71,10 @@ public sealed partial class BranchModelInfo : RepoInfo
     internal ShallowSolutionPlugin ShallowSolutionPlugin => _plugin._shallowSolution;
 
     /// <inheritdoc />
+    /// <remarks>
+    /// The "dev/" branch can be <see cref="BranchLink.IssueKind.Useless"/> here.
+    /// This minor issue is collected by "ckli issue" but is not treated as a real issue.
+    /// </remarks>
     public override bool HasIssue => _hasIssue;
 
     internal void CollectIssues( IActivityMonitor monitor,
@@ -77,7 +82,6 @@ public sealed partial class BranchModelInfo : RepoInfo
                                  Action<World.Issue> collector,
                                  out bool hasSevereIssues )
     {
-        Throw.DebugAssert( _hasIssue );
         // If the "stable" branch doesn't exist, no need to continue.
         if( Root.GitBranch == null )
         {

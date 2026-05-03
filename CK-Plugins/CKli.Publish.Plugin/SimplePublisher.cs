@@ -93,26 +93,26 @@ sealed partial class SimplePublisher
         // If we have packages to push, we let the InPackages state create the release.
         // But if we have no packages, we create the release right now.
         return repo.BuildContentInfo.Produced.Length == 0
-                    ? await CreateRelease( monitor, repo, 1, cancel ).ConfigureAwait( false )
+                    ? await CreateReleaseAsync( monitor, repo, 1, cancel ).ConfigureAwait( false )
                     : _state.ForwardPrimaryCursor( monitor, 1 );
     }
 
     async Task<PublishState.Cursor?> OnInPackagesAsync( IActivityMonitor monitor, RepoPublishInfo repo, CancellationToken cancel )
     {
         var toPush = repo.BuildContentInfo.Produced;
-        using( monitor.OpenTrace( $"Pushing {toPush} packages." ) )
+        using( monitor.OpenTrace( $"Pushing '{toPush.Concatenate("', '")}' packages." ) )
         {
             if( !await _packageSender.SendAsync( monitor, repo.PublishVersion, toPush, cancel ).ConfigureAwait( false ) )
             {
                 return null;
             }
         }
-        return await CreateRelease( monitor, repo, toPush.Length, cancel ).ConfigureAwait( false );
+        return await CreateReleaseAsync( monitor, repo, toPush.Length, cancel ).ConfigureAwait( false );
     }
 
-    async Task<PublishState.Cursor?> CreateRelease( IActivityMonitor monitor, RepoPublishInfo repo, int forwardLength, CancellationToken cancel )
+    async Task<PublishState.Cursor?> CreateReleaseAsync( IActivityMonitor monitor, RepoPublishInfo repo, int forwardLength, CancellationToken cancel )
     {
-        // To create a release, hosting provider requires that the tag exists in the repository, so it's time to push it.
+        // To create a release, hosting providers (like GitHub) require that the tag exists in the repository, so it's time to push it.
         var versionedTag = "v" + repo.PublishVersion.ToString();
         GitRepository r = repo.Repo.GitRepository;
         if( !r.PushTags( monitor, [versionedTag] ) )

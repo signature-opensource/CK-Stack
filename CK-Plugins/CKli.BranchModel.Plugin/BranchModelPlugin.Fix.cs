@@ -425,7 +425,6 @@ public sealed partial class BranchModelPlugin
                                 : $"fix/v{toFix.Version.Major}.{toFix.Version.Minor}";
             // Find an existing branch.
             var bFix = repo.GitRepository.GetBranch( monitor, branchName, LogLevel.Info );
-            // Provide an empty commit to the developer so that the branch is not on the existing versioned commit.
             if( bFix != null )
             {
                 // When bFix.Tip.Tree.Sha == toFix.ContentSha, we are in the initial nominal case:

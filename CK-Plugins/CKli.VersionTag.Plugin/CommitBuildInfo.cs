@@ -102,7 +102,7 @@ public sealed class CommitBuildInfo
             }
             else
             {
-                _tagInfo.AddTag( _version, _buildCommit, t );
+                _tagInfo.AddReleaseBuildTag( _version, _buildCommit, t );
             }
             return true;
         }

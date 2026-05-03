@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.VersionTag.Plugin;
+using LibGit2Sharp;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -36,7 +37,7 @@ public sealed partial class BuildPlugin
                                                   versionTagInfo,
                                                   "Missing initial version.",
                                                   screenType.Text( $"""
-                                                      This can be fixed by building the 'v{versionTagInfo.MinVersion}' version from '{branchModel.Root.BranchName}' branch.
+                                                      This can be fixed by creating a 'v{versionTagInfo.MinVersion}+fake' on '{branchModel.Root.BranchName}' branch.
                                                       """ ),
                                                   branchModel.Root ) );
             }
@@ -48,7 +49,7 @@ public sealed partial class BuildPlugin
             Fixing these tags recompiles the commit to obtain the consumed/produced packages and asset files.
             On success, the tag content is updated.
             When the commit cannot be successfully recompiled, the command 'ckli maintenance rebuild old'
-            can retry and sets a "+deprecated" version on the old commits on failure.
+            can try to build them and sets a "+invalid" tag on failure.
             """;
         if( lightWeightTags.Length > 0 )
         {
@@ -159,29 +160,20 @@ public sealed partial class BuildPlugin
             _root = root;
         }
 
-        protected override async ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
+        protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
         {
             Throw.DebugAssert( Repo != null && _root.GitBranch != null );
-            if( _root.HasIssue )
+
+            // First idea was to create a real build tag: this dos the job.
+            // But this introduces an issue: when this tag should be pushed?
+            // This is not a "real" version and publishing must be an explicit action.
+            // So we decide to use a "+fake" version.
+            var vFake = $"v{_versionTagInfo.MinVersion}+fake";
+            using( monitor.OpenInfo( $"Fixing missing initial version in '{Repo.DisplayPath}' by creating '{vFake}' from '{_root}'." ) )
             {
-                monitor.Warn( $"Issue on '{_root.BranchName.Name}' branch in '{Repo.DisplayPath}' must be fixed before building a initial 'v{_versionTagInfo.MinVersion}' version." );
-                return true;
+                Repo.GitRepository.Repository.Tags.Add( vFake, _root.GitBranch.Tip );
             }
-            else using( monitor.OpenInfo( $"Fixing missing initial version in '{Repo.DisplayPath}' by creating 'v{_versionTagInfo.MinVersion}' from '{_root}'." ) )
-            {
-                // If there is a "dev/stable" branch: integrates it.
-                if( _root.GitDevBranch != null && !_root.IntegrateDevBranch( monitor ) )
-                {
-                    return false;
-                }
-                return await _buildPlugin.CoreBuildAsync( monitor,
-                                                          context,
-                                                          _versionTagInfo,
-                                                          _root.GitBranch.Tip,
-                                                          _versionTagInfo.MinVersion,
-                                                          runTest: false,
-                                                          forceRebuild: true ) != null;
-            }
+            return ValueTask.FromResult( true );
         }
     }
 }

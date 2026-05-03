@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace CKli.VersionTag.Plugin;
 
@@ -29,6 +28,7 @@ public sealed partial class VersionTagInfo : RepoInfo
     //
     readonly Dictionary<SVersion, (SVersion V, Tag T)>? _invalidTags;
     readonly List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? _tagConflicts;
+    readonly List<Tag>? _badDeprecatedTags;
     readonly World.Issue? _publishedReleaseContentIssue;
     readonly SVersion _minVersion;
     readonly SVersion? _maxVersion;
@@ -45,6 +45,7 @@ public sealed partial class VersionTagInfo : RepoInfo
                              List<Tag>? removableTags,
                              Dictionary<SVersion, (SVersion V, Tag T)>? invalidTags,
                              List<((SVersion V, Tag T) T1, (SVersion V, Tag T) T2, TagConflict C)>? tagConflicts,
+                             List<Tag>? badDeprecatedTags,
                              World.Issue? publishedReleaseContentIssue,
                              bool hasMissingContentInfo )
         : base( repo )
@@ -57,10 +58,12 @@ public sealed partial class VersionTagInfo : RepoInfo
         _removableTags = removableTags ?? [];
         _invalidTags = invalidTags;
         _tagConflicts = tagConflicts;
+        _badDeprecatedTags = badDeprecatedTags;
         _publishedReleaseContentIssue = publishedReleaseContentIssue;
         _hasIssue = hotZone == null || hotZone.HotZoneIssue != null
                      || hasMissingContentInfo
                      || tagConflicts != null
+                     || badDeprecatedTags != null
                      || publishedReleaseContentIssue != null;
     }
 
@@ -219,29 +222,6 @@ public sealed partial class VersionTagInfo : RepoInfo
     }
 
     /// <summary>
-    /// Finds a versioned tag from a commit or from its content (its <see cref="Commit.Tree"/> sha).
-    /// </summary>
-    /// <param name="c">The commit for which a version must be found.</param>
-    /// <param name="foundContentSha">True if the commit has been found by its <see cref="Commit.Tree"/> content sha.</param>
-    /// <returns>The TagCommit if this commit has already been released, null otherwise.</returns>
-    public TagCommit? Find( Commit c, out bool foundContentSha )
-    {
-        foundContentSha = false;
-        // Build the index if not yet built.
-        var index = TagCommitsBySha;
-        if( index.TryGetValue( c.Sha, out var tc ) )
-        {
-            return tc;
-        }
-        if( index.TryGetValue( c.Tree.Sha, out tc ) )
-        {
-            foundContentSha = true;
-            return tc;
-        }
-        return null;
-    }
-
-    /// <summary>
     /// Used by build: this checks that the <paramref name="buildCommit"/> can be built with <paramref name="version"/>.
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
@@ -268,7 +248,7 @@ public sealed partial class VersionTagInfo : RepoInfo
         //   previous stable release must exist and appear in the commit parents.
         //
         // To handle exceptions, this is where the "+fake" build meta data is considered: we strictly enforce the rules
-        // but a "+fake" tag on any commit circumvents the rule and de facto documents the exception. 
+        // but a "+fake" tag on any commit circumvents the rule and de facto publicly documents the exception. 
         //
         if( _lastStables.Count == 0 )
         {
@@ -342,13 +322,8 @@ public sealed partial class VersionTagInfo : RepoInfo
         }
         if( _v2C.TryGetValue( version, out var exists ) )
         {
-            if( exists.IsFakeVersion )
+            if( !CheckFakeOrDeprecatedVersion( monitor, exists ) )
             {
-                monitor.Error( $"""
-                    The version 'v{version}' in '{Repo.DisplayPath}' is defined by a fake version tag '{exists.Version.ParsedText}' on '{exists.Sha}'.
-
-                    Fake version tags are here to allow explicit gaps in versions: this version should not be produced.
-                    """ );
                 return false;
             }
             // The version has already been produced. The buildCommit must be the same as the original version
@@ -369,44 +344,74 @@ public sealed partial class VersionTagInfo : RepoInfo
             {
                 // This should have been handled by the builder before calling TryGetCommitBuildInfo: this is a security.
                 monitor.Error( $"""
-                    The version 'v{version}' has already been produced by this commit but rebuilding it is not allowed.
+                    The version 'v{version}' in '{Repo.DisplayPath}' already exists on the commit '{exists.Sha}' but rebuilding it is not allowed.
+                    The --rebuild flag may be used.
                     """ );
                 return false;
             }
             isRebuild = true;
             return true;
         }
-        // This is a new version. The build process must have checked that the exact code base contained in the
-        // build commit has not already been released from another commit with a different version (otherwise we would be
-        // in the case above where the version exists).
-        var already = Find( buildCommit, out var foundContentSha );
-        // If the commit has been found by its content Sha, then this is a valid scenario.
-        if( already != null && !foundContentSha )
+        // This is a new version. The build process must have checked that the build commit has not already been released with
+        // a different version (otherwise we would be in the case above where the version exists).
+        if( TagCommitsBySha.TryGetValue( buildCommit.Sha, out var already ) )
         {
             // Already released under a different version.
-            if( already.IsFakeVersion )
+            if( !CheckFakeOrDeprecatedVersion( monitor, already ) )
             {
-                // The Commit is tagged with a +Fake version.
-                // This is more than weird and we reject this (almost the same case as the above where a Fake version should be produced).
-                monitor.Error( $"""
-                Commit '{buildCommit.Sha}' is tagged with a fake version '{already.Version.ParsedText}' in '{Repo.DisplayPath}'.
-                Producing version 'v{version}' from it is forbidden.
-
-                Fake version tags are here to allow explicit gaps in versions: this version should not be produced.
-                """ );
+                return false;
             }
-            else
-            {
-                monitor.Error( $"""
-                            Invalid build commit '{buildCommit.Sha}' for version 'v{version}' in '{Repo.DisplayPath}'.
-                            This commit has already released the version 'v{already.Version}' on {already.Commit.Committer.When}.
+            // Interesting case here: the same commit must produce 2 different versions (allowing this directly
+            // would require the TagCommitsBySha to be a Dictionary<string,List<TagCommit>>).
+            //
+            // There is only one case where it makes sense to produce 2 versions from the same commit: it's when
+            // a prerelease has been created and, without any change in the code, a stable version must be produced.
+            // This is quite rare as it implies that no dependency updates must be made in the code: this scenario
+            // applies to "rank 0" repositories that have no dependencies to any other repositories in the stack.
+            //
+            // => This must be handled by the caller. Here we reject this case.
+            //
+            monitor.Error( $"""
+                        Invalid build commit '{buildCommit.Sha}' for version 'v{version}' in '{Repo.DisplayPath}'.
+                        This commit has already released the version 'v{already.Version}' on {already.Commit.Committer.When}.
 
-                            The same commit cannot produce 2 different versions.
-                            """ );
+                        The same commit cannot produce 2 different versions.
+                        """ );
+
+            if( version.IsStable && already.Version.IsPrerelease )
+            {
+                monitor.Error( ActivityMonitor.Tags.ToBeInvestigated,
+                               """
+                               Note that this case is a stable version produced from the commit of a prerelease one: this should be handled
+                               by creating a new empty commit dedicated to the stable version.
+                               """ );
             }
             return false;
         }
         return true;
+
+        bool CheckFakeOrDeprecatedVersion( IActivityMonitor monitor, TagCommit exists )
+        {
+            if( exists.IsFakeVersion )
+            {
+                monitor.Error( $"""
+                    The version '{exists.Version.ParsedText}' in '{Repo.DisplayPath}' is a fake version on '{exists.Sha}'.
+
+                    Fake version tags are here to allow explicit gaps in versions: this version should not be produced.
+                    """ );
+                return false;
+            }
+            if( exists.IsDeprecatedVersion )
+            {
+                monitor.Error( $"""
+                    The version '{exists.Version.ParsedText}' in '{Repo.DisplayPath}' is deprecated (on '{exists.Sha}' commit).
+
+                    Deprecated versions should not be produced again.
+                    """ );
+                return false;
+            }
+            return true;
+        }
     }
 
     TagCommit? FindBaseCommitByVersion( IActivityMonitor monitor, Commit buildCommit, SVersion version )
@@ -503,13 +508,13 @@ public sealed partial class VersionTagInfo : RepoInfo
                 """;
     }
 
-    internal void AddTag( SVersion version, Commit buildCommit, Tag t )
+    internal void AddReleaseBuildTag( SVersion version, Commit buildCommit, Tag t )
     {
         Throw.DebugAssert( !_v2C.ContainsKey( version ) );
         Throw.DebugAssert( _sha2C != null );
         Throw.DebugAssert( "This must have been checked by TryGetCommitBuildInfo.", !_sha2C.ContainsKey( buildCommit.Sha ) );
 
-        var newOne = new TagCommit( version, buildCommit, t );
+        var newOne = new TagCommit( version, buildCommit, t, isFakeVersion: false, deprecatedInfo: null );
         _v2C.Add( version, newOne );
         _sha2C.Add( newOne.Sha, newOne );
         if( version.IsStable )
@@ -600,15 +605,28 @@ public sealed partial class VersionTagInfo : RepoInfo
                                 screenType.Text( $"""
                                 {_removableTags.Select( t => t.FriendlyName ).Concatenate()}
 
-                                This will be fixed by deleting them locally: a fetch from te remote will make them reappear.
-                                To really remove them, the tag should be deleted from the remote origin and local 
+                                This will be fixed by deleting them locally: a fetch from the remote will make them reappear.
+                                To really remove them, the tag should be deleted from the remote origin and local +invalid
                                 tags that replace them should be pushed. Use the command 'ckli tag push/pull/list/delete' to publish
                                 version tags to the remote origin.
                                 """ ),
                                 Repo,
                                 _removableTags ) );
         }
-        if( _hotZone != null && _hotZone.HotZoneIssue != null )
+        if( _badDeprecatedTags != null )
+        {
+            collector( new RemovableVersionTagIssue(
+                                $"Found {_badDeprecatedTags.Count} invalid +deprecated tags.",
+                                screenType.Text( $"""
+                                {_badDeprecatedTags.Select( t => t.FriendlyName ).Concatenate()}
+
+                                Deprecated tags must be annotated tags with a content that describe the deprecation.
+                                This will be fixed by deleting them locally.
+                                """ ),
+                                Repo,
+                                _badDeprecatedTags ) );
+        }
+      if( _hotZone != null && _hotZone.HotZoneIssue != null )
         {
             collector( _hotZone.HotZoneIssue );
         }
@@ -624,31 +642,6 @@ public sealed partial class VersionTagInfo : RepoInfo
         //
 
         static string ToString( (SVersion V, Tag T) t ) => $"'{t.V.ParsedText}' on '{t.T.Target.Sha}'";
-    }
-
-    sealed class RemovableVersionTagIssue : World.Issue
-    {
-        readonly IReadOnlyList<Tag> _tagsToDelete;
-
-        public RemovableVersionTagIssue( string title,
-                                         IRenderable body,
-                                         Repo repo,
-                                         IReadOnlyList<Tag> tagsToDelete )
-            : base( title, body, repo )
-        {
-            _tagsToDelete = tagsToDelete;
-        }
-
-        protected override ValueTask<bool> ExecuteAsync( IActivityMonitor monitor, CKliEnv context, World world )
-        {
-            Throw.DebugAssert( Repo != null );
-            using var gLog = monitor.OpenInfo( $"Deleting {_tagsToDelete.Count} version tags." );
-            foreach( var t in _tagsToDelete )
-            {
-                Repo.GitRepository.Repository.Tags.Remove( t );
-            }
-            return ValueTask.FromResult( true );
-        }
     }
 
 }

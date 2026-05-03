@@ -3,6 +3,7 @@ using CKli.ArtifactHandler.Plugin;
 using CSemVer;
 using LibGit2Sharp;
 using System;
+using System.Diagnostics.CodeAnalysis;
 
 namespace CKli.VersionTag.Plugin;
 
@@ -17,37 +18,36 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
     readonly SVersion _version;
     readonly Commit _commit;
     readonly string _sha;
-    //readonly string _contentSha;
     readonly bool _isFakeVersion;
-    readonly bool _isDeprecatedVersion;
     Tag _tag;
     string? _message;
     BuildContentInfo? _buildContentInfo;
+    DeprecatedTagInfo? _deprecatedInfo;
 
-    internal TagCommit( SVersion version, Commit commit, Tag tag )
+    internal TagCommit( SVersion version, Commit commit, Tag tag, bool isFakeVersion, DeprecatedTagInfo? deprecatedInfo )
     {
         _version = version;
         _commit = commit;
         _tag = tag;
+        _isFakeVersion = isFakeVersion;
+        _deprecatedInfo = deprecatedInfo;
         _sha = commit.Sha;
-        //_contentSha = commit.Tree.Sha;
-        _isFakeVersion = _version.BuildMetaData.Equals( "fake", StringComparison.Ordinal );
-        _isDeprecatedVersion = !_isFakeVersion && _version.BuildMetaData.Contains( "deprecated", StringComparison.Ordinal );
     }
 
+    /// <summary>
+    /// Gets the version.
+    /// </summary>
     public SVersion Version => _version;
 
+    /// <summary>
+    /// Gets the commit.
+    /// </summary>
     public Commit Commit => _commit;
 
     /// <summary>
     /// Gets this commit sha.
     /// </summary>
     public string Sha => _sha;
-
-    ///// <summary>
-    ///// Gets the content sha of this commit.
-    ///// </summary>
-    //public string ContentSha => _contentSha;
 
     /// <summary>
     /// Gets whether this version tag is "+fake" one: it is here only
@@ -56,15 +56,20 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
     public bool IsFakeVersion => _isFakeVersion;
 
     /// <summary>
-    /// Gets whether this version tag is "+deprecated" one: an actual 
-    /// version exists but for any reason it must not be used anymore.
+    /// Gets whether this version tag is "+deprecated" one. <see cref="DeprecatedInfo"/> is necessarily not null.
     /// </summary>
-    public bool IsDeprecatedVersion => _isDeprecatedVersion;
+    [MemberNotNullWhen( true, nameof( DeprecatedInfo ) )]
+    public bool IsDeprecatedVersion => _deprecatedInfo != null;
+
+    /// <summary>
+    /// Gets the deprecated info parsed from <see cref="TagMessage"/> if <see cref="IsDeprecatedVersion"/> is true.
+    /// </summary>
+    public DeprecatedTagInfo? DeprecatedInfo => _deprecatedInfo;
 
     /// <summary>
     /// Gets whether this version tag is not a "+fake" nor a "+deprecated" one.
     /// </summary>
-    public bool IsRegularVersion => !_isDeprecatedVersion && !_isFakeVersion;
+    public bool IsRegularVersion => !IsDeprecatedVersion && !_isFakeVersion;
 
     /// <summary>
     /// The tag object.
@@ -84,11 +89,18 @@ public sealed class TagCommit : IComparable<TagCommit>, IEquatable<TagCommit>
     {
         get
         {
-            if( _buildContentInfo == null && !_isFakeVersion )
+            if( _buildContentInfo == null )
             {
-                var msg = TagMessage;
-                if( msg == null ) return null;
-                _ = BuildContentInfo.TryParse( msg, out _buildContentInfo );
+                if( _deprecatedInfo != null )
+                {
+                    _buildContentInfo = _deprecatedInfo.ContentInfo;
+                }
+                else if( !_isFakeVersion )
+                {
+                    var msg = TagMessage;
+                    if( msg == null ) return null;
+                    _ = BuildContentInfo.TryParse( msg, out _buildContentInfo );
+                }
             }
             return _buildContentInfo;
         }

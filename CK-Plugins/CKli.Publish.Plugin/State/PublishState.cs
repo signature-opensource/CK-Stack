@@ -1,10 +1,8 @@
 using CK.Core;
 using CKli.Core;
-using Microsoft.Win32.SafeHandles;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.InteropServices;
 
 namespace CKli.Publish.Plugin;
 
@@ -149,6 +147,12 @@ sealed partial class PublishState
         return new PublishState( world, path );
     }
 
+    /// <summary>
+    /// </summary>
+    /// <param name="monitor"></param>
+    /// <param name="fullWrite"></param>
+    /// <param name="primaryCursor"></param>
+    /// <returns></returns>
     internal bool Persist( IActivityMonitor monitor, bool fullWrite, Cursor primaryCursor )
     {
         return true;

@@ -49,6 +49,9 @@ public class RepoBuilder : RepoInfo
     /// Build, test, package and generate the optional Deployment assets of the repository.
     /// On success, the <see cref="BuildResult"/> contains the consumed and produced NuGet packages
     /// and the files to deploy.
+    /// <para>
+    /// This can throw: it is up to the caller to catch (or not) exceptions.
+    /// </para>
     /// </summary>
     /// <param name="monitor">The monitor to use.</param>
     /// <param name="buildInfo">The build info.</param>
@@ -94,7 +97,7 @@ public class RepoBuilder : RepoInfo
                 // we use a git reset hard, delete any untracked files and eventually removes any empty folder.
                 //
                 // If we cannot reset the working folder, we don't want to ignore this at all: the build fails.
-                if( !Repo.GitRepository.ResetHard( monitor, out _, tryDeleteUntrackedFiles: true ) )
+                if( !Repo.GitRepository.ResetHard( monitor, out _ ) )
                 {
                     monitor.Error( $"Unable to reset the working folder after build. This should not happen: failing the build." );
                     return null;
@@ -124,7 +127,7 @@ public class RepoBuilder : RepoInfo
             // If reset has not been done (build failed), do it.
             if( !resetHardDone )
             {
-                Repo.GitRepository.ResetHard( monitor, out var remainingUntrackedFiles, tryDeleteUntrackedFiles: true );
+                Repo.GitRepository.ResetHard( monitor, out var _ );
                 FileHelper.DeleteEmptyFoldersBelow( monitor, buildInfo.Repo.WorkingFolder, CK.Core.LogLevel.Warn );
             }
         }

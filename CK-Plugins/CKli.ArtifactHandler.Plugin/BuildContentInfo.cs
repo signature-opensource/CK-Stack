@@ -11,7 +11,7 @@ using System.Text;
 namespace CKli.ArtifactHandler.Plugin;
 
 /// <summary>
-/// This is the primary data that is associated to each build. This info is fully serializable in binary format but also
+/// Primary data associated to each build. This info is fully serializable in binary format but also
 /// in a textual form (<see cref="Write(StringBuilder)"/> and <see cref="TryParse(ReadOnlySpan{char}, out CKli.ArtifactHandler.Plugin.BuildContentInfo?)"/>)
 /// and this is the content of the <see cref="LibGit2Sharp.Tag.Annotation"/> of the versioned tag on any built commit.
 /// </summary>
@@ -271,19 +271,24 @@ public sealed class BuildContentInfo : IEquatable<BuildContentInfo>
         {
             return b.Append( _toString );
         }
-        var text = b.Append( _consumed.Length ).Append( " Consumed Packages: " )
-                    .AppendJoin( ", ", _consumed ).AppendLine()
-                    .Append( _produced.Length ).Append( " Produced Packages: " )
-                    .AppendJoin( ", ", _produced ).AppendLine()
-                    .Append( _assetFileNames.Length ).Append( " Asset Files: " )
-                    .AppendJoin( ", ", _assetFileNames ).AppendLine();
+#if DEBUG
+        int previousLength = b.Length;
+#endif
+        b.Append( _consumed.Length ).Append( " Consumed Packages: " )
+         .AppendJoin( ", ", _consumed ).AppendLine()
+         .Append( _produced.Length ).Append( " Produced Packages: " )
+         .AppendJoin( ", ", _produced ).AppendLine()
+         .Append( _assetFileNames.Length ).Append( " Asset Files: " )
+         .AppendJoin( ", ", _assetFileNames ).AppendLine();
 
-        Throw.DebugAssert( TryParse( text.ToString(), out var clone )
-                           && clone.Consumed.SequenceEqual( _consumed )
-                           && clone.Produced.SequenceEqual( _produced )
-                           && clone.AssetFileNames.SequenceEqual( _assetFileNames ) );
+#if DEBUG
+        Throw.Assert( TryParse( b.ToString().AsSpan( previousLength ), out var clone )
+                      && clone.Consumed.SequenceEqual( _consumed )
+                      && clone.Produced.SequenceEqual( _produced )
+                      && clone.AssetFileNames.SequenceEqual( _assetFileNames ) );
 
-        return text;
+#endif
+        return b;
     }
 
     /// <summary>
