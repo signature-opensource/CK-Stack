@@ -161,7 +161,9 @@
     <Repository Url="https://github.com/signature-opensource/CK-DB-AspNet-Auth">
       <VersionTag MinVersion="29.1.2" />
     </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-DB-UserInvitation" />
+    <Repository Url="https://github.com/signature-opensource/CK-DB-UserInvitation">
+      <VersionTag MinVersion="0.0.0" />
+    </Repository>
   </Folder>
   <Folder Name="Device">
     <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
