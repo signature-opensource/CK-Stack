@@ -24,12 +24,6 @@ public sealed class CommonFilesPlugin : PrimaryPluginBase
     void ContentIssueRequested( ContentIssueEvent ev )
     {
         HandleNuGetConfig( ev );
-        HandleReadmeFiles( ev );
-    }
-
-    void HandleReadmeFiles( ContentIssueEvent ev )
-    {
-        
     }
 
     void HandleNuGetConfig( ContentIssueEvent ev )
@@ -50,4 +44,5 @@ public sealed class CommonFilesPlugin : PrimaryPluginBase
             ev.Issues.MoveFile( nInfo.Name, n );
         }
     }
+
 }

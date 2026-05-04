@@ -7,13 +7,13 @@ namespace CKli.BranchModel.Plugin;
 
 public sealed partial class ContentIssueBuilder
 {
-    sealed class Issue : World.Issue
+    sealed class WorldIssue : World.Issue
     {
-        readonly List<BranchContentIssueCollector> _branchIssues;
+        readonly List<ContentIssueEvent.Collector> _branchIssues;
 
-        public Issue( string title,
+        public WorldIssue( string title,
                       IRenderable body,
-                      List<BranchContentIssueCollector> branchIssues )
+                      List<ContentIssueEvent.Collector> branchIssues )
             : base( title, body, branchIssues[0].Branch.Repo )
         {
             _branchIssues = branchIssues;

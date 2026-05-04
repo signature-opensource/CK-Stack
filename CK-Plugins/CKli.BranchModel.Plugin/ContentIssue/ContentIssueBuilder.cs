@@ -22,24 +22,23 @@ public sealed partial class ContentIssueBuilder
 
     internal bool CreateIssue( IActivityMonitor monitor, ScreenType screenType, Action<World.Issue> collector )
     {
-        List<BranchContentIssueCollector>? branchIssues = null;
+        List<ContentIssueEvent.Collector>? branchIssues = null;
         IRenderable manualBody = screenType.Unit;
         foreach( var b in _info.Branches )
         {
             if( !b.IsActive ) continue;
-            BranchContentIssueCollector issues = new BranchContentIssueCollector( b );
+            var ev = new ContentIssueEvent( monitor, b, _info.ShallowSolutionPlugin );
 
-            var ev = new ContentIssueEvent( monitor, issues, _info.ShallowSolutionPlugin );
             if( !_eventSender( monitor, ev ) )
             {
                 // Stop on the first error.
                 return false;
             }
-            manualBody = issues.AppendManualDescription( manualBody );
-            if( issues.AutoCount > 0 )
+            manualBody = ev.Issues.AppendManualDescription( manualBody );
+            if( ev.Issues.AutoCount > 0 )
             {
-                branchIssues ??= new List<BranchContentIssueCollector>();
-                branchIssues.Add( issues );
+                branchIssues ??= new List<ContentIssueEvent.Collector>();
+                branchIssues.Add( ev.Issues );
             }
         }
         if( manualBody.Height > 0 )
@@ -53,7 +52,7 @@ public sealed partial class ContentIssueBuilder
             {
                 body = issues.AppendBranchDescription( body );
             }
-            collector( new Issue( "Content issues.", body, branchIssues ) );
+            collector( new WorldIssue( "Content issues.", body, branchIssues ) );
         }
         return true;
     }
