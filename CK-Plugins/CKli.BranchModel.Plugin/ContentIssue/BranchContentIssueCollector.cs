@@ -1,15 +1,17 @@
 using CK.Core;
 using CKli.Core;
+using LibGit2Sharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 namespace CKli.BranchModel.Plugin;
 
-public sealed partial class BranchContentIssue
+public sealed partial class BranchContentIssueCollector
 {
     readonly HotBranch _branch;
-    readonly BranchContentIssue? _previous;
+    readonly Branch _gitContentBranch;
+
     List<string>? _manual;
     List<NormalizedPath>? _deleteFiles;
     List<NormalizedPath>? _deleteFolders;
@@ -19,13 +21,16 @@ public sealed partial class BranchContentIssue
     List<BaseEnsureFileIssue>? _updateFiles;
     int _issueCount;
 
-    public BranchContentIssue( HotBranch branch, BranchContentIssue? previous )
+    internal BranchContentIssueCollector( HotBranch branch )
     {
+        Throw.DebugAssert( branch.IsActive );
         _branch = branch;
-        _previous = previous;
+        _gitContentBranch = branch.GitDevBranch ?? branch.GitBranch;
     }
 
-    public HotBranch Branch => _branch;
+    internal HotBranch Branch => _branch;
+
+    public Branch GitContentBranch => _gitContentBranch;
 
     /// <summary>
     /// Gets the count of recorded (non manual) issues.

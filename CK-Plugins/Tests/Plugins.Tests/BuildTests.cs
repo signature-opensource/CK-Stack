@@ -982,7 +982,6 @@ public class BuildTests
           
               """ );
 
-
         display.Clear();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, inPerfectEvent, "ci", "*publish", "--dry-run" )).ShouldBeTrue();
         display.ToString().ShouldBe(
@@ -1006,7 +1005,6 @@ public class BuildTests
     static (NormalizedPath NuGetOrgPath, NormalizedPath SignatureOSPath) GetFakeFeedPaths( NormalizedPath clonedFolder )
     {
         return (clonedFolder.Combine( "FakeFeed/nuget.org" ), clonedFolder.Combine( "FakeFeed/Signature-OpenSource" ));
-
     }
 
     static void ConfigureFakeFeeds( IActivityMonitor monitor, NormalizedPath clonedFolder, XElement plugins )

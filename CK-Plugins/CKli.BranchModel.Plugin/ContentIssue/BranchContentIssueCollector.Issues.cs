@@ -5,7 +5,7 @@ using System.IO;
 
 namespace CKli.BranchModel.Plugin;
 
-public sealed partial class BranchContentIssue
+public sealed partial class BranchContentIssueCollector
 {
     abstract class BaseMoveIssue
     {

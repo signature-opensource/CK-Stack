@@ -13,11 +13,11 @@ namespace CKli.BranchModel.Plugin;
 public sealed class ContentIssueEvent : EventMonitoredArgs
 {
     readonly ShallowSolutionPlugin _shallowSolution;
-    readonly BranchContentIssue _branchIssues;
+    readonly BranchContentIssueCollector _branchIssues;
     INormalizedFileProvider? _content;
 
     internal ContentIssueEvent( IActivityMonitor monitor,
-                                BranchContentIssue issues,
+                                BranchContentIssueCollector issues,
                                 ShallowSolutionPlugin shallowSolution )
         : base( monitor )
     {
@@ -25,6 +25,18 @@ public sealed class ContentIssueEvent : EventMonitoredArgs
         _branchIssues = issues;
         _shallowSolution = shallowSolution;
     }
+
+    //internal static ContentIssueEvent? Create( IActivityMonitor monitor, ShallowSolutionPlugin shallowSolution, Repo repo, HotBranch branch )
+    //{
+    //    Throw.DebugAssert( branch.IsActive );
+    //    var contentBrach = branch.GitDevBranch ?? branch.GitBranch;
+    //    if( !shallowSolution.TryGetShallowSolution( monitor, repo, contentBrach, out var solution ) )
+    //    {
+    //        return null;
+    //    }
+    //    var collector = new BranchContentIssueCollector( branch );
+
+    //}
 
     /// <summary>
     /// Gets the repository.
@@ -45,7 +57,7 @@ public sealed class ContentIssueEvent : EventMonitoredArgs
     /// Gets the content branch: if it exists, it's the <see cref="HotBranch.GitDevBranch"/> otherwise
     /// the regular <see cref="GitBranch"/> is used.
     /// </summary>
-    public Branch GitContentBranch => _branchIssues.Branch.GitDevBranch ?? GitBranch;
+    public Branch GitContentBranch => _branchIssues.GitContentBranch;
 
     /// <summary>
     /// Gets the content of the <see cref="Branch"/> from <see cref="GitContentBranch"/>.
@@ -55,5 +67,5 @@ public sealed class ContentIssueEvent : EventMonitoredArgs
     /// <summary>
     /// Gets the issues collector where content issues must be signaled.
     /// </summary>
-    public BranchContentIssue Issues => _branchIssues;
+    public BranchContentIssueCollector Issues => _branchIssues;
 }

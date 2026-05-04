@@ -23,6 +23,17 @@ public sealed class CommonFilesPlugin : PrimaryPluginBase
 
     void ContentIssueRequested( ContentIssueEvent ev )
     {
+        HandleNuGetConfig( ev );
+        HandleReadmeFiles( ev );
+    }
+
+    void HandleReadmeFiles( ContentIssueEvent ev )
+    {
+        
+    }
+
+    void HandleNuGetConfig( ContentIssueEvent ev )
+    {
         NormalizedPath n = "nuget.config";
         var nInfo = ev.Content.GetFileInfo( n );
         if( nInfo == null )
