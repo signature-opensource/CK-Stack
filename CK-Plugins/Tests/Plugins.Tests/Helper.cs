@@ -41,13 +41,28 @@ public static class Helper
                      .ShouldBe( 0 );
     }
 
-    public static async Task TouchProjectAndCommitAsync( CKliEnv context, string csprojPath, string commitMessage = "Touched for test." )
+
+    public static (NormalizedPath NuGetOrgPath, NormalizedPath SignatureOSPath) GetFakeFeedPaths( NormalizedPath clonedFolder )
     {
-        NormalizedPath path = context.CurrentDirectory.Combine( csprojPath );
-        var doc = XDocument.Load( path );
-        doc.Root!.AddFirst( new XElement( "PropertyGroup", new XElement( "TouchedForTest", true ) ) );
-        XmlHelper.SaveWithoutXmlDeclaration( doc, path );
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "commit", commitMessage )).ShouldBeTrue();
+        return (clonedFolder.Combine( "FakeFeed/nuget.org" ), clonedFolder.Combine( "FakeFeed/Signature-OpenSource" ));
     }
 
+    public static void ConfigureFakeFeeds( IActivityMonitor monitor, NormalizedPath clonedFolder, XElement plugins )
+    {
+        var (nugetOrgFeed, sosFeed) = GetFakeFeedPaths( clonedFolder );
+        NuGetHelper.EnsureLocalFeed( monitor, nugetOrgFeed );
+        NuGetHelper.EnsureLocalFeed( monitor, sosFeed );
+        foreach( var f in plugins.Elements( "ArtifactHandler" ).Elements( "NuGet" ).Elements( "Feed" ) )
+        {
+            var url = f.Attribute( "Url" ).ShouldNotBeNull();
+            url.SetValue( url.Value switch
+            {
+                "https://api.nuget.org/v3/index.json" => $"file://{nugetOrgFeed}",
+                "https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json" => $"file://{sosFeed}",
+                _ => Throw.NotSupportedException<string>( url.Value )
+            } );
+            var key = f.Element( "PushCredentials" )?.Attribute( "SecretKey" );
+            key.ShouldNotBeNull().SetValue( "FILESYSTEM_GIT" );
+        }
+    }
 }
