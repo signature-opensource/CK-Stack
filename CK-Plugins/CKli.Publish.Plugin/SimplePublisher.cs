@@ -3,6 +3,7 @@ using CKli.ArtifactHandler.Plugin;
 using CKli.Core;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
+using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -179,7 +180,12 @@ sealed partial class SimplePublisher
         _hostingProvider = null;
         _releaseId = null;
         // If the cleanup fails, we still consider this release done.
-        _versionTag.CleanupLocalRelease( monitor, repo.Repo, repo.PublishVersion, repo.BuildContentInfo, removeFromNuGetGlobalCache: false );
+        // Trick here for the tests, we don't cleanup the $Local when testing: we want to keep the versions
+        // that a build has produced.
+        if( !CKliRootEnv.DefaultCKliEnv.CurrentDirectory.Path.Contains( "CK/.PublicStack/CK-Plugins/Tests/Plugins.Tests" ) )
+        {
+            _versionTag.CleanupLocalRelease( monitor, repo.Repo, repo.PublishVersion, repo.BuildContentInfo, removeFromNuGetGlobalCache: false );
+        }
         return _state.ForwardPrimaryCursor( monitor, 1 );
     }
 

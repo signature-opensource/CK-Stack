@@ -47,9 +47,9 @@ public static class Helper
         return (clonedFolder.Combine( "FakeFeed/nuget.org" ), clonedFolder.Combine( "FakeFeed/Signature-OpenSource" ));
     }
 
-    public static void ConfigureFakeFeeds( IActivityMonitor monitor, NormalizedPath clonedFolder, XElement plugins )
+    public static void ConfigureFakeFeeds( IActivityMonitor monitor, NormalizedPath stackPath, XElement plugins )
     {
-        var (nugetOrgFeed, sosFeed) = GetFakeFeedPaths( clonedFolder );
+        var (nugetOrgFeed, sosFeed) = GetFakeFeedPaths( stackPath.RemoveLastPart() );
         NuGetHelper.EnsureLocalFeed( monitor, nugetOrgFeed );
         NuGetHelper.EnsureLocalFeed( monitor, sosFeed );
         foreach( var f in plugins.Elements( "ArtifactHandler" ).Elements( "NuGet" ).Elements( "Feed" ) )

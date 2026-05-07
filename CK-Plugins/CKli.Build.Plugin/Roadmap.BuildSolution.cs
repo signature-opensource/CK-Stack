@@ -92,41 +92,41 @@ public sealed partial class Roadmap
             Throw.DebugAssert( buildReason == MustBuildReason.None || (buildReason & (MustBuildReason.UpstreamBuild | MustBuildReason.DependencyUpdate)) != 0 );
 
             // If build is not required here, we check the lastBuild version.
-            //
+            // The last build tag may be a +fake or a +deprecated: we decide to always trigger a build in such
+            // cases.
+            _lastBuild = _versionInfo.GetLastBuild( _roadmap._isCIBuild );
+
+            // Always communicate on these edge cases that are not "skippable".
+            if( _lastBuild.VersionMustBuild )
+            {
+                Throw.DebugAssert( _lastBuild.TagCommit.IsFakeVersion || _lastBuild.TagCommit.IsDeprecatedVersion );
+                buildReason |= _lastBuild.TagCommit.IsFakeVersion
+                                ? MustBuildReason.FakeVersion
+                                : MustBuildReason.DeprecatedVersion;
+                monitor.Trace( $"MustBuildReason.{buildReason} for '{_solution}'." );
+            }
+
             // When the last build consumes packages in the alreadyBuiltMapping, it means that we are a solution
             // that is impacted by the upstreams but none of our upstreams must be built AND our *.csproj are
             // up to date. This happens when a our upstreams have been built, our *.csproj have been updated but
             // our build failed miserably: the last build tag has not been updated with the upstreams versions.
-            // But the last build tag may be a +fake or a +deprecated: we decide to always trigger a build in such
-            // cases.
-
-            _lastBuild = _versionInfo.GetLastBuild( _roadmap._isCIBuild );
             if( buildReason == MustBuildReason.None )
             {
-                if( _lastBuild.VersionMustBuild )
+                Throw.DebugAssert( _lastBuild.TagCommit.BuildContentInfo != null );
+                foreach( var c in _lastBuild.TagCommit.BuildContentInfo.Consumed )
                 {
-                    Throw.DebugAssert( _lastBuild.TagCommit.IsFakeVersion || _lastBuild.TagCommit.IsDeprecatedVersion );
-                    buildReason |= _lastBuild.TagCommit.IsFakeVersion
-                                    ? MustBuildReason.FakeVersion
-                                    : MustBuildReason.DeprecatedVersion;
-                }
-                else
-                {
-                    Throw.DebugAssert( _lastBuild.TagCommit.BuildContentInfo != null );
-                    foreach( var c in _lastBuild.TagCommit.BuildContentInfo.Consumed )
+                    if( alreadyBuiltMapping.TryGetMappedVersion( c.PackageId, c.Version, out var mapped ) && c.Version != mapped )
                     {
-                        if( alreadyBuiltMapping.TryGetMappedVersion( c.PackageId, c.Version, out var mapped ) && c.Version != mapped )
-                        {
-                            buildReason |= MustBuildReason.UpstreamVersion;
-                            break;
-                        }
+                        buildReason |= MustBuildReason.UpstreamVersion;
+                        monitor.Trace( $"MustBuildReason.UpstreamVersion for '{_solution}' because of '{c}' -> {mapped}." );
+                        break;
                     }
                 }
             }
 
             if( buildReason == MustBuildReason.None )
             {
-                // Pivot dependent conditions: this build can be skipped if .
+                // Pivot dependent conditions: this build can be skipped (not in the scope).
                 bool canSkip = !_roadmap._isPullBuild && _roadmap._graph.HasPivots && !_solution.IsPivot;
                 if( !canSkip )
                 {

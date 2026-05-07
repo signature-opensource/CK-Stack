@@ -327,15 +327,15 @@ public sealed partial class BuildPlugin
                     return null;
                 }
 
-                //  We must check whether the commit to build has already produced another version
-                //  (that SHOULD be a prerelease one). If it's the case, then we must create an empty
-                //  commit to "carry" the stable version (this enables the VersionTagInfo to expose a
-                //  simple TagCommitsBySha instead of a ListOfTagCommitsBySha).
-                if( build.Solution.VersionInfo.VersionTagInfo.TagCommitsBySha.TryGetValue( git.Repository.Head.Tip.Sha, out var already ) )
+                // We forbid the same commit to produce 2 different versions. This enables the VersionTagInfo to expose a
+                // simple TagCommitsBySha instead of a ListOfTagCommitsBySha.
+                // This check is done before build (by VersionTagInfo.CanBuildAnyCommit) that triggers an error is such case.
+                // Here we handle the case of a previous prerelease from the same commit IIF we are building a stable
+                // version: we create an empty commit to "carry" the stable version dedicated to the stable version.
+                if( !build.Solution.Roadmap.IsCIBuild
+                    && build.Solution.VersionInfo.VersionTagInfo.TagCommitsBySha.TryGetValue( git.Repository.Head.Tip.Sha, out var already ) )
                 {
-                    // We handle the case of a previous prerelease from the same commit. If we don't create
-                    // an empty commit dedicated to the stable version, then the final check (in VersionTagInfo.CanBuildAnyCommit)
-                    // triggers an error.
+                    // If it's a +fake or a +deprecated, we let the final check trigger an error.
                     if( already.IsRegularVersion && already.Version.IsPrerelease )
                     {
                         if( git.Commit( monitor,
@@ -346,7 +346,6 @@ public sealed partial class BuildPlugin
                         }
                         canAmend = true;
                     }
-                    // If it's a +fake or a +deprecated, we let the final check trigger an error.
                 }
                 // Refreshing the HotBranch.
                 if( !build.Solution.Solution.Branch.Refresh( monitor ) )

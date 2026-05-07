@@ -382,12 +382,12 @@ public class S1ᅳInitializedᅳTests
         display.Clear();
         (await CKliCommands.ExecAsync( TestHelper.Monitor, context, "ci", "build" )).ShouldBeTrue();
         display.ToString().ShouldBe( """
-            1 -  CKt-Core                      v1.0.0      → v1.0.1--ci.3 🡡 (CodeChange)               
-            2 -  CKt-ActivityMonitor           v0.1.0      → v0.1.1--ci.4 🡡 (UpstreamBuild, CodeChange)
-            3 ╓  CKt-PerfectEvent              v0.3.2      → v0.3.3--ci.4 🡡 (UpstreamBuild, CodeChange)
-            4 ║  CKt-Monitoring                v0.2.3      → v0.2.4--ci.4 🡡 (UpstreamBuild, CodeChange)
-            5 ╙  Samples/CKt-App-Sample        v0.0.0+fake → v0.0.1--ci.3 🡡 (UpstreamBuild, CodeChange)
-            6 -  Samples/CKt-Sample-Monitoring v0.0.0+fake → v0.0.1--ci.3 🡡 (UpstreamBuild, CodeChange)
+            1 -  CKt-Core                      v1.0.0      → v1.0.1--ci.3 🡡 (CodeChange)                            
+            2 -  CKt-ActivityMonitor           v0.1.0      → v0.1.1--ci.4 🡡 (UpstreamBuild, CodeChange)             
+            3 ╓  CKt-PerfectEvent              v0.3.2      → v0.3.3--ci.4 🡡 (UpstreamBuild, CodeChange)             
+            4 ║  CKt-Monitoring                v0.2.3      → v0.2.4--ci.4 🡡 (UpstreamBuild, CodeChange)             
+            5 ╙  Samples/CKt-App-Sample        v0.0.0+fake → v0.0.1--ci.3 🡡 (UpstreamBuild, FakeVersion, CodeChange)
+            6 -  Samples/CKt-Sample-Monitoring v0.0.0+fake → v0.0.1--ci.3 🡡 (UpstreamBuild, FakeVersion, CodeChange)
             Required build for 6 repositories across the 6 repositories.
             (No dependency updates other than the ones from the upstreams are needed.)
             🡡 6 repositories can be published.
