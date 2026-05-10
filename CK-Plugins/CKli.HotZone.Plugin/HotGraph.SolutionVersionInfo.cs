@@ -6,7 +6,7 @@ using LibGit2Sharp;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace CKli.BranchModel.Plugin;
+namespace CKli.HotZone.Plugin;
 
 public sealed partial class HotGraph
 {

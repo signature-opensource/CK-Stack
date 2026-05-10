@@ -3,6 +3,7 @@ using CK.PerfectEvent;
 using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
+using CKli.HotZone.Plugin;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
@@ -25,6 +26,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
 
     readonly VersionTagPlugin _versionTags;
     readonly BranchModelPlugin _branchModel;
+    readonly HotZonePlugin _hotZone;
     readonly RepositoryBuilderPlugin _repoBuilder;
     readonly ReleaseDatabasePlugin _releaseDatabase;
     readonly ArtifactHandlerPlugin _artifactHandler;
@@ -36,6 +38,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     public BuildPlugin( PrimaryPluginContext primaryContext,
                         VersionTagPlugin versionTags,
                         BranchModelPlugin branchModel,
+                        HotZonePlugin hotZone,
                         RepositoryBuilderPlugin repoBuilder,
                         ReleaseDatabasePlugin releaseDatabase,
                         ArtifactHandlerPlugin artifactHandler,
@@ -44,6 +47,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
     {
         _versionTags = versionTags;
         _branchModel = branchModel;
+        _hotZone = hotZone;
         _repoBuilder = repoBuilder;
         _releaseDatabase = releaseDatabase;
         _artifactHandler = artifactHandler;
@@ -347,7 +351,7 @@ public sealed partial class BuildPlugin : PrimaryPluginBase
         // When --all is specified, all the repositories are pivots and the actual branch name considered by
         // the hot graph will be the most instable one of all the repositories (but at least as stable as the
         // branchName resolved above of course).
-        var hotGraph = _branchModel.GetHotGraph( monitor, branchName, isCIBuild, pivots );
+        var hotGraph = _hotZone.GetHotGraph( monitor, branchName, isCIBuild, pivots );
         if( hotGraph == null ) return null;
 
         var roadmap = Roadmap.Create( monitor, _versionTags, _releaseDatabase, _artifactHandler, hotGraph, isPullBuild, isCIBuild, mustPublish );

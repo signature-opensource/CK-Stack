@@ -10,20 +10,18 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CKli.BranchModel.Plugin;
+namespace CKli.HotZone.Plugin;
 
-public sealed partial class BranchModelPlugin
+public sealed partial class HotZonePlugin
 {
-
     /// <summary>
     /// Event raised when a <see cref="FixWorkflow"/> is started (or restarted).
     /// <para>
-    /// This enables other plugins to check prepare the commits of the targets' <see cref="FixWorkflow.TargetRepo.BranchName"/>
+    /// This enables other plugins to check and/or prepare the commits of the targets' <see cref="FixWorkflow.TargetRepo.BranchName"/>
     /// if needed.
     /// </para>
     /// </summary>
     public PerfectEvent<FixWorkflowStartEventArgs> OnFixStart => _onFixStart.PerfectEvent;
-
 
     [Description( "Starts a Fix Workflow. This Repo 'fix/vMajor.Minor' branch is checked out." )]
     [CommandPath( "fix start" )]
@@ -65,7 +63,7 @@ public sealed partial class BranchModelPlugin
         }
         // Now that the tags of the vMajor have been fetched, we can obtain the VersionTagInfo to find the commit that
         // must be fixed.
-        var versionInfo = _versionTags.GetWithoutIssue( monitor, repo, "starting a fix" );
+        var versionInfo = _versionTag.GetWithoutIssue( monitor, repo, "starting a fix" );
         if( versionInfo == null )
         {
             return false;
@@ -138,12 +136,12 @@ public sealed partial class BranchModelPlugin
         }
         // First, creates the origin (originReleaseInfo,targetVersion) as a FixWorkflow.TargetRepo.
         // If it fails, it is useless to create the downstream repositories targets.
-        var origin = CreateTarget( monitor, context, _versionTags, moveBranch, originReleaseInfo.Repo, toFix, targetVersion, 0 );
+        var origin = CreateTarget( monitor, context, _versionTag, moveBranch, originReleaseInfo.Repo, toFix, targetVersion, 0 );
         if( origin == null )
         {
             return false;
         }
-        if( !CreateTargets( monitor, context, _versionTags, origin, moveBranch, originReleaseInfo, out var targets ) )
+        if( !CreateTargets( monitor, context, _versionTag, origin, moveBranch, originReleaseInfo, out var targets ) )
         {
             return false;
         }
@@ -505,7 +503,7 @@ public sealed partial class BranchModelPlugin
         }
         foreach( var target in workflow.Targets )
         {
-            _versionTags.DestroyLocalRelease( monitor, target.Repo, target.TargetVersion );
+            _versionTag.DestroyLocalRelease( monitor, target.Repo, target.TargetVersion );
         }
         FixWorkflow.DeleteCurrent( monitor, World );
         return true;

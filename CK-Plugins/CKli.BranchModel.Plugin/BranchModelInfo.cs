@@ -93,7 +93,7 @@ public sealed partial class BranchModelInfo : RepoInfo
             hasSevereIssues = true;
             return;
         }
-        var issues = new IssueBuilder();
+        var issues = new BranchIssueBuilder();
         foreach( var b in _branches )
         {
             b.Collect( issues );

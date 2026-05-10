@@ -1,6 +1,7 @@
 using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
+using CKli.HotZone.Plugin;
 using System.Collections.Immutable;
 
 namespace CKli.Build.Plugin;

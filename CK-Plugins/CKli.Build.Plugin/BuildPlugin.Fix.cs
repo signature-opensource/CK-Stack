@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
+using CKli.HotZone.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
 using CSemVer;
@@ -67,7 +68,7 @@ public sealed partial class BuildPlugin
             monitor.Error( $"No current Fix Workflow exist for world '{World.Name}'." );
             return false;
         }
-        if( !_branchModel.CheckBasicPreconditions( monitor, $"building '{workflow}'", out var allRepos ) )
+        if( !_hotZone.CheckBasicPreconditions( monitor, $"building '{workflow}'", out var allRepos ) )
         {
             return false;
         }

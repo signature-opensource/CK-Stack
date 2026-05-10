@@ -8,7 +8,7 @@ namespace CKli.BranchModel.Plugin;
 /// <summary>
 /// Raised by <see cref="BranchModelPlugin.ContentIssue"/> on "ckli issue" command when no branch related issues
 /// exist: this is used to check the content of the repositories (more precisely, the content of the
-/// <see cref="HotBranch"/> that has a <see cref="HotBranch.GitBranch"/>).
+/// <see cref="HotBranch"/> that are active (the ones with a <see cref="HotBranch.GitBranch"/>).
 /// </summary>
 public sealed partial class ContentIssueEvent : EventMonitoredArgs
 {

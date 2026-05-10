@@ -112,7 +112,7 @@ public sealed class HotBranch
                                 ? _link.Issue != BranchLink.IssueKind.None && _link.Issue != BranchLink.IssueKind.Useless
                                 : _name.Index == 0 || _gitDevBranch != null;
 
-    internal void Collect( IssueBuilder issues )
+    internal void Collect( BranchIssueBuilder issues )
     {
         if( _link == null )
         {

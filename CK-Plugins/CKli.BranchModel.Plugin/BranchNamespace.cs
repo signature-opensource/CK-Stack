@@ -155,7 +155,7 @@ public sealed partial class BranchNamespace
     public IReadOnlyDictionary<string, BranchName> ByName => _byName ??= Branches.ToDictionary( b => b.Name );
 
     /// <summary>
-    /// Finds a branch name.
+    /// Finds a branch by its name.
     /// </summary>
     /// <param name="name">The branch name.</param>
     /// <returns>The branch or null.</returns>

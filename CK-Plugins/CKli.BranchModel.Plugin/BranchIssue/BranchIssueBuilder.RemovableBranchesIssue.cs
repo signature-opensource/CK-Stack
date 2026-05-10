@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace CKli.BranchModel.Plugin;
 
-sealed partial class IssueBuilder
+sealed partial class BranchIssueBuilder
 {
     sealed class RemovableBranchesIssue : World.Issue
     {
