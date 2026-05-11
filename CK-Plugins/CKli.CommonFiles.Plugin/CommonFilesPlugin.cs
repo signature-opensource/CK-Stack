@@ -23,26 +23,5 @@ public sealed class CommonFilesPlugin : PrimaryPluginBase
 
     void ContentIssueRequested( ContentIssueEvent ev )
     {
-        HandleNuGetConfig( ev );
     }
-
-    void HandleNuGetConfig( ContentIssueEvent ev )
-    {
-        NormalizedPath n = "nuget.config";
-        var nInfo = ev.Content.GetFileInfo( n );
-        if( nInfo == null )
-        {
-            var defaultConfig = _artifactHandler.GetDefaultNuGetConfig( ev.Monitor );
-            if( defaultConfig != null )
-            {
-                ev.Issues.CreateFile( n, defaultConfig.ToString );
-            }
-        }
-        else if( nInfo.Name != n )
-        {
-            Throw.DebugAssert( nInfo.Name.Equals( n, StringComparison.OrdinalIgnoreCase ) );
-            ev.Issues.MoveFile( nInfo.Name, n );
-        }
-    }
-
 }

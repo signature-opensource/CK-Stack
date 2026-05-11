@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CSemVer;
 using System;
@@ -21,15 +22,34 @@ public sealed class ArtifactHandlerPlugin : PrimaryRepoPlugin<RepoArtifactInfo>
     ImmutableArray<NuGetFeed> _feeds;
     XDocument? _defaultNugetConfig;
 
-    public ArtifactHandlerPlugin( PrimaryPluginContext context )
+    public ArtifactHandlerPlugin( PrimaryPluginContext context, BranchModelPlugin branchModel )
         : base( context )
     {
         _localNuGetPath = World.Name.LocalDataFolder.AppendPart( "NuGet" );
         _localAssetsPath = World.Name.LocalDataFolder.AppendPart( DeployAssetsName );
         Directory.CreateDirectory( _localNuGetPath );
         Directory.CreateDirectory( _localAssetsPath );
+        branchModel.ContentIssue += HandleNuGetConfig;
     }
 
+    void HandleNuGetConfig( ContentIssueEvent ev )
+    {
+        NormalizedPath n = "nuget.config";
+        var nInfo = ev.Content.GetFileInfo( n );
+        if( nInfo == null )
+        {
+            var defaultConfig = GetDefaultNuGetConfig( ev.Monitor );
+            if( defaultConfig != null )
+            {
+                ev.Issues.CreateFile( n, defaultConfig.ToString );
+            }
+        }
+        else if( nInfo.Name != n )
+        {
+            Throw.DebugAssert( nInfo.Name.Equals( n, StringComparison.OrdinalIgnoreCase ) );
+            ev.Issues.MoveFile( nInfo.Name, n );
+        }
+    }
     /// <summary>
     /// Gets the "<see cref="LocalWorldName.LocalDataFolder"/>/NuGet" folder.
     /// </summary>
