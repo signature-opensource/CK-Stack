@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
@@ -11,7 +12,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace CKli.BranchModel.Plugin;
+namespace CKli.HotZone.Plugin;
 
 
 /// <summary>

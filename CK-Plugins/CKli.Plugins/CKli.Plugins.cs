@@ -17,7 +17,8 @@ public static class Plugins
                   typeof( ShallowSolution.Plugin.ShallowSolutionPlugin ),
                     typeof( CommonFiles.Plugin.CommonFilesPlugin ),
                      typeof( Publish.Plugin.PublishPlugin ),
-                      // </AutoSection>
+                      typeof( HotZone.Plugin.HotZonePlugin ),
+                       // </AutoSection>
         ] );
     }
 }                

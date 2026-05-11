@@ -1,4 +1,5 @@
 using CKli.BranchModel.Plugin;
+using CKli.HotZone.Plugin;
 using CKli.ShallowSolution.Plugin;
 using CSemVer;
 using System.Collections.Immutable;

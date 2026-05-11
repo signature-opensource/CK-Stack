@@ -5,7 +5,7 @@ using System.IO;
 using System;
 using System.Linq;
 
-namespace CKli.BranchModel.Plugin;
+namespace CKli.HotZone.Plugin;
 
 /// <summary>
 /// A FixWorkflow is initiated by "ckli fix start" command.

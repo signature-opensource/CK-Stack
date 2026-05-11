@@ -3,6 +3,7 @@ using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
+using CKli.HotZone.Plugin;
 using CKli.VersionTag.Plugin;
 using CSemVer;
 using LibGit2Sharp;
@@ -20,19 +21,22 @@ public sealed class Net8MigrationPlugin : PrimaryPluginBase
     readonly ArtifactHandlerPlugin _artifactHandler;
     readonly VersionTagPlugin _versionTag;
     readonly BranchModelPlugin _branchModel;
+    readonly HotZonePlugin _hotZone;
     readonly BuildPlugin _build;
 
     public Net8MigrationPlugin( PrimaryPluginContext primaryContext,
                                 ArtifactHandlerPlugin artifactHandler,  
                                 VersionTagPlugin versionTag,
                                 BranchModelPlugin branchModel,
+                                HotZonePlugin hotZone,
                                 BuildPlugin build )
         : base( primaryContext )
     {
         _artifactHandler = artifactHandler;
         _versionTag = versionTag;
         _branchModel = branchModel;
-        branchModel.OnFixStart.Sync += OnFixStart;
+        _hotZone = hotZone;
+        hotZone.OnFixStart.Sync += OnFixStart;
         _build = build;
     }
 

@@ -1,7 +1,7 @@
 using CK.Core;
 using System.Collections.Immutable;
 
-namespace CKli.BranchModel.Plugin;
+namespace CKli.HotZone.Plugin;
 
 /// <summary>
 /// Event raised by <see cref="BranchModelPlugin.FixStartAsync"/>.

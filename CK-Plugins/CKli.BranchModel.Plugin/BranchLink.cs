@@ -17,18 +17,6 @@ namespace CKli.BranchModel.Plugin;
 /// </summary>
 public sealed partial class BranchLink
 {
-    static readonly MergeTreeOptions _mergeTreeOptions = new MergeTreeOptions()
-    {
-        FailOnConflict = true,
-        SkipReuc = true
-    };
-    static readonly MergeOptions _mergeOptions = new MergeOptions()
-    {
-        FailOnConflict = true,
-        SkipReuc = true,
-        FastForwardStrategy = FastForwardStrategy.NoFastForward
-    };
-
     readonly Branch _branch;
     readonly Branch? _ahead;
     readonly string _aheadName;
@@ -154,10 +142,10 @@ public sealed partial class BranchLink
     /// <summary>
     /// Collects this link's issue if any.
     /// IssueKind.Useless is an issue here because we are collecting the issues for the issue command
-    /// (<see cref="IssueBuilder.OnUselessBranch(Branch, Branch)"/> is called).
+    /// (<see cref="BranchIssueBuilder.OnUselessBranch(Branch, Branch)"/> is called).
     /// </summary>
     /// <param name="issues">The collector for issues.</param>
-    internal void CollectIssue( IssueBuilder issues )
+    internal void CollectIssue( BranchIssueBuilder issues )
     {
         if( _ahead != null )
         {

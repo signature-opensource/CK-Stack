@@ -1,4 +1,5 @@
 using CK.Core;
+using CKli.BranchModel.Plugin;
 using CKli.Core;
 using CKli.ShallowSolution.Plugin;
 using CKli.VersionTag.Plugin;
@@ -8,7 +9,7 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
-namespace CKli.BranchModel.Plugin;
+namespace CKli.HotZone.Plugin;
 
 public sealed partial class HotGraph
 {

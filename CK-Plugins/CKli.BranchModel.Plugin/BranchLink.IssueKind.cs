@@ -19,7 +19,7 @@ sealed partial class BranchLink
 
         /// <summary>
         /// <see cref="Ahead"/> exists but is not related to <see cref="Branch"/>.
-        /// This is a strange issue that must be fixed manually.
+        /// This is a weird issue that must be fixed manually.
         /// </summary>
         Unrelated,
 

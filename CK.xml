@@ -18,6 +18,7 @@
     <ShallowSolution />
     <CommonFiles />
     <Publish />
+    <HotZone />
   </Plugins>
   <Folder Name="Core">
     <Folder Name="Basic">

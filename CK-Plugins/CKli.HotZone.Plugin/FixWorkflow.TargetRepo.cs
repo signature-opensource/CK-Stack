@@ -2,7 +2,7 @@ using CSemVer;
 using CKli.Core;
 using CK.Core;
 
-namespace CKli.BranchModel.Plugin;
+namespace CKli.HotZone.Plugin;
 
 public sealed partial class FixWorkflow
 {

@@ -2,6 +2,7 @@ using CK.Core;
 using CKli.ArtifactHandler.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
+using CKli.HotZone.Plugin;
 using CKli.ReleaseDatabase.Plugin;
 using CKli.VersionTag.Plugin;
 using System;
@@ -50,7 +51,7 @@ public sealed class PublishPlugin : PrimaryPluginBase
                                         ReleaseDatabasePlugin releaseDatabase,
                                         VersionTagPlugin versionTag,
                                         DateTime buildDate,
-                                        BranchModel.Plugin.FixWorkflow fixWorkflow,
+                                        FixWorkflow fixWorkflow,
                                         ImmutableArray<BuildResult> results,
                                         CancellationToken cancel )
         {

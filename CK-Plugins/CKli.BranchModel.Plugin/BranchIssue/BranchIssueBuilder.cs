@@ -7,7 +7,10 @@ using System.Text;
 
 namespace CKli.BranchModel.Plugin;
 
-sealed partial class IssueBuilder
+/// <summary>
+/// Internal collector of <see cref="BranchLink.IssueKind"/>.
+/// </summary>
+sealed partial class BranchIssueBuilder
 {
     List<(Branch Branch, object BaseOrName)>? _removables;
     List<(Branch Ahead, Branch Base, int BehindBy)>? _desynchronized;

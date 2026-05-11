@@ -3,6 +3,7 @@ using CKli.ArtifactHandler.Plugin;
 using CKli.BranchModel.Plugin;
 using CKli.Build.Plugin;
 using CKli.Core;
+using CKli.HotZone.Plugin;
 using CKli.ReleaseDatabase.Plugin;
 using CSemVer;
 using NuGet.Packaging.Core;
