@@ -1,8 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="CK.PerfectEvent" />
-    <PackageReference Include="CSemVer" />
-    <PackageReference Include="CKli.ShallowSolution.Plugin" />
-  </ItemGroup>
-
-</Project>

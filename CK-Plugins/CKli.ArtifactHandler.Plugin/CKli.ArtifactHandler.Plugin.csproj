@@ -2,6 +2,6 @@
   <ItemGroup>
     <PackageReference Include="CKli.Plugins.Core" />
     <PackageReference Include="NuGet.Protocol" />
-    <PackageReference Include="CKli.ShallowSolution.Plugin" />
+    <PackageReference Include="CKli.BranchModel.Plugin" />
   </ItemGroup>
 </Project>

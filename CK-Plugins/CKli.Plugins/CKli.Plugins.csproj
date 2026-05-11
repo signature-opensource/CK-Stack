@@ -6,8 +6,7 @@
 
   <ItemGroup>
     <PackageReference Include="CKli.Plugins.Core" />
-
-    <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
+    <PackageReference Include="CKli.BranchModel.Plugin" />
     <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
     <ProjectReference Include="..\CKli.Build.Plugin\CKli.Build.Plugin.csproj" />
     <ProjectReference Include="..\CKli.ReleaseDatabase.Plugin\CKli.ReleaseDatabase.Plugin.csproj" />
@@ -15,6 +14,7 @@
     <ProjectReference Include="..\CKli.Net8Migration.Plugin\CKli.Net8Migration.Plugin.csproj" />
     <ProjectReference Include="..\CKli.CommonFiles.Plugin\CKli.CommonFiles.Plugin.csproj" />
     <ProjectReference Include="..\CKli.Publish.Plugin\CKli.Publish.Plugin.csproj" />
-  <ProjectReference Include="..\CKli.HotZone.Plugin\CKli.HotZone.Plugin.csproj" /></ItemGroup>
+    <ProjectReference Include="..\CKli.HotZone.Plugin\CKli.HotZone.Plugin.csproj" />
+  </ItemGroup>
 
 </Project>

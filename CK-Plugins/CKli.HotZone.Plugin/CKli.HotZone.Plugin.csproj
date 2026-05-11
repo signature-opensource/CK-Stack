@@ -1,10 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <ItemGroup>
-        <PackageReference Include="CKli.Plugins.Core" />
-        <PackageReference Include="CKli.ShallowSolution.Plugin" />
+        <PackageReference Include="CKli.BranchModel.Plugin" />
     </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\CKli.BranchModel.Plugin\CKli.BranchModel.Plugin.csproj" />
     <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
   </ItemGroup>
 </Project>
