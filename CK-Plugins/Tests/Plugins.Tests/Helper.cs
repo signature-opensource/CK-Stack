@@ -36,7 +36,7 @@ public static class Helper
     {
         ProcessRunner.RunProcess( TestHelper.Monitor,
                                   "dotnet",
-                                  """user-secrets set FILESYSTEM_GIT "don't care" --id CKli-CK""",
+                                  """user-secrets set FILESYSTEM_GIT "don't care" --id CKli-CK-Test""",
                                   Environment.CurrentDirectory )
                      .ShouldBe( 0 );
     }
