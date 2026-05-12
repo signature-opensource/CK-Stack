@@ -1,10 +1,13 @@
 
 # The simplest (?) possible workflow.
 Every build starts with a branch in a Repo. The UX is minimalist:
-- Checkout the branch to build: `ckli branch stable`.
+- Checkout the branch to build: `ckli checkout stable`.
 - Create commits in the "dev/" associated branch, see below.
-- Use `ckli build` to produce CI builds from the "dev/" branches or `ckli publish` to merge "dev/" into their associated branch.
-
+- Use:
+  - `ckli ci build` to produce CI builds from the "dev/" branches.
+  - `ckli build` to merge "dev/" into their associated branch and produce non-CI builds.
+  - `ckli ci publish` to produce CI builds from the "dev/" branches and publish them.
+  - `ckli publish` to merge "dev/" into their associated branch, produce non-CI builds and publish them.
 
 # Branch model & workflows.
 
@@ -48,7 +51,12 @@ The following configuration should not happen.
 |  + [dev/stable]
 |  |
 ```
-Instead, the "dev/" branch must be based on its primary branch:
+Instead, the "dev/" branch must be "visually" based on its primary branch:
+```
++ [stable] [dev/stable]
+|\
+```
+or
 ```
    + [dev/stable]
   /
@@ -57,10 +65,7 @@ Instead, the "dev/" branch must be based on its primary branch:
 |\
 ```
 CKli is rather aggressive here: once merged (by `ckli publish`), the "/dev" branch is deleted. To initiate a new "/dev" branch,
-the command `ckli branch dev/stable` can be used to create it and this does a little bit more than you may expect:
-- The "/dev" branch is created on the source commit.
-- Its dependencies are read (the consumed packages of the build content) and if a post release build exists for a dependency in the World,
-  the package is upgraded: a "/dev" branch must always rely on the very last available artifacts of it dependencies.
+the command `ckli checkout dev/stable` can be used to create it.
 
 A "dev/" branch must contain code that is ready to be released, not-so-ready code should be in "feature" branches, independent branches
 unknown to CKli that are manually managed.
@@ -72,7 +77,7 @@ next regular version. We often use the term "CI builds" for these post-release v
 Such versions have a short life-time and have no "history": there is logically at most one CI Build to consider per primary branch of
 a repository. 
 
-A fundamental invariant of CKLi workflow is that "dev/" branches produces (this is easy) and always consumes (less easy) CI build
+A fundamental invariant of CKLi workflow is that "dev/" branches produces and always consumes CI build
 versions if they are available.
 
 Preserving this invariant requires some work. When a build occurs for one of the dependencies, it must propagate across the World
@@ -87,10 +92,7 @@ always contain "ready to release" code for itself (the CI Build that may be prod
 We did consider a possible behavior here: Could the "pull" be optional when building the "stable"?
 This seems a good idea, especially for a fix: we may want to produce a fix of the current version without introducing any new code evolution
 from its dependencies. This introduces an asymmetry, breaking the coherency of the primary/dev association. So we rejected this possibility.
-And this is not an issue: the "fix" workflow is exactly here for this purpose! CKli will ensure that once built, the fixed code base will
-be merged into the "hot zone". (Technically, the hot zone's branches should be git-rebased on the fix commit but we decided to avoid rebasing.)
-
-Definitely, "dev/" branches must always contain "ready to release" code including its primary branch (when a regular build must be done).
+And this is not an issue: the "fix" workflow is exactly here for this purpose! CKli ensures that a fix cannot be started from the "hot zone".
 
 When code is not that close to its "ready to release" state but we still want to deploy/test them, the 8 CKli pre-release branches comes into
 play but this is another story.

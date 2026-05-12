@@ -19,9 +19,9 @@ namespace Plugins.Tests;
 [TestFixture]
 public class S3ᅳSamplePublishedᅳTests
 {
-
-    [Test]
-    public async Task coworking_Async()
+    [TestCase( true )]
+    [TestCase( false )]
+    public async Task coworking_Async( bool useCheckout )
     {
         var clonedFolder = TestHelper.InitializeClonedFolder();
         var remotes = TestHelper.OpenRemotes( "CKt(sample_published)" );
@@ -56,11 +56,18 @@ public class S3ᅳSamplePublishedᅳTests
 
         // Bob starts to work on CK-PerfectEvent: he creates the "dev/stable" branch and adds a commit (with a breaking change).
         var bobPerfectEvent = bob.ChangeDirectory( "CKt-PerfectEvent" );
-        (await CKliCommands.ExecAsync( TestHelper.Monitor, bobPerfectEvent, "checkout", "dev/stable" )).ShouldBeTrue();
+        if( useCheckout )
+        {
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, bobPerfectEvent, "checkout", "dev/stable" )).ShouldBeTrue();
+        }
+        else
+        {
+            (await CKliCommands.ExecAsync( TestHelper.Monitor, bobPerfectEvent, "exec", "git", "branch", "dev/stable" )).ShouldBeTrue();
+        }
         TestHelper.TouchAndCommit( bobPerfectEvent.CurrentDirectory,
-                                   branchName: null,
+                                   branchName: "dev/stable",
                                    "fix!: This is a breaking change because of the exclamation mark.",
-                                   fileName: "Bob-work.txt");
+                                   fileName: "Bob-work.txt" );
 
         // Tim publishes a new version of CK-PerfectEvent.
         var timPerfectEvent = tim.ChangeDirectory( "CKt-PerfectEvent" );
@@ -80,6 +87,29 @@ public class S3ᅳSamplePublishedᅳTests
         Required build for 2 from the 1 pivots out of 6 repositories.
         (No dependency updates other than the ones from the upstreams are needed.)
         🡡 2 repositories must be published.
+        ❰✓❱
+
+        """ );
+
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, timPerfectEvent, "checkout", "dev/stable" )).ShouldBeTrue();
+        TestHelper.TouchAndCommit( timPerfectEvent.CurrentDirectory,
+                                   branchName: null,
+                                   fileName: "Tim-work.txt" );
+
+        timDisplay.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, timPerfectEvent, "ci", "publish" )).ShouldBeTrue();
+        timDisplay.ToString().ShouldBe( """
+          - →·   CKt-Core                      v1.0.1--ci.3
+          - →·   CKt-ActivityMonitor           v0.1.1--ci.4
+        1 ╓  ⊙   CKt-PerfectEvent              v0.3.4       → v0.3.5--ci.2 🡡 (DependencyUpdate, CodeChange)            
+                                                                              U CKt.ActivityMonitor: 0.1.0 → 0.1.1--ci.4
+          ║      CKt-Monitoring                v0.2.4--ci.4
+        2 ╙      Samples/CKt-App-Sample        v0.0.1       → v0.0.2--ci.1 🡡 (DependencyUpdate)                        
+                                                                              U CKt.ActivityMonitor: 0.1.0 → 0.1.1--ci.4
+        3 -  ·→  Samples/CKt-Sample-Monitoring v0.0.2       → v0.0.3--ci.1 🡡 (UpstreamBuild)                           
+        Required build for 3 from the 1 pivots out of 6 repositories.
+        U 2 updates from upstreams (not using '*publish' here).
+        🡡 3 repositories must be published.
         ❰✓❱
 
         """ );
@@ -128,6 +158,27 @@ public class S3ᅳSamplePublishedᅳTests
 
         """ );
 
+        // Tim ckli pulls, but before he creates the dev/stable branch.
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, tim, "checkout", "dev/stable" )).ShouldBeTrue();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, timPerfectEvent, "pull" )).ShouldBeTrue();
+
+        timDisplay.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, timPerfectEvent, "issue" )).ShouldBeTrue();
+        timDisplay.ToString().ShouldBe( """
+        > CKt-PerfectEvent (1)
+        │ > Desynchronized branches.
+        │ │ - Branch 'stable' has 1 commits that must be in 'dev/stable'.
+        │ │ Base branches can be merged without conflict into the desynchronized branches.
+        ❰✓❱
+
+        """ );
+
+        timDisplay.Clear();
+        (await CKliCommands.ExecAsync( TestHelper.Monitor, tim, "issue", "--fix" )).ShouldBeTrue();
+        timDisplay.ToString().ShouldBe( """
+        ❰✓❱
+
+        """ );
     }
 
     [Test]
