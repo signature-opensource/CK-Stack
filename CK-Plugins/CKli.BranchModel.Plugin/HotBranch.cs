@@ -222,37 +222,37 @@ public sealed class HotBranch
         return true;
     }
 
-    /// <summary>
-    /// Creates an empty commit on the <see cref="GitDevBranch"/> if it exists or on the <see cref="GitBranch"/> otherwise.
-    /// </summary>
-    /// <param name="monitor">The monitor.</param>
-    /// <param name="message">The commit message.</param>
-    /// <returns>True on success, false on error.</returns>
-    public bool CreateEmptyCommit( IActivityMonitor monitor, string message )
-    {
-        Throw.CheckState( IsActive );
-        var b = _gitDevBranch ?? _link.Branch;
-        var git = Repo.GitRepository;
-        var baseCommit = b.Tip;
-        var newCommit = git.Repository.ObjectDatabase.CreateCommit(
-                                            baseCommit.Author,
-                                            git.Committer,
-                                            message,
-                                            baseCommit.Tree,
-                                            [baseCommit],
-                                            prettifyMessage: true );
-        var newB = git.Repository.Branches.Add( b.FriendlyName, newCommit, allowOverwrite: true );
-        if( _gitDevBranch != null )
-        {
-            _link = BranchLink.Create( _link.Branch, newB );
-            _gitDevBranch = newB;
-        }
-        else
-        {
-            _link = BranchLink.Create( _link.Branch, BranchName.DevName );
-        }
-        return true;
-    }
+    ///// <summary>
+    ///// Creates an empty commit on the <see cref="GitDevBranch"/> if it exists or on the <see cref="GitBranch"/> otherwise.
+    ///// </summary>
+    ///// <param name="monitor">The monitor.</param>
+    ///// <param name="message">The commit message.</param>
+    ///// <returns>True on success, false on error.</returns>
+    //public bool CreateEmptyCommit( IActivityMonitor monitor, string message )
+    //{
+    //    Throw.CheckState( IsActive );
+    //    var b = _gitDevBranch ?? _link.Branch;
+    //    var git = Repo.GitRepository;
+    //    var baseCommit = b.Tip;
+    //    var newCommit = git.Repository.ObjectDatabase.CreateCommit(
+    //                                        baseCommit.Author,
+    //                                        git.Committer,
+    //                                        message,
+    //                                        baseCommit.Tree,
+    //                                        [baseCommit],
+    //                                        prettifyMessage: true );
+    //    var newB = git.Repository.Branches.Add( b.FriendlyName, newCommit, allowOverwrite: true );
+    //    if( _gitDevBranch != null )
+    //    {
+    //        _link = BranchLink.Create( _link.Branch, newB );
+    //        _gitDevBranch = newB;
+    //    }
+    //    else
+    //    {
+    //        _link = BranchLink.Create( _link.Branch, BranchName.DevName );
+    //    }
+    //    return true;
+    //}
 
     /// <summary>
     /// Returns this branch name.

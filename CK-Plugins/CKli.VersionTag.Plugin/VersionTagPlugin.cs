@@ -1015,7 +1015,29 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
             // Handle obsolete CI builds (do nothing if the lastStable is deprecated).
             if( lowestCI != null && !lastStable.IsDeprecatedVersion && lowestCI.Version < lastStable.Version )
             {
-                AutoDeleteObsoleteCIReleases( monitor, repo, removableTags, v2c, lastStable, lowestCI );
+                // Deleting immediately ci builds of a release may not be a good idea.
+                // We consider take a step backward here. This may be an option/flag...
+                var supremum = lastStable.Version;
+                if( supremum.Patch > 0 )
+                {
+                    supremum = SVersion.Create( supremum.Major, supremum.Minor, supremum.Patch - 1 );
+                }
+                else if( supremum.Minor > 0 )
+                {
+                    supremum = SVersion.Create( supremum.Major, supremum.Minor - 1, 0 );
+                }
+                else if( supremum.Major > 0 )
+                {
+                    supremum = SVersion.Create( supremum.Major - 1, 0, 0 );
+                }
+                else
+                {
+                    supremum = null;
+                }
+                if( supremum != null && lowestCI.Version < supremum )
+                {
+                    AutoDeleteObsoleteCIReleases( monitor, repo, removableTags, v2c, supremum, lowestCI );
+                }
             }
             if( !(lastStable.IsDeprecatedVersion && lastStable.DeprecatedInfo.HasExpired)
                 && lastStable.BuildContentInfo != null )
@@ -1148,12 +1170,12 @@ public sealed partial class VersionTagPlugin : PrimaryRepoPlugin<VersionTagInfo>
                                        Repo repo,
                                        List<Tag>? removableTags,
                                        Dictionary<SVersion, TagCommit> v2c,
-                                       TagCommit lastStable,
+                                       SVersion supremum,
                                        TagCommit lowestCI )
     {
-        Throw.DebugAssert( lowestCI.Version < lastStable.Version );
+        Throw.DebugAssert( lowestCI.Version < supremum );
         // There's at least one CI version that should be suppressed.
-        var toRemove = v2c.Values.Where( tc => tc.Version.IsCI() && tc.Version < lastStable.Version ).ToList();
+        var toRemove = v2c.Values.Where( tc => tc.Version.IsCI() && tc.Version < supremum ).ToList();
         Throw.DebugAssert( toRemove.Contains( lowestCI ) );
         bool success = true;
         using( monitor.OpenInfo( $"Deleting obsolete CI versions: '{toRemove.Select( tc => tc.Version.ParsedText ).Concatenate( "', '" )}'." ) )

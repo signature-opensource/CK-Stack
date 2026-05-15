@@ -375,7 +375,7 @@ public sealed partial class BranchLink
         var repo = ((IBelongToARepository)b).Repository;
         var tip = b.Tip.Sha;
         var actualTip = repo.Refs[b.CanonicalName]?.TargetIdentifier;
-        if( actualTip != tip )
+        if( actualTip != b.Tip.Sha )
         {
             throw new ArgumentException( $"Invalid branch '{b}': branch's tip is '{tip}' but current branch references '{actualTip}'." );
         }

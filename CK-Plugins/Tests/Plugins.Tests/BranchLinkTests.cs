@@ -2,13 +2,11 @@ using CK.Core;
 using CKli;
 using CKli.BranchModel.Plugin;
 using CKli.Core;
-using LibGit2Sharp;
 using NUnit.Framework;
 using Shouldly;
 using System;
 using System.IO;
 using System.Linq;
-using System.Runtime.CompilerServices;
 using static CK.Testing.MonitorTestHelper;
 
 namespace Plugins.Tests;
@@ -16,27 +14,6 @@ namespace Plugins.Tests;
 [TestFixture]
 public class BranchLinkTests
 {
-    static GitRepository GetGitRepository( [CallerMemberName] string? methodTestName = null )
-    {
-        var folder = TestHelper.InitializeClonedFolder( methodTestName );
-        var gitPath = folder.AppendPart( "SomeRepo" );
-        var url = new Uri( folder.AppendPart( $"Fake-Remote" ) );
-        var committer = CKliRootEnv.DefaultCKliEnv.Committer;
-        // Initialize the git repository with the origin URL
-        var git = GitRepository.Init( TestHelper.Monitor,
-                                      CKliRootEnv.SecretsStore,
-                                      committer,
-                                      gitPath,
-                                      gitPath.LastPart,
-                                      isPublic: true,
-                                      url,
-                                      "main" )
-                               .ShouldNotBeNull();
-        // Initial empty commit.
-        git.Repository.Commit( "Initial commit automatically created.", committer, committer, new CommitOptions { AllowEmptyCommit = true } );
-        return git;
-    }
-
     static void TouchFile( GitRepository repo, string fileNameSuffix = "", string? content = null )
     {
         var p = repo.WorkingFolder.AppendPart( $"_touch_file_{fileNameSuffix}.txt" );
@@ -61,8 +38,9 @@ public class BranchLinkTests
     [Test]
     public void playing_with_ahead()
     {
+        var folder = TestHelper.InitializeClonedFolder( clearStackRegistryFile: false );
+        using var repo = folder.CreateOrphanGitRepository( "SomeRepo" );
         var monitor = TestHelper.Monitor;
-        using var repo = GetGitRepository();
 
         // Useless Ahead vanishes even with empty initialization commit.
         {
@@ -177,8 +155,9 @@ public class BranchLinkTests
     [Test]
     public void link_desynchronization()
     {
+        var folder = TestHelper.InitializeClonedFolder( clearStackRegistryFile: false );
+        using var repo = folder.CreateOrphanGitRepository( "SomeRepo" );
         var monitor = TestHelper.Monitor;
-        using var repo = GetGitRepository();
 
         // Required to restore a neutral checked out branch (to be able to destroy "main" at the end of each block of tests).
         var root = repo.EnsureBranch( monitor, "root" ).ShouldNotBeNull();
@@ -349,4 +328,40 @@ public class BranchLinkTests
 
     }
 
+
+    [Test]
+    public void when_ahead_is_on_Remote()
+    {
+        var folder = TestHelper.InitializeClonedFolder( clearStackRegistryFile: false );
+        var monitor = TestHelper.Monitor;
+
+        // Ensures we have a Remote with a "main" and "dev/main" branch link and use
+        // "ahead empty commit" to have 2 separate commits.
+        Uri remoteUrl;
+        {
+            using var remote = folder.CreateBareRepository( "Remote", out remoteUrl );
+            var mainBranch = remote.GetBranch( monitor, "main" ).ShouldNotBeNull();
+            var mainLink = BranchLink.Create( mainBranch, "dev/main" );
+            mainLink.EnsureAhead( remote, withEmptyInitializationCommit: false );
+        }
+
+        using var repo = folder.CloneGitRepository( "SomeRepo", remoteUrl );
+
+        {
+            var main = repo.Repository.Branches["main"].ShouldNotBeNull( "Because it is the default branch." );
+            main.IsTracking.ShouldBeTrue();
+            main.IsCurrentRepositoryHead.ShouldBeTrue();
+
+            // Creating a link has no impact on the repository ("dev/main" is not created).
+            var mainLink = BranchLink.Create( main, "dev/main" );
+            mainLink.Issue.ShouldBe( BranchLink.IssueKind.None );
+
+            var remoteDevMain = repo.Repository.Branches["refs/remotes/origin/dev/main"];
+            remoteDevMain.ShouldNotBeNull();
+            var devMain = repo.Repository.Branches["dev/main"];
+            devMain.ShouldBeNull( "The remote branch has been cloned (but is not tracked)." );
+
+            TestHelper.TouchAndCommit( repo.WorkingFolder, null );
+        }
+    }
 }
