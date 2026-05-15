@@ -194,9 +194,7 @@
     <Repository Url="https://github.com/signature-opensource/CK-Object-Mixer">
       <VersionTag MinVersion="0.3.0" />
     </Repository>
-    <Folder Name="CK-H3">
-      <Repository Url="https://github.com/signature-opensource/CK-H3" />
-    </Folder>
+    <Repository Url="https://github.com/signature-opensource/CK-H3" />
   </Folder>
   <Folder Name="Observable">
     <Repository Url="https://github.com/signature-opensource/CK-Observable-Domain">
