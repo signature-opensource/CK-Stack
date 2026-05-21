@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -6,15 +6,18 @@
 
   <ItemGroup>
     <PackageReference Include="CKli.Plugins.Core" />
+
+    <PackageReference Include="CKli.ArtifactHandler.Plugin" />
     <PackageReference Include="CKli.BranchModel.Plugin" />
-    <ProjectReference Include="..\CKli.VersionTag.Plugin\CKli.VersionTag.Plugin.csproj" />
-    <ProjectReference Include="..\CKli.Build.Plugin\CKli.Build.Plugin.csproj" />
-    <ProjectReference Include="..\CKli.ReleaseDatabase.Plugin\CKli.ReleaseDatabase.Plugin.csproj" />
-    <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
-    <ProjectReference Include="..\CKli.Net8Migration.Plugin\CKli.Net8Migration.Plugin.csproj" />
-    <ProjectReference Include="..\CKli.CommonFiles.Plugin\CKli.CommonFiles.Plugin.csproj" />
-    <ProjectReference Include="..\CKli.Publish.Plugin\CKli.Publish.Plugin.csproj" />
-    <ProjectReference Include="..\CKli.HotZone.Plugin\CKli.HotZone.Plugin.csproj" />
+    <PackageReference Include="CKli.Build.Plugin" />
+    <PackageReference Include="CKli.CommonFiles.Plugin" />
+    <PackageReference Include="CKli.HotZone.Plugin" />
+    <PackageReference Include="CKli.Migration.Plugin" />
+    <PackageReference Include="CKli.Publish.Plugin" />
+    <PackageReference Include="CKli.ReleaseDatabase.Plugin" />
+    <PackageReference Include="CKli.ShallowSolution.Plugin" />
+    <PackageReference Include="CKli.VersionTag.Plugin" />
+
   </ItemGroup>
 
 </Project>

@@ -10,15 +10,15 @@ public static class Plugins
             // <AutoSection>
             typeof( BranchModel.Plugin.BranchModelPlugin ),
             typeof( VersionTag.Plugin.VersionTagPlugin ),
-             typeof( Build.Plugin.BuildPlugin ),
-               typeof( ReleaseDatabase.Plugin.ReleaseDatabasePlugin ),
-                typeof( ArtifactHandler.Plugin.ArtifactHandlerPlugin ),
-                 typeof( Net8Migration.Plugin.Net8MigrationPlugin ),
-                  typeof( ShallowSolution.Plugin.ShallowSolutionPlugin ),
-                    typeof( CommonFiles.Plugin.CommonFilesPlugin ),
-                     typeof( Publish.Plugin.PublishPlugin ),
-                      typeof( HotZone.Plugin.HotZonePlugin ),
-                       // </AutoSection>
+            typeof( Build.Plugin.BuildPlugin ),
+            typeof( ReleaseDatabase.Plugin.ReleaseDatabasePlugin ),
+            typeof( ArtifactHandler.Plugin.ArtifactHandlerPlugin ),
+            typeof( Migration.Plugin.MigrationPlugin ),
+            typeof( ShallowSolution.Plugin.ShallowSolutionPlugin ),
+            typeof( CommonFiles.Plugin.CommonFilesPlugin ),
+            typeof( Publish.Plugin.PublishPlugin ),
+            typeof( HotZone.Plugin.HotZonePlugin ),
+            // </AutoSection>
         ] );
     }
 }                

@@ -1,7 +1,0 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <ItemGroup>
-    <ProjectReference Include="..\CKli.ArtifactHandler.Plugin\CKli.ArtifactHandler.Plugin.csproj" />
-  </ItemGroup>
-
-</Project>

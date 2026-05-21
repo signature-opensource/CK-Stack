@@ -1,7 +1,0 @@
-<Project Sdk="Microsoft.NET.Sdk">
-  <ItemGroup>
-    <PackageReference Include="CKli.Plugins.Core" />
-    <PackageReference Include="NuGet.Protocol" />
-    <PackageReference Include="CKli.BranchModel.Plugin" />
-  </ItemGroup>
-</Project>

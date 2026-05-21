@@ -14,7 +14,7 @@
         </Feed>
       </NuGet>
     </ArtifactHandler>
-    <Net8Migration />
+    <Migration />
     <ShallowSolution />
     <CommonFiles />
     <Publish />
