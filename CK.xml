@@ -198,6 +198,7 @@
     <Repository Url="https://github.com/signature-opensource/CK-H3">
       <VersionTag InfVersion="0.1.0" />
     </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-Template-Fluid" />
   </Folder>
   <Folder Name="Observable">
     <Repository Url="https://github.com/signature-opensource/CK-Observable-Domain">
