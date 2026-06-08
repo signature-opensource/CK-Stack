@@ -1,4 +1,4 @@
-<CK CKliMinVersion="v0.9.1">
+<CK MinCKliVersion="v0.9.1">
   <Plugins CompileMode="Debug">
     <BranchModel />
     <VersionTag />
