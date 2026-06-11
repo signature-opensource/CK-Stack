@@ -241,6 +241,5 @@
     <Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile">
       <VersionTag InfVersion="0.0.0" />
     </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-Ng-Admin" />
   </Folder>
 </CK>
