@@ -165,6 +165,7 @@
     <Repository Url="https://github.com/signature-opensource/CK-DB-UserInvitation">
       <VersionTag InfVersion="0.0.0" />
     </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-User-BinnedUser" />
   </Folder>
   <Folder Name="Device">
     <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
