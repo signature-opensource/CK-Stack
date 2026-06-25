@@ -11,7 +11,6 @@ public static class Plugins
             typeof( BranchModel.Plugin.BranchModelPlugin ),
             typeof( VersionTag.Plugin.VersionTagPlugin ),
             typeof( Build.Plugin.BuildPlugin ),
-            typeof( ReleaseDatabase.Plugin.ReleaseDatabasePlugin ),
             typeof( ArtifactHandler.Plugin.ArtifactHandlerPlugin ),
             typeof( Migration.Plugin.MigrationPlugin ),
             typeof( ShallowSolution.Plugin.ShallowSolutionPlugin ),

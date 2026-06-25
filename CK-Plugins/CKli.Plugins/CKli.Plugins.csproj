@@ -14,7 +14,6 @@
     <PackageReference Include="CKli.HotZone.Plugin" />
     <PackageReference Include="CKli.Migration.Plugin" />
     <PackageReference Include="CKli.Publish.Plugin" />
-    <PackageReference Include="CKli.ReleaseDatabase.Plugin" />
     <PackageReference Include="CKli.ShallowSolution.Plugin" />
     <PackageReference Include="CKli.VersionTag.Plugin" />
 

@@ -10,7 +10,6 @@
     <PackageVersion Include="CKli.HotZone.Plugin" Version="0.10.0--ci.28" />
     <PackageVersion Include="CKli.Migration.Plugin" Version="0.10.0--ci.28" />
     <PackageVersion Include="CKli.Publish.Plugin" Version="0.10.0--ci.28" />
-    <PackageVersion Include="CKli.ReleaseDatabase.Plugin" Version="0.9.1" />
     <PackageVersion Include="CKli.ShallowSolution.Plugin" Version="0.10.0--ci.28" />
     <PackageVersion Include="CKli.VersionTag.Plugin" Version="0.10.0--ci.28" />
 
