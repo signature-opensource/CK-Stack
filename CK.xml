@@ -72,6 +72,7 @@
       <Repository Url="https://github.com/signature-opensource/CK-Cris">
         <VersionTag InfVersion="0.33.0" />
       </Repository>
+      <Repository Url="https://github.com/signature-opensource/CK-ResourceSpace" />
     </Folder>
   </Folder>
   <Folder Name="Database">
