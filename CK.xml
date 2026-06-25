@@ -245,5 +245,6 @@
       <VersionTag InfVersion="0.0.0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Ng-Admin" />
+    <Repository Url="https://github.com/signature-opensource/CK-UserManagement" />
   </Folder>
 </CK>
