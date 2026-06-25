@@ -73,6 +73,7 @@
         <VersionTag InfVersion="0.33.0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-ResourceSpace" />
+      <Repository Url="https://github.com/signature-opensource/CK-Globalization-Engine" />
     </Folder>
   </Folder>
   <Folder Name="Database">
