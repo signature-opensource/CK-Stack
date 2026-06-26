@@ -3,7 +3,6 @@
     <BranchModel />
     <VersionTag />
     <Build />
-    <ReleaseDatabase />
     <ArtifactHandler>
       <NuGet>
         <Feed Name="NuGet" Url="https://api.nuget.org/v3/index.json" PushQualityFilter="[papa,]">
