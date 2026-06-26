@@ -1,5 +1,5 @@
-<CK MinCKliVersion="0.9.1">
-  <Plugins CompileMode="Debug">
+<CK MinCKliVersion="0.10.0">
+  <Plugins CompileMode="Release">
     <BranchModel />
     <VersionTag />
     <Build />
