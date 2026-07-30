@@ -1,9 +1,8 @@
-<CK MinCKliVersion="0.9.1">
-  <Plugins CompileMode="Debug">
+<CK MinCKliVersion="0.10.0">
+  <Plugins CompileMode="Release">
     <BranchModel />
     <VersionTag />
     <Build />
-    <ReleaseDatabase />
     <ArtifactHandler>
       <NuGet>
         <Feed Name="NuGet" Url="https://api.nuget.org/v3/index.json" PushQualityFilter="[papa,]">
@@ -72,6 +71,8 @@
       <Repository Url="https://github.com/signature-opensource/CK-Cris">
         <VersionTag InfVersion="0.33.0" />
       </Repository>
+      <Repository Url="https://github.com/signature-opensource/CK-ResourceSpace" />
+      <Repository Url="https://github.com/signature-opensource/CK-Globalization-Engine" />
     </Folder>
   </Folder>
   <Folder Name="Database">
@@ -165,6 +166,8 @@
     <Repository Url="https://github.com/signature-opensource/CK-DB-UserInvitation">
       <VersionTag InfVersion="0.0.0" />
     </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-DB-User-BinnedUser" />
+    <Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor-PreferredCulture" />
   </Folder>
   <Folder Name="Device">
     <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
@@ -242,5 +245,6 @@
       <VersionTag InfVersion="0.0.0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Ng-Admin" />
+    <Repository Url="https://github.com/signature-opensource/CK-UserManagement" />
   </Folder>
 </CK>
