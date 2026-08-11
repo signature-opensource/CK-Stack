@@ -168,6 +168,7 @@
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-User-BinnedUser" />
     <Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor-PreferredCulture" />
+    <Repository Url="https://github.com/signature-opensource/CK-DB-User-UserBanned" />
   </Folder>
   <Folder Name="Device">
     <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
