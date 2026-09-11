@@ -166,7 +166,6 @@
     <Repository Url="https://github.com/signature-opensource/CK-DB-UserInvitation">
       <VersionTag InfVersion="0.0.0" />
     </Repository>
-    <Repository Url="https://github.com/signature-opensource/CK-DB-User-BinnedUser" />
     <Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor-PreferredCulture" />
     <Repository Url="https://github.com/signature-opensource/CK-DB-User-UserBanned" />
   </Folder>
