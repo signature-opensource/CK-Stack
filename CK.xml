@@ -1,7 +1,11 @@
-<CK MinCKliVersion="0.14.0">
+<CK MinCKliVersion="0.18.0">
   <Plugins CompileMode="Release">
     <BranchModel />
-    <VersionTag />
+    <VersionTag>
+      <Packages>
+        <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
+      </Packages>
+    </VersionTag>
     <Build />
     <ArtifactHandler>
       <NuGet>
