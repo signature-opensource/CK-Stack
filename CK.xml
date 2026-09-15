@@ -80,7 +80,9 @@
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-ResourceSpace" />
       <Repository Url="https://github.com/signature-opensource/CK-Globalization-Engine" />
-      <Repository Url="https://github.com/signature-opensource/CK-AppIdentity-Transport" />
+      <Repository Url="https://github.com/signature-opensource/CK-AppIdentity-Transport">
+        <VersionTag InfVersion="0.1.0-0" />
+      </Repository>
     </Folder>
   </Folder>
   <Folder Name="Database">
