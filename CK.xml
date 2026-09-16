@@ -7,7 +7,7 @@
         <Package Name="Microsoft.AspNetCore.Authentication.*" Version="8.0.0[LockMajor]" />
       </Packages>
     </VersionTag>
-    <Build />
+    <Build DeleteBeforeBuild="$StObjGen" />
     <ArtifactHandler>
       <NuGet>
         <Feed Name="NuGet" Url="https://api.nuget.org/v3/index.json" PushQualityFilter="[papa,]">
