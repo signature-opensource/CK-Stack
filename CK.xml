@@ -1,7 +1,7 @@
 <CK MinCKliVersion="0.22.0">
   <Plugins CompileMode="Release">
     <BranchModel />
-    <VersionTag>
+    <VersionTag AutoFixRemovableTag="true">
       <Packages>
         <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
         <Package Name="Microsoft.AspNetCore.Authentication.*" Version="8.0.0[LockMajor]" />
