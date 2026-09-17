@@ -1,13 +1,13 @@
 <CK MinCKliVersion="0.22.0">
   <Plugins CompileMode="Release">
-    <BranchModel MainLine="stable  alpha" />
+    <BranchModel />
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
         <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
         <Package Name="Microsoft.AspNetCore.*" Version="8.0.0[LockMajor]" />
       </Packages>
     </VersionTag>
-    <Build DeleteBeforeBuild="$StObjGen" />
+    <Build DeleteBeforeBuild="$StObjGen;Toto" />
     <ArtifactHandler>
       <NuGet>
         <Feed Name="NuGet" Url="https://api.nuget.org/v3/index.json" PushQualityFilter="[papa,]">
