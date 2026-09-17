@@ -1,4 +1,4 @@
-<CK MinCKliVersion="0.22.0">
+<CK MinCKliVersion="0.25.1">
   <Plugins CompileMode="Release">
     <BranchModel />
     <VersionTag AutoFixRemovableTag="true">
