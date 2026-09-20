@@ -1,0 +1,2255 @@
+{
+  "StackUrl": "https://github.com/signature-opensource/CK-Stack",
+  "World": "CK",
+  "Version": "2026.263.0",
+  "IsDeprecated": false,
+  "Repositories": [
+    {
+      "Url": "https://github.com/signature-opensource/CK-Abstractions",
+      "Id": "K-pyHHOdeTo",
+      "Packages": [
+        "CK.Abstractions@29.0.5",
+        "CK.ResourceSpace.Abstractions@29.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-ActivityMonitor",
+      "Id": "aonVNTKApL8",
+      "Packages": [
+        "CK.ActivityMonitor@26.0.4",
+        "CK.ActivityMonitor.SimpleSender@26.0.4"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Ais-Net",
+      "Id": "t5WfeOqoOUU",
+      "Packages": [
+        "CK.Ais.Net@0.10.6"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-AppIdentity",
+      "Id": "19avtIQaSUE",
+      "Packages": [
+        "CK.AppIdentity@0.14.5",
+        "CK.AppIdentity.Abstractions@0.14.5",
+        "CK.AppIdentity.Configuration@0.14.5",
+        "CK.AppIdentity.Hosting@0.14.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-AspNet",
+      "Id": "R-8R-4qqyVc",
+      "Packages": [
+        "CK.AspNet@21.1.0",
+        "CK.AspNet.WebSocket@21.1.0",
+        "CK.AspNet.WebSocketChannel@21.1.0",
+        "CK.Testing.AspNetServer@21.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-AspNet-ActorChannel",
+      "Id": "lFenJr3qDVw",
+      "Packages": [
+        "CK.AspNet.ActorChannel@0.1.0",
+        "CK.Ng.AspNet.ActorChannel@0.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-AspNet-Auth",
+      "Id": "-vZfPFkGV68",
+      "Packages": [
+        "CK.AspNet.Auth@30.1.0",
+        "CK.Testing.AspNetServer.Auth@30.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Auth-Abstractions",
+      "Id": "c-ZslSKCvlA",
+      "Packages": [
+        "CK.Auth.Abstractions@12.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-BinarySerialization",
+      "Id": "ogZVce58mlw",
+      "Packages": [
+        "CK.BinarySerialization@13.1.0",
+        "CK.BinarySerialization.IPoco@13.1.0",
+        "CK.BinarySerialization.Sliced@13.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-CodeGen",
+      "Id": "oz-q_BNDloo",
+      "Packages": [
+        "CK.CodeGen@15.1.0",
+        "CK.CodeGen.Roslyn@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-CommChannel",
+      "Id": "UcYlfIYeRTk",
+      "Packages": [
+        "CK.CommChannel@6.0.6",
+        "CK.CommChannel.Serial@6.0.6",
+        "CK.IO.CommChannel@6.0.6"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Configuration",
+      "Id": "HgTQYtsPhVI",
+      "Packages": [
+        "CK.Configuration@0.11.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Core",
+      "Id": "SAi_FtpErrI",
+      "Packages": [
+        "CK.Core@25.0.4"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Cris",
+      "Id": "PTTZc6pHfOQ",
+      "Packages": [
+        "CK.Cris.Auth@0.44.0",
+        "CK.Cris.BackgroundExecutor@0.44.0",
+        "CK.Cris.DelayedCommand@0.44.0",
+        "CK.Cris.Engine@0.44.0",
+        "CK.Cris.Executor@0.44.0",
+        "CK.Cris.Executor.Engine@0.44.0",
+        "CK.Cris.HttpSender@0.44.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Cris-Abstractions",
+      "Id": "NuqgNBQFZL0",
+      "Packages": [
+        "CK.Cris@0.44.0",
+        "CK.IO.Actor@0.44.0",
+        "CK.IO.Auth@0.44.0",
+        "CK.IO.Auth.Basic@0.44.0",
+        "CK.IO.DelayedCommand@0.44.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Cris-TypeScript",
+      "Id": "m8JRbf4OATo",
+      "Packages": [
+        "CK.Cris.AspNet@0.56.0",
+        "CK.Cris.AspNet.Auth.Basic@0.56.0",
+        "CK.Cris.AspNet.Engine@0.56.0",
+        "CK.Cris.TypeScript@0.56.0",
+        "CK.Cris.WebApi@0.56.0",
+        "CK.Ng.Cris.AspNet@0.56.0",
+        "CK.Ng.Cris.AspNet.Auth@0.56.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB",
+      "Id": "nLIakHlCJcc",
+      "Packages": [
+        "CK.DB.Acl@28.1.0",
+        "CK.DB.Acl.AclType@28.1.0",
+        "CK.DB.Acl.AclType.Tests@28.1.0",
+        "CK.DB.Acl.Tests@28.1.0",
+        "CK.DB.Actor@28.1.0",
+        "CK.DB.Actor.Tests@28.1.0",
+        "CK.DB.Auth@28.1.0",
+        "CK.DB.Auth.AuthScope@28.1.0",
+        "CK.DB.Auth.AuthScope.Tests@28.1.0",
+        "CK.DB.Auth.Tests@28.1.0",
+        "CK.DB.Culture@28.1.0",
+        "CK.DB.Culture.Tests@28.1.0",
+        "CK.DB.Group.SimpleNaming@28.1.0",
+        "CK.DB.Group.SimpleNaming.Tests@28.1.0",
+        "CK.DB.HZone@28.1.0",
+        "CK.DB.HZone.Tests@28.1.0",
+        "CK.DB.Res@28.1.0",
+        "CK.DB.Res.MCResHtml@28.1.0",
+        "CK.DB.Res.MCResHtml.Tests@28.1.0",
+        "CK.DB.Res.MCResString@28.1.0",
+        "CK.DB.Res.MCResString.Tests@28.1.0",
+        "CK.DB.Res.MCResText@28.1.0",
+        "CK.DB.Res.MCResText.Tests@28.1.0",
+        "CK.DB.Res.ResHtml@28.1.0",
+        "CK.DB.Res.ResHtml.Tests@28.1.0",
+        "CK.DB.Res.ResName@28.1.0",
+        "CK.DB.Res.ResName.Tests@28.1.0",
+        "CK.DB.Res.ResString@28.1.0",
+        "CK.DB.Res.ResString.Tests@28.1.0",
+        "CK.DB.Res.ResText@28.1.0",
+        "CK.DB.Res.ResText.Tests@28.1.0",
+        "CK.DB.Res.Tests@28.1.0",
+        "CK.DB.User.UserGoogle@28.1.0",
+        "CK.DB.User.UserGoogle.AuthScope@28.1.0",
+        "CK.DB.User.UserGoogle.AuthScope.Tests@28.1.0",
+        "CK.DB.User.UserGoogle.EMailColumns@28.1.0",
+        "CK.DB.User.UserGoogle.EMailColumns.Tests@28.1.0",
+        "CK.DB.User.UserGoogle.Profile@28.1.0",
+        "CK.DB.User.UserGoogle.Profile.Tests@28.1.0",
+        "CK.DB.User.UserGoogle.RefreshToken@28.1.0",
+        "CK.DB.User.UserGoogle.RefreshToken.Tests@28.1.0",
+        "CK.DB.User.UserGoogle.Tests@28.1.0",
+        "CK.DB.User.UserOidc@28.1.0",
+        "CK.DB.User.UserOidc.Tests@28.1.0",
+        "CK.DB.User.UserSimpleCode@28.1.0",
+        "CK.DB.User.UserSimpleCode.Tests@28.1.0",
+        "CK.DB.Zone@28.1.0",
+        "CK.DB.Zone.SimpleNaming@28.1.0",
+        "CK.DB.Zone.SimpleNaming.Tests@28.1.0",
+        "CK.DB.Zone.Tests@28.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Actor-ActorEMail",
+      "Id": "Q5LekXH0IvQ",
+      "Packages": [
+        "CK.DB.Actor.ActorEMail@28.1.0",
+        "CK.DB.Actor.ActorEMail.NonUnique@28.1.0",
+        "CK.DB.Actor.ActorEMail.NonUnique.Tests@28.1.0",
+        "CK.DB.Actor.ActorEMail.Tests@28.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber",
+      "Id": "gick0YJqb5c",
+      "Packages": [
+        "CK.DB.Actor.ActorPhoneNumber@20.1.0",
+        "CK.DB.Actor.ActorPhoneNumber.Tests@20.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-AspNet-Auth",
+      "Id": "nnZCxmT0e4U",
+      "Packages": [
+        "CK.DB.AspNet.Auth@31.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Facebook",
+      "Id": "3V-iEa54gBg",
+      "Packages": [
+        "CK.DB.User.UserFacebook@15.1.0",
+        "CK.DB.User.UserFacebook.AuthScope@15.1.0",
+        "CK.DB.User.UserFacebook.AuthScope.Tests@15.1.0",
+        "CK.DB.User.UserFacebook.Tests@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-GitHub",
+      "Id": "vukgP5V2utw",
+      "Packages": [
+        "CK.DB.User.UserGitHub@15.1.0",
+        "CK.DB.User.UserGitHub.AuthScope@15.1.0",
+        "CK.DB.User.UserGitHub.AuthScope.Tests@15.1.0",
+        "CK.DB.User.UserGitHub.RefreshToken@15.1.0",
+        "CK.DB.User.UserGitHub.RefreshToken.Tests@15.1.0",
+        "CK.DB.User.UserGitHub.Tests@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-GitLab",
+      "Id": "uMHr66Cmiro",
+      "Packages": [
+        "CK.DB.User.UserGitLab@15.1.0",
+        "CK.DB.User.UserGitLab.AuthScope@15.1.0",
+        "CK.DB.User.UserGitLab.AuthScope.Tests@15.1.0",
+        "CK.DB.User.UserGitLab.Tests@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Globalization",
+      "Id": "qPsj6TtANmc",
+      "Packages": [
+        "CK.DB.Globalization@0.2.0",
+        "CK.DB.Globalization.Tests@0.2.0",
+        "CK.IO.Globalization@0.2.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-GuestActor",
+      "Id": "a5LVHadQOLE",
+      "Packages": [
+        "CK.DB.GuestActor@0.41.0",
+        "CK.DB.GuestActor.Tests@0.41.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-GuestActor-Acl",
+      "Id": "QEnMo7lr8p4",
+      "Packages": [
+        "CK.DB.GuestActor.Acl@0.41.0",
+        "CK.DB.GuestActor.Acl.Tests@0.41.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Organization",
+      "Id": "vtTjJADb9Iw",
+      "Packages": [
+        "CK.DB.Organization@0.13.0",
+        "CK.DB.Organization.Tests@0.13.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Res-ResPath",
+      "Id": "PWYeBEQqdHM",
+      "Packages": [
+        "CK.DB.Res.ResPath@11.1.0",
+        "CK.DB.Res.ResPath.Tests@11.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-SqlCKTrait",
+      "Id": "rpysItvtbd4",
+      "Packages": [
+        "CK.DB.SqlCKTrait@15.1.0",
+        "CK.DB.SqlCKTrait.Tests@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-TokenStore",
+      "Id": "v08UCzijuXQ",
+      "Packages": [
+        "CK.DB.TokenStore@0.39.0",
+        "CK.DB.TokenStore.Tests@0.39.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Twitter",
+      "Id": "fofnDbVeKj8",
+      "Packages": [
+        "CK.DB.User.UserTwitter@15.1.0",
+        "CK.DB.User.UserTwitter.AccessToken@15.1.0",
+        "CK.DB.User.UserTwitter.AccessToken.Tests@15.1.0",
+        "CK.DB.User.UserTwitter.AuthScope@15.1.0",
+        "CK.DB.User.UserTwitter.AuthScope.Tests@15.1.0",
+        "CK.DB.User.UserTwitter.ScreenName@15.1.0",
+        "CK.DB.User.UserTwitter.ScreenName.Tests@15.1.0",
+        "CK.DB.User.UserTwitter.Tests@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-User-NamedUser",
+      "Id": "HThOZkRB6Yk",
+      "Packages": [
+        "CK.DB.User.NamedUser@28.1.0",
+        "CK.IO.User.NamedUser@28.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-User-PreferredCulture",
+      "Id": "GbmZ1wv7m34",
+      "Packages": [
+        "CK.DB.User.PreferredCulture@0.6.0",
+        "CK.IO.User.PreferredCulture@0.6.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-User-SimpleInvitation",
+      "Id": "YVynyM1doTc",
+      "Packages": [
+        "CK.DB.User.SimpleInvitation@0.42.0",
+        "CK.DB.User.SimpleInvitation.Tests@0.42.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-User-UserBanned",
+      "Id": "57Jw1MGSMbU",
+      "Packages": [
+        "CK.DB.User.UserBanned@1.1.0",
+        "CK.DB.User.UserPassword.Banned@1.1.0",
+        "CK.IO.User.UserBanned@1.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-User-UserPassword",
+      "Id": "uthrkNJX6Ew",
+      "Packages": [
+        "CK.DB.User.UserPassword@28.1.0",
+        "CK.DB.User.UserPassword.EMailLogin@28.1.0",
+        "CK.DB.User.UserPassword.Reset@28.1.0",
+        "CK.DB.User.UserPassword.Tests@28.1.0",
+        "CK.IO.User.UserPassword@28.1.0",
+        "CK.IO.User.UserPassword.Reset@28.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-UserInvitation",
+      "Id": "3R_O8Z_c79U",
+      "Packages": [
+        "CK.DB.UserInvitation@0.5.0",
+        "CK.DB.UserInvitation.Tests@0.5.0",
+        "CK.IO.UserInvitation@0.5.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-WeakActor",
+      "Id": "HbMnF2Wm8NA",
+      "Packages": [
+        "CK.DB.Actor.WeakActor@0.18.0",
+        "CK.DB.Actor.WeakActor.Tests@0.18.0",
+        "CK.DB.HZone.WeakActor@0.18.0",
+        "CK.DB.HZone.WeakActor.SimpleNaming.Tests@0.18.0",
+        "CK.DB.HZone.WeakActor.Tests@0.18.0",
+        "CK.DB.Zone.WeakActor@0.18.0",
+        "CK.DB.Zone.WeakActor.SimpleNaming@0.18.0",
+        "CK.DB.Zone.WeakActor.SimpleNaming.Tests@0.18.0",
+        "CK.DB.Zone.WeakActor.Tests@0.18.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-WeakActor-PreferredCulture",
+      "Id": "rHBmYVmKA_4",
+      "Packages": [
+        "CK.DB.WeakActor.PreferredCulture@0.1.0",
+        "CK.IO.WeakActor.PreferredCulture@0.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-WebPage",
+      "Id": "r0JHzn_Izu0",
+      "Packages": [
+        "CK.DB.HWorkspace@0.15.0",
+        "CK.DB.HWorkspace.Page@0.15.0",
+        "CK.DB.HWorkspace.Page.Tests@0.15.0",
+        "CK.DB.HWorkspace.Tests@0.15.0",
+        "CK.DB.WebPage@0.15.0",
+        "CK.DB.WebPage.Tests@0.15.0",
+        "CK.DB.Workspace.Page@0.15.0",
+        "CK.DB.Workspace.Page.Tests@0.15.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DB-Workspace",
+      "Id": "71gdiDvLOsE",
+      "Packages": [
+        "CK.Cris.Workspace@15.2.0",
+        "CK.DB.Workspace@15.2.0",
+        "CK.DB.Workspace.Tests@15.2.0",
+        "CK.IO.UserProfile.Workspace@15.2.0",
+        "CK.IO.Workspace@15.2.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Database",
+      "Id": "lT6oIf2eMlc",
+      "Packages": [
+        "CK.DB.Tests.NUnit@33.1.0",
+        "CK.Setupable.Engine@33.1.0",
+        "CK.Setupable.Model@33.1.0",
+        "CK.Setupable.Runtime@33.1.0",
+        "CK.SqlServer.Setup.Engine@33.1.0",
+        "CK.SqlServer.Setup.Model@33.1.0",
+        "CK.SqlServer.Setup.Runtime@33.1.0",
+        "CK.Testing.SqlServerEngine@33.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DeviceModel",
+      "Id": "4JPZiXn7PfA",
+      "Packages": [
+        "CK.Cris.DeviceModel@14.1.0",
+        "CK.DeviceModel@14.1.0",
+        "CK.DeviceModel.Configuration@14.1.0",
+        "CK.IO.DeviceModel@14.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-DeviceModel-ByTopic",
+      "Id": "9w78UEilbn4",
+      "Packages": [
+        "CK.DeviceModel.ByTopic@15.1.0",
+        "CK.IO.DeviceModel.ByTopic@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-EmbeddedResources",
+      "Id": "q1yST8gRYLs",
+      "Packages": [
+        "CK.EmbeddedResources@2.0.5",
+        "CK.EmbeddedResources.Abstractions@2.0.5",
+        "CK.EmbeddedResources.Assets@2.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Globalization",
+      "Id": "5fnVUs3KhUQ",
+      "Packages": [
+        "CK.Globalization@5.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Globalization-Engine",
+      "Id": "2fEdV71a5BA",
+      "Packages": [
+        "CK.Globalization.Engine@0.2.0",
+        "CK.Globalization.StObj@0.2.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-H3",
+      "Id": "tKz0kTr_l9Q",
+      "Packages": [
+        "CK.H3@0.1.5",
+        "CK.H3.Binaries@0.1.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-MQTT",
+      "Id": "4oDZIvFkdU0",
+      "Packages": [
+        "CK.MQTT.Client@0.35.0",
+        "CK.MQTT.LocalMQTTDemiServer@0.35.0",
+        "CK.MQTT.LowLevelClient@0.35.0",
+        "CK.MQTT.Server@0.35.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Mailer",
+      "Id": "I2cylf2Ru0E",
+      "Packages": [
+        "CK.Mailer@12.1.0",
+        "CK.Mailer.MailKit@12.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Metrics",
+      "Id": "2-JckjvABYg",
+      "Packages": [
+        "CK.AppIdentity.Monitoring.Metrics@0.4.5",
+        "CK.AppIdentity.Monitoring.Metrics.Csv@0.4.5",
+        "CK.AppIdentity.Monitoring.Metrics.InfluxDb@0.4.5",
+        "CK.Metrics@0.4.5",
+        "CK.Monitoring.Metrics@0.4.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Monitoring",
+      "Id": "eLi2pYsCiiI",
+      "Packages": [
+        "CK.Monitoring@26.0.5",
+        "CK.Monitoring.Hosting@26.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Ng-Admin",
+      "Id": "1vfvAIBNis8",
+      "Packages": [
+        "CK.Ng.Admin@0.2.0",
+        "CK.Ng.Admin.UserManagement@0.2.0",
+        "CK.Ng.Admin.UserManagement.UserBanned@0.2.0",
+        "CK.Ng.Admin.UserManagement.UserInvitation@0.2.0",
+        "SLog.Mail.Branding@0.2.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Ng-SiteMap",
+      "Id": "Z4Jt5UmAWvA",
+      "Packages": [
+        "CK.IO.Ng.SiteMap@0.40.0",
+        "CK.Ng.SiteMap@0.40.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Ng-User-UserProfile",
+      "Id": "QYFVPZpqhqs",
+      "Packages": [
+        "CK.Ng.UserProfile@0.9.0",
+        "CK.Ng.UserProfile.NamedUser@0.9.0",
+        "CK.Ng.UserProfile.PreferredCulture@0.9.0",
+        "CK.Ng.UserProfile.UserBanned@0.9.0",
+        "CK.Ng.UserProfile.UserPassword@0.9.0",
+        "CK.Ng.UserProfile.UserPassword.Lost@0.9.0",
+        "CK.Ng.UserProfile.UserPassword.Reset@0.9.0",
+        "CK.Ng.UserProfile.Workspace@0.9.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Ng-Zorro-Contrib",
+      "Id": "NRzmaNIsfgE",
+      "Packages": [
+        "CK.Ng.Zorro.BackOffice@0.8.0",
+        "CK.Ng.Zorro.Basic@0.8.0",
+        "CK.Ng.Zorro.Breadcrumb@0.8.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Object-Mixer",
+      "Id": "3840U_YoB-4",
+      "Packages": [
+        "CK.Object.Mixer@0.11.5",
+        "CK.Object.Predicate@0.11.5",
+        "CK.Object.Processor@0.11.5",
+        "CK.Object.Transform@0.11.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Observable-Domain",
+      "Id": "pgaWA85SAcM",
+      "Packages": [
+        "CK.IO.ObservableDevice@18.1.0",
+        "CK.Ng.ObservableDomain.SignalR@18.1.0",
+        "CK.Ng.ObservableDomain.WebSocket@18.1.0",
+        "CK.Observable.Cris@18.1.0",
+        "CK.Observable.Device@18.1.0",
+        "CK.Observable.Domain@18.1.0",
+        "CK.Observable.League@18.1.0",
+        "CK.Observable.SignalRWatcher@18.1.0",
+        "CK.Observable.WebSocketWatcher@18.1.0",
+        "CK.TS.ObservableDomain@18.1.0",
+        "CK.TS.ObservableDomain.DualCasing@18.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-PerfectEvent",
+      "Id": "hwiK_AlaLmU",
+      "Packages": [
+        "CK.PerfectEvent@27.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-ResourceSpace",
+      "Id": "Dw1fWArd1bk",
+      "Packages": [
+        "CK.EmbeddedResources.Globalization@0.33.0",
+        "CK.ResourceSpace@0.33.0",
+        "CK.ResourceSpace.Assets@0.33.0",
+        "CK.ResourceSpace.Globalization@0.33.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Setup-Dependency",
+      "Id": "7Bj457wVn6k",
+      "Packages": [
+        "CK.Setup.Dependency@23.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-SqlServer",
+      "Id": "KQePC1Po0Cw",
+      "Packages": [
+        "CK.SqlServer@12.0.5",
+        "CK.SqlServer.Transaction@12.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-SqlServer-Dapper",
+      "Id": "_EAeB2csTro",
+      "Packages": [
+        "CK.SqlServer.Dapper@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-SqlServer-Parser",
+      "Id": "3xDLNG0BZ_A",
+      "Packages": [
+        "CK.SqlServer.Parser@29.0.5",
+        "CK.SqlServer.Transform@29.0.5",
+        "CK.Testing.SqlTransform@29.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-SqlServer-Parser-Model",
+      "Id": "UmsqGTniFX8",
+      "Packages": [
+        "CK.SqlServer.Parser.Model@23.0.4"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Sqlite",
+      "Id": "MKnjKSUl5Zs",
+      "Packages": [
+        "CK.Sqlite.Engine@15.1.0",
+        "CK.Sqlite.Model@15.1.0",
+        "CK.Testing.SqliteEngine@15.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-StObj",
+      "Id": "-SzqNQSQjWo",
+      "Packages": [
+        "CK.AppBuilder@33.1.0",
+        "CK.Engine@33.1.0",
+        "CK.Engine.Configuration@33.1.0",
+        "CK.Engine.TypeCollector@33.1.0",
+        "CK.Poco.Exc.Json@33.1.0",
+        "CK.Poco.Exc.Json.Engine@33.1.0",
+        "CK.Poco.Exchange@33.1.0",
+        "CK.Poco.Exchange.Engine@33.1.0",
+        "CK.StObj.Engine@33.1.0",
+        "CK.StObj.Model@33.1.0",
+        "CK.StObj.Runtime@33.1.0",
+        "CK.Testing.StObjEngine@33.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Template-Fluid",
+      "Id": "Ajd6n0XKyi0",
+      "Packages": [
+        "CK.Template.Fluid@0.1.0",
+        "CK.Template.Fluid.Engine@0.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Templates",
+      "Id": "ZaJmgRYck0g",
+      "Packages": [
+        "CK.DB.Sample@10.1.0",
+        "CK.Templates@10.1.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-Testing",
+      "Id": "FJTJjTTdH2Y",
+      "Packages": [
+        "CK.Testing@15.0.5",
+        "CK.Testing.Monitoring@15.0.5",
+        "CK.Testing.NUnit@15.0.5",
+        "CK.Testing.SqlServer@15.0.5"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-TypeScript",
+      "Id": "uVTGd3UCf4c",
+      "Packages": [
+        "CK.Html.Transform@0.32.0",
+        "CK.IO.Core@0.32.0",
+        "CK.Less.Transform@0.32.0",
+        "CK.Ng.AspNet.Auth@0.32.0",
+        "CK.Ng.AspNet.Auth.Basic@0.32.0",
+        "CK.Ng.AspNet.WebSocketChannel@0.32.0",
+        "CK.Ng.Axios@0.32.0",
+        "CK.Ng.Localization@0.32.0",
+        "CK.Ng.PublicPage@0.32.0",
+        "CK.Ng.Zorro@0.32.0",
+        "CK.ResourceSpace.Transformable@0.32.0",
+        "CK.Testing.TypeScriptEngine@0.32.0",
+        "CK.Transform.Core@0.32.0",
+        "CK.TS.Angular@0.32.0",
+        "CK.TS.Angular.Engine@0.32.0",
+        "CK.TS.AspNet.Auth@0.32.0",
+        "CK.TS.AspNet.WebSocketChannel@0.32.0",
+        "CK.TypeScript@0.32.0",
+        "CK.TypeScript.CodeGen@0.32.0",
+        "CK.TypeScript.Engine@0.32.0",
+        "CK.TypeScript.LiveEngine@0.32.0",
+        "CK.TypeScript.Transform@0.32.0"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-UserManagement",
+      "Id": "NP5MBHbfHLE",
+      "Packages": [
+        "CK.IO.Admin@0.3.0",
+        "CK.IO.UserManagement@0.3.0",
+        "CK.IO.UserManagement.UserBanned@0.3.0",
+        "CK.IO.UserManagement.UserInvitation@0.3.0",
+        "CK.Mail.SharedLayout@0.3.0",
+        "CK.UserManagement@0.3.0",
+        "CK.UserManagement.UserBanned@0.3.0",
+        "CK.UserManagement.UserInvitation@0.3.0"
+      ]
+    }
+  ],
+  "DirectDependencies": [
+    "CK.AspNet.Tester@4.0.4",
+    "CK.Dapper@2.1.5",
+    "CK.WeakAssemblyNameResolver@0.6.0",
+    "CommunityToolkit.HighPerformance@8.4.2",
+    "ConfigureAwait.Fody@3.3.2",
+    "Corvus.Testing.SpecFlow.NUnit@3.1.1",
+    "coverlet.collector@10.0.1",
+    "CSemVer@13.0.0",
+    "DotNet.ReproducibleBuilds@1.2.39",
+    "Fluid.Core@2.40.0",
+    "Fody@6.9.3",
+    "MailKit@4.18.0",
+    "Microsoft.AspNetCore.Authentication.Facebook@8.0.31",
+    "Microsoft.AspNetCore.Authentication.Google@8.0.31",
+    "Microsoft.AspNetCore.Authentication.OpenIdConnect@8.0.31",
+    "Microsoft.AspNetCore.Cryptography.KeyDerivation@8.0.31",
+    "Microsoft.AspNetCore.DataProtection@8.0.31",
+    "Microsoft.AspNetCore.DataProtection.Abstractions@8.0.31",
+    "Microsoft.AspNetCore.OpenApi@8.0.31",
+    "Microsoft.AspNetCore.SpaServices.Extensions@8.0.31",
+    "Microsoft.CodeAnalysis.BannedApiAnalyzers@3.3.4",
+    "Microsoft.CodeAnalysis.CSharp@5.9.0",
+    "Microsoft.Data.SqlClient@7.1.0",
+    "Microsoft.Data.SQLite@10.0.12",
+    "Microsoft.Extensions.Configuration@10.0.12",
+    "Microsoft.Extensions.Configuration.Abstractions@10.0.12",
+    "Microsoft.Extensions.Configuration.Binder@10.0.12",
+    "Microsoft.Extensions.Configuration.Json@10.0.12",
+    "Microsoft.Extensions.DependencyInjection@10.0.12",
+    "Microsoft.Extensions.DependencyInjection.Abstractions@10.0.12",
+    "Microsoft.Extensions.Hosting@10.0.12",
+    "Microsoft.Extensions.Hosting.Abstractions@10.0.12",
+    "Microsoft.Extensions.Hosting.WindowsServices@10.0.12",
+    "Microsoft.Extensions.Logging@10.0.12",
+    "Microsoft.Extensions.Options@10.0.12",
+    "Microsoft.FASTER.Core@2.6.5",
+    "Microsoft.IO.RecyclableMemoryStream@3.0.1",
+    "Microsoft.NET.Test.Sdk@18.10.1",
+    "Nerdbank.Streams@2.14.354",
+    "Newtonsoft.Json@13.0.4",
+    "NUnit@4.6.1",
+    "NUnit3TestAdapter@6.3.0",
+    "Polly.Core@8.8.0",
+    "PropertyChanged.Fody@4.1.0",
+    "Shouldly@4.3.0",
+    "Swashbuckle.AspNetCore@10.2.3",
+    "System.Collections.Immutable@10.0.12",
+    "System.Diagnostics.DiagnosticSource@10.0.12",
+    "System.IO.Pipelines@10.0.12",
+    "System.IO.Ports@10.0.12",
+    "System.Text.RegularExpressions@4.3.1",
+    "System.Threading.Channels@10.0.12",
+    "xunit@2.9.3",
+    "xunit.runner.visualstudio@4.0.0",
+    "Yodii.Script@0.8.1"
+  ],
+  "TransitiveDependencies": {
+    "Regular": [
+      "BoDi@1.5.0",
+      "BouncyCastle.Cryptography@2.7.0",
+      "Corvus.Testing.SpecFlow@3.1.1",
+      "coverlet.msbuild@6.0.0",
+      "DiffEngine@11.3.0",
+      "EmptyFiles@4.4.0",
+      "Gherkin@19.0.3",
+      "Microsoft.ApplicationInsights@2.23.0",
+      "Microsoft.AspNetCore.Cryptography.Internal@8.0.31",
+      "Microsoft.AspNetCore.TestHost@6.0.7",
+      "Microsoft.Bcl.AsyncInterfaces@6.0.0",
+      "Microsoft.CodeAnalysis.Analyzers@5.9.0-1.26328.17",
+      "Microsoft.CodeAnalysis.Common@5.9.0",
+      "Microsoft.Data.SqlClient.Extensions.Abstractions@7.1.0",
+      "Microsoft.Data.SqlClient.Internal.Logging@7.1.0",
+      "Microsoft.Data.SqlClient.SNI.runtime@7.1.0",
+      "Microsoft.Data.Sqlite.Core@10.0.12",
+      "Microsoft.DotNet.InternalAbstractions@1.0.0",
+      "Microsoft.DotNet.PlatformAbstractions@1.0.3",
+      "Microsoft.Extensions.ApiDescription.Server@8.0.0",
+      "Microsoft.Extensions.Caching.Abstractions@8.0.0",
+      "Microsoft.Extensions.Caching.Memory@8.0.1",
+      "Microsoft.Extensions.Configuration.CommandLine@10.0.12",
+      "Microsoft.Extensions.Configuration.EnvironmentVariables@10.0.12",
+      "Microsoft.Extensions.Configuration.FileExtensions@10.0.12",
+      "Microsoft.Extensions.Configuration.UserSecrets@10.0.12",
+      "Microsoft.Extensions.Diagnostics@10.0.12",
+      "Microsoft.Extensions.Diagnostics.Abstractions@10.0.12",
+      "Microsoft.Extensions.FileProviders.Abstractions@10.0.12",
+      "Microsoft.Extensions.FileProviders.Physical@10.0.12",
+      "Microsoft.Extensions.FileSystemGlobbing@10.0.12",
+      "Microsoft.Extensions.Logging.Configuration@10.0.12",
+      "Microsoft.Extensions.Logging.Console@10.0.12",
+      "Microsoft.Extensions.Logging.Debug@10.0.12",
+      "Microsoft.Extensions.Logging.EventLog@10.0.12",
+      "Microsoft.Extensions.Logging.EventSource@10.0.12",
+      "Microsoft.Extensions.Options.ConfigurationExtensions@10.0.12",
+      "Microsoft.IdentityModel.Abstractions@8.16.0",
+      "Microsoft.IdentityModel.JsonWebTokens@8.16.0",
+      "Microsoft.IdentityModel.Logging@8.16.0",
+      "Microsoft.IdentityModel.Protocols@8.16.0",
+      "Microsoft.IdentityModel.Protocols.OpenIdConnect@8.16.0",
+      "Microsoft.IdentityModel.Tokens@8.16.0",
+      "Microsoft.NETCore.Platforms@3.1.0",
+      "Microsoft.NETCore.Targets@1.1.3",
+      "Microsoft.OpenApi@2.7.5",
+      "Microsoft.SqlServer.Server@1.0.0",
+      "Microsoft.Testing.Extensions.Telemetry@2.3.3",
+      "Microsoft.Testing.Extensions.TrxReport.Abstractions@2.3.3",
+      "Microsoft.Testing.Extensions.VSTestBridge@2.3.3",
+      "Microsoft.Testing.Platform@2.3.3",
+      "Microsoft.Testing.Platform.MSBuild@2.3.3",
+      "Microsoft.VisualStudio.Threading.Only@18.7.23",
+      "Microsoft.VisualStudio.Validation@17.13.22",
+      "Microsoft.Win32.Primitives@4.3.0",
+      "Microsoft.Win32.Registry@4.7.0",
+      "MimeKit@4.18.0",
+      "NETStandard.Library@2.0.0",
+      "NuGet.Frameworks@6.5.0",
+      "NUnit.Console@3.12.0",
+      "NUnit.ConsoleRunner@3.12.0",
+      "NUnit.Extension.NUnitProjectLoader@3.6.0",
+      "NUnit.Extension.NUnitV2Driver@3.8.0",
+      "NUnit.Extension.NUnitV2ResultWriter@3.6.0",
+      "NUnit.Extension.TeamCityEventListener@1.0.7",
+      "NUnit.Extension.VSProjectLoader@3.8.0",
+      "Parlot@1.5.2",
+      "runtime.android-arm.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.android-arm64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.android-x64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.android-x86.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.debian.8-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.fedora.23-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.fedora.24-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.linux-arm.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.linux-arm64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.linux-bionic-arm64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.linux-bionic-x64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.linux-musl-arm.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.linux-musl-arm64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.linux-musl-x64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.linux-x64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.maccatalyst-arm64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.maccatalyst-x64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.native.System@4.3.0",
+      "runtime.native.System.IO.Ports@10.0.12",
+      "runtime.native.System.Net.Http@4.3.0",
+      "runtime.native.System.Security.Cryptography.Apple@4.3.0",
+      "runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.opensuse.13.2-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.opensuse.42.1-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.osx-arm64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.osx-x64.runtime.native.System.IO.Ports@10.0.12",
+      "runtime.osx.10.10-x64.runtime.native.System.Security.Cryptography.Apple@4.3.0",
+      "runtime.osx.10.10-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.rhel.7-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.ubuntu.14.04-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.ubuntu.16.04-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "runtime.ubuntu.16.10-x64.runtime.native.System.Security.Cryptography.OpenSsl@4.3.2",
+      "SpecFlow@3.9.74",
+      "SpecFlow.Internal.Json@1.0.8",
+      "SpecFlow.NUnit@3.9.74",
+      "SpecFlow.NUnit.Runners@3.9.74",
+      "SpecFlow.Tools.MsBuild.Generation@3.9.74",
+      "SQLitePCLRaw.bundle_e_sqlite3@2.1.12",
+      "SQLitePCLRaw.core@2.1.12",
+      "SQLitePCLRaw.lib.e_sqlite3@2.1.12",
+      "SQLitePCLRaw.provider.e_sqlite3@2.1.12",
+      "Swashbuckle.AspNetCore.Swagger@10.2.3",
+      "Swashbuckle.AspNetCore.SwaggerGen@10.2.3",
+      "Swashbuckle.AspNetCore.SwaggerUI@10.2.3",
+      "System.AppContext@4.1.0",
+      "System.Buffers@4.6.1",
+      "System.Collections@4.3.0",
+      "System.Collections.Concurrent@4.3.0",
+      "System.Collections.NonGeneric@4.3.0",
+      "System.Collections.Specialized@4.3.0",
+      "System.ComponentModel@4.3.0",
+      "System.ComponentModel.EventBasedAsync@4.3.0",
+      "System.ComponentModel.Primitives@4.3.0",
+      "System.ComponentModel.TypeConverter@4.3.0",
+      "System.Diagnostics.Debug@4.3.0",
+      "System.Diagnostics.Process@4.3.0",
+      "System.Diagnostics.Tracing@4.3.0",
+      "System.Dynamic.Runtime@4.0.11",
+      "System.Formats.Asn1@10.0.0",
+      "System.Globalization@4.3.0",
+      "System.Globalization.Calendars@4.3.0",
+      "System.Globalization.Extensions@4.3.0",
+      "System.IdentityModel.Tokens.Jwt@8.16.0",
+      "System.Interactive.Async@6.0.1",
+      "System.IO@4.3.0",
+      "System.IO.FileSystem@4.3.0",
+      "System.IO.FileSystem.Primitives@4.3.0",
+      "System.Linq@4.3.0",
+      "System.Linq.Async@6.0.1",
+      "System.Linq.Expressions@4.1.0",
+      "System.Net.Http@4.3.4",
+      "System.Net.Primitives@4.3.0",
+      "System.Numerics.Vectors@4.6.1",
+      "System.ObjectModel@4.0.12",
+      "System.Reflection@4.3.0",
+      "System.Reflection.Emit@4.0.1",
+      "System.Reflection.Emit.ILGeneration@4.0.1",
+      "System.Reflection.Emit.Lightweight@4.0.1",
+      "System.Reflection.Extensions@4.3.0",
+      "System.Reflection.Primitives@4.3.0",
+      "System.Reflection.TypeExtensions@4.3.0",
+      "System.Resources.ResourceManager@4.3.0",
+      "System.Runtime@4.3.1",
+      "System.Runtime.Extensions@4.3.0",
+      "System.Runtime.Handles@4.3.0",
+      "System.Runtime.InteropServices@4.3.0",
+      "System.Runtime.InteropServices.RuntimeInformation@4.3.0",
+      "System.Runtime.Loader@4.3.0",
+      "System.Runtime.Numerics@4.3.0",
+      "System.Security.AccessControl@4.7.0",
+      "System.Security.Cryptography.Algorithms@4.3.0",
+      "System.Security.Cryptography.Cng@4.3.0",
+      "System.Security.Cryptography.Csp@4.3.0",
+      "System.Security.Cryptography.Encoding@4.3.0",
+      "System.Security.Cryptography.OpenSsl@4.3.0",
+      "System.Security.Cryptography.Primitives@4.3.0",
+      "System.Security.Cryptography.X509Certificates@4.3.0",
+      "System.Security.Cryptography.Xml@8.0.4",
+      "System.Security.Permissions@4.5.0",
+      "System.Security.Principal.Windows@4.7.0",
+      "System.ServiceProcess.ServiceController@10.0.12",
+      "System.Text.Encoding@4.3.0",
+      "System.Text.Encoding.CodePages@8.0.0",
+      "System.Text.Encoding.Extensions@4.3.0",
+      "System.Text.Encodings.Web@10.0.12",
+      "System.Text.Json@10.0.12",
+      "System.Threading@4.3.0",
+      "System.Threading.RateLimiting@8.0.0",
+      "System.Threading.Tasks@4.3.0",
+      "System.Threading.Thread@4.3.0",
+      "System.Threading.ThreadPool@4.3.0",
+      "System.Xml.ReaderWriter@4.3.0",
+      "System.Xml.XmlDocument@4.3.0",
+      "System.Xml.XPath@4.3.0",
+      "System.Xml.XPath.XmlDocument@4.3.0",
+      "TimeZoneConverter@7.2.0",
+      "xunit.abstractions@2.0.3",
+      "xunit.analyzers@1.18.0",
+      "xunit.assert@2.9.3",
+      "xunit.core@2.9.3",
+      "xunit.extensibility.core@2.9.3",
+      "xunit.extensibility.execution@2.9.3"
+    ],
+    "Ambiguous": [
+      {
+        "Package": "Microsoft.Bcl.Cryptography@10.0.0",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "10.0.0",
+            "Repositories": [
+              "I2cylf2Ru0E",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "1vfvAIBNis8"
+            ]
+          },
+          {
+            "Version": "8.0.0",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "3V-iEa54gBg",
+              "KQePC1Po0Cw",
+              "YVynyM1doTc",
+              "fofnDbVeKj8",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "GbmZ1wv7m34",
+              "UmsqGTniFX8",
+              "nnZCxmT0e4U",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "Microsoft.CodeCoverage@18.10.1",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "18.10.1",
+            "Repositories": [
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "KQePC1Po0Cw",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "UcYlfIYeRTk",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "5fnVUs3KhUQ",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "c-ZslSKCvlA",
+              "HgTQYtsPhVI",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "hwiK_AlaLmU",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "7Bj457wVn6k",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "SAi_FtpErrI",
+              "57Jw1MGSMbU",
+              "Dw1fWArd1bk",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "q1yST8gRYLs",
+              "aonVNTKApL8",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "tKz0kTr_l9Q",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "17.8.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "Microsoft.Extensions.DependencyModel@8.0.2",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "8.0.2",
+            "Repositories": [
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "KQePC1Po0Cw",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "UcYlfIYeRTk",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "5fnVUs3KhUQ",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "c-ZslSKCvlA",
+              "HgTQYtsPhVI",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "hwiK_AlaLmU",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "7Bj457wVn6k",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "SAi_FtpErrI",
+              "57Jw1MGSMbU",
+              "Dw1fWArd1bk",
+              "uMHr66Cmiro",
+              "q1yST8gRYLs",
+              "aonVNTKApL8",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "tKz0kTr_l9Q",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "1.0.3",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "Microsoft.Extensions.Logging.Abstractions@10.0.12",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "10.0.12",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "NuqgNBQFZL0",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "8.0.2",
+            "Repositories": [
+              "KQePC1Po0Cw",
+              "FJTJjTTdH2Y",
+              "UmsqGTniFX8",
+              "oz-q_BNDloo",
+              "3xDLNG0BZ_A"
+            ]
+          },
+          {
+            "Version": "7.0.0",
+            "Repositories": [
+              "2-JckjvABYg"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "Microsoft.Extensions.Primitives@10.0.12",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "10.0.12",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "KQePC1Po0Cw",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "UcYlfIYeRTk",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "5fnVUs3KhUQ",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "c-ZslSKCvlA",
+              "HgTQYtsPhVI",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "hwiK_AlaLmU",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "UmsqGTniFX8",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "7Bj457wVn6k",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "SAi_FtpErrI",
+              "57Jw1MGSMbU",
+              "Dw1fWArd1bk",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "q1yST8gRYLs",
+              "NuqgNBQFZL0",
+              "aonVNTKApL8",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "6.0.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "Microsoft.TestPlatform.ObjectModel@18.10.1",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "18.10.1",
+            "Repositories": [
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "KQePC1Po0Cw",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "UcYlfIYeRTk",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "5fnVUs3KhUQ",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "c-ZslSKCvlA",
+              "HgTQYtsPhVI",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "hwiK_AlaLmU",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "7Bj457wVn6k",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "SAi_FtpErrI",
+              "57Jw1MGSMbU",
+              "Dw1fWArd1bk",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "q1yST8gRYLs",
+              "aonVNTKApL8",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "tKz0kTr_l9Q",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "17.8.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "Microsoft.TestPlatform.TestHost@18.10.1",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "18.10.1",
+            "Repositories": [
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "KQePC1Po0Cw",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "UcYlfIYeRTk",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "5fnVUs3KhUQ",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "c-ZslSKCvlA",
+              "HgTQYtsPhVI",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "hwiK_AlaLmU",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "7Bj457wVn6k",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "SAi_FtpErrI",
+              "57Jw1MGSMbU",
+              "Dw1fWArd1bk",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "q1yST8gRYLs",
+              "aonVNTKApL8",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "tKz0kTr_l9Q",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "17.8.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.CodeDom@6.0.0",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "6.0.0",
+            "Repositories": [
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "KQePC1Po0Cw",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "UcYlfIYeRTk",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "5fnVUs3KhUQ",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "c-ZslSKCvlA",
+              "HgTQYtsPhVI",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "hwiK_AlaLmU",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "7Bj457wVn6k",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "SAi_FtpErrI",
+              "57Jw1MGSMbU",
+              "Dw1fWArd1bk",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "q1yST8gRYLs",
+              "aonVNTKApL8",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "tKz0kTr_l9Q",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "4.7.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Configuration.ConfigurationManager@8.0.1",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "8.0.1",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "3V-iEa54gBg",
+              "KQePC1Po0Cw",
+              "YVynyM1doTc",
+              "fofnDbVeKj8",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "GbmZ1wv7m34",
+              "UmsqGTniFX8",
+              "nnZCxmT0e4U",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "4.5.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Diagnostics.EventLog@10.0.12",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "10.0.12",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "8.0.1",
+            "Repositories": [
+              "3V-iEa54gBg",
+              "KQePC1Po0Cw",
+              "YVynyM1doTc",
+              "fofnDbVeKj8",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "GbmZ1wv7m34",
+              "UmsqGTniFX8",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "NP5MBHbfHLE",
+              "57Jw1MGSMbU",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "nLIakHlCJcc",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "r0JHzn_Izu0",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Management@6.0.1",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "6.0.1",
+            "Repositories": [
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "eLi2pYsCiiI",
+              "KQePC1Po0Cw",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "UcYlfIYeRTk",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "19avtIQaSUE",
+              "I2cylf2Ru0E",
+              "5fnVUs3KhUQ",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "4oDZIvFkdU0",
+              "c-ZslSKCvlA",
+              "HgTQYtsPhVI",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "hwiK_AlaLmU",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "2-JckjvABYg",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "7Bj457wVn6k",
+              "QYFVPZpqhqs",
+              "-vZfPFkGV68",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "SAi_FtpErrI",
+              "57Jw1MGSMbU",
+              "Dw1fWArd1bk",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "q1yST8gRYLs",
+              "aonVNTKApL8",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "tKz0kTr_l9Q",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "3840U_YoB-4",
+              "4JPZiXn7PfA",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "4.7.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Memory@4.6.3",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "4.6.3",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "I2cylf2Ru0E",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "4.5.3",
+            "Repositories": [
+              "MKnjKSUl5Zs"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Reflection.Metadata@10.0.1",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "10.0.1",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "I2cylf2Ru0E",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "1.6.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Runtime.CompilerServices.Unsafe@6.1.2",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "6.1.2",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "I2cylf2Ru0E",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "6.0.0",
+            "Repositories": [
+              "t5WfeOqoOUU",
+              "2-JckjvABYg"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Security.Cryptography.Pkcs@10.0.0",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "10.0.0",
+            "Repositories": [
+              "I2cylf2Ru0E",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "1vfvAIBNis8"
+            ]
+          },
+          {
+            "Version": "8.0.1",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "3V-iEa54gBg",
+              "KQePC1Po0Cw",
+              "YVynyM1doTc",
+              "fofnDbVeKj8",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "GbmZ1wv7m34",
+              "UmsqGTniFX8",
+              "nnZCxmT0e4U",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Security.Cryptography.ProtectedData@8.0.0",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "8.0.0",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "3V-iEa54gBg",
+              "KQePC1Po0Cw",
+              "YVynyM1doTc",
+              "fofnDbVeKj8",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "FJTJjTTdH2Y",
+              "qPsj6TtANmc",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "GbmZ1wv7m34",
+              "UmsqGTniFX8",
+              "nnZCxmT0e4U",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "_EAeB2csTro",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "3xDLNG0BZ_A",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "4.5.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      },
+      {
+        "Package": "System.Threading.Tasks.Extensions@4.6.3",
+        "ResolvedFrom": "TransitiveDependencies",
+        "Resolutions": [
+          {
+            "Version": "4.6.3",
+            "Repositories": [
+              "NRzmaNIsfgE",
+              "2fEdV71a5BA",
+              "3V-iEa54gBg",
+              "Ajd6n0XKyi0",
+              "YVynyM1doTc",
+              "m8JRbf4OATo",
+              "fofnDbVeKj8",
+              "I2cylf2Ru0E",
+              "ZaJmgRYck0g",
+              "uthrkNJX6Ew",
+              "lT6oIf2eMlc",
+              "R-8R-4qqyVc",
+              "lFenJr3qDVw",
+              "ogZVce58mlw",
+              "qPsj6TtANmc",
+              "-SzqNQSQjWo",
+              "PWYeBEQqdHM",
+              "v08UCzijuXQ",
+              "9w78UEilbn4",
+              "GbmZ1wv7m34",
+              "nnZCxmT0e4U",
+              "uVTGd3UCf4c",
+              "HThOZkRB6Yk",
+              "oz-q_BNDloo",
+              "vtTjJADb9Iw",
+              "gick0YJqb5c",
+              "MKnjKSUl5Zs",
+              "QEnMo7lr8p4",
+              "QYFVPZpqhqs",
+              "NP5MBHbfHLE",
+              "a5LVHadQOLE",
+              "57Jw1MGSMbU",
+              "uMHr66Cmiro",
+              "71gdiDvLOsE",
+              "pgaWA85SAcM",
+              "nLIakHlCJcc",
+              "1vfvAIBNis8",
+              "HbMnF2Wm8NA",
+              "3R_O8Z_c79U",
+              "vukgP5V2utw",
+              "rpysItvtbd4",
+              "PTTZc6pHfOQ",
+              "r0JHzn_Izu0",
+              "Z4Jt5UmAWvA",
+              "Q5LekXH0IvQ",
+              "rHBmYVmKA_4"
+            ]
+          },
+          {
+            "Version": "4.3.0",
+            "Repositories": [
+              "t5WfeOqoOUU"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
