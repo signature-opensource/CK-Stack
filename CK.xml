@@ -1,4 +1,4 @@
-<CK MinCKliVersion="0.26.0">
+<CK MinCKliVersion="0.26.0" LockPrefix="refs/ckli-locks">
   <Plugins CompileMode="Release">
     <BranchModel />
     <VersionTag AutoFixRemovableTag="true">
