@@ -1,6 +1,6 @@
-<CK MinCKliVersion="0.26.0" LockPrefix="refs/ckli-locks">
+<CK MinCKliVersion="0.26.0" LTSName="@net8" CKliVersion="0.30.0--ci.2">
   <Plugins CompileMode="Release">
-    <BranchModel />
+    <BranchModel Root="stable" />
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
         <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
@@ -27,249 +27,249 @@
   <Folder Name="Core">
     <Folder Name="Basic">
       <Repository Url="https://github.com/signature-opensource/CK-Core">
-        <VersionTag InfVersion="26.0.0-0" />
+        <VersionTag InfVersion="21.0.0" SupVersion="26.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Configuration">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag InfVersion="0.5.0" SupVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-ActivityMonitor">
-        <VersionTag InfVersion="27.0.0-0" />
+        <VersionTag InfVersion="22.0.0" SupVersion="27.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Metrics">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag InfVersion="0.0.0" SupVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-PerfectEvent">
-        <VersionTag InfVersion="28.0.0-0" />
+        <VersionTag InfVersion="23.0.0" SupVersion="28.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Monitoring">
-        <VersionTag InfVersion="27.0.0-0" />
+        <VersionTag InfVersion="22.0.0" SupVersion="27.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Testing">
-        <VersionTag InfVersion="16.0.0-0" />
+        <VersionTag InfVersion="11.0.0" SupVersion="16.0.0-0" />
       </Repository>
     </Folder>
     <Folder Name="CKomposable">
       <Repository Url="https://github.com/signature-opensource/CK-Abstractions">
-        <VersionTag InfVersion="30.0.0-0" />
+        <VersionTag InfVersion="27.0.0" SupVersion="30.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-EmbeddedResources">
-        <VersionTag InfVersion="3.0.0-0" />
+        <VersionTag InfVersion="1.0.0" SupVersion="3.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-AppIdentity">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag InfVersion="0.6.0" SupVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-BinarySerialization">
-        <VersionTag InfVersion="14.0.0-0" />
+        <VersionTag InfVersion="7.0.0" SupVersion="14.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Globalization">
-        <VersionTag InfVersion="6.0.0-0" />
+        <VersionTag InfVersion="0.8.0" SupVersion="6.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Auth-Abstractions">
-        <VersionTag InfVersion="13.0.0-0" />
+        <VersionTag InfVersion="8.0.0" SupVersion="13.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-CodeGen">
-        <VersionTag InfVersion="16.0.0-0" />
+        <VersionTag InfVersion="11.0.0" SupVersion="16.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Cris-Abstractions">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag InfVersion="0.40.0" SupVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Cris">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag InfVersion="0.33.0" SupVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-ResourceSpace">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag SupVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Globalization-Engine">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag SupVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-AppIdentity-Transport">
-        <VersionTag InfVersion="1.0.0-0" />
+        <VersionTag InfVersion="0.1.0-0" SupVersion="1.0.0-0" />
       </Repository>
     </Folder>
   </Folder>
   <Folder Name="Database">
     <Repository Url="https://github.com/signature-opensource/CK-SqlServer">
-      <VersionTag InfVersion="13.0.0-0" />
+      <VersionTag InfVersion="8.0.0" SupVersion="13.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Dapper">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Database">
-      <VersionTag InfVersion="34.0.0-0" />
+      <VersionTag InfVersion="27.0.0" SupVersion="34.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB">
-      <VersionTag InfVersion="29.0.0-0" />
+      <VersionTag InfVersion="22.0.0" SupVersion="29.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-User-NamedUser">
-      <VersionTag InfVersion="29.0.0-0" />
+      <VersionTag InfVersion="0.0.0" SupVersion="29.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-User-PreferredCulture">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.0.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-GitHub">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-GitLab">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Workspace">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Organization">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.2.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Res-ResPath">
-      <VersionTag InfVersion="12.0.0-0" />
+      <VersionTag InfVersion="5.0.0" SupVersion="12.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber">
-      <VersionTag InfVersion="21.0.0-0" />
+      <VersionTag InfVersion="14.0.0" SupVersion="21.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Actor-ActorEMail">
-      <VersionTag InfVersion="29.0.0-0" />
+      <VersionTag InfVersion="22.0.0" SupVersion="29.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-SqlCKTrait">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-TokenStore">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.29.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.30.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-GuestActor-Acl">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.30.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-User-SimpleInvitation">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.32.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-User-UserPassword">
-      <VersionTag InfVersion="29.0.0-0" />
+      <VersionTag InfVersion="22.0.0" SupVersion="29.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Facebook">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.8.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Twitter">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-WebPage">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.4.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Setup-Dependency">
-      <VersionTag InfVersion="24.0.0-0" />
+      <VersionTag InfVersion="19.0.0" SupVersion="24.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Sqlite">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="9.0.0" SupVersion="16.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser">
-      <VersionTag InfVersion="30.0.0-0" />
+      <VersionTag InfVersion="25.0.0" SupVersion="30.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-SqlServer-Parser-Model">
-      <VersionTag InfVersion="24.0.0-0" />
+      <VersionTag InfVersion="19.0.0" SupVersion="24.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-Globalization">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.0.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-AspNet-Auth">
-      <VersionTag InfVersion="32.0.0-0" />
+      <VersionTag InfVersion="29.1.2" SupVersion="32.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-UserInvitation">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.0.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-WeakActor-PreferredCulture">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DB-User-UserBanned">
-      <VersionTag InfVersion="2.0.0-0" />
+      <VersionTag SupVersion="2.0.0-0" />
     </Repository>
   </Folder>
   <Folder Name="Device">
     <Repository Url="https://github.com/signature-opensource/CK-CommChannel">
-      <VersionTag InfVersion="7.0.0-0" />
+      <VersionTag InfVersion="2.1.0" SupVersion="7.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DeviceModel">
-      <VersionTag InfVersion="15.0.0-0" />
+      <VersionTag InfVersion="8.0.0" SupVersion="15.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-DeviceModel-ByTopic">
-      <VersionTag InfVersion="16.0.0-0" />
+      <VersionTag InfVersion="8.0.0" SupVersion="16.0.0-0" />
     </Repository>
   </Folder>
   <Folder Name="End-of-Life">
     <Repository Url="https://github.com/signature-opensource/CK-StObj">
-      <VersionTag InfVersion="34.0.0-0" />
+      <VersionTag InfVersion="27.0.0" SupVersion="34.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-MQTT">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.25.0" SupVersion="1.0.0-0" />
     </Repository>
   </Folder>
   <Folder Name="Misc">
     <Repository Url="https://github.com/signature-opensource/CK-Mailer">
-      <VersionTag InfVersion="13.0.0-0" />
+      <VersionTag InfVersion="3.0.0" SupVersion="13.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Ais-Net">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.2.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Object-Mixer">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.3.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-H3">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.1.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Template-Fluid">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag SupVersion="1.0.0-0" />
     </Repository>
   </Folder>
   <Folder Name="Observable">
     <Repository Url="https://github.com/signature-opensource/CK-Observable-Domain">
-      <VersionTag InfVersion="19.0.0-0" />
+      <VersionTag InfVersion="9.0.6" SupVersion="19.0.0-0" />
     </Repository>
   </Folder>
   <Folder Name="Sample">
     <Repository Url="https://github.com/signature-opensource/CK-Sample-MultiBinPath">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.21.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Sample-Monitoring">
-      <VersionTag InfVersion="10.0.0-0" />
+      <VersionTag InfVersion="7.0.0" SupVersion="10.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Sample-AspNetAuth">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.13.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Templates">
-      <VersionTag InfVersion="11.0.0-0" />
+      <VersionTag InfVersion="4.0.0" SupVersion="11.0.0-0" />
     </Repository>
   </Folder>
   <Folder Name="Web">
     <Repository Url="https://github.com/signature-opensource/CK-AspNet">
-      <VersionTag InfVersion="22.0.0-0" />
+      <VersionTag InfVersion="15.0.0" SupVersion="22.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-AspNet-Auth">
-      <VersionTag InfVersion="31.0.0-0" />
+      <VersionTag InfVersion="24.0.0" SupVersion="31.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-TypeScript">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.26.2" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Cris-TypeScript">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.50.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Ng-SiteMap">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.33.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Ng-Zorro-Contrib">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.0.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Ng-User-UserProfile">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag InfVersion="0.0.0" SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Ng-Admin">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-UserManagement">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag SupVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-AspNet-ActorChannel">
-      <VersionTag InfVersion="1.0.0-0" />
+      <VersionTag SupVersion="1.0.0-0" />
     </Repository>
   </Folder>
 </CK>
