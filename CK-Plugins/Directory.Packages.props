@@ -3,16 +3,16 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="CKli.ArtifactHandler.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.BranchModel.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.Build.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.CommonFiles.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.HotZone.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.Migration.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.Publish.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.ShallowSolution.Plugin" Version="0.26.2" />
-    <PackageVersion Include="CKli.VersionTag.Plugin" Version="0.26.2" />
+    <PackageVersion Include="CKli.ArtifactHandler.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.BranchModel.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.Build.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.CommonFiles.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.HotZone.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.Migration.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.Publish.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.ShallowSolution.Plugin" Version="$(CKliVersion)" />
+    <PackageVersion Include="CKli.VersionTag.Plugin" Version="$(CKliVersion)" />
 
-    <PackageVersion Include="CKli.Plugins.Core" Version="0.26.2" />
+    <PackageVersion Include="CKli.Plugins.Core" Version="$(CKliVersion)" />
   </ItemGroup>
 </Project>

@@ -3,3 +3,5 @@ Logs/
 .vs/
 .idea/
 CK-Plugins/CKli.Plugins/CKli.CompiledPlugins.cs
+CKli.CompiledPlugins.cs
+CKli.Version.props
