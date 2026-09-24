@@ -4,7 +4,7 @@
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
         <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
-        <Package Name="Microsoft.AspNetCore.*" Version="8.0.0[LockMajor]" />
+        <Package Name="Microsoft.AspNetCore.*" Version="10.0.0[LockMajor]" />
       </Packages>
     </VersionTag>
     <Build DeleteBeforeBuild="$StObjGen" />
