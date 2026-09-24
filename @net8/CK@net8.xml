@@ -1,4 +1,4 @@
-<CK MinCKliVersion="0.26.0" LTSName="@net8" CKliVersion="0.30.0">
+<CK MinCKliVersion="0.26.0" LTSName="@net8" CKliVersion="0.31.0">
   <Plugins CompileMode="Release">
     <BranchModel Root="stable" />
     <VersionTag AutoFixRemovableTag="true">
