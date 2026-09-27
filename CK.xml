@@ -1,6 +1,8 @@
 <CK MinCKliVersion="0.26.0" LockPrefix="refs/ckli-locks">
   <Plugins CompileMode="Release">
-    <BranchModel />
+    <BranchModel Root="stable">
+      <Prerelease Name="juliet" Link="CI" />
+    </BranchModel>
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
         <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
