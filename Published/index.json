@@ -5,6 +5,9 @@
     ],
     "(stable-ci)": [
       "2026.273.0--ci.0"
+    ],
+    "juliet-ci": [
+      "2026.273.0-juliet.0.ci.0"
     ]
   },
   "Deprecated": {
