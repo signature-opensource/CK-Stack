@@ -2,6 +2,9 @@
   "Alive": {
     "(stable)": [
       "2026.268.0"
+    ],
+    "(stable-ci)": [
+      "2026.273.0--ci.0"
     ]
   },
   "Deprecated": {
