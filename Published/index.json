@@ -8,6 +8,9 @@
     ],
     "juliet-ci": [
       "2026.274.0-juliet.0.ci.0"
+    ],
+    "mike-ci": [
+      "2026.275.0-mike.0.ci.0"
     ]
   },
   "Deprecated": {
