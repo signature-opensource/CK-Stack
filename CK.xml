@@ -1,6 +1,7 @@
 <CK MinCKliVersion="0.26.0" LockPrefix="refs/ckli-locks">
   <Plugins CompileMode="Release">
     <BranchModel Root="stable">
+      <Prerelease Name="mike" Link="CI" />
       <Prerelease Name="juliet" Link="CI" />
     </BranchModel>
     <VersionTag AutoFixRemovableTag="true">
