@@ -1,7 +1,7 @@
 {
   "StackUrl": "https://github.com/signature-opensource/CK-Stack",
   "World": "CK",
-  "Version": "2026.273.0-juliet.0.ci.0",
+  "Version": "2026.274.0-juliet.0.ci.0",
   "IsDeprecated": false,
   "Repositories": [
     {
@@ -31,36 +31,43 @@
       "Url": "https://github.com/signature-opensource/CK-AppIdentity",
       "Id": "19avtIQaSUE",
       "Packages": [
-        "CK.AppIdentity@1.0.1--ci.1",
-        "CK.AppIdentity.Abstractions@1.0.1--ci.1",
-        "CK.AppIdentity.Configuration@1.0.1--ci.1",
-        "CK.AppIdentity.Hosting@1.0.1--ci.1"
+        "CK.AppIdentity@2.0.0-juliet.0.ci.15",
+        "CK.AppIdentity.Abstractions@2.0.0-juliet.0.ci.15",
+        "CK.AppIdentity.Configuration@2.0.0-juliet.0.ci.15",
+        "CK.AppIdentity.Hosting@2.0.0-juliet.0.ci.15"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-AppIdentity-Transport",
+      "Id": "rzheU9-ntBE",
+      "Packages": [
+        "CK.AppIdentity.Cris.AuthCenter@2.0.0-juliet.0.ci.10"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-AspNet",
       "Id": "R-8R-4qqyVc",
       "Packages": [
-        "CK.AspNet@22.0.1-juliet.0.ci.2",
-        "CK.AspNet.WebSocket@22.0.1-juliet.0.ci.2",
-        "CK.AspNet.WebSocketChannel@22.0.1-juliet.0.ci.2",
-        "CK.Testing.AspNetServer@22.0.1-juliet.0.ci.2"
+        "CK.AspNet@22.0.1-juliet.0.ci.3",
+        "CK.AspNet.WebSocket@22.0.1-juliet.0.ci.3",
+        "CK.AspNet.WebSocketChannel@22.0.1-juliet.0.ci.3",
+        "CK.Testing.AspNetServer@22.0.1-juliet.0.ci.3"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-AspNet-ActorChannel",
       "Id": "lFenJr3qDVw",
       "Packages": [
-        "CK.AspNet.ActorChannel@2.0.0-juliet.0.ci.3",
-        "CK.Ng.AspNet.ActorChannel@2.0.0-juliet.0.ci.3"
+        "CK.AspNet.ActorChannel@2.0.0-juliet.0.ci.4",
+        "CK.Ng.AspNet.ActorChannel@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-AspNet-Auth",
       "Id": "-vZfPFkGV68",
       "Packages": [
-        "CK.AspNet.Auth@31.0.1-juliet.0.ci.2",
-        "CK.Testing.AspNetServer.Auth@31.0.1-juliet.0.ci.2"
+        "CK.AspNet.Auth@31.0.1-juliet.0.ci.3",
+        "CK.Testing.AspNetServer.Auth@31.0.1-juliet.0.ci.3"
       ]
     },
     {
@@ -74,9 +81,9 @@
       "Url": "https://github.com/signature-opensource/CK-BinarySerialization",
       "Id": "ogZVce58mlw",
       "Packages": [
-        "CK.BinarySerialization@14.0.1-juliet.0.ci.1",
-        "CK.BinarySerialization.IPoco@14.0.1-juliet.0.ci.1",
-        "CK.BinarySerialization.Sliced@14.0.1-juliet.0.ci.1"
+        "CK.BinarySerialization@14.0.1-juliet.0.ci.2",
+        "CK.BinarySerialization.IPoco@14.0.1-juliet.0.ci.2",
+        "CK.BinarySerialization.Sliced@14.0.1-juliet.0.ci.2"
       ]
     },
     {
@@ -114,355 +121,355 @@
       "Url": "https://github.com/signature-opensource/CK-Cris",
       "Id": "PTTZc6pHfOQ",
       "Packages": [
-        "CK.Cris.Auth@2.0.0-juliet.0.ci.5",
-        "CK.Cris.BackgroundExecutor@2.0.0-juliet.0.ci.5",
-        "CK.Cris.DelayedCommand@2.0.0-juliet.0.ci.5",
-        "CK.Cris.Engine@2.0.0-juliet.0.ci.5",
-        "CK.Cris.Executor@2.0.0-juliet.0.ci.5",
-        "CK.Cris.Executor.Engine@2.0.0-juliet.0.ci.5",
-        "CK.Cris.HttpSender@2.0.0-juliet.0.ci.5"
+        "CK.Cris.Auth@2.0.0-juliet.0.ci.9",
+        "CK.Cris.BackgroundExecutor@2.0.0-juliet.0.ci.9",
+        "CK.Cris.DelayedCommand@2.0.0-juliet.0.ci.9",
+        "CK.Cris.Engine@2.0.0-juliet.0.ci.9",
+        "CK.Cris.Executor@2.0.0-juliet.0.ci.9",
+        "CK.Cris.Executor.Engine@2.0.0-juliet.0.ci.9",
+        "CK.Cris.HttpSender@2.0.0-juliet.0.ci.9"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Cris-Abstractions",
       "Id": "NuqgNBQFZL0",
       "Packages": [
-        "CK.Cris@2.0.0-juliet.0.ci.5",
-        "CK.IO.Actor@2.0.0-juliet.0.ci.5",
-        "CK.IO.Auth@2.0.0-juliet.0.ci.5",
-        "CK.IO.Auth.Basic@2.0.0-juliet.0.ci.5",
-        "CK.IO.DelayedCommand@2.0.0-juliet.0.ci.5"
+        "CK.Cris@2.0.0-juliet.0.ci.8",
+        "CK.IO.Actor@2.0.0-juliet.0.ci.8",
+        "CK.IO.Auth@2.0.0-juliet.0.ci.8",
+        "CK.IO.Auth.Basic@2.0.0-juliet.0.ci.8",
+        "CK.IO.DelayedCommand@2.0.0-juliet.0.ci.8"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Cris-TypeScript",
       "Id": "m8JRbf4OATo",
       "Packages": [
-        "CK.Cris.AspNet@2.0.0-juliet.0.ci.3",
-        "CK.Cris.AspNet.Auth.Basic@2.0.0-juliet.0.ci.3",
-        "CK.Cris.AspNet.Engine@2.0.0-juliet.0.ci.3",
-        "CK.Cris.TypeScript@2.0.0-juliet.0.ci.3",
-        "CK.Cris.WebApi@2.0.0-juliet.0.ci.3",
-        "CK.Ng.Cris.AspNet@2.0.0-juliet.0.ci.3",
-        "CK.Ng.Cris.AspNet.Auth@2.0.0-juliet.0.ci.3"
+        "CK.Cris.AspNet@2.0.0-juliet.0.ci.4",
+        "CK.Cris.AspNet.Auth.Basic@2.0.0-juliet.0.ci.4",
+        "CK.Cris.AspNet.Engine@2.0.0-juliet.0.ci.4",
+        "CK.Cris.TypeScript@2.0.0-juliet.0.ci.4",
+        "CK.Cris.WebApi@2.0.0-juliet.0.ci.4",
+        "CK.Ng.Cris.AspNet@2.0.0-juliet.0.ci.4",
+        "CK.Ng.Cris.AspNet.Auth@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB",
       "Id": "nLIakHlCJcc",
       "Packages": [
-        "CK.DB.Acl@30.0.0-juliet.0.ci.16",
-        "CK.DB.Acl.AclType@30.0.0-juliet.0.ci.16",
-        "CK.DB.Acl.AclType.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Acl.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Actor@30.0.0-juliet.0.ci.16",
-        "CK.DB.Actor.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Auth@30.0.0-juliet.0.ci.16",
-        "CK.DB.Auth.AuthScope@30.0.0-juliet.0.ci.16",
-        "CK.DB.Auth.AuthScope.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Auth.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Culture@30.0.0-juliet.0.ci.16",
-        "CK.DB.Culture.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Group.SimpleNaming@30.0.0-juliet.0.ci.16",
-        "CK.DB.Group.SimpleNaming.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.HZone@30.0.0-juliet.0.ci.16",
-        "CK.DB.HZone.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.MCResHtml@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.MCResHtml.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.MCResString@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.MCResString.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.MCResText@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.MCResText.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResHtml@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResHtml.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResName@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResName.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResString@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResString.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResText@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.ResText.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Res.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.AuthScope@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.AuthScope.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.EMailColumns@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.EMailColumns.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.Profile@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.Profile.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.RefreshToken@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.RefreshToken.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserGoogle.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserOidc@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserOidc.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserSimpleCode@30.0.0-juliet.0.ci.16",
-        "CK.DB.User.UserSimpleCode.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Zone@30.0.0-juliet.0.ci.16",
-        "CK.DB.Zone.SimpleNaming@30.0.0-juliet.0.ci.16",
-        "CK.DB.Zone.SimpleNaming.Tests@30.0.0-juliet.0.ci.16",
-        "CK.DB.Zone.Tests@30.0.0-juliet.0.ci.16"
+        "CK.DB.Acl@30.0.0-juliet.0.ci.19",
+        "CK.DB.Acl.AclType@30.0.0-juliet.0.ci.19",
+        "CK.DB.Acl.AclType.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Acl.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Actor@30.0.0-juliet.0.ci.19",
+        "CK.DB.Actor.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Auth@30.0.0-juliet.0.ci.19",
+        "CK.DB.Auth.AuthScope@30.0.0-juliet.0.ci.19",
+        "CK.DB.Auth.AuthScope.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Auth.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Culture@30.0.0-juliet.0.ci.19",
+        "CK.DB.Culture.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Group.SimpleNaming@30.0.0-juliet.0.ci.19",
+        "CK.DB.Group.SimpleNaming.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.HZone@30.0.0-juliet.0.ci.19",
+        "CK.DB.HZone.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.MCResHtml@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.MCResHtml.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.MCResString@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.MCResString.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.MCResText@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.MCResText.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResHtml@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResHtml.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResName@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResName.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResString@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResString.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResText@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.ResText.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Res.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.AuthScope@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.AuthScope.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.EMailColumns@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.EMailColumns.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.Profile@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.Profile.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.RefreshToken@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.RefreshToken.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserGoogle.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserOidc@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserOidc.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserSimpleCode@30.0.0-juliet.0.ci.19",
+        "CK.DB.User.UserSimpleCode.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Zone@30.0.0-juliet.0.ci.19",
+        "CK.DB.Zone.SimpleNaming@30.0.0-juliet.0.ci.19",
+        "CK.DB.Zone.SimpleNaming.Tests@30.0.0-juliet.0.ci.19",
+        "CK.DB.Zone.Tests@30.0.0-juliet.0.ci.19"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Actor-ActorEMail",
       "Id": "Q5LekXH0IvQ",
       "Packages": [
-        "CK.DB.Actor.ActorEMail@30.0.0-juliet.0.ci.3",
-        "CK.DB.Actor.ActorEMail.NonUnique@30.0.0-juliet.0.ci.3",
-        "CK.DB.Actor.ActorEMail.NonUnique.Tests@30.0.0-juliet.0.ci.3",
-        "CK.DB.Actor.ActorEMail.Tests@30.0.0-juliet.0.ci.3"
+        "CK.DB.Actor.ActorEMail@30.0.0-juliet.0.ci.4",
+        "CK.DB.Actor.ActorEMail.NonUnique@30.0.0-juliet.0.ci.4",
+        "CK.DB.Actor.ActorEMail.NonUnique.Tests@30.0.0-juliet.0.ci.4",
+        "CK.DB.Actor.ActorEMail.Tests@30.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber",
       "Id": "gick0YJqb5c",
       "Packages": [
-        "CK.DB.Actor.ActorPhoneNumber@22.0.0-juliet.0.ci.3",
-        "CK.DB.Actor.ActorPhoneNumber.Tests@22.0.0-juliet.0.ci.3"
+        "CK.DB.Actor.ActorPhoneNumber@22.0.0-juliet.0.ci.4",
+        "CK.DB.Actor.ActorPhoneNumber.Tests@22.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-AspNet-Auth",
       "Id": "nnZCxmT0e4U",
       "Packages": [
-        "CK.DB.AspNet.Auth@33.0.0-juliet.0.ci.3"
+        "CK.DB.AspNet.Auth@33.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Facebook",
       "Id": "3V-iEa54gBg",
       "Packages": [
-        "CK.DB.User.UserFacebook@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserFacebook.AuthScope@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserFacebook.AuthScope.Tests@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserFacebook.Tests@17.0.0-juliet.0.ci.3"
+        "CK.DB.User.UserFacebook@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserFacebook.AuthScope@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserFacebook.AuthScope.Tests@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserFacebook.Tests@17.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-GitHub",
       "Id": "vukgP5V2utw",
       "Packages": [
-        "CK.DB.User.UserGitHub@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitHub.AuthScope@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitHub.AuthScope.Tests@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitHub.RefreshToken@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitHub.RefreshToken.Tests@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitHub.Tests@17.0.0-juliet.0.ci.3"
+        "CK.DB.User.UserGitHub@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitHub.AuthScope@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitHub.AuthScope.Tests@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitHub.RefreshToken@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitHub.RefreshToken.Tests@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitHub.Tests@17.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-GitLab",
       "Id": "uMHr66Cmiro",
       "Packages": [
-        "CK.DB.User.UserGitLab@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitLab.AuthScope@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitLab.AuthScope.Tests@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserGitLab.Tests@17.0.0-juliet.0.ci.3"
+        "CK.DB.User.UserGitLab@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitLab.AuthScope@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitLab.AuthScope.Tests@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserGitLab.Tests@17.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Globalization",
       "Id": "qPsj6TtANmc",
       "Packages": [
-        "CK.DB.Globalization@2.0.0-juliet.0.ci.5",
-        "CK.DB.Globalization.Tests@2.0.0-juliet.0.ci.5",
-        "CK.IO.Globalization@2.0.0-juliet.0.ci.5"
+        "CK.DB.Globalization@2.0.0-juliet.0.ci.8",
+        "CK.DB.Globalization.Tests@2.0.0-juliet.0.ci.8",
+        "CK.IO.Globalization@2.0.0-juliet.0.ci.8"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-GuestActor",
       "Id": "a5LVHadQOLE",
       "Packages": [
-        "CK.DB.GuestActor@2.0.0-juliet.0.ci.3",
-        "CK.DB.GuestActor.Tests@2.0.0-juliet.0.ci.3"
+        "CK.DB.GuestActor@2.0.0-juliet.0.ci.4",
+        "CK.DB.GuestActor.Tests@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-GuestActor-Acl",
       "Id": "QEnMo7lr8p4",
       "Packages": [
-        "CK.DB.GuestActor.Acl@2.0.0-juliet.0.ci.3",
-        "CK.DB.GuestActor.Acl.Tests@2.0.0-juliet.0.ci.3"
+        "CK.DB.GuestActor.Acl@2.0.0-juliet.0.ci.4",
+        "CK.DB.GuestActor.Acl.Tests@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Organization",
       "Id": "vtTjJADb9Iw",
       "Packages": [
-        "CK.DB.Organization@2.0.0-juliet.0.ci.2",
-        "CK.DB.Organization.Tests@2.0.0-juliet.0.ci.2"
+        "CK.DB.Organization@2.0.0-juliet.0.ci.3",
+        "CK.DB.Organization.Tests@2.0.0-juliet.0.ci.3"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Res-ResPath",
       "Id": "PWYeBEQqdHM",
       "Packages": [
-        "CK.DB.Res.ResPath@13.0.0-juliet.0.ci.3",
-        "CK.DB.Res.ResPath.Tests@13.0.0-juliet.0.ci.3"
+        "CK.DB.Res.ResPath@13.0.0-juliet.0.ci.4",
+        "CK.DB.Res.ResPath.Tests@13.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-SqlCKTrait",
       "Id": "rpysItvtbd4",
       "Packages": [
-        "CK.DB.SqlCKTrait@17.0.0-juliet.0.ci.3",
-        "CK.DB.SqlCKTrait.Tests@17.0.0-juliet.0.ci.3"
+        "CK.DB.SqlCKTrait@17.0.0-juliet.0.ci.4",
+        "CK.DB.SqlCKTrait.Tests@17.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-TokenStore",
       "Id": "v08UCzijuXQ",
       "Packages": [
-        "CK.DB.TokenStore@2.0.0-juliet.0.ci.3",
-        "CK.DB.TokenStore.Tests@2.0.0-juliet.0.ci.3"
+        "CK.DB.TokenStore@2.0.0-juliet.0.ci.4",
+        "CK.DB.TokenStore.Tests@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Twitter",
       "Id": "fofnDbVeKj8",
       "Packages": [
-        "CK.DB.User.UserTwitter@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserTwitter.AccessToken@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserTwitter.AccessToken.Tests@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserTwitter.AuthScope@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserTwitter.AuthScope.Tests@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserTwitter.ScreenName@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserTwitter.ScreenName.Tests@17.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserTwitter.Tests@17.0.0-juliet.0.ci.3"
+        "CK.DB.User.UserTwitter@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserTwitter.AccessToken@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserTwitter.AccessToken.Tests@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserTwitter.AuthScope@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserTwitter.AuthScope.Tests@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserTwitter.ScreenName@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserTwitter.ScreenName.Tests@17.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserTwitter.Tests@17.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-NamedUser",
       "Id": "HThOZkRB6Yk",
       "Packages": [
-        "CK.DB.User.NamedUser@30.0.0-juliet.0.ci.3",
-        "CK.IO.User.NamedUser@30.0.0-juliet.0.ci.3"
+        "CK.DB.User.NamedUser@30.0.0-juliet.0.ci.4",
+        "CK.IO.User.NamedUser@30.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-PreferredCulture",
       "Id": "GbmZ1wv7m34",
       "Packages": [
-        "CK.DB.User.PreferredCulture@2.0.0-juliet.0.ci.3",
-        "CK.IO.User.PreferredCulture@2.0.0-juliet.0.ci.3"
+        "CK.DB.User.PreferredCulture@2.0.0-juliet.0.ci.4",
+        "CK.IO.User.PreferredCulture@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-SimpleInvitation",
       "Id": "YVynyM1doTc",
       "Packages": [
-        "CK.DB.User.SimpleInvitation@2.0.0-juliet.0.ci.3",
-        "CK.DB.User.SimpleInvitation.Tests@2.0.0-juliet.0.ci.3"
+        "CK.DB.User.SimpleInvitation@2.0.0-juliet.0.ci.4",
+        "CK.DB.User.SimpleInvitation.Tests@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-UserBanned",
       "Id": "57Jw1MGSMbU",
       "Packages": [
-        "CK.DB.User.UserBanned@3.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserPassword.Banned@3.0.0-juliet.0.ci.3",
-        "CK.IO.User.UserBanned@3.0.0-juliet.0.ci.3"
+        "CK.DB.User.UserBanned@3.0.0-juliet.0.ci.5",
+        "CK.DB.User.UserPassword.Banned@3.0.0-juliet.0.ci.5",
+        "CK.IO.User.UserBanned@3.0.0-juliet.0.ci.5"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-UserPassword",
       "Id": "uthrkNJX6Ew",
       "Packages": [
-        "CK.DB.User.UserPassword@30.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserPassword.EMailLogin@30.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserPassword.Reset@30.0.0-juliet.0.ci.3",
-        "CK.DB.User.UserPassword.Tests@30.0.0-juliet.0.ci.3",
-        "CK.IO.User.UserPassword@30.0.0-juliet.0.ci.3",
-        "CK.IO.User.UserPassword.Reset@30.0.0-juliet.0.ci.3"
+        "CK.DB.User.UserPassword@30.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserPassword.EMailLogin@30.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserPassword.Reset@30.0.0-juliet.0.ci.4",
+        "CK.DB.User.UserPassword.Tests@30.0.0-juliet.0.ci.4",
+        "CK.IO.User.UserPassword@30.0.0-juliet.0.ci.4",
+        "CK.IO.User.UserPassword.Reset@30.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-UserInvitation",
       "Id": "3R_O8Z_c79U",
       "Packages": [
-        "CK.DB.UserInvitation@2.0.0-juliet.0.ci.3",
-        "CK.DB.UserInvitation.Tests@2.0.0-juliet.0.ci.3",
-        "CK.IO.UserInvitation@2.0.0-juliet.0.ci.3"
+        "CK.DB.UserInvitation@2.0.0-juliet.0.ci.4",
+        "CK.DB.UserInvitation.Tests@2.0.0-juliet.0.ci.4",
+        "CK.IO.UserInvitation@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-WeakActor",
       "Id": "HbMnF2Wm8NA",
       "Packages": [
-        "CK.DB.Actor.WeakActor@2.0.0-juliet.0.ci.12",
-        "CK.DB.Actor.WeakActor.Tests@2.0.0-juliet.0.ci.12",
-        "CK.DB.HZone.WeakActor@2.0.0-juliet.0.ci.12",
-        "CK.DB.HZone.WeakActor.SimpleNaming.Tests@2.0.0-juliet.0.ci.12",
-        "CK.DB.HZone.WeakActor.Tests@2.0.0-juliet.0.ci.12",
-        "CK.DB.Zone.WeakActor@2.0.0-juliet.0.ci.12",
-        "CK.DB.Zone.WeakActor.SimpleNaming@2.0.0-juliet.0.ci.12",
-        "CK.DB.Zone.WeakActor.SimpleNaming.Tests@2.0.0-juliet.0.ci.12",
-        "CK.DB.Zone.WeakActor.Tests@2.0.0-juliet.0.ci.12"
+        "CK.DB.Actor.WeakActor@2.0.0-juliet.0.ci.13",
+        "CK.DB.Actor.WeakActor.Tests@2.0.0-juliet.0.ci.13",
+        "CK.DB.HZone.WeakActor@2.0.0-juliet.0.ci.13",
+        "CK.DB.HZone.WeakActor.SimpleNaming.Tests@2.0.0-juliet.0.ci.13",
+        "CK.DB.HZone.WeakActor.Tests@2.0.0-juliet.0.ci.13",
+        "CK.DB.Zone.WeakActor@2.0.0-juliet.0.ci.13",
+        "CK.DB.Zone.WeakActor.SimpleNaming@2.0.0-juliet.0.ci.13",
+        "CK.DB.Zone.WeakActor.SimpleNaming.Tests@2.0.0-juliet.0.ci.13",
+        "CK.DB.Zone.WeakActor.Tests@2.0.0-juliet.0.ci.13"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-WeakActor-PreferredCulture",
       "Id": "rHBmYVmKA_4",
       "Packages": [
-        "CK.DB.WeakActor.PreferredCulture@2.0.0-juliet.0.ci.2",
-        "CK.IO.WeakActor.PreferredCulture@2.0.0-juliet.0.ci.2"
+        "CK.DB.WeakActor.PreferredCulture@2.0.0-juliet.0.ci.3",
+        "CK.IO.WeakActor.PreferredCulture@2.0.0-juliet.0.ci.3"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-WebPage",
       "Id": "r0JHzn_Izu0",
       "Packages": [
-        "CK.DB.HWorkspace@1.0.1-juliet.0.ci.3",
-        "CK.DB.HWorkspace.Page@1.0.1-juliet.0.ci.3",
-        "CK.DB.HWorkspace.Page.Tests@1.0.1-juliet.0.ci.3",
-        "CK.DB.HWorkspace.Tests@1.0.1-juliet.0.ci.3",
-        "CK.DB.WebPage@1.0.1-juliet.0.ci.3",
-        "CK.DB.WebPage.Tests@1.0.1-juliet.0.ci.3",
-        "CK.DB.Workspace.Page@1.0.1-juliet.0.ci.3",
-        "CK.DB.Workspace.Page.Tests@1.0.1-juliet.0.ci.3"
+        "CK.DB.HWorkspace@2.0.0-juliet.0.ci.4",
+        "CK.DB.HWorkspace.Page@2.0.0-juliet.0.ci.4",
+        "CK.DB.HWorkspace.Page.Tests@2.0.0-juliet.0.ci.4",
+        "CK.DB.HWorkspace.Tests@2.0.0-juliet.0.ci.4",
+        "CK.DB.WebPage@2.0.0-juliet.0.ci.4",
+        "CK.DB.WebPage.Tests@2.0.0-juliet.0.ci.4",
+        "CK.DB.Workspace.Page@2.0.0-juliet.0.ci.4",
+        "CK.DB.Workspace.Page.Tests@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Workspace",
       "Id": "71gdiDvLOsE",
       "Packages": [
-        "CK.Cris.Workspace@17.0.0-juliet.0.ci.4",
-        "CK.DB.Workspace@17.0.0-juliet.0.ci.4",
-        "CK.DB.Workspace.Tests@17.0.0-juliet.0.ci.4",
-        "CK.IO.UserProfile.Workspace@17.0.0-juliet.0.ci.4",
-        "CK.IO.Workspace@17.0.0-juliet.0.ci.4"
+        "CK.Cris.Workspace@17.0.0-juliet.0.ci.5",
+        "CK.DB.Workspace@17.0.0-juliet.0.ci.5",
+        "CK.DB.Workspace.Tests@17.0.0-juliet.0.ci.5",
+        "CK.IO.UserProfile.Workspace@17.0.0-juliet.0.ci.5",
+        "CK.IO.Workspace@17.0.0-juliet.0.ci.5"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Database",
       "Id": "lT6oIf2eMlc",
       "Packages": [
-        "CK.DB.Tests.NUnit@35.0.0-juliet.0.ci.5",
-        "CK.Setupable.Engine@35.0.0-juliet.0.ci.5",
-        "CK.Setupable.Model@35.0.0-juliet.0.ci.5",
-        "CK.Setupable.Runtime@35.0.0-juliet.0.ci.5",
-        "CK.SqlServer.Setup.Engine@35.0.0-juliet.0.ci.5",
-        "CK.SqlServer.Setup.Model@35.0.0-juliet.0.ci.5",
-        "CK.SqlServer.Setup.Runtime@35.0.0-juliet.0.ci.5",
-        "CK.Testing.SqlServerEngine@35.0.0-juliet.0.ci.5"
+        "CK.DB.Tests.NUnit@35.0.0-juliet.0.ci.8",
+        "CK.Setupable.Engine@35.0.0-juliet.0.ci.8",
+        "CK.Setupable.Model@35.0.0-juliet.0.ci.8",
+        "CK.Setupable.Runtime@35.0.0-juliet.0.ci.8",
+        "CK.SqlServer.Setup.Engine@35.0.0-juliet.0.ci.8",
+        "CK.SqlServer.Setup.Model@35.0.0-juliet.0.ci.8",
+        "CK.SqlServer.Setup.Runtime@35.0.0-juliet.0.ci.8",
+        "CK.Testing.SqlServerEngine@35.0.0-juliet.0.ci.8"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DeviceModel",
       "Id": "4JPZiXn7PfA",
       "Packages": [
-        "CK.Cris.DeviceModel@16.0.0-juliet.0.ci.3",
-        "CK.DeviceModel@16.0.0-juliet.0.ci.3",
-        "CK.DeviceModel.Configuration@16.0.0-juliet.0.ci.3",
-        "CK.IO.DeviceModel@16.0.0-juliet.0.ci.3"
+        "CK.Cris.DeviceModel@16.0.0-juliet.0.ci.4",
+        "CK.DeviceModel@16.0.0-juliet.0.ci.4",
+        "CK.DeviceModel.Configuration@16.0.0-juliet.0.ci.4",
+        "CK.IO.DeviceModel@16.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DeviceModel-ByTopic",
       "Id": "9w78UEilbn4",
       "Packages": [
-        "CK.DeviceModel.ByTopic@17.0.0-juliet.0.ci.3",
-        "CK.IO.DeviceModel.ByTopic@17.0.0-juliet.0.ci.3"
+        "CK.DeviceModel.ByTopic@17.0.0-juliet.0.ci.4",
+        "CK.IO.DeviceModel.ByTopic@17.0.0-juliet.0.ci.4"
       ]
     },
     {
@@ -485,8 +492,8 @@
       "Url": "https://github.com/signature-opensource/CK-Globalization-Engine",
       "Id": "2fEdV71a5BA",
       "Packages": [
-        "CK.Globalization.Engine@1.0.1-juliet.0.ci.1",
-        "CK.Globalization.StObj@1.0.1-juliet.0.ci.1"
+        "CK.Globalization.Engine@1.0.1-juliet.0.ci.2",
+        "CK.Globalization.StObj@1.0.1-juliet.0.ci.2"
       ]
     },
     {
@@ -501,29 +508,29 @@
       "Url": "https://github.com/signature-opensource/CK-MQTT",
       "Id": "4oDZIvFkdU0",
       "Packages": [
-        "CK.MQTT.Client@1.0.1-juliet.0.ci.1",
-        "CK.MQTT.LocalMQTTDemiServer@1.0.1-juliet.0.ci.1",
-        "CK.MQTT.LowLevelClient@1.0.1-juliet.0.ci.1",
-        "CK.MQTT.Server@1.0.1-juliet.0.ci.1"
+        "CK.MQTT.Client@1.0.1-juliet.0.ci.2",
+        "CK.MQTT.LocalMQTTDemiServer@1.0.1-juliet.0.ci.2",
+        "CK.MQTT.LowLevelClient@1.0.1-juliet.0.ci.2",
+        "CK.MQTT.Server@1.0.1-juliet.0.ci.2"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Mailer",
       "Id": "I2cylf2Ru0E",
       "Packages": [
-        "CK.Mailer@13.0.1-juliet.0.ci.2",
-        "CK.Mailer.MailKit@13.0.1-juliet.0.ci.2"
+        "CK.Mailer@13.0.1-juliet.0.ci.3",
+        "CK.Mailer.MailKit@13.0.1-juliet.0.ci.3"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Metrics",
       "Id": "2-JckjvABYg",
       "Packages": [
-        "CK.AppIdentity.Monitoring.Metrics@1.0.1-juliet.0.ci.2",
-        "CK.AppIdentity.Monitoring.Metrics.Csv@1.0.1-juliet.0.ci.2",
-        "CK.AppIdentity.Monitoring.Metrics.InfluxDb@1.0.1-juliet.0.ci.2",
-        "CK.Metrics@1.0.1-juliet.0.ci.2",
-        "CK.Monitoring.Metrics@1.0.1-juliet.0.ci.2"
+        "CK.AppIdentity.Monitoring.Metrics@1.0.1-juliet.0.ci.3",
+        "CK.AppIdentity.Monitoring.Metrics.Csv@1.0.1-juliet.0.ci.3",
+        "CK.AppIdentity.Monitoring.Metrics.InfluxDb@1.0.1-juliet.0.ci.3",
+        "CK.Metrics@1.0.1-juliet.0.ci.3",
+        "CK.Monitoring.Metrics@1.0.1-juliet.0.ci.3"
       ]
     },
     {
@@ -538,68 +545,68 @@
       "Url": "https://github.com/signature-opensource/CK-Ng-Admin",
       "Id": "1vfvAIBNis8",
       "Packages": [
-        "CK.Ng.Admin@1.0.1-juliet.0.ci.3",
-        "CK.Ng.Admin.UserManagement@1.0.1-juliet.0.ci.3",
-        "CK.Ng.Admin.UserManagement.UserBanned@1.0.1-juliet.0.ci.3",
-        "CK.Ng.Admin.UserManagement.UserInvitation@1.0.1-juliet.0.ci.3"
+        "CK.Ng.Admin@2.0.0-juliet.0.ci.4",
+        "CK.Ng.Admin.UserManagement@2.0.0-juliet.0.ci.4",
+        "CK.Ng.Admin.UserManagement.UserBanned@2.0.0-juliet.0.ci.4",
+        "CK.Ng.Admin.UserManagement.UserInvitation@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-SiteMap",
       "Id": "Z4Jt5UmAWvA",
       "Packages": [
-        "CK.IO.Ng.SiteMap@2.0.0-juliet.0.ci.2",
-        "CK.Ng.SiteMap@2.0.0-juliet.0.ci.2"
+        "CK.IO.Ng.SiteMap@2.0.0-juliet.0.ci.3",
+        "CK.Ng.SiteMap@2.0.0-juliet.0.ci.3"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-User-UserProfile",
       "Id": "QYFVPZpqhqs",
       "Packages": [
-        "CK.Ng.UserProfile@2.0.0-juliet.0.ci.2",
-        "CK.Ng.UserProfile.NamedUser@2.0.0-juliet.0.ci.2",
-        "CK.Ng.UserProfile.PreferredCulture@2.0.0-juliet.0.ci.2",
-        "CK.Ng.UserProfile.UserBanned@2.0.0-juliet.0.ci.2",
-        "CK.Ng.UserProfile.UserPassword@2.0.0-juliet.0.ci.2",
-        "CK.Ng.UserProfile.UserPassword.Lost@2.0.0-juliet.0.ci.2",
-        "CK.Ng.UserProfile.UserPassword.Reset@2.0.0-juliet.0.ci.2",
-        "CK.Ng.UserProfile.Workspace@2.0.0-juliet.0.ci.2"
+        "CK.Ng.UserProfile@2.0.0-juliet.0.ci.3",
+        "CK.Ng.UserProfile.NamedUser@2.0.0-juliet.0.ci.3",
+        "CK.Ng.UserProfile.PreferredCulture@2.0.0-juliet.0.ci.3",
+        "CK.Ng.UserProfile.UserBanned@2.0.0-juliet.0.ci.3",
+        "CK.Ng.UserProfile.UserPassword@2.0.0-juliet.0.ci.3",
+        "CK.Ng.UserProfile.UserPassword.Lost@2.0.0-juliet.0.ci.3",
+        "CK.Ng.UserProfile.UserPassword.Reset@2.0.0-juliet.0.ci.3",
+        "CK.Ng.UserProfile.Workspace@2.0.0-juliet.0.ci.3"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-Zorro-Contrib",
       "Id": "NRzmaNIsfgE",
       "Packages": [
-        "CK.Ng.Zorro.BackOffice@2.0.0-juliet.0.ci.3",
-        "CK.Ng.Zorro.Basic@2.0.0-juliet.0.ci.3",
-        "CK.Ng.Zorro.Breadcrumb@2.0.0-juliet.0.ci.3"
+        "CK.Ng.Zorro.BackOffice@2.0.0-juliet.0.ci.4",
+        "CK.Ng.Zorro.Basic@2.0.0-juliet.0.ci.4",
+        "CK.Ng.Zorro.Breadcrumb@2.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Object-Mixer",
       "Id": "3840U_YoB-4",
       "Packages": [
-        "CK.Object.Mixer@1.0.1-juliet.0.ci.2",
-        "CK.Object.Predicate@1.0.1-juliet.0.ci.2",
-        "CK.Object.Processor@1.0.1-juliet.0.ci.2",
-        "CK.Object.Transform@1.0.1-juliet.0.ci.2"
+        "CK.Object.Mixer@1.0.1-juliet.0.ci.3",
+        "CK.Object.Predicate@1.0.1-juliet.0.ci.3",
+        "CK.Object.Processor@1.0.1-juliet.0.ci.3",
+        "CK.Object.Transform@1.0.1-juliet.0.ci.3"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Observable-Domain",
       "Id": "pgaWA85SAcM",
       "Packages": [
-        "CK.IO.ObservableDevice@20.0.0-juliet.0.ci.3",
-        "CK.Ng.ObservableDomain.SignalR@20.0.0-juliet.0.ci.3",
-        "CK.Ng.ObservableDomain.WebSocket@20.0.0-juliet.0.ci.3",
-        "CK.Observable.Cris@20.0.0-juliet.0.ci.3",
-        "CK.Observable.Device@20.0.0-juliet.0.ci.3",
-        "CK.Observable.Domain@20.0.0-juliet.0.ci.3",
-        "CK.Observable.League@20.0.0-juliet.0.ci.3",
-        "CK.Observable.SignalRWatcher@20.0.0-juliet.0.ci.3",
-        "CK.Observable.WebSocketWatcher@20.0.0-juliet.0.ci.3",
-        "CK.TS.ObservableDomain@20.0.0-juliet.0.ci.3",
-        "CK.TS.ObservableDomain.DualCasing@20.0.0-juliet.0.ci.3"
+        "CK.IO.ObservableDevice@20.0.0-juliet.0.ci.4",
+        "CK.Ng.ObservableDomain.SignalR@20.0.0-juliet.0.ci.4",
+        "CK.Ng.ObservableDomain.WebSocket@20.0.0-juliet.0.ci.4",
+        "CK.Observable.Cris@20.0.0-juliet.0.ci.4",
+        "CK.Observable.Device@20.0.0-juliet.0.ci.4",
+        "CK.Observable.Domain@20.0.0-juliet.0.ci.4",
+        "CK.Observable.League@20.0.0-juliet.0.ci.4",
+        "CK.Observable.SignalRWatcher@20.0.0-juliet.0.ci.4",
+        "CK.Observable.WebSocketWatcher@20.0.0-juliet.0.ci.4",
+        "CK.TS.ObservableDomain@20.0.0-juliet.0.ci.4",
+        "CK.TS.ObservableDomain.DualCasing@20.0.0-juliet.0.ci.4"
       ]
     },
     {
@@ -613,10 +620,10 @@
       "Url": "https://github.com/signature-opensource/CK-ResourceSpace",
       "Id": "Dw1fWArd1bk",
       "Packages": [
-        "CK.EmbeddedResources.Globalization@1.0.1-juliet.0.ci.1",
-        "CK.ResourceSpace@1.0.1-juliet.0.ci.1",
-        "CK.ResourceSpace.Assets@1.0.1-juliet.0.ci.1",
-        "CK.ResourceSpace.Globalization@1.0.1-juliet.0.ci.1"
+        "CK.EmbeddedResources.Globalization@1.0.1-juliet.0.ci.2",
+        "CK.ResourceSpace@1.0.1-juliet.0.ci.2",
+        "CK.ResourceSpace.Assets@1.0.1-juliet.0.ci.2",
+        "CK.ResourceSpace.Globalization@1.0.1-juliet.0.ci.2"
       ]
     },
     {
@@ -638,7 +645,7 @@
       "Url": "https://github.com/signature-opensource/CK-SqlServer-Dapper",
       "Id": "_EAeB2csTro",
       "Packages": [
-        "CK.SqlServer.Dapper@16.0.1-juliet.0.ci.1"
+        "CK.SqlServer.Dapper@17.0.0-juliet.0.ci.4"
       ]
     },
     {
@@ -661,43 +668,43 @@
       "Url": "https://github.com/signature-opensource/CK-Sqlite",
       "Id": "MKnjKSUl5Zs",
       "Packages": [
-        "CK.Sqlite.Engine@17.0.0-juliet.0.ci.3",
-        "CK.Sqlite.Model@17.0.0-juliet.0.ci.3",
-        "CK.Testing.SqliteEngine@17.0.0-juliet.0.ci.3"
+        "CK.Sqlite.Engine@17.0.0-juliet.0.ci.4",
+        "CK.Sqlite.Model@17.0.0-juliet.0.ci.4",
+        "CK.Testing.SqliteEngine@17.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-StObj",
       "Id": "-SzqNQSQjWo",
       "Packages": [
-        "CK.AppBuilder@34.0.1-juliet.0.ci.1",
-        "CK.Engine@34.0.1-juliet.0.ci.1",
-        "CK.Engine.Configuration@34.0.1-juliet.0.ci.1",
-        "CK.Engine.TypeCollector@34.0.1-juliet.0.ci.1",
-        "CK.Poco.Exc.Json@34.0.1-juliet.0.ci.1",
-        "CK.Poco.Exc.Json.Engine@34.0.1-juliet.0.ci.1",
-        "CK.Poco.Exchange@34.0.1-juliet.0.ci.1",
-        "CK.Poco.Exchange.Engine@34.0.1-juliet.0.ci.1",
-        "CK.StObj.Engine@34.0.1-juliet.0.ci.1",
-        "CK.StObj.Model@34.0.1-juliet.0.ci.1",
-        "CK.StObj.Runtime@34.0.1-juliet.0.ci.1",
-        "CK.Testing.StObjEngine@34.0.1-juliet.0.ci.1"
+        "CK.AppBuilder@35.0.0-juliet.0.ci.4",
+        "CK.Engine@35.0.0-juliet.0.ci.4",
+        "CK.Engine.Configuration@35.0.0-juliet.0.ci.4",
+        "CK.Engine.TypeCollector@35.0.0-juliet.0.ci.4",
+        "CK.Poco.Exc.Json@35.0.0-juliet.0.ci.4",
+        "CK.Poco.Exc.Json.Engine@35.0.0-juliet.0.ci.4",
+        "CK.Poco.Exchange@35.0.0-juliet.0.ci.4",
+        "CK.Poco.Exchange.Engine@35.0.0-juliet.0.ci.4",
+        "CK.StObj.Engine@35.0.0-juliet.0.ci.4",
+        "CK.StObj.Model@35.0.0-juliet.0.ci.4",
+        "CK.StObj.Runtime@35.0.0-juliet.0.ci.4",
+        "CK.Testing.StObjEngine@35.0.0-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Template-Fluid",
       "Id": "Ajd6n0XKyi0",
       "Packages": [
-        "CK.Template.Fluid@1.0.1-juliet.0.ci.1",
-        "CK.Template.Fluid.Engine@1.0.1-juliet.0.ci.1"
+        "CK.Template.Fluid@1.0.1-juliet.0.ci.2",
+        "CK.Template.Fluid.Engine@1.0.1-juliet.0.ci.2"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Templates",
       "Id": "ZaJmgRYck0g",
       "Packages": [
-        "CK.DB.Sample@12.0.0-juliet.0.ci.3",
-        "CK.Templates@12.0.0-juliet.0.ci.3"
+        "CK.DB.Sample@12.0.0-juliet.0.ci.4",
+        "CK.Templates@12.0.0-juliet.0.ci.4"
       ]
     },
     {
@@ -714,42 +721,42 @@
       "Url": "https://github.com/signature-opensource/CK-TypeScript",
       "Id": "uVTGd3UCf4c",
       "Packages": [
-        "CK.Html.Transform@1.0.1-juliet.0.ci.2",
-        "CK.IO.Core@1.0.1-juliet.0.ci.2",
-        "CK.Less.Transform@1.0.1-juliet.0.ci.2",
-        "CK.Ng.AspNet.Auth@1.0.1-juliet.0.ci.2",
-        "CK.Ng.AspNet.Auth.Basic@1.0.1-juliet.0.ci.2",
-        "CK.Ng.AspNet.WebSocketChannel@1.0.1-juliet.0.ci.2",
-        "CK.Ng.Axios@1.0.1-juliet.0.ci.2",
-        "CK.Ng.Localization@1.0.1-juliet.0.ci.2",
-        "CK.Ng.PublicPage@1.0.1-juliet.0.ci.2",
-        "CK.Ng.Zorro@1.0.1-juliet.0.ci.2",
-        "CK.ResourceSpace.Transformable@1.0.1-juliet.0.ci.2",
-        "CK.Testing.TypeScriptEngine@1.0.1-juliet.0.ci.2",
-        "CK.Transform.Core@1.0.1-juliet.0.ci.2",
-        "CK.TS.Angular@1.0.1-juliet.0.ci.2",
-        "CK.TS.Angular.Engine@1.0.1-juliet.0.ci.2",
-        "CK.TS.AspNet.Auth@1.0.1-juliet.0.ci.2",
-        "CK.TS.AspNet.WebSocketChannel@1.0.1-juliet.0.ci.2",
-        "CK.TypeScript@1.0.1-juliet.0.ci.2",
-        "CK.TypeScript.CodeGen@1.0.1-juliet.0.ci.2",
-        "CK.TypeScript.Engine@1.0.1-juliet.0.ci.2",
-        "CK.TypeScript.LiveEngine@1.0.1-juliet.0.ci.2",
-        "CK.TypeScript.Transform@1.0.1-juliet.0.ci.2"
+        "CK.Html.Transform@1.0.1-juliet.0.ci.4",
+        "CK.IO.Core@1.0.1-juliet.0.ci.4",
+        "CK.Less.Transform@1.0.1-juliet.0.ci.4",
+        "CK.Ng.AspNet.Auth@1.0.1-juliet.0.ci.4",
+        "CK.Ng.AspNet.Auth.Basic@1.0.1-juliet.0.ci.4",
+        "CK.Ng.AspNet.WebSocketChannel@1.0.1-juliet.0.ci.4",
+        "CK.Ng.Axios@1.0.1-juliet.0.ci.4",
+        "CK.Ng.Localization@1.0.1-juliet.0.ci.4",
+        "CK.Ng.PublicPage@1.0.1-juliet.0.ci.4",
+        "CK.Ng.Zorro@1.0.1-juliet.0.ci.4",
+        "CK.ResourceSpace.Transformable@1.0.1-juliet.0.ci.4",
+        "CK.Testing.TypeScriptEngine@1.0.1-juliet.0.ci.4",
+        "CK.Transform.Core@1.0.1-juliet.0.ci.4",
+        "CK.TS.Angular@1.0.1-juliet.0.ci.4",
+        "CK.TS.Angular.Engine@1.0.1-juliet.0.ci.4",
+        "CK.TS.AspNet.Auth@1.0.1-juliet.0.ci.4",
+        "CK.TS.AspNet.WebSocketChannel@1.0.1-juliet.0.ci.4",
+        "CK.TypeScript@1.0.1-juliet.0.ci.4",
+        "CK.TypeScript.CodeGen@1.0.1-juliet.0.ci.4",
+        "CK.TypeScript.Engine@1.0.1-juliet.0.ci.4",
+        "CK.TypeScript.LiveEngine@1.0.1-juliet.0.ci.4",
+        "CK.TypeScript.Transform@1.0.1-juliet.0.ci.4"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-UserManagement",
       "Id": "NP5MBHbfHLE",
       "Packages": [
-        "CK.IO.Admin@1.0.1-juliet.0.ci.3",
-        "CK.IO.UserManagement@1.0.1-juliet.0.ci.3",
-        "CK.IO.UserManagement.UserBanned@1.0.1-juliet.0.ci.3",
-        "CK.IO.UserManagement.UserInvitation@1.0.1-juliet.0.ci.3",
-        "CK.Mail.SharedLayout@1.0.1-juliet.0.ci.3",
-        "CK.UserManagement@1.0.1-juliet.0.ci.3",
-        "CK.UserManagement.UserBanned@1.0.1-juliet.0.ci.3",
-        "CK.UserManagement.UserInvitation@1.0.1-juliet.0.ci.3"
+        "CK.IO.Admin@2.0.0-juliet.0.ci.4",
+        "CK.IO.UserManagement@2.0.0-juliet.0.ci.4",
+        "CK.IO.UserManagement.UserBanned@2.0.0-juliet.0.ci.4",
+        "CK.IO.UserManagement.UserInvitation@2.0.0-juliet.0.ci.4",
+        "CK.Mail.SharedLayout@2.0.0-juliet.0.ci.4",
+        "CK.UserManagement@2.0.0-juliet.0.ci.4",
+        "CK.UserManagement.UserBanned@2.0.0-juliet.0.ci.4",
+        "CK.UserManagement.UserInvitation@2.0.0-juliet.0.ci.4"
       ]
     }
   ],
@@ -923,48 +930,6 @@
     ],
     "Ambiguous": [
       {
-        "Package": "CK.AppIdentity@1.0.1--ci.1",
-        "ResolvedFrom": "ProducedPackages",
-        "Resolutions": [
-          {
-            "Version": "1.0.1-juliet.0.ci.0",
-            "Repositories": [
-              "2fEdV71a5BA",
-              "Ajd6n0XKyi0",
-              "ogZVce58mlw"
-            ]
-          }
-        ]
-      },
-      {
-        "Package": "CK.AppIdentity.Abstractions@1.0.1--ci.1",
-        "ResolvedFrom": "ProducedPackages",
-        "Resolutions": [
-          {
-            "Version": "1.0.1-juliet.0.ci.0",
-            "Repositories": [
-              "2fEdV71a5BA",
-              "Ajd6n0XKyi0",
-              "ogZVce58mlw"
-            ]
-          }
-        ]
-      },
-      {
-        "Package": "CK.AppIdentity.Configuration@1.0.1--ci.1",
-        "ResolvedFrom": "ProducedPackages",
-        "Resolutions": [
-          {
-            "Version": "1.0.1-juliet.0.ci.0",
-            "Repositories": [
-              "2fEdV71a5BA",
-              "Ajd6n0XKyi0",
-              "ogZVce58mlw"
-            ]
-          }
-        ]
-      },
-      {
         "Package": "Microsoft.CodeCoverage@18.10.1",
         "ResolvedFrom": "TransitiveDependencies",
         "Resolutions": [
@@ -972,6 +937,7 @@
             "Version": "18.10.1",
             "Repositories": [
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1056,6 +1022,7 @@
             "Version": "8.0.2",
             "Repositories": [
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1140,6 +1107,7 @@
             "Repositories": [
               "NRzmaNIsfgE",
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "Ajd6n0XKyi0",
@@ -1221,6 +1189,7 @@
             "Repositories": [
               "NRzmaNIsfgE",
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1306,6 +1275,7 @@
             "Version": "18.10.1",
             "Repositories": [
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1390,6 +1360,7 @@
             "Version": "18.10.1",
             "Repositories": [
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1474,6 +1445,7 @@
             "Version": "6.0.0",
             "Repositories": [
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1558,6 +1530,7 @@
             "Version": "9.0.18",
             "Repositories": [
               "NRzmaNIsfgE",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "KQePC1Po0Cw",
               "YVynyM1doTc",
@@ -1614,6 +1587,7 @@
             "Repositories": [
               "NRzmaNIsfgE",
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "Ajd6n0XKyi0",
@@ -1667,6 +1641,7 @@
           {
             "Version": "9.0.18",
             "Repositories": [
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "KQePC1Po0Cw",
               "YVynyM1doTc",
@@ -1710,6 +1685,7 @@
             "Version": "6.0.1",
             "Repositories": [
               "2fEdV71a5BA",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1810,6 +1786,7 @@
             "Version": "9.0.18",
             "Repositories": [
               "NRzmaNIsfgE",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "KQePC1Po0Cw",
               "YVynyM1doTc",
@@ -1859,6 +1836,7 @@
             "Version": "9.0.18",
             "Repositories": [
               "NRzmaNIsfgE",
+              "rzheU9-ntBE",
               "3V-iEa54gBg",
               "KQePC1Po0Cw",
               "YVynyM1doTc",
