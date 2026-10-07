@@ -2,7 +2,6 @@
   <Plugins CompileMode="Release">
     <BranchModel Root="stable">
       <Prerelease Name="mike" Link="CI" />
-      <Prerelease Name="juliet" Link="CI" />
     </BranchModel>
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
