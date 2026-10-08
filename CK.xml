@@ -1,6 +1,8 @@
 <CK MinCKliVersion="0.26.0" LockPrefix="refs/ckli-locks">
   <Plugins CompileMode="Release">
-    <BranchModel Root="stable" />
+    <BranchModel Root="stable">
+      <Explo Name="explo/nunit-5" Link="CI" Parent="stable" />
+    </BranchModel>
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
         <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
