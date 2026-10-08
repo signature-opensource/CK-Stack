@@ -1,0 +1,86 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- See https://github.com/dotnet/roslyn/blob/main/docs/compilers/CSharp/Warnversion%20Warning%20Waves.md -->
+    <WarningLevel>9999</WarningLevel>
+    <!-- Nullable Reference Type is not an option. -->
+    <Nullable>enable</Nullable>
+    <!-- Simple IsTestProject and IsInTestsFolder variables. -->
+    <IsTestProject Condition=" '$(IsTestProject)' == '' And $(MSBuildProjectName.EndsWith('.Tests'))">true</IsTestProject>
+    <IsInTestsFolder Condition="$(MSBuildProjectDirectory.Contains('\Tests\')) Or $(MSBuildProjectDirectory.Contains('/Tests/'))">true</IsInTestsFolder>
+    <!-- SolutionDir is defined by Visual Studio, we unify the behavior here. -->
+    <SolutionDir Condition=" '$(SolutionDir)' == '' ">$([System.IO.Path]::GetDirectoryName($(MSBuildThisFileDirectory)))/</SolutionDir>
+  </PropertyGroup>
+  
+  <!--</Doc>-->
+  <PropertyGroup Condition=" Exists('docs\Package.md') ">
+    <PackageReadmeFile>Package.md</PackageReadmeFile>
+  </PropertyGroup>
+  <!-- The actual inclusion of Doc\Package.md (conditioned on IsPackable) is in Directory.Build.targets:
+       IsPackable is not yet resolved at this point (Directory.Build.props is imported before the
+       csproj body and the Sdk sets its default), so the condition has to live in the .targets file. -->
+  <!--</Doc>-->
+
+  <!--<ReproducibleBuilds>:https://github.com/dotnet/reproducible-builds. SourceLink is automatically managed by this package.-->
+  <ItemGroup>
+    <PackageReference Include="DotNet.ReproducibleBuilds" Version="1.2.39" PrivateAssets="All" />
+  </ItemGroup>
+  <Sdk Name="DotNet.ReproducibleBuilds.Isolated" Version="1.2.39" />
+  <PropertyGroup>
+    <!-- InformationalVersion is either the Zero version or provided by CKli. -->
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+  </PropertyGroup>
+  <!--</ReproducibleBuilds>-->
+
+  <!--<ZeroVersion>: Use the ZeroVersion (see CSemVer.InformationalVersion) except when specified on the command line by CKli.-->
+  <PropertyGroup>
+    <Version>0.0.0-0</Version>
+    <AssemblyVersion>0.0.0</AssemblyVersion>
+    <FileVersion>0.0.0.0</FileVersion>
+    <InformationalVersion>0.0.0-0/0000000000000000000000000000000000000000/0001-01-01 00:00:00Z</InformationalVersion>
+  </PropertyGroup>
+  <!--</ZeroVersion>-->
+
+  <!--<StandardProperties>-->
+  <PropertyGroup>
+    <ProductName>CK</ProductName>
+    <Company>Signature Code</Company>
+    <Authors>Signature Code</Authors>
+    <Copyright>Copyright Signature-Code 2007-$([System.DateTime]::UtcNow.ToString("yyyy"))</Copyright>
+    <!--Removes annoying Pack warning: The package version ... uses SemVer 2.0.0 or components of SemVer 1.0.0 that are not supported on legacy clients...-->
+    <NoWarn>NU5105</NoWarn>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageIcon>PackageIcon.png</PackageIcon>
+    <!--Considering .net6 'global using' to be an opt-in (simply reproduce this with 'enable' in the csproj if needed).-->
+    <ImplicitUsings>disable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="$(SolutionDir)Common/PackageIcon.png" Pack="true" PackagePath="\" Visible="false" />
+  </ItemGroup>
+  <!--</StandardProperties>-->
+
+  
+  <!--<GenerateDocumentation>: is done by default when in Release and during ContinuousIntegrationBuild builds and not IsInTestsFolder. -->
+  <PropertyGroup Condition=" '$(GenerateDocumentationFile)' == '' And '$(IsInTestsFolder)' != 'true' And ('$(ContinuousIntegrationBuild)' == 'true' Or '$(Configuration)' == 'Release') ">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+  <!--</GenerateDocumentation>-->
+
+  <!--<CopyDocumentationFiles>: uses https://github.com/dotnet/sdk/issues/1458#issuecomment-1265262224 -->
+  <PropertyGroup>
+    <CopyDocumentationFilesFromPackages>true</CopyDocumentationFilesFromPackages>
+  </PropertyGroup> 
+  <Target Name="_FilterDocumentationFiles" AfterTargets="ResolvePackageAssets">
+    <ItemGroup>
+      <ReferenceCopyLocalPaths
+        Remove="@(ReferenceCopyLocalPaths)"
+        Condition="
+          $([System.String]::Copy('%(ReferenceCopyLocalPaths.NuGetPackageId)').StartsWith('Microsoft.'))
+          or
+          $([System.String]::Copy('%(ReferenceCopyLocalPaths.NuGetPackageId)').StartsWith('System.'))
+        " />
+    </ItemGroup>
+  </Target>
+  <!--</CopyDocumentationFiles>-->
+  
+</Project>

@@ -1,0 +1,13 @@
+<Project>
+  <!-- Generated and git ignored: carries the $(CKliVersion) property for this developer's CKli. -->
+  <Import Project="$(MSBuildThisFileDirectory)CKli.Version.props" Condition="Exists('$(MSBuildThisFileDirectory)CKli.Version.props')" />
+  <Target Name="_CKliVersionRequired" BeforeTargets="Restore;CollectPackageReferences" Condition="'$(CKliVersion)' == ''">
+    <Error Text="CKliVersion is not set. Run any 'ckli' command in this Stack to generate CKli.Version.props." />
+  </Target>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ArtifactsPath>$(MSBuildThisFileDirectory)../../$Local/@net8/CK-Plugins@net8</ArtifactsPath>
+    <ArtifactsPivots>run</ArtifactsPivots>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+</Project>
