@@ -222,6 +222,7 @@
     <Repository Url="https://github.com/signature-opensource/CK-Template-Fluid">
       <VersionTag InfVersion="1.0.0-0" />
     </Repository>
+    <Repository Url="https://github.com/signature-opensource/CK-TimeSpanUnit" />
   </Folder>
   <Folder Name="Observable">
     <Repository Url="https://github.com/signature-opensource/CK-Observable-Domain">
