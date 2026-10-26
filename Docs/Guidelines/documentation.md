@@ -21,6 +21,8 @@ repository, and its documentation must move with it. So the details always live 
   `Directory.Build.props` sets it as `PackageReadmeFile` when it exists): a few lines saying what the
   package provides and its main types or entry points, not a copy of the `README.md`. It is read
   outside any repository, so any link in it is an absolute URL (see below).
+- **Images and other documentation files** (diagrams, presentations, samples) are in the project's
+  `docs/` folder, never in a repository-level folder: they move with the project.
 
 ## Content
 
@@ -31,6 +33,8 @@ repository, and its documentation must move with it. So the details always live 
 - **Ground every claim in the source.** Type names, signatures, command names, parameters and
   configuration snippets are copied from the actual code or configuration file, never reconstructed
   from memory. Never document an API that does not exist.
+- **Don't document a bug or a wrong comment: fix it or open an issue.** A document describes how the
+  code behaves, not how it falls short of its intent or of its own XML comments.
 - **Scale detail to what exists.** One honest README beats a forest of speculative documents.
   Don't write a README for a project nobody asked about just to fill a gap.
 - **Link rather than duplicate.** If another document already explains something, point to it.
