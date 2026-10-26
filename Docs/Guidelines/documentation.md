@@ -3,6 +3,25 @@
 Rules for every `README.md` and other Markdown document in the repositories of this stack.
 They apply to people and to coding agents alike.
 
+## Where documentation lives
+
+What matters is the **project** (the future package), not the repository: a project can move to another
+repository, and its documentation must move with it. So the details always live with the project.
+
+- **The repository's `README.md` is terse.** It introduces the projects the repository contains, in a
+  line or two each, and links to their `README.md`. When a project is deleted or moved to another
+  repository, removing its entry is the only change the repository's `README.md` needs: nothing else in
+  it is about that project.
+- **The project's `README.md`** (next to its `.csproj`) is the reference documentation of the project.
+- **For a complex project**, keep the project's `README.md` readable: put the detailed documentation
+  of a feature in a `README.md` inside the implementation folder where that feature's source files
+  live, and link to it from the project's `README.md`.
+- **A packable project** (one that produces a NuGet package) must have both a `README.md` and a
+  minimal `docs/Package.md`. `Package.md` is the package's readme on nuget.org (the shared
+  `Directory.Build.props` sets it as `PackageReadmeFile` when it exists): a few lines saying what the
+  package provides and its main types or entry points, not a copy of the `README.md`. It is read
+  outside any repository, so any link in it is an absolute URL (see below).
+
 ## Content
 
 - **Describe the current state only.** No dates, no "used to", no former names. History belongs in
@@ -33,7 +52,7 @@ cloned at that exact spot. It breaks on GitHub, in a packaged README, and in any
 clone.
 
 - **Within one repository**: ordinary relative links (`../Some.Project/README.md`).
-- **Across repositories**: `<origin>/blob/<branch>/<path>` for a file, `<origin>/tree/<branch>/<path>`
+- **Across repositories, and from a `docs/Package.md`**: `<origin>/blob/<branch>/<path>` for a file, `<origin>/tree/<branch>/<path>`
   for a folder; anchors (`#section`) are appended normally. Get the origin with
   `git -C <repo> remote get-url origin`.
 
