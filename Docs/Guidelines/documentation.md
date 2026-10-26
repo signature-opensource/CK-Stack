@@ -46,6 +46,19 @@ repository, and its documentation must move with it. So the details always live 
 
 ## Linking between documents
 
+### Direction: follow the dependency order
+
+Links follow the topological order of the dependencies, as much as possible: a package `P` that depends
+on a package `B` can always link to `B`'s documentation (its `README.md` or one of its implementation
+folders' `README.md`), and often should, so that the basic concepts are read before the higher ones
+built on them. Within a project, the same goes for its implementation folders.
+
+A link the other way, from a basic package to one that depends on it, is the exception. It must say
+explicitly why it is there, e.g. "for an example of this behavior in a concrete package, see ...". The
+basic documentation must stand on its own without it.
+
+### Where links point
+
 **Cross-repository links use the repository's git origin URL, never a relative path.** A relative path
 like `../Other-Repo/Some.Project/README.md` only resolves on a machine that has the sibling repository
 cloned at that exact spot. It breaks on GitHub, in a packaged README, and in any differently laid-out
@@ -76,5 +89,6 @@ Plain path descriptions are not links and stay as local paths: folder-layout dia
 3. A review asked as "check" or "comment on" reports first; it doesn't rewrite the file.
 4. When fixing, edit claim by claim instead of regenerating the whole file. This preserves what was
    correct and the author's prose.
-5. Check links for both faults: a relative path that crosses a repository boundary, and an origin URL
-   pinned to the wrong branch.
+5. Check links for three faults: a relative path that crosses a repository boundary, an origin URL
+   pinned to the wrong branch, and a link against the dependency order that isn't explicitly
+   introduced as an exception.
