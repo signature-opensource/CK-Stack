@@ -9,6 +9,9 @@
     "(stable-ci)": [
       "2026.302.0--ci.0"
     ],
+    "explo/cris-auth": [
+      "2026.303.0-0.cris-auth"
+    ],
     "juliet-ci": [
       "2026.275.0-juliet.0.ci.0"
     ],
