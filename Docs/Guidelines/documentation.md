@@ -47,6 +47,10 @@ repository, and its documentation must move with it. So the details always live 
   commands, configuration, extension points).
 - Tables for lists of things that share attributes: repositories, packages, commands, type roles.
 - Code fences for real, verified signatures and configuration snippets.
+- **A member named in plain text is prefixed with its type name**: `DataProtectionBuilderExtensions.SetApplicationName`,
+  not `SetApplicationName`. A bare method name doesn't say where to find it, above all for an extension method. This
+  applies to Markdown and to the XML documentation comments alike, wherever the reference is textual (a code span,
+  a `<c>`) rather than a `<see cref="..."/>`, which already resolves the type.
 
 ## Linking between documents
 
