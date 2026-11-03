@@ -37,6 +37,9 @@ repository, and its documentation must move with it. So the details always live 
   code behaves, not how it falls short of its intent or of its own XML comments.
 - **Scale detail to what exists.** One honest README beats a forest of speculative documents.
   Don't write a README for a project nobody asked about just to fill a gap.
+- **Never point into a working folder.** A code comment or a document never links to `.wip` (or any other working,
+  untracked folder): its notes move, get archived, and are not in the clones of the others. What a reader needs is in
+  the code, its README or the Stack's documents.
 - **Link rather than duplicate.** If another document already explains something, point to it.
   Two copies of the same explanation will drift apart.
 
