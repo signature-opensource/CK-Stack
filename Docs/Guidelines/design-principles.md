@@ -38,6 +38,51 @@ already disagreed: the mail links pointed to the Admin, the passkey origins to t
 announced to the others.** No party configures a copy of another party's facts. The announcement travels over the
 authenticated channel: it is as trustworthy as the party itself (which can already do anything its role allows).
 
+## Commands across parties
+
+**A command is a command: where it runs is a deployment detail.** A command has at most one local handler, and when it
+exists, it runs the command. Otherwise the command is dispatched to **the** remote that accepts it. The code that sends a
+command never encodes where it runs.
+
+The case: the commands of the AuthCenter had their own HTTP route and relay commands that only encoded a location, so
+moving the AuthCenter to another party meant changing the code that sent them. The route and the relays are gone: a
+client application posts every command to `/.cris`.
+
+- **The routes are resolved when the channels connect, not per call.** Asking the remotes at call time depends on who is
+  connected and leaves ambiguities. Two remotes that accept the same command are a configuration error; none is a
+  clear error ("no local handler and no remote accepts it"), never a silent fallback.
+
+**The receiver decides what it accepts, from its code.** A party never executes whatever a remote sends. What a remote may
+send derives from the topology (inside the System, the commands the receiver handles except the `[Private]` ones; from
+outside, the public ones only); for whom it may act is the receiver's policy (`ICallerPartyService`). "Forward whatever
+has no local handler" is rejected: a missing package would silently become a remote execution.
+
+**The exposure of a command is declared on its contract.** Who may send a command is part of its type: `[Internal]` (inside
+the System, never from HTTP) and `[Private]` (inside the process, never from HTTP nor from another party), in CK.Cris.
+In a Poco family, the most restrictive declaration wins: an extension can restrict a command, never open it. The
+protection follows the type: no list to keep in sync.
+
+The case: a generic package without a rights model (CK.DB.UserInvitation) exposed its management commands to any
+signed-in user, who could create an invitation with any groups (the platform administrators included). Its management
+commands are `[Internal]`: the application checks the rights, then calls them.
+
+**The identity is never carried by impersonation: the caller party is a third role.** Relaying "Alice impersonating Bob"
+through the party Paul by impersonation gives "Paul impersonating Bob" and loses Alice: the two slots of the
+impersonation belong to the users. The party that sends a command is carried apart: `AuthenticationInfo.CallerPartyId`.
+
+**Trust between parties is bounded, audited and revocable, not absolute.** Pretending that everything can be secured
+against an evil party inside the System is a lie: a remote that vouches for its users can act as them at the Normal
+level, and that is the price of the vouching that makes distribution and deferral work. What the System promises is
+narrower and real:
+
+1. **High-value actions need the human's fresh proof (Critical).** A caller party alone never reaches Critical: the
+   password, the passkeys, the administration. A Critical command crosses a party boundary only with the user's live
+   proof: it can't be deferred to another party later.
+2. **Bounded damage.** A remote is accepted only the commands its role needs, and the receiver caps the level and can
+   refuse privileged actors.
+3. **Audit.** Every action carries its `CallerPartyId`: who vouched for what is known.
+4. **Revocation.** Disabling the PartyActor of a remote cuts it off.
+
 ## Fail closed, with an explicit opt-in
 
 **When a value is missing, the operation fails visibly; it never falls back to an implicit default.** An implicit
