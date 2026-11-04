@@ -71,8 +71,10 @@ Each rule comes from a defect found in the stack.
 
 ## Naming
 
-- **A two-sided feature is `XXX` on the party that is the XXX, `XXXRemote` on its remotes** (`AuthCenter` and
-  `AuthCenterRemote`): one name for both sides is confusing.
+- **An asymmetric feature is `XXX` in the `Local` of a party, `XXXRemote` on a remote** (`AuthCenter` and
+  `AuthCenterRemote`): the `Local` gives the role (it is the XXX, or it uses the remote that allows `XXXRemote`).
+  Its packages are CK.AppIdentity.XXX.Local, CK.AppIdentity.XXX.Remote, CK.IO.XXX for its commands and an optional
+  CK.AppIdentity.XXX: the feature name appears in all of them (see the asymmetric features of CK-AppIdentity).
 - **A party is named after what it is** (Backend, Front, Admin), never after a feature it implements (AuthCenter).
 - **Vocabulary:** a "client application" is the browser application (never "front", which is a party name); a party
   talking to an AuthCenter is "a remote" (never "member").
