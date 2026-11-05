@@ -277,5 +277,6 @@
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Transform" />
     <Repository Url="https://github.com/signature-opensource/CK-TS-Angular" />
+    <Repository Url="https://github.com/signature-opensource/CK-TS-AspNet" />
   </Folder>
 </CK>
