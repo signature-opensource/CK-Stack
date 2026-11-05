@@ -276,5 +276,6 @@
       <VersionTag InfVersion="1.0.0-0" />
     </Repository>
     <Repository Url="https://github.com/signature-opensource/CK-Transform" />
+    <Repository Url="https://github.com/signature-opensource/CK-TS-Angular" />
   </Folder>
 </CK>
