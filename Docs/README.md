@@ -14,7 +14,7 @@ The rules for working in the repositories of the stack ([Guidelines/](Guidelines
 | [Branching](Guidelines/branching.md) | Before the first commit in a repository: no commit in a bare branch (`stable`, `develop`), only in its `dev/` counterpart (a Stack repository commits on `main`). |
 | [Documentation](Guidelines/documentation.md) | Writing or reviewing a `README.md` or another Markdown document: where it lives, what it says, how it links. |
 | [Design principles](Guidelines/design-principles.md) | Designing a package, a feature or an application (a configuration, a party, a token, a link). |
-| [Removing or renaming a package](Guidelines/removing-or-renaming-a-package.md) | Retiring a package or publishing it under a new name: its tombstone. |
+| [Managing projects across repositories](Guidelines/managing-projects-across-repositories.md) | Moving a project to another folder or repository, retiring a package (its tombstone) or renaming it: `ckli project move`, `ckli project retire`. |
 | [Migration guides](Guidelines/migration-guides.md) | Writing or testing a migration guide. |
 | [Working with ckli](Guidelines/working-with-ckli.md) | Building, testing or changing the package versions of a repository with ckli. |
 | [The .wip folder](Guidelines/the-wip-folder.md) | Keeping working notes: the shared notes of the team (`Shared/`) and your own (`User/`). |
