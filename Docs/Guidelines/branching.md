@@ -10,8 +10,11 @@ alike.
 So work that belongs to `stable` is committed to `dev/stable`, work for `develop` to `dev/develop`,
 and so on. The bare branches are integration targets, not places to commit.
 
-Every branch whose name doesn't start with `dev/` is bare: `stable`, the pre-release branches
+The bare branches are the branches of the CKli branch model: `stable`, the pre-release branches
 (`alpha`…`zulu`) and the exploratory ones alike. Work on `explo/xxx` is committed to `dev/explo/xxx`.
+
+**Exception: the `fix/vMajor.Minor` branches** of the Fix Workflow (`ckli fix start`) are outside the
+branch model and have no `dev/` counterpart: the fix is committed on the `fix/` branch itself.
 
 Commits that CKli makes itself on a bare branch ("Updated dependencies.", "Producing '…' from
 unchanged head.") are not a precedent: what other repositories' histories show never overrides this
