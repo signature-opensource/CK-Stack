@@ -1,15 +1,15 @@
 {
   "StackUrl": "https://github.com/signature-opensource/CK-Stack",
   "World": "CK",
-  "Version": "2026.308.0-0.cris-auth.0.ci.0",
+  "Version": "2026.310.0-0.cris-auth",
   "IsDeprecated": false,
   "Repositories": [
     {
       "Url": "https://github.com/signature-opensource/CK-Abstractions",
       "Id": "K-pyHHOdeTo",
       "Packages": [
-        "CK.Abstractions@32.0.0-0.cris-auth.0.ci.9",
-        "CK.ResourceSpace.Abstractions@32.0.0-0.cris-auth.0.ci.9"
+        "CK.Abstractions@32.0.0-0.cris-auth.1",
+        "CK.ResourceSpace.Abstractions@32.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -31,80 +31,80 @@
       "Url": "https://github.com/signature-opensource/CK-AppIdentity",
       "Id": "19avtIQaSUE",
       "Packages": [
-        "CK.AppIdentity@3.0.0-0.cris-auth.0.ci.28",
-        "CK.AppIdentity.Abstractions@3.0.0-0.cris-auth.0.ci.28",
-        "CK.AppIdentity.Configuration@3.0.0-0.cris-auth.0.ci.28",
-        "CK.AppIdentity.Hosting@3.0.0-0.cris-auth.0.ci.28"
+        "CK.AppIdentity@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Abstractions@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Configuration@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Hosting@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-AppIdentity-Transport",
       "Id": "rzheU9-ntBE",
       "Packages": [
-        "CK.AppIdentity.AuthCenter@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.AuthCenter.Local@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.AuthCenter.Oidc@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.AuthCenter.Passkey@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.AuthCenter.Remote@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.BlobChannel@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.Cris@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.Cris.AuthCenter@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.Cris.Authentication@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.KeyManagement@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.KeyManagement.Cng@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.Transport.MutualTls@3.0.0-0.cris-auth.0.ci.106",
-        "CK.AppIdentity.TransportLayer@3.0.0-0.cris-auth.0.ci.106",
-        "CK.DB.AppIdentity@3.0.0-0.cris-auth.0.ci.106",
-        "CK.IO.AuthCenter@3.0.0-0.cris-auth.0.ci.106",
-        "CK.Testing.AppIdentity.AuthCenter@3.0.0-0.cris-auth.0.ci.106",
-        "CK.Testing.AppIdentity.Cris@3.0.0-0.cris-auth.0.ci.106",
-        "CK.Testing.AppIdentity.TransportLayer@3.0.0-0.cris-auth.0.ci.106"
+        "CK.AppIdentity.AuthCenter@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.AuthCenter.Local@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.AuthCenter.Oidc@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.AuthCenter.Passkey@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.AuthCenter.Remote@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.BlobChannel@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Cris@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Cris.AuthCenter@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Cris.Authentication@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.KeyManagement@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.KeyManagement.Cng@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Transport.MutualTls@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.TransportLayer@3.0.0-0.cris-auth.1",
+        "CK.DB.AppIdentity@3.0.0-0.cris-auth.1",
+        "CK.IO.AuthCenter@3.0.0-0.cris-auth.1",
+        "CK.Testing.AppIdentity.AuthCenter@3.0.0-0.cris-auth.1",
+        "CK.Testing.AppIdentity.Cris@3.0.0-0.cris-auth.1",
+        "CK.Testing.AppIdentity.TransportLayer@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-AspNet",
       "Id": "R-8R-4qqyVc",
       "Packages": [
-        "CK.AppHost@24.0.0-0.cris-auth.0.ci.35",
-        "CK.AppIdentity.HttpEndpoint@24.0.0-0.cris-auth.0.ci.35",
-        "CK.AspNet@24.0.0-0.cris-auth.0.ci.35",
-        "CK.AspNet.WebSocket@24.0.0-0.cris-auth.0.ci.35",
-        "CK.AspNet.WebSocketChannel@24.0.0-0.cris-auth.0.ci.35",
-        "CK.Testing.AspNetServer@24.0.0-0.cris-auth.0.ci.35"
+        "CK.AppHost@24.0.0-0.cris-auth.1",
+        "CK.AppIdentity.HttpEndpoint@24.0.0-0.cris-auth.1",
+        "CK.AspNet@24.0.0-0.cris-auth.1",
+        "CK.AspNet.WebSocket@24.0.0-0.cris-auth.1",
+        "CK.AspNet.WebSocketChannel@24.0.0-0.cris-auth.1",
+        "CK.Testing.AspNetServer@24.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-AspNet-ActorChannel",
       "Id": "lFenJr3qDVw",
       "Packages": [
-        "CK.AspNet.ActorChannel@3.0.0-0.cris-auth.0.ci.14",
-        "CK.Ng.AspNet.ActorChannel@3.0.0-0.cris-auth.0.ci.14"
+        "CK.AspNet.ActorChannel@3.0.0-0.cris-auth.1",
+        "CK.Ng.AspNet.ActorChannel@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-AspNet-Auth",
       "Id": "-vZfPFkGV68",
       "Packages": [
-        "CK.AspNet.Auth@33.0.0-0.cris-auth.0.ci.11",
-        "CK.Testing.AspNetServer.Auth@33.0.0-0.cris-auth.0.ci.11"
+        "CK.AspNet.Auth@33.0.0-0.cris-auth.1",
+        "CK.Testing.AspNetServer.Auth@33.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Auth-Abstractions",
       "Id": "c-ZslSKCvlA",
       "Packages": [
-        "CK.Auth.Abstractions@15.0.0-0.cris-auth.0.ci.13",
-        "CK.AuthenticationInfo@15.0.0-0.cris-auth.0.ci.13",
-        "CK.AuthenticationInfo.Passkey@15.0.0-0.cris-auth.0.ci.13"
+        "CK.Auth.Abstractions@15.0.0-0.cris-auth.1",
+        "CK.AuthenticationInfo@15.0.0-0.cris-auth.1",
+        "CK.AuthenticationInfo.Passkey@15.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-BinarySerialization",
       "Id": "ogZVce58mlw",
       "Packages": [
-        "CK.BinarySerialization@16.0.0-0.cris-auth.0.ci.26",
-        "CK.BinarySerialization.IPoco@16.0.0-0.cris-auth.0.ci.26",
-        "CK.BinarySerialization.Sliced@16.0.0-0.cris-auth.0.ci.26"
+        "CK.BinarySerialization@16.0.0-0.cris-auth.1",
+        "CK.BinarySerialization.IPoco@16.0.0-0.cris-auth.1",
+        "CK.BinarySerialization.Sliced@16.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -119,16 +119,16 @@
       "Url": "https://github.com/signature-opensource/CK-CommChannel",
       "Id": "UcYlfIYeRTk",
       "Packages": [
-        "CK.CommChannel@9.0.0-0.cris-auth.0.ci.6",
-        "CK.CommChannel.Serial@9.0.0-0.cris-auth.0.ci.6",
-        "CK.IO.CommChannel@9.0.0-0.cris-auth.0.ci.6"
+        "CK.CommChannel@9.0.0-0.cris-auth.1",
+        "CK.CommChannel.Serial@9.0.0-0.cris-auth.1",
+        "CK.IO.CommChannel@9.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Configuration",
       "Id": "HgTQYtsPhVI",
       "Packages": [
-        "CK.Configuration@3.0.0-0.cris-auth.0.ci.9"
+        "CK.Configuration@3.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -142,129 +142,129 @@
       "Url": "https://github.com/signature-opensource/CK-Cris",
       "Id": "PTTZc6pHfOQ",
       "Packages": [
-        "CK.Cris.Auth@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.Authentication@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.Authentication.Basic@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.Authentication.Passkey@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.Authentication.Weak@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.BackgroundExecutor@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.DelayedCommand@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.Engine@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.Executor@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.Executor.Engine@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Cris.HttpSender@3.0.0-0.cris-auth.0.ci.89",
-        "CK.Testing.Cris.Authentication@3.0.0-0.cris-auth.0.ci.89"
+        "CK.Cris.Auth@3.0.0-0.cris-auth.1",
+        "CK.Cris.Authentication@3.0.0-0.cris-auth.1",
+        "CK.Cris.Authentication.Basic@3.0.0-0.cris-auth.1",
+        "CK.Cris.Authentication.Passkey@3.0.0-0.cris-auth.1",
+        "CK.Cris.Authentication.Weak@3.0.0-0.cris-auth.1",
+        "CK.Cris.BackgroundExecutor@3.0.0-0.cris-auth.1",
+        "CK.Cris.DelayedCommand@3.0.0-0.cris-auth.1",
+        "CK.Cris.Engine@3.0.0-0.cris-auth.1",
+        "CK.Cris.Executor@3.0.0-0.cris-auth.1",
+        "CK.Cris.Executor.Engine@3.0.0-0.cris-auth.1",
+        "CK.Cris.HttpSender@3.0.0-0.cris-auth.1",
+        "CK.Testing.Cris.Authentication@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Cris-Abstractions",
       "Id": "NuqgNBQFZL0",
       "Packages": [
-        "CK.Cris@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Actor@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Auth@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Auth.Basic@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Authentication@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Authentication.Basic@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Authentication.Passkey@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Authentication.Weak@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.Authentication.WeakZone@3.0.0-0.cris-auth.0.ci.51",
-        "CK.IO.DelayedCommand@3.0.0-0.cris-auth.0.ci.51"
+        "CK.Cris@3.0.0-0.cris-auth.1",
+        "CK.IO.Actor@3.0.0-0.cris-auth.1",
+        "CK.IO.Auth@3.0.0-0.cris-auth.1",
+        "CK.IO.Auth.Basic@3.0.0-0.cris-auth.1",
+        "CK.IO.Authentication@3.0.0-0.cris-auth.1",
+        "CK.IO.Authentication.Basic@3.0.0-0.cris-auth.1",
+        "CK.IO.Authentication.Passkey@3.0.0-0.cris-auth.1",
+        "CK.IO.Authentication.Weak@3.0.0-0.cris-auth.1",
+        "CK.IO.Authentication.WeakZone@3.0.0-0.cris-auth.1",
+        "CK.IO.DelayedCommand@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Cris-TypeScript",
       "Id": "m8JRbf4OATo",
       "Packages": [
-        "CK.Cris.AspNet@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Cris.AspNet.Auth.Basic@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Cris.AspNet.Authentication@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Cris.AspNet.Engine@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Cris.TypeScript@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Cris.WebApi@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Ng.Cris.AspNet@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Ng.Cris.AspNet.Auth@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Ng.Cris.AspNet.Authentication@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Ng.Cris.AspNet.Authentication.Basic@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Ng.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.0.ci.86",
-        "CK.Ng.Cris.AspNet.Authentication.Weak@3.0.0-0.cris-auth.0.ci.86"
+        "CK.Cris.AspNet@3.0.0-0.cris-auth.1",
+        "CK.Cris.AspNet.Auth.Basic@3.0.0-0.cris-auth.1",
+        "CK.Cris.AspNet.Authentication@3.0.0-0.cris-auth.1",
+        "CK.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.1",
+        "CK.Cris.AspNet.Engine@3.0.0-0.cris-auth.1",
+        "CK.Cris.TypeScript@3.0.0-0.cris-auth.1",
+        "CK.Cris.WebApi@3.0.0-0.cris-auth.1",
+        "CK.Ng.Cris.AspNet@3.0.0-0.cris-auth.1",
+        "CK.Ng.Cris.AspNet.Auth@3.0.0-0.cris-auth.1",
+        "CK.Ng.Cris.AspNet.Authentication@3.0.0-0.cris-auth.1",
+        "CK.Ng.Cris.AspNet.Authentication.Basic@3.0.0-0.cris-auth.1",
+        "CK.Ng.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.1",
+        "CK.Ng.Cris.AspNet.Authentication.Weak@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB",
       "Id": "nLIakHlCJcc",
       "Packages": [
-        "CK.DB.Acl@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Acl.AclType@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Acl.AclType.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Acl.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Actor@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Actor.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Auth@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Auth.AuthScope@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Auth.AuthScope.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Auth.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Culture@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Culture.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Group.SimpleNaming@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Group.SimpleNaming.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.HZone@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.HZone.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.MCResHtml@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.MCResHtml.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.MCResString@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.MCResString.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.MCResText@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.MCResText.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResHtml@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResHtml.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResName@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResName.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResString@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResString.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResText@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.ResText.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Res.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserGoogle@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserGoogle.AuthScope@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserGoogle.EMailColumns@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserGoogle.Profile@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserGoogle.RefreshToken@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserOidc@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserOidc.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.User.UserSimpleCode@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Zone@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Zone.SimpleNaming@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Zone.SimpleNaming.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.DB.Zone.Tests@31.0.0-0.cris-auth.0.ci.43",
-        "CK.IO.User.UserOidc@31.0.0-0.cris-auth.0.ci.43"
+        "CK.DB.Acl@31.0.0-0.cris-auth.1",
+        "CK.DB.Acl.AclType@31.0.0-0.cris-auth.1",
+        "CK.DB.Acl.AclType.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Acl.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Actor@31.0.0-0.cris-auth.1",
+        "CK.DB.Actor.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Auth@31.0.0-0.cris-auth.1",
+        "CK.DB.Auth.AuthScope@31.0.0-0.cris-auth.1",
+        "CK.DB.Auth.AuthScope.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Auth.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Culture@31.0.0-0.cris-auth.1",
+        "CK.DB.Culture.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Group.SimpleNaming@31.0.0-0.cris-auth.1",
+        "CK.DB.Group.SimpleNaming.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.HZone@31.0.0-0.cris-auth.1",
+        "CK.DB.HZone.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.MCResHtml@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.MCResHtml.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.MCResString@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.MCResString.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.MCResText@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.MCResText.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResHtml@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResHtml.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResName@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResName.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResString@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResString.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResText@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResText.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Res.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserGoogle@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserGoogle.AuthScope@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserGoogle.EMailColumns@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserGoogle.Profile@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserGoogle.RefreshToken@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserOidc@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserOidc.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserSimpleCode@31.0.0-0.cris-auth.1",
+        "CK.DB.Zone@31.0.0-0.cris-auth.1",
+        "CK.DB.Zone.SimpleNaming@31.0.0-0.cris-auth.1",
+        "CK.DB.Zone.SimpleNaming.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Zone.Tests@31.0.0-0.cris-auth.1",
+        "CK.IO.User.UserOidc@31.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Actor-ActorEMail",
       "Id": "Q5LekXH0IvQ",
       "Packages": [
-        "CK.DB.Actor.ActorEMail@31.0.0-0.cris-auth.0.ci.34",
-        "CK.DB.Actor.ActorEMail.NonUnique@31.0.0-0.cris-auth.0.ci.34",
-        "CK.DB.Actor.ActorEMail.NonUnique.Tests@31.0.0-0.cris-auth.0.ci.34",
-        "CK.DB.Actor.ActorEMail.Tests@31.0.0-0.cris-auth.0.ci.34"
+        "CK.DB.Actor.ActorEMail@31.0.0-0.cris-auth.1",
+        "CK.DB.Actor.ActorEMail.NonUnique@31.0.0-0.cris-auth.1",
+        "CK.DB.Actor.ActorEMail.NonUnique.Tests@31.0.0-0.cris-auth.1",
+        "CK.DB.Actor.ActorEMail.Tests@31.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Actor-ActorPhoneNumber",
       "Id": "gick0YJqb5c",
       "Packages": [
-        "CK.DB.Actor.ActorPhoneNumber@23.0.0-0.cris-auth.0.ci.13",
-        "CK.DB.Actor.ActorPhoneNumber.Tests@23.0.0-0.cris-auth.0.ci.13"
+        "CK.DB.Actor.ActorPhoneNumber@23.0.0-0.cris-auth.1",
+        "CK.DB.Actor.ActorPhoneNumber.Tests@23.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-AspNet-Auth",
       "Id": "nnZCxmT0e4U",
       "Packages": [
-        "CK.DB.AspNet.Auth@34.0.0-0.cris-auth.0.ci.14"
+        "CK.DB.AspNet.Auth@34.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -296,57 +296,57 @@
       "Url": "https://github.com/signature-opensource/CK-DB-Globalization",
       "Id": "qPsj6TtANmc",
       "Packages": [
-        "CK.DB.Globalization@3.0.0-0.cris-auth.0.ci.38",
-        "CK.DB.Globalization.Tests@3.0.0-0.cris-auth.0.ci.38",
-        "CK.IO.Globalization@3.0.0-0.cris-auth.0.ci.38"
+        "CK.DB.Globalization@3.0.0-0.cris-auth.1",
+        "CK.DB.Globalization.Tests@3.0.0-0.cris-auth.1",
+        "CK.IO.Globalization@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-GuestActor",
       "Id": "a5LVHadQOLE",
       "Packages": [
-        "CK.DB.GuestActor@3.0.0-0.cris-auth.0.ci.16",
-        "CK.DB.GuestActor.Tests@3.0.0-0.cris-auth.0.ci.16"
+        "CK.DB.GuestActor@3.0.0-0.cris-auth.1",
+        "CK.DB.GuestActor.Tests@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-GuestActor-Acl",
       "Id": "QEnMo7lr8p4",
       "Packages": [
-        "CK.DB.GuestActor.Acl@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.GuestActor.Acl.Tests@3.0.0-0.cris-auth.0.ci.15"
+        "CK.DB.GuestActor.Acl@3.0.0-0.cris-auth.1",
+        "CK.DB.GuestActor.Acl.Tests@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Organization",
       "Id": "vtTjJADb9Iw",
       "Packages": [
-        "CK.DB.Organization@3.0.0-0.cris-auth.0.ci.13",
-        "CK.DB.Organization.Tests@3.0.0-0.cris-auth.0.ci.13"
+        "CK.DB.Organization@3.0.0-0.cris-auth.1",
+        "CK.DB.Organization.Tests@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Res-ResPath",
       "Id": "PWYeBEQqdHM",
       "Packages": [
-        "CK.DB.Res.ResPath@14.0.0-0.cris-auth.0.ci.14",
-        "CK.DB.Res.ResPath.Tests@14.0.0-0.cris-auth.0.ci.14"
+        "CK.DB.Res.ResPath@14.0.0-0.cris-auth.1",
+        "CK.DB.Res.ResPath.Tests@14.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-SqlCKTrait",
       "Id": "rpysItvtbd4",
       "Packages": [
-        "CK.DB.SqlCKTrait@18.0.0-0.cris-auth.0.ci.14",
-        "CK.DB.SqlCKTrait.Tests@18.0.0-0.cris-auth.0.ci.14"
+        "CK.DB.SqlCKTrait@18.0.0-0.cris-auth.1",
+        "CK.DB.SqlCKTrait.Tests@18.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-TokenStore",
       "Id": "v08UCzijuXQ",
       "Packages": [
-        "CK.DB.TokenStore@3.0.0-0.cris-auth.0.ci.14",
-        "CK.DB.TokenStore.Tests@3.0.0-0.cris-auth.0.ci.14"
+        "CK.DB.TokenStore@3.0.0-0.cris-auth.1",
+        "CK.DB.TokenStore.Tests@3.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -363,143 +363,143 @@
       "Url": "https://github.com/signature-opensource/CK-DB-User-NamedUser",
       "Id": "HThOZkRB6Yk",
       "Packages": [
-        "CK.DB.User.NamedUser@31.0.0-0.cris-auth.0.ci.33",
-        "CK.IO.User.NamedUser@31.0.0-0.cris-auth.0.ci.33"
+        "CK.DB.User.NamedUser@31.0.0-0.cris-auth.1",
+        "CK.IO.User.NamedUser@31.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-PreferredCulture",
       "Id": "GbmZ1wv7m34",
       "Packages": [
-        "CK.DB.User.PreferredCulture@3.0.0-0.cris-auth.0.ci.33",
-        "CK.IO.User.PreferredCulture@3.0.0-0.cris-auth.0.ci.33"
+        "CK.DB.User.PreferredCulture@3.0.0-0.cris-auth.1",
+        "CK.IO.User.PreferredCulture@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-SimpleInvitation",
       "Id": "YVynyM1doTc",
       "Packages": [
-        "CK.DB.User.SimpleInvitation@3.0.0-0.cris-auth.0.ci.13",
-        "CK.DB.User.SimpleInvitation.Tests@3.0.0-0.cris-auth.0.ci.13"
+        "CK.DB.User.SimpleInvitation@3.0.0-0.cris-auth.1",
+        "CK.DB.User.SimpleInvitation.Tests@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-UserBanned",
       "Id": "57Jw1MGSMbU",
       "Packages": [
-        "CK.DB.User.UserBanned@4.0.0-0.cris-auth.0.ci.30",
-        "CK.DB.User.UserPassword.Banned@4.0.0-0.cris-auth.0.ci.30",
-        "CK.IO.User.UserBanned@4.0.0-0.cris-auth.0.ci.30"
+        "CK.DB.User.UserBanned@4.0.0-0.cris-auth.1",
+        "CK.DB.User.UserPassword.Banned@4.0.0-0.cris-auth.1",
+        "CK.IO.User.UserBanned@4.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-UserPasskey",
       "Id": "MYUokqAsN9I",
       "Packages": [
-        "CK.DB.User.UserPasskey@0.0.0-0.cris-auth.0.ci.31",
-        "CK.DB.User.UserPasskey.Tests@0.0.0-0.cris-auth.0.ci.31",
-        "CK.IO.User.UserPasskey@0.0.0-0.cris-auth.0.ci.31"
+        "CK.DB.User.UserPasskey@0.0.0-0.cris-auth.1",
+        "CK.DB.User.UserPasskey.Tests@0.0.0-0.cris-auth.1",
+        "CK.IO.User.UserPasskey@0.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-User-UserPassword",
       "Id": "uthrkNJX6Ew",
       "Packages": [
-        "CK.DB.User.UserPassword@31.0.0-0.cris-auth.0.ci.41",
-        "CK.DB.User.UserPassword.EMailLogin@31.0.0-0.cris-auth.0.ci.41",
-        "CK.DB.User.UserPassword.Reset@31.0.0-0.cris-auth.0.ci.41",
-        "CK.DB.User.UserPassword.Tests@31.0.0-0.cris-auth.0.ci.41",
-        "CK.IO.User.UserPassword@31.0.0-0.cris-auth.0.ci.41",
-        "CK.IO.User.UserPassword.Reset@31.0.0-0.cris-auth.0.ci.41"
+        "CK.DB.User.UserPassword@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserPassword.EMailLogin@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserPassword.Reset@31.0.0-0.cris-auth.1",
+        "CK.DB.User.UserPassword.Tests@31.0.0-0.cris-auth.1",
+        "CK.IO.User.UserPassword@31.0.0-0.cris-auth.1",
+        "CK.IO.User.UserPassword.Reset@31.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-UserInvitation",
       "Id": "3R_O8Z_c79U",
       "Packages": [
-        "CK.DB.UserInvitation@3.0.0-0.cris-auth.0.ci.38",
-        "CK.DB.UserInvitation.Tests@3.0.0-0.cris-auth.0.ci.38",
-        "CK.IO.UserInvitation@3.0.0-0.cris-auth.0.ci.38"
+        "CK.DB.UserInvitation@3.0.0-0.cris-auth.1",
+        "CK.DB.UserInvitation.Tests@3.0.0-0.cris-auth.1",
+        "CK.IO.UserInvitation@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-WeakActor",
       "Id": "HbMnF2Wm8NA",
       "Packages": [
-        "CK.DB.Actor.WeakActor@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.Actor.WeakActor.Tests@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.HZone.WeakActor@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.HZone.WeakActor.SimpleNaming.Tests@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.HZone.WeakActor.Tests@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.Zone.WeakActor@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.Zone.WeakActor.SimpleNaming@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.Zone.WeakActor.SimpleNaming.Tests@3.0.0-0.cris-auth.0.ci.33",
-        "CK.DB.Zone.WeakActor.Tests@3.0.0-0.cris-auth.0.ci.33"
+        "CK.DB.Actor.WeakActor@3.0.0-0.cris-auth.1",
+        "CK.DB.Actor.WeakActor.Tests@3.0.0-0.cris-auth.1",
+        "CK.DB.HZone.WeakActor@3.0.0-0.cris-auth.1",
+        "CK.DB.HZone.WeakActor.SimpleNaming.Tests@3.0.0-0.cris-auth.1",
+        "CK.DB.HZone.WeakActor.Tests@3.0.0-0.cris-auth.1",
+        "CK.DB.Zone.WeakActor@3.0.0-0.cris-auth.1",
+        "CK.DB.Zone.WeakActor.SimpleNaming@3.0.0-0.cris-auth.1",
+        "CK.DB.Zone.WeakActor.SimpleNaming.Tests@3.0.0-0.cris-auth.1",
+        "CK.DB.Zone.WeakActor.Tests@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-WeakActor-PreferredCulture",
       "Id": "rHBmYVmKA_4",
       "Packages": [
-        "CK.DB.WeakActor.PreferredCulture@3.0.0-0.cris-auth.0.ci.13",
-        "CK.IO.WeakActor.PreferredCulture@3.0.0-0.cris-auth.0.ci.13"
+        "CK.DB.WeakActor.PreferredCulture@3.0.0-0.cris-auth.1",
+        "CK.IO.WeakActor.PreferredCulture@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-WebPage",
       "Id": "r0JHzn_Izu0",
       "Packages": [
-        "CK.DB.HWorkspace@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.HWorkspace.Page@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.HWorkspace.Page.Tests@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.HWorkspace.Tests@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.WebPage@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.WebPage.Tests@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.Workspace.Page@3.0.0-0.cris-auth.0.ci.15",
-        "CK.DB.Workspace.Page.Tests@3.0.0-0.cris-auth.0.ci.15"
+        "CK.DB.HWorkspace@3.0.0-0.cris-auth.1",
+        "CK.DB.HWorkspace.Page@3.0.0-0.cris-auth.1",
+        "CK.DB.HWorkspace.Page.Tests@3.0.0-0.cris-auth.1",
+        "CK.DB.HWorkspace.Tests@3.0.0-0.cris-auth.1",
+        "CK.DB.WebPage@3.0.0-0.cris-auth.1",
+        "CK.DB.WebPage.Tests@3.0.0-0.cris-auth.1",
+        "CK.DB.Workspace.Page@3.0.0-0.cris-auth.1",
+        "CK.DB.Workspace.Page.Tests@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DB-Workspace",
       "Id": "71gdiDvLOsE",
       "Packages": [
-        "CK.Cris.Workspace@18.0.0-0.cris-auth.0.ci.27",
-        "CK.DB.Workspace@18.0.0-0.cris-auth.0.ci.27",
-        "CK.DB.Workspace.Tests@18.0.0-0.cris-auth.0.ci.27",
-        "CK.IO.UserProfile.Workspace@18.0.0-0.cris-auth.0.ci.27",
-        "CK.IO.Workspace@18.0.0-0.cris-auth.0.ci.27"
+        "CK.Cris.Workspace@18.0.0-0.cris-auth.1",
+        "CK.DB.Workspace@18.0.0-0.cris-auth.1",
+        "CK.DB.Workspace.Tests@18.0.0-0.cris-auth.1",
+        "CK.IO.UserProfile.Workspace@18.0.0-0.cris-auth.1",
+        "CK.IO.Workspace@18.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Database",
       "Id": "lT6oIf2eMlc",
       "Packages": [
-        "CK.DB.Tests.NUnit@36.0.0-0.cris-auth.0.ci.39",
-        "CK.Setupable.Engine@36.0.0-0.cris-auth.0.ci.39",
-        "CK.Setupable.Model@36.0.0-0.cris-auth.0.ci.39",
-        "CK.Setupable.Runtime@36.0.0-0.cris-auth.0.ci.39",
-        "CK.SqlServer.Setup.Engine@36.0.0-0.cris-auth.0.ci.39",
-        "CK.SqlServer.Setup.Model@36.0.0-0.cris-auth.0.ci.39",
-        "CK.SqlServer.Setup.Runtime@36.0.0-0.cris-auth.0.ci.39",
-        "CK.Testing.SqlServerEngine@36.0.0-0.cris-auth.0.ci.39"
+        "CK.DB.Tests.NUnit@36.0.0-0.cris-auth.1",
+        "CK.Setupable.Engine@36.0.0-0.cris-auth.1",
+        "CK.Setupable.Model@36.0.0-0.cris-auth.1",
+        "CK.Setupable.Runtime@36.0.0-0.cris-auth.1",
+        "CK.SqlServer.Setup.Engine@36.0.0-0.cris-auth.1",
+        "CK.SqlServer.Setup.Model@36.0.0-0.cris-auth.1",
+        "CK.SqlServer.Setup.Runtime@36.0.0-0.cris-auth.1",
+        "CK.Testing.SqlServerEngine@36.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DeviceModel",
       "Id": "4JPZiXn7PfA",
       "Packages": [
-        "CK.Cris.DeviceModel@17.0.0-0.cris-auth.0.ci.15",
-        "CK.DeviceModel@17.0.0-0.cris-auth.0.ci.15",
-        "CK.DeviceModel.Configuration@17.0.0-0.cris-auth.0.ci.15",
-        "CK.IO.DeviceModel@17.0.0-0.cris-auth.0.ci.15"
+        "CK.Cris.DeviceModel@17.0.0-0.cris-auth.1",
+        "CK.DeviceModel@17.0.0-0.cris-auth.1",
+        "CK.DeviceModel.Configuration@17.0.0-0.cris-auth.1",
+        "CK.IO.DeviceModel@17.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-DeviceModel-ByTopic",
       "Id": "9w78UEilbn4",
       "Packages": [
-        "CK.DeviceModel.ByTopic@18.0.0-0.cris-auth.0.ci.15",
-        "CK.IO.DeviceModel.ByTopic@18.0.0-0.cris-auth.0.ci.15"
+        "CK.DeviceModel.ByTopic@18.0.0-0.cris-auth.1",
+        "CK.IO.DeviceModel.ByTopic@18.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -515,15 +515,15 @@
       "Url": "https://github.com/signature-opensource/CK-Globalization",
       "Id": "5fnVUs3KhUQ",
       "Packages": [
-        "CK.Globalization@8.0.0-0.cris-auth.0.ci.11"
+        "CK.Globalization@8.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Globalization-Engine",
       "Id": "2fEdV71a5BA",
       "Packages": [
-        "CK.Globalization.Engine@3.0.0-0.cris-auth.0.ci.22",
-        "CK.Globalization.StObj@3.0.0-0.cris-auth.0.ci.22"
+        "CK.Globalization.Engine@3.0.0-0.cris-auth.1",
+        "CK.Globalization.StObj@3.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -538,32 +538,32 @@
       "Url": "https://github.com/signature-opensource/CK-MQTT",
       "Id": "4oDZIvFkdU0",
       "Packages": [
-        "CK.MQTT.Client@3.0.0-0.cris-auth.0.ci.10",
-        "CK.MQTT.LocalMQTTDemiServer@3.0.0-0.cris-auth.0.ci.10",
-        "CK.MQTT.LowLevelClient@3.0.0-0.cris-auth.0.ci.10",
-        "CK.MQTT.Server@3.0.0-0.cris-auth.0.ci.10"
+        "CK.MQTT.Client@3.0.0-0.cris-auth.1",
+        "CK.MQTT.LocalMQTTDemiServer@3.0.0-0.cris-auth.1",
+        "CK.MQTT.LowLevelClient@3.0.0-0.cris-auth.1",
+        "CK.MQTT.Server@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Mailer",
       "Id": "I2cylf2Ru0E",
       "Packages": [
-        "CK.AppIdentity.MailSender.Local@15.0.0-0.cris-auth.0.ci.24",
-        "CK.AppIdentity.MailSender.Remote@15.0.0-0.cris-auth.0.ci.24",
-        "CK.IO.MailSender@15.0.0-0.cris-auth.0.ci.24",
-        "CK.Mailer@15.0.0-0.cris-auth.0.ci.24",
-        "CK.Mailer.MailKit@15.0.0-0.cris-auth.0.ci.24"
+        "CK.AppIdentity.MailSender.Local@15.0.0-0.cris-auth.1",
+        "CK.AppIdentity.MailSender.Remote@15.0.0-0.cris-auth.1",
+        "CK.IO.MailSender@15.0.0-0.cris-auth.1",
+        "CK.Mailer@15.0.0-0.cris-auth.1",
+        "CK.Mailer.MailKit@15.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Metrics",
       "Id": "2-JckjvABYg",
       "Packages": [
-        "CK.AppIdentity.Monitoring.Metrics@3.0.0-0.cris-auth.0.ci.15",
-        "CK.AppIdentity.Monitoring.Metrics.Csv@3.0.0-0.cris-auth.0.ci.15",
-        "CK.AppIdentity.Monitoring.Metrics.InfluxDb@3.0.0-0.cris-auth.0.ci.15",
-        "CK.Metrics@3.0.0-0.cris-auth.0.ci.15",
-        "CK.Monitoring.Metrics@3.0.0-0.cris-auth.0.ci.15"
+        "CK.AppIdentity.Monitoring.Metrics@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Monitoring.Metrics.Csv@3.0.0-0.cris-auth.1",
+        "CK.AppIdentity.Monitoring.Metrics.InfluxDb@3.0.0-0.cris-auth.1",
+        "CK.Metrics@3.0.0-0.cris-auth.1",
+        "CK.Monitoring.Metrics@3.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -578,74 +578,74 @@
       "Url": "https://github.com/signature-opensource/CK-Ng-Admin",
       "Id": "1vfvAIBNis8",
       "Packages": [
-        "CK.Ng.Admin@3.0.0-0.cris-auth.0.ci.66",
-        "CK.Ng.Admin.UserManagement@3.0.0-0.cris-auth.0.ci.66",
-        "CK.Ng.Admin.UserManagement.UserBanned@3.0.0-0.cris-auth.0.ci.66",
-        "CK.Ng.Admin.UserManagement.UserInvitation@3.0.0-0.cris-auth.0.ci.66"
+        "CK.Ng.Admin@3.0.0-0.cris-auth.1",
+        "CK.Ng.Admin.UserManagement@3.0.0-0.cris-auth.1",
+        "CK.Ng.Admin.UserManagement.UserBanned@3.0.0-0.cris-auth.1",
+        "CK.Ng.Admin.UserManagement.UserInvitation@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-SiteMap",
       "Id": "Z4Jt5UmAWvA",
       "Packages": [
-        "CK.IO.Ng.SiteMap@3.0.0-0.cris-auth.0.ci.24",
-        "CK.Ng.SiteMap@3.0.0-0.cris-auth.0.ci.24"
+        "CK.IO.Ng.SiteMap@3.0.0-0.cris-auth.1",
+        "CK.Ng.SiteMap@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-User-UserProfile",
       "Id": "QYFVPZpqhqs",
       "Packages": [
-        "CK.IO.UserProfile@3.0.0-0.cris-auth.0.ci.80",
-        "CK.IO.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.NamedUser@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.PreferredCulture@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.UserBanned@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.UserOidc@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.UserPasskey@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.UserPassword@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.UserPassword.Reset@3.0.0-0.cris-auth.0.ci.80",
-        "CK.Ng.UserProfile.Workspace@3.0.0-0.cris-auth.0.ci.80",
-        "CK.UserProfile@3.0.0-0.cris-auth.0.ci.80",
-        "CK.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.0.ci.80"
+        "CK.IO.UserProfile@3.0.0-0.cris-auth.1",
+        "CK.IO.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.NamedUser@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.PreferredCulture@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.UserBanned@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.UserOidc@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.UserPasskey@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.UserPassword@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.UserPassword.Reset@3.0.0-0.cris-auth.1",
+        "CK.Ng.UserProfile.Workspace@3.0.0-0.cris-auth.1",
+        "CK.UserProfile@3.0.0-0.cris-auth.1",
+        "CK.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-Zorro-Contrib",
       "Id": "NRzmaNIsfgE",
       "Packages": [
-        "CK.Ng.Zorro.BackOffice@3.0.0-0.cris-auth.0.ci.57",
-        "CK.Ng.Zorro.Basic@3.0.0-0.cris-auth.0.ci.57",
-        "CK.Ng.Zorro.Breadcrumb@3.0.0-0.cris-auth.0.ci.57"
+        "CK.Ng.Zorro.BackOffice@3.0.0-0.cris-auth.1",
+        "CK.Ng.Zorro.Basic@3.0.0-0.cris-auth.1",
+        "CK.Ng.Zorro.Breadcrumb@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Object-Mixer",
       "Id": "3840U_YoB-4",
       "Packages": [
-        "CK.Object.Mixer@3.0.0-0.cris-auth.0.ci.11",
-        "CK.Object.Predicate@3.0.0-0.cris-auth.0.ci.11",
-        "CK.Object.Processor@3.0.0-0.cris-auth.0.ci.11",
-        "CK.Object.Transform@3.0.0-0.cris-auth.0.ci.11"
+        "CK.Object.Mixer@3.0.0-0.cris-auth.1",
+        "CK.Object.Predicate@3.0.0-0.cris-auth.1",
+        "CK.Object.Processor@3.0.0-0.cris-auth.1",
+        "CK.Object.Transform@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Observable-Domain",
       "Id": "pgaWA85SAcM",
       "Packages": [
-        "CK.IO.ObservableDevice@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Ng.ObservableDomain.SignalR@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Ng.ObservableDomain.WebSocket@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Observable.Cris@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Observable.Device@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Observable.Domain@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Observable.League@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Observable.SignalRWatcher@21.0.0-0.cris-auth.0.ci.24",
-        "CK.Observable.WebSocketWatcher@21.0.0-0.cris-auth.0.ci.24",
-        "CK.TS.ObservableDomain@21.0.0-0.cris-auth.0.ci.24",
-        "CK.TS.ObservableDomain.DualCasing@21.0.0-0.cris-auth.0.ci.24"
+        "CK.IO.ObservableDevice@21.0.0-0.cris-auth.1",
+        "CK.Ng.ObservableDomain.SignalR@21.0.0-0.cris-auth.1",
+        "CK.Ng.ObservableDomain.WebSocket@21.0.0-0.cris-auth.1",
+        "CK.Observable.Cris@21.0.0-0.cris-auth.1",
+        "CK.Observable.Device@21.0.0-0.cris-auth.1",
+        "CK.Observable.Domain@21.0.0-0.cris-auth.1",
+        "CK.Observable.League@21.0.0-0.cris-auth.1",
+        "CK.Observable.SignalRWatcher@21.0.0-0.cris-auth.1",
+        "CK.Observable.WebSocketWatcher@21.0.0-0.cris-auth.1",
+        "CK.TS.ObservableDomain@21.0.0-0.cris-auth.1",
+        "CK.TS.ObservableDomain.DualCasing@21.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -659,10 +659,10 @@
       "Url": "https://github.com/signature-opensource/CK-ResourceSpace",
       "Id": "Dw1fWArd1bk",
       "Packages": [
-        "CK.EmbeddedResources.Globalization@3.0.0-0.cris-auth.0.ci.33",
-        "CK.ResourceSpace@3.0.0-0.cris-auth.0.ci.33",
-        "CK.ResourceSpace.Assets@3.0.0-0.cris-auth.0.ci.33",
-        "CK.ResourceSpace.Globalization@3.0.0-0.cris-auth.0.ci.33"
+        "CK.EmbeddedResources.Globalization@3.0.0-0.cris-auth.1",
+        "CK.ResourceSpace@3.0.0-0.cris-auth.1",
+        "CK.ResourceSpace.Assets@3.0.0-0.cris-auth.1",
+        "CK.ResourceSpace.Globalization@3.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -676,15 +676,15 @@
       "Url": "https://github.com/signature-opensource/CK-SqlServer",
       "Id": "KQePC1Po0Cw",
       "Packages": [
-        "CK.SqlServer@15.0.0-0.cris-auth.0.ci.6",
-        "CK.SqlServer.Transaction@15.0.0-0.cris-auth.0.ci.6"
+        "CK.SqlServer@15.0.0-0.cris-auth.1",
+        "CK.SqlServer.Transaction@15.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-SqlServer-Dapper",
       "Id": "_EAeB2csTro",
       "Packages": [
-        "CK.SqlServer.Dapper@18.0.0-0.cris-auth.0.ci.23"
+        "CK.SqlServer.Dapper@18.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -707,43 +707,67 @@
       "Url": "https://github.com/signature-opensource/CK-Sqlite",
       "Id": "MKnjKSUl5Zs",
       "Packages": [
-        "CK.Sqlite.Engine@18.0.0-0.cris-auth.0.ci.14",
-        "CK.Sqlite.Model@18.0.0-0.cris-auth.0.ci.14",
-        "CK.Testing.SqliteEngine@18.0.0-0.cris-auth.0.ci.14"
+        "CK.Sqlite.Engine@18.0.0-0.cris-auth.1",
+        "CK.Sqlite.Model@18.0.0-0.cris-auth.1",
+        "CK.Testing.SqliteEngine@18.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-StObj",
       "Id": "-SzqNQSQjWo",
       "Packages": [
-        "CK.AppBuilder@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Engine@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Engine.Configuration@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Engine.TypeCollector@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Poco.Exc.Json@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Poco.Exc.Json.Engine@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Poco.Exchange@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Poco.Exchange.Engine@36.0.0-0.cris-auth.0.ci.29",
-        "CK.StObj.Engine@36.0.0-0.cris-auth.0.ci.29",
-        "CK.StObj.Model@36.0.0-0.cris-auth.0.ci.29",
-        "CK.StObj.Runtime@36.0.0-0.cris-auth.0.ci.29",
-        "CK.Testing.StObjEngine@36.0.0-0.cris-auth.0.ci.29"
+        "CK.AppBuilder@36.0.0-0.cris-auth.1",
+        "CK.Engine@36.0.0-0.cris-auth.1",
+        "CK.Engine.Configuration@36.0.0-0.cris-auth.1",
+        "CK.Engine.TypeCollector@36.0.0-0.cris-auth.1",
+        "CK.Poco.Exc.Json@36.0.0-0.cris-auth.1",
+        "CK.Poco.Exc.Json.Engine@36.0.0-0.cris-auth.1",
+        "CK.Poco.Exchange@36.0.0-0.cris-auth.1",
+        "CK.Poco.Exchange.Engine@36.0.0-0.cris-auth.1",
+        "CK.StObj.Engine@36.0.0-0.cris-auth.1",
+        "CK.StObj.Model@36.0.0-0.cris-auth.1",
+        "CK.StObj.Runtime@36.0.0-0.cris-auth.1",
+        "CK.Testing.StObjEngine@36.0.0-0.cris-auth.1"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-TS-Angular",
+      "Id": "m_zHuMrbAd4",
+      "Packages": [
+        "CK.Ng.AspNet.Auth@3.0.1-0.cris-auth",
+        "CK.Ng.AspNet.Auth.Basic@3.0.1-0.cris-auth",
+        "CK.Ng.AspNet.WebSocketChannel@3.0.1-0.cris-auth",
+        "CK.Ng.Axios@3.0.1-0.cris-auth",
+        "CK.Ng.Localization@3.0.1-0.cris-auth",
+        "CK.Ng.PublicPage@3.0.1-0.cris-auth",
+        "CK.Ng.Zorro@3.0.1-0.cris-auth",
+        "CK.TS.Angular@3.0.1-0.cris-auth",
+        "CK.TS.Angular.Engine@3.0.1-0.cris-auth"
+      ]
+    },
+    {
+      "Url": "https://github.com/signature-opensource/CK-TS-AspNet",
+      "Id": "JSwhsffaHCo",
+      "Packages": [
+        "CK.TS.AspNet.Auth@3.0.1-0.cris-auth",
+        "CK.TS.AspNet.Clients@3.0.1-0.cris-auth",
+        "CK.TS.AspNet.WebSocketChannel@3.0.1-0.cris-auth"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Template-Fluid",
       "Id": "Ajd6n0XKyi0",
       "Packages": [
-        "CK.Template.Fluid@3.0.0-0.cris-auth.0.ci.19",
-        "CK.Template.Fluid.Engine@3.0.0-0.cris-auth.0.ci.19"
+        "CK.Template.Fluid@3.0.0-0.cris-auth.1",
+        "CK.Template.Fluid.Engine@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Templates",
       "Id": "ZaJmgRYck0g",
       "Packages": [
-        "CK.DB.Sample@13.0.0-0.cris-auth.0.ci.14",
-        "CK.Templates@13.0.0-0.cris-auth.0.ci.14"
+        "CK.DB.Sample@13.0.0-0.cris-auth.1",
+        "CK.Templates@13.0.0-0.cris-auth.1"
       ]
     },
     {
@@ -764,46 +788,40 @@
       ]
     },
     {
+      "Url": "https://github.com/signature-opensource/CK-Transform",
+      "Id": "yvmKkhtzqCs",
+      "Packages": [
+        "CK.Html.Transform@3.0.1-0.cris-auth",
+        "CK.Less.Transform@3.0.1-0.cris-auth",
+        "CK.Transform.Core@3.0.1-0.cris-auth",
+        "CK.TypeScript.Transform@3.0.1-0.cris-auth"
+      ]
+    },
+    {
       "Url": "https://github.com/signature-opensource/CK-TypeScript",
       "Id": "uVTGd3UCf4c",
       "Packages": [
-        "CK.Html.Transform@3.0.0-0.cris-auth.0.ci.55",
-        "CK.IO.Core@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Less.Transform@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Ng.AspNet.Auth@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Ng.AspNet.Auth.Basic@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Ng.AspNet.WebSocketChannel@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Ng.Axios@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Ng.Localization@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Ng.PublicPage@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Ng.Zorro@3.0.0-0.cris-auth.0.ci.55",
-        "CK.ResourceSpace.Transformable@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Testing.TypeScriptEngine@3.0.0-0.cris-auth.0.ci.55",
-        "CK.Transform.Core@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TS.Angular@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TS.Angular.Engine@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TS.AspNet.Auth@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TS.AspNet.Clients@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TS.AspNet.WebSocketChannel@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TypeScript@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TypeScript.CodeGen@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TypeScript.Engine@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TypeScript.LiveEngine@3.0.0-0.cris-auth.0.ci.55",
-        "CK.TypeScript.Transform@3.0.0-0.cris-auth.0.ci.55"
+        "CK.IO.Core@3.0.0-0.cris-auth.1",
+        "CK.ResourceSpace.Transformable@3.0.0-0.cris-auth.1",
+        "CK.Testing.TypeScriptEngine@3.0.0-0.cris-auth.1",
+        "CK.TypeScript@3.0.0-0.cris-auth.1",
+        "CK.TypeScript.CodeGen@3.0.0-0.cris-auth.1",
+        "CK.TypeScript.Engine@3.0.0-0.cris-auth.1",
+        "CK.TypeScript.LiveEngine@3.0.0-0.cris-auth.1"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-UserManagement",
       "Id": "NP5MBHbfHLE",
       "Packages": [
-        "CK.IO.Admin@3.0.0-0.cris-auth.0.ci.43",
-        "CK.IO.UserManagement@3.0.0-0.cris-auth.0.ci.43",
-        "CK.IO.UserManagement.UserBanned@3.0.0-0.cris-auth.0.ci.43",
-        "CK.IO.UserManagement.UserInvitation@3.0.0-0.cris-auth.0.ci.43",
-        "CK.Mail.SharedLayout@3.0.0-0.cris-auth.0.ci.43",
-        "CK.UserManagement@3.0.0-0.cris-auth.0.ci.43",
-        "CK.UserManagement.UserBanned@3.0.0-0.cris-auth.0.ci.43",
-        "CK.UserManagement.UserInvitation@3.0.0-0.cris-auth.0.ci.43"
+        "CK.IO.Admin@3.0.0-0.cris-auth.1",
+        "CK.IO.UserManagement@3.0.0-0.cris-auth.1",
+        "CK.IO.UserManagement.UserBanned@3.0.0-0.cris-auth.1",
+        "CK.IO.UserManagement.UserInvitation@3.0.0-0.cris-auth.1",
+        "CK.Mail.SharedLayout@3.0.0-0.cris-auth.1",
+        "CK.UserManagement@3.0.0-0.cris-auth.1",
+        "CK.UserManagement.UserBanned@3.0.0-0.cris-auth.1",
+        "CK.UserManagement.UserInvitation@3.0.0-0.cris-auth.1"
       ]
     }
   ],
@@ -1033,6 +1051,8 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
+              "yvmKkhtzqCs",
               "KQePC1Po0Cw",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
@@ -1083,6 +1103,7 @@
               "MYUokqAsN9I",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1113,6 +1134,8 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
+              "yvmKkhtzqCs",
               "KQePC1Po0Cw",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
@@ -1162,6 +1185,7 @@
               "MYUokqAsN9I",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1193,6 +1217,7 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
               "m8JRbf4OATo",
@@ -1227,6 +1252,7 @@
               "HbMnF2Wm8NA",
               "MYUokqAsN9I",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1255,6 +1281,7 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
               "m8JRbf4OATo",
@@ -1292,6 +1319,7 @@
               "HbMnF2Wm8NA",
               "MYUokqAsN9I",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1331,6 +1359,7 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
               "m8JRbf4OATo",
@@ -1365,6 +1394,7 @@
               "HbMnF2Wm8NA",
               "MYUokqAsN9I",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1393,6 +1423,8 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
+              "yvmKkhtzqCs",
               "KQePC1Po0Cw",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
@@ -1444,6 +1476,7 @@
               "HbMnF2Wm8NA",
               "MYUokqAsN9I",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1704,6 +1737,8 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
+              "yvmKkhtzqCs",
               "KQePC1Po0Cw",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
@@ -1754,6 +1789,7 @@
               "MYUokqAsN9I",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1784,6 +1820,8 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
+              "yvmKkhtzqCs",
               "KQePC1Po0Cw",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
@@ -1834,6 +1872,7 @@
               "MYUokqAsN9I",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1864,6 +1903,8 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
+              "yvmKkhtzqCs",
               "KQePC1Po0Cw",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
@@ -1914,6 +1955,7 @@
               "MYUokqAsN9I",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -1997,6 +2039,7 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
               "m8JRbf4OATo",
@@ -2031,6 +2074,7 @@
               "HbMnF2Wm8NA",
               "MYUokqAsN9I",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
@@ -2142,6 +2186,8 @@
               "2fEdV71a5BA",
               "rzheU9-ntBE",
               "eLi2pYsCiiI",
+              "JSwhsffaHCo",
+              "yvmKkhtzqCs",
               "KQePC1Po0Cw",
               "Ajd6n0XKyi0",
               "YVynyM1doTc",
@@ -2192,6 +2238,7 @@
               "MYUokqAsN9I",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
+              "m_zHuMrbAd4",
               "rpysItvtbd4",
               "PTTZc6pHfOQ",
               "r0JHzn_Izu0",
