@@ -19,6 +19,16 @@ references it; it doesn't wire it.
 - **One package per feature or scheme; a generic package holds generic types only.** A login scheme is its package
   (`CK.Cris.Authentication.Basic`, `.Passkey`...): an application gets a scheme by referencing it.
 
+## An engine references engines and its own model only
+
+**An engine (X.Engine) references other engines and its own model (X), nothing else.** What the engine needs to know
+comes through its model: when X.Engine must know a type of another package, X references that package, with an
+`[assembly: PreserveAssemblyReference( typeof( ... ) )]` when its code uses no type of it.
+
+The case: the TypeScript engine computes the facts of a client application from the `[PartyClientFact]` of its
+TypeScript packages (CK.AppIdentity.PartyClient). The reference is CK.TypeScript's, not CK.TypeScript.Engine's: using
+TypeScript implies using party clients, and the engine follows its model.
+
 ## Derive, don't store
 
 **A value that can be computed from another one is computed, never stored or configured a second time.** Two copies of
