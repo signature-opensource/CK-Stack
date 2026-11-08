@@ -14,7 +14,8 @@ references it; it doesn't wire it.
   was an old copy that nobody had updated when it was replaced.
 - **A package contributes through an extension point**, never through code the application must call:
   `WebApplicationContributions` (the services and middlewares of the web applications of a host, CK.AspNet), the
-  `IPartyDescriptionContributor` (what a party states about itself, CK.AppIdentity), the `IDevRunningStatusContributor`.
+  `ContributeDescription` of a feature driver (what a party states about itself, CK.AppIdentity), the
+  `IDevRunningStatusContributor`.
 - **One package per feature or scheme; a generic package holds generic types only.** A login scheme is its package
   (`CK.Cris.Authentication.Basic`, `.Passkey`...): an application gets a scheme by referencing it.
 
