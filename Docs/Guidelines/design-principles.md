@@ -42,6 +42,10 @@ already disagreed: the mail links pointed to the Admin, the passkey origins to t
 - **No redundant property**, stored or serialized: a client application is the default one when its request path is
   `/`, there is no `Kind` to keep in sync.
 - **The URL of a client application is derived** (`{PublicUrl}{RequestPath}`), never stored.
+- **The identity of a party is its full name**, the one its keys are bound to. An actor identifier of a party is a
+  local mapping, made where an actors database needs one (CK.DB.AppIdentity), never distributed: the distributed
+  PartyActorId needed a query to the authentication center, left the other remotes without one and broke the check
+  of a routed command at a party without the database.
 
 ## A party states facts about itself
 
@@ -79,7 +83,7 @@ commands are `[Internal]`: the application checks the rights, then calls them.
 
 **The identity is never carried by impersonation: the caller party is a third role.** Relaying "Alice impersonating Bob"
 through the party Paul by impersonation gives "Paul impersonating Bob" and loses Alice: the two slots of the
-impersonation belong to the users. The party that sends a command is carried apart: `AuthenticationInfo.CallerPartyId`.
+impersonation belong to the users. The party that sends a command is carried apart: `AuthenticationInfo.CallerPartyFullName`.
 
 **Trust between parties is bounded, audited and revocable, not absolute.** Pretending that everything can be secured
 against an evil party inside the System is a lie: a remote that vouches for its users can act as them at the Normal
@@ -92,8 +96,8 @@ narrower and real:
    still alive), so a Critical command can execute anywhere, but it can't be deferred to another party later.
 2. **Bounded damage.** A remote is accepted only the commands its role needs, and the receiver caps the level and can
    refuse privileged actors.
-3. **Audit.** Every action carries its `CallerPartyId`: who vouched for what is known.
-4. **Revocation.** Disabling the PartyActor of a remote cuts it off.
+3. **Audit.** Every action carries its caller party (`CallerPartyFullName`): who vouched for what is known.
+4. **Revocation.** A remote is cut off at the peering: its keys (its key event log) are no longer trusted.
 
 ## Fail closed, with an explicit opt-in
 
