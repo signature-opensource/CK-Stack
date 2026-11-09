@@ -88,7 +88,8 @@ narrower and real:
 
 1. **High-value actions need the human's fresh proof (Critical).** A caller party alone never reaches Critical: the
    password, the passkeys, the administration. A Critical command crosses a party boundary only with the user's live
-   proof: it can't be deferred to another party later.
+   proof: any party of the System verifies it with the authentication center (that alone knows whether the session is
+   still alive), so a Critical command can execute anywhere, but it can't be deferred to another party later.
 2. **Bounded damage.** A remote is accepted only the commands its role needs, and the receiver caps the level and can
    refuse privileged actors.
 3. **Audit.** Every action carries its `CallerPartyId`: who vouched for what is known.
