@@ -13,6 +13,9 @@
       "2026.310.0-0.cris-auth",
       "2026.303.0-0.cris-auth"
     ],
+    "explo/cris-auth-ci": [
+      "2026.315.0-0.cris-auth.0.ci.0"
+    ],
     "juliet-ci": [
       "2026.275.0-juliet.0.ci.0"
     ],
