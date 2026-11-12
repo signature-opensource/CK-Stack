@@ -1,7 +1,7 @@
 {
   "StackUrl": "https://github.com/signature-opensource/CK-Stack",
   "World": "CK",
-  "Version": "2026.316.0-0.cris-auth.0.ci.0",
+  "Version": "2026.316.1-0.cris-auth.0.ci.0",
   "IsDeprecated": false,
   "Repositories": [
     {
@@ -43,28 +43,28 @@
       "Url": "https://github.com/signature-opensource/CK-AppIdentity-Transport",
       "Id": "rzheU9-ntBE",
       "Packages": [
-        "CK.AppIdentity.AuthCenter@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.AuthCenter.Enlistment@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.AuthCenter.Local@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.AuthCenter.Oidc@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.AuthCenter.Passkey@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.AuthCenter.Remote@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.BlobChannel@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.CKey@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.Cris@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.Cris.AuthCenter@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.Cris.Authentication@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.Enlistment@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.KeyManagement@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.KeyManagement.Cng@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.Transport.MutualTls@3.0.0-0.cris-auth.1.ci.240",
-        "CK.AppIdentity.TransportLayer@3.0.0-0.cris-auth.1.ci.240",
-        "CK.DB.AppIdentity@3.0.0-0.cris-auth.1.ci.240",
-        "CK.IO.AppIdentity.Enlistment@3.0.0-0.cris-auth.1.ci.240",
-        "CK.IO.AuthCenter@3.0.0-0.cris-auth.1.ci.240",
-        "CK.Testing.AppIdentity.AuthCenter@3.0.0-0.cris-auth.1.ci.240",
-        "CK.Testing.AppIdentity.Cris@3.0.0-0.cris-auth.1.ci.240",
-        "CK.Testing.AppIdentity.TransportLayer@3.0.0-0.cris-auth.1.ci.240"
+        "CK.AppIdentity.AuthCenter@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.AuthCenter.Enlistment@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.AuthCenter.Local@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.AuthCenter.Oidc@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.AuthCenter.Passkey@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.AuthCenter.Remote@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.BlobChannel@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.CKey@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.Cris@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.Cris.AuthCenter@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.Cris.Authentication@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.Enlistment@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.KeyManagement@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.KeyManagement.Cng@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.Transport.MutualTls@3.0.0-0.cris-auth.1.ci.241",
+        "CK.AppIdentity.TransportLayer@3.0.0-0.cris-auth.1.ci.241",
+        "CK.DB.AppIdentity@3.0.0-0.cris-auth.1.ci.241",
+        "CK.IO.AppIdentity.Enlistment@3.0.0-0.cris-auth.1.ci.241",
+        "CK.IO.AuthCenter@3.0.0-0.cris-auth.1.ci.241",
+        "CK.Testing.AppIdentity.AuthCenter@3.0.0-0.cris-auth.1.ci.241",
+        "CK.Testing.AppIdentity.Cris@3.0.0-0.cris-auth.1.ci.241",
+        "CK.Testing.AppIdentity.TransportLayer@3.0.0-0.cris-auth.1.ci.241"
       ]
     },
     {
@@ -182,19 +182,19 @@
       "Url": "https://github.com/signature-opensource/CK-Cris-TypeScript",
       "Id": "m8JRbf4OATo",
       "Packages": [
-        "CK.Cris.AspNet@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Cris.AspNet.Auth.Basic@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Cris.AspNet.Authentication@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Cris.AspNet.Engine@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Cris.TypeScript@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Cris.WebApi@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Ng.Cris.AspNet@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Ng.Cris.AspNet.Auth@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Ng.Cris.AspNet.Authentication@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Ng.Cris.AspNet.Authentication.Basic@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Ng.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.1.ci.128",
-        "CK.Ng.Cris.AspNet.Authentication.Weak@3.0.0-0.cris-auth.1.ci.128"
+        "CK.Cris.AspNet@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Cris.AspNet.Auth.Basic@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Cris.AspNet.Authentication@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Cris.AspNet.Engine@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Cris.TypeScript@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Cris.WebApi@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Ng.Cris.AspNet@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Ng.Cris.AspNet.Auth@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Ng.Cris.AspNet.Authentication@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Ng.Cris.AspNet.Authentication.Basic@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Ng.Cris.AspNet.Authentication.Passkey@3.0.0-0.cris-auth.1.ci.129",
+        "CK.Ng.Cris.AspNet.Authentication.Weak@3.0.0-0.cris-auth.1.ci.129"
       ]
     },
     {
@@ -423,9 +423,9 @@
       "Url": "https://github.com/signature-opensource/CK-DB-UserInvitation",
       "Id": "3R_O8Z_c79U",
       "Packages": [
-        "CK.DB.UserInvitation@3.0.0-0.cris-auth.1.ci.61",
-        "CK.DB.UserInvitation.Tests@3.0.0-0.cris-auth.1.ci.61",
-        "CK.IO.UserInvitation@3.0.0-0.cris-auth.1.ci.61"
+        "CK.DB.UserInvitation@3.0.0-0.cris-auth.1.ci.62",
+        "CK.DB.UserInvitation.Tests@3.0.0-0.cris-auth.1.ci.62",
+        "CK.IO.UserInvitation@3.0.0-0.cris-auth.1.ci.62"
       ]
     },
     {
@@ -554,11 +554,11 @@
       "Url": "https://github.com/signature-opensource/CK-Mailer",
       "Id": "I2cylf2Ru0E",
       "Packages": [
-        "CK.AppIdentity.MailSender.Local@15.0.0-0.cris-auth.1.ci.51",
-        "CK.AppIdentity.MailSender.Remote@15.0.0-0.cris-auth.1.ci.51",
-        "CK.IO.MailSender@15.0.0-0.cris-auth.1.ci.51",
-        "CK.Mailer@15.0.0-0.cris-auth.1.ci.51",
-        "CK.Mailer.MailKit@15.0.0-0.cris-auth.1.ci.51"
+        "CK.AppIdentity.MailSender.Local@15.0.0-0.cris-auth.1.ci.52",
+        "CK.AppIdentity.MailSender.Remote@15.0.0-0.cris-auth.1.ci.52",
+        "CK.IO.MailSender@15.0.0-0.cris-auth.1.ci.52",
+        "CK.Mailer@15.0.0-0.cris-auth.1.ci.52",
+        "CK.Mailer.MailKit@15.0.0-0.cris-auth.1.ci.52"
       ]
     },
     {
@@ -584,48 +584,48 @@
       "Url": "https://github.com/signature-opensource/CK-Ng-Admin",
       "Id": "1vfvAIBNis8",
       "Packages": [
-        "CK.Ng.Admin@3.0.0-0.cris-auth.1.ci.98",
-        "CK.Ng.Admin.UserManagement@3.0.0-0.cris-auth.1.ci.98",
-        "CK.Ng.Admin.UserManagement.UserBanned@3.0.0-0.cris-auth.1.ci.98",
-        "CK.Ng.Admin.UserManagement.UserInvitation@3.0.0-0.cris-auth.1.ci.98",
-        "CK.Ng.AppIdentity.Enlistment@3.0.0-0.cris-auth.1.ci.98"
+        "CK.Ng.Admin@3.0.0-0.cris-auth.1.ci.99",
+        "CK.Ng.Admin.UserManagement@3.0.0-0.cris-auth.1.ci.99",
+        "CK.Ng.Admin.UserManagement.UserBanned@3.0.0-0.cris-auth.1.ci.99",
+        "CK.Ng.Admin.UserManagement.UserInvitation@3.0.0-0.cris-auth.1.ci.99",
+        "CK.Ng.AppIdentity.Enlistment@3.0.0-0.cris-auth.1.ci.99"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-SiteMap",
       "Id": "Z4Jt5UmAWvA",
       "Packages": [
-        "CK.IO.Ng.SiteMap@3.0.0-0.cris-auth.1.ci.41",
-        "CK.Ng.SiteMap@3.0.0-0.cris-auth.1.ci.41"
+        "CK.IO.Ng.SiteMap@3.0.0-0.cris-auth.1.ci.42",
+        "CK.Ng.SiteMap@3.0.0-0.cris-auth.1.ci.42"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-User-UserProfile",
       "Id": "QYFVPZpqhqs",
       "Packages": [
-        "CK.IO.UserProfile@3.0.0-0.cris-auth.1.ci.113",
-        "CK.IO.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.NamedUser@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.PreferredCulture@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.UserBanned@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.UserOidc@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.UserPasskey@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.UserPassword@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.UserPassword.Reset@3.0.0-0.cris-auth.1.ci.113",
-        "CK.Ng.UserProfile.Workspace@3.0.0-0.cris-auth.1.ci.113",
-        "CK.UserProfile@3.0.0-0.cris-auth.1.ci.113",
-        "CK.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1.ci.113"
+        "CK.IO.UserProfile@3.0.0-0.cris-auth.1.ci.114",
+        "CK.IO.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.NamedUser@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.PreferredCulture@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.UserBanned@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.UserOidc@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.UserPasskey@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.UserPassword@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.UserPassword.Reset@3.0.0-0.cris-auth.1.ci.114",
+        "CK.Ng.UserProfile.Workspace@3.0.0-0.cris-auth.1.ci.114",
+        "CK.UserProfile@3.0.0-0.cris-auth.1.ci.114",
+        "CK.UserProfile.UserPassword.Lost@3.0.0-0.cris-auth.1.ci.114"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-Zorro-Contrib",
       "Id": "NRzmaNIsfgE",
       "Packages": [
-        "CK.Ng.Zorro.BackOffice@3.0.0-0.cris-auth.1.ci.86",
-        "CK.Ng.Zorro.Basic@3.0.0-0.cris-auth.1.ci.86",
-        "CK.Ng.Zorro.Breadcrumb@3.0.0-0.cris-auth.1.ci.86"
+        "CK.Ng.Zorro.BackOffice@3.0.0-0.cris-auth.1.ci.87",
+        "CK.Ng.Zorro.Basic@3.0.0-0.cris-auth.1.ci.87",
+        "CK.Ng.Zorro.Breadcrumb@3.0.0-0.cris-auth.1.ci.87"
       ]
     },
     {
@@ -642,17 +642,17 @@
       "Url": "https://github.com/signature-opensource/CK-Observable-Domain",
       "Id": "pgaWA85SAcM",
       "Packages": [
-        "CK.IO.ObservableDevice@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Ng.ObservableDomain.SignalR@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Ng.ObservableDomain.WebSocket@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Observable.Cris@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Observable.Device@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Observable.Domain@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Observable.League@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Observable.SignalRWatcher@21.0.0-0.cris-auth.1.ci.42",
-        "CK.Observable.WebSocketWatcher@21.0.0-0.cris-auth.1.ci.42",
-        "CK.TS.ObservableDomain@21.0.0-0.cris-auth.1.ci.42",
-        "CK.TS.ObservableDomain.DualCasing@21.0.0-0.cris-auth.1.ci.42"
+        "CK.IO.ObservableDevice@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Ng.ObservableDomain.SignalR@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Ng.ObservableDomain.WebSocket@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Observable.Cris@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Observable.Device@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Observable.Domain@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Observable.League@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Observable.SignalRWatcher@21.0.0-0.cris-auth.1.ci.43",
+        "CK.Observable.WebSocketWatcher@21.0.0-0.cris-auth.1.ci.43",
+        "CK.TS.ObservableDomain@21.0.0-0.cris-auth.1.ci.43",
+        "CK.TS.ObservableDomain.DualCasing@21.0.0-0.cris-auth.1.ci.43"
       ]
     },
     {
@@ -741,24 +741,24 @@
       "Url": "https://github.com/signature-opensource/CK-TS-Angular",
       "Id": "m_zHuMrbAd4",
       "Packages": [
-        "CK.Ng.AspNet.Auth@3.0.1-0.cris-auth.0.ci.41",
-        "CK.Ng.AspNet.Auth.Basic@3.0.1-0.cris-auth.0.ci.41",
-        "CK.Ng.AspNet.WebSocketChannel@3.0.1-0.cris-auth.0.ci.41",
-        "CK.Ng.Axios@3.0.1-0.cris-auth.0.ci.41",
-        "CK.Ng.Localization@3.0.1-0.cris-auth.0.ci.41",
-        "CK.Ng.PublicPage@3.0.1-0.cris-auth.0.ci.41",
-        "CK.Ng.Zorro@3.0.1-0.cris-auth.0.ci.41",
-        "CK.TS.Angular@3.0.1-0.cris-auth.0.ci.41",
-        "CK.TS.Angular.Engine@3.0.1-0.cris-auth.0.ci.41"
+        "CK.Ng.AspNet.Auth@3.0.1-0.cris-auth.0.ci.42",
+        "CK.Ng.AspNet.Auth.Basic@3.0.1-0.cris-auth.0.ci.42",
+        "CK.Ng.AspNet.WebSocketChannel@3.0.1-0.cris-auth.0.ci.42",
+        "CK.Ng.Axios@3.0.1-0.cris-auth.0.ci.42",
+        "CK.Ng.Localization@3.0.1-0.cris-auth.0.ci.42",
+        "CK.Ng.PublicPage@3.0.1-0.cris-auth.0.ci.42",
+        "CK.Ng.Zorro@3.0.1-0.cris-auth.0.ci.42",
+        "CK.TS.Angular@3.0.1-0.cris-auth.0.ci.42",
+        "CK.TS.Angular.Engine@3.0.1-0.cris-auth.0.ci.42"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-TS-AspNet",
       "Id": "JSwhsffaHCo",
       "Packages": [
-        "CK.TS.AspNet.Auth@3.0.1-0.cris-auth.0.ci.44",
-        "CK.TS.AspNet.Clients@3.0.1-0.cris-auth.0.ci.44",
-        "CK.TS.AspNet.WebSocketChannel@3.0.1-0.cris-auth.0.ci.44"
+        "CK.TS.AspNet.Auth@3.0.1-0.cris-auth.0.ci.46",
+        "CK.TS.AspNet.Clients@3.0.1-0.cris-auth.0.ci.46",
+        "CK.TS.AspNet.WebSocketChannel@3.0.1-0.cris-auth.0.ci.46"
       ]
     },
     {
@@ -808,27 +808,27 @@
       "Url": "https://github.com/signature-opensource/CK-TypeScript",
       "Id": "uVTGd3UCf4c",
       "Packages": [
-        "CK.IO.Core@3.0.0-0.cris-auth.1.ci.105",
-        "CK.ResourceSpace.Transformable@3.0.0-0.cris-auth.1.ci.105",
-        "CK.Testing.TypeScriptEngine@3.0.0-0.cris-auth.1.ci.105",
-        "CK.TypeScript@3.0.0-0.cris-auth.1.ci.105",
-        "CK.TypeScript.CodeGen@3.0.0-0.cris-auth.1.ci.105",
-        "CK.TypeScript.Engine@3.0.0-0.cris-auth.1.ci.105",
-        "CK.TypeScript.LiveEngine@3.0.0-0.cris-auth.1.ci.105"
+        "CK.IO.Core@3.0.0-0.cris-auth.1.ci.107",
+        "CK.ResourceSpace.Transformable@3.0.0-0.cris-auth.1.ci.107",
+        "CK.Testing.TypeScriptEngine@3.0.0-0.cris-auth.1.ci.107",
+        "CK.TypeScript@3.0.0-0.cris-auth.1.ci.107",
+        "CK.TypeScript.CodeGen@3.0.0-0.cris-auth.1.ci.107",
+        "CK.TypeScript.Engine@3.0.0-0.cris-auth.1.ci.107",
+        "CK.TypeScript.LiveEngine@3.0.0-0.cris-auth.1.ci.107"
       ]
     },
     {
       "Url": "https://github.com/signature-opensource/CK-UserManagement",
       "Id": "NP5MBHbfHLE",
       "Packages": [
-        "CK.IO.Admin@3.0.0-0.cris-auth.1.ci.72",
-        "CK.IO.UserManagement@3.0.0-0.cris-auth.1.ci.72",
-        "CK.IO.UserManagement.UserBanned@3.0.0-0.cris-auth.1.ci.72",
-        "CK.IO.UserManagement.UserInvitation@3.0.0-0.cris-auth.1.ci.72",
-        "CK.Mail.SharedLayout@3.0.0-0.cris-auth.1.ci.72",
-        "CK.UserManagement@3.0.0-0.cris-auth.1.ci.72",
-        "CK.UserManagement.UserBanned@3.0.0-0.cris-auth.1.ci.72",
-        "CK.UserManagement.UserInvitation@3.0.0-0.cris-auth.1.ci.72"
+        "CK.IO.Admin@3.0.0-0.cris-auth.1.ci.73",
+        "CK.IO.UserManagement@3.0.0-0.cris-auth.1.ci.73",
+        "CK.IO.UserManagement.UserBanned@3.0.0-0.cris-auth.1.ci.73",
+        "CK.IO.UserManagement.UserInvitation@3.0.0-0.cris-auth.1.ci.73",
+        "CK.Mail.SharedLayout@3.0.0-0.cris-auth.1.ci.73",
+        "CK.UserManagement@3.0.0-0.cris-auth.1.ci.73",
+        "CK.UserManagement.UserBanned@3.0.0-0.cris-auth.1.ci.73",
+        "CK.UserManagement.UserInvitation@3.0.0-0.cris-auth.1.ci.73"
       ]
     }
   ],
