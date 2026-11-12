@@ -16,9 +16,22 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   (an engine change that regenerates the test applications), pass `--build-impacts commit` from the first run: it
   saves the failed run and the manual commit. Then read what it committed: only a correct regeneration (the engine's
   normalization) belongs to the repository. Unexpected impacts: build without the option and look at the list.
-- **Push with `ckli push`**, never a `git push` per repository.
+- **Push with `ckli push`**, never a `git push` per repository. It pushes the Stack repository too; `--stack-only`
+  pushes only the Stack repository.
 - **Move, retire or rename a project with `ckli project move` and `ckli project retire`**, never by hand: see
   [Managing projects across repositories](managing-projects-across-repositories.md).
+
+## Repositories
+
+- **A new repository: `ckli repo create <url>`**, run from the folder of the World where it belongs (`Core/CKomposable`
+  for instance): that folder is also its place in the World definition. It creates the remote repository (public for a
+  public Stack, private for a private one), clones it there, and commits the World definition in the Stack. The
+  BranchModel plugin makes the root branch of the branch model (`stable`) the default branch, pushed at once, and
+  creates `dev/stable`, checked out. If the command fails, the remote repository is deleted.
+- **An existing repository: `ckli repo add <url>`**, the same way, without creating the remote.
+- **The new repository is empty:** its solution and build files are written by hand, on its `dev/` branch;
+  `ckli issue` shows what is still expected.
+- **The Stack is committed, not pushed:** `ckli push` (or `ckli push --stack-only`) publishes the change.
 
 ## Package versions
 
