@@ -27,3 +27,4 @@ What a repository (or a World) that uses the stack must change to move from a re
 | Guide | From | To |
 |---|---|---|
 | [v2026.282 to explo/cris-auth](Migrations/v2026.282-to-explo-cris-auth.md) | The v2026.282.0 release | The packages of the `explo/cris-auth` branch: the authentication made of Cris commands and an Authentication Center. |
+| [explo/cris-auth to explo/uc](Migrations/explo-cris-auth-to-explo-uc.md) | The `explo/cris-auth` branch | The packages of the `explo/uc` branch: the App's configuration (`ckonf.json`), the first steps of the Unified Configuration. |
