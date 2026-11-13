@@ -29,6 +29,10 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   BranchModel plugin makes the root branch of the branch model (`stable`) the default branch, pushed at once, and
   creates `dev/stable`, checked out. If the command fails, the remote repository is deleted.
 - **An existing repository: `ckli repo add <url>`**, the same way, without creating the remote.
+- **Removing a repository from the World: `ckli repo remove <name>`** deletes its folder, without checking for unpushed
+  work: push its branches first (with `ckli push` while it is still in the World). If the folder can't be deleted (a
+  process holds it), the World definition is changed but the Stack is not committed: free the folder, delete it, and
+  commit `CK.xml`.
 - **The new repository is empty:** its solution and build files are written by hand, on its `dev/` branch;
   `ckli issue` shows what is still expected.
 - **The Stack is committed, not pushed:** `ckli push` (or `ckli push --stack-only`) publishes the change.
