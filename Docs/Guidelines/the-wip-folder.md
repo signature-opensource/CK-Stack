@@ -34,6 +34,10 @@ git clone https://github.com/signature-opensource/CK-Stack.wip .wip/Shared
   repositories, the decisions taken along the way, what is left to do.
 - **Everybody who has access reads it.** Write for the team, and pull before you write.
 - **Without access, skip it:** nothing in the stack depends on it.
+- **Each participant has a personal folder in it, named after them** (`Shared/Olivier/` for instance): the notes of
+  the work they are doing now. Personal, but shared: the others read it to know what is in progress, and only its
+  owner writes in it. Everyone who works on the stack has one. When a work ends, or is put on hold, its note leaves the
+  folder (to `done/`, `suspended/`...).
 
 ## User/: your own notes
 
