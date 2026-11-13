@@ -1,7 +1,9 @@
 <CK MinCKliVersion="0.26.0" LockPrefix="refs/ckli-locks">
   <Plugins CompileMode="Release">
     <BranchModel Root="stable">
-      <Explo Name="explo/cris-auth" Link="Full" Parent="stable" />
+      <Explo Name="explo/cris-auth" Link="Full" Parent="stable">
+        <Explo Name="explo/uc" Link="Full" />
+      </Explo>
     </BranchModel>
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
