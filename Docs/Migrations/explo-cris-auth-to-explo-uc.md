@@ -12,6 +12,7 @@ the **Behavior** and a **Check**.
 | Id | Area | Breaking? |
 |---|---|---|
 | [U1](#u1-the-builders-configuration-ckonfjson-the-hosts-appsettingsjson-are-projections) | The builder's configuration: the `ckonf.json` of a builder (its Apps, their party, the client applications declared with their `Type`, the aspects); the hosts' `appsettings.json` are generated from it | Yes (the builders, the hosts' configuration) |
+| [U3](#u3-the-client-features) | The client features: a `PartyClient` is a bag of `ClientFeature` ("NgApp", "Hosting"), `IPartyClientFactory` and `TypeScriptClient` are gone | Yes (the code that builds or reads clients, the running status) |
 | [U2](#u2-one-httpendpoint-per-local-party) | One HttpEndpoint per local party: `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `ConfigureHttpEndpoint`, `HttpEndpointFeatureDriver.Endpoint` | Yes (the configuration of the parties, the application's configuration of the endpoint) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
@@ -49,12 +50,11 @@ guide) is gone: migrate.
            "AllowFeatures": "HttpEndpoint",
            "HttpEndpoint": { "Urls": "http://localhost:5300" },
            "PartyClient": {
-             "App": { "Type": "TypeScript", "Kind": "DefaultApp", "DevServerPort": 4200 },
+             "App": { "NgApp": true, "Hosting": { "RequestPath": "/", "DevServerPort": 4200 } },
              "MiniApp": {
-               "Type": "TypeScript",
-               "Kind": "App",
-               "DevServerPort": 4201,
-               "Types": [ "CK.Ng.Cris.AspNet.CrisAspNetPackage, CK.Ng.Cris.AspNet", "CK.Sample.Front.IFrontInfoQCommand, Front.App" ]
+               "Types": [ "CK.Ng.Cris.AspNet.CrisAspNetPackage, CK.Ng.Cris.AspNet", "CK.Sample.Front.IFrontInfoQCommand, Front.App" ],
+               "NgApp": true,
+               "Hosting": { "DevServerPort": 4201 }
              }
            }
          },
@@ -68,14 +68,28 @@ guide) is gone: migrate.
    The root of `ckonf.json` has `"Apps"`, `"Aspects"` (see step 3) and `"ProjectCompileKeys"` (see the Behavior); any
    other key is an error.
 
-2. **Move the client applications into their declaration.** A `<TypeScript Name="X" ...>` of the BinPath becomes the
-   declared client `"Local:PartyClient:X"` with `"Type": "TypeScript"` and its attributes as keys: `Kind`,
-   `DevServerPort`, `UseDist`, `TargetProjectPath`, `DefaultTypeScriptVersion`, `IntegrationMode`, `InstallYarn`,
-   `GitIgnoreCKGenFolder`, `AutoInstallJest`, `EnableTSProjectReferences`, `DefaultCulture`, `ActiveCultures` (a string
-   or an array), `TypeFilterName`; its lists `Types`, `ExcludedTypes` (a type is its assembly qualified name, or an
-   object whose keys are its attributes: `{ "Name": "...", "Optional": true }`) and `Barrels`. The `"Type"` of a client is
-   required: a client without `Type`, or whose `Type` no package handles, is a build error. The options of the client
-   (`StaticFiles`) stay in its declaration: they are the run time's.
+2. **Move the client applications into their declaration.** A client is a bag of client features. A
+   `<TypeScript Name="X" ...>` of the BinPath (a client application served by its host) becomes the declared client
+   `"Local:PartyClient:X"` with:
+   - **its type set:** the `Types` and `ExcludedTypes` of the `<TypeScript>` become the `"Types"` and `"ExcludedTypes"` of
+     the client (a type is its assembly qualified name, or an object whose keys are its attributes:
+     `{ "Name": "...", "Optional": true }`);
+   - **its framework, `"NgApp"`** (an Angular application, CK.TS.Angular): the other attributes of the `<TypeScript>`
+     become its keys: `TargetProjectPath`, `DefaultTypeScriptVersion`, `IntegrationMode`, `InstallYarn`,
+     `GitIgnoreCKGenFolder`, `AutoInstallJest`, `EnableTSProjectReferences`, `DefaultCulture`, `ActiveCultures` (a string
+     or an array), `TypeFilterName` and the list `Barrels`. Without any of them: `"NgApp": true` (an empty object `{}` is
+     no declaration);
+   - **its hosting, `"Hosting"`** (CK.TS.AspNet.Clients): `Kind="DefaultApp"` becomes `"RequestPath": "/"` (an `App`
+     needs nothing: its request path is `/{kebab-name}`, `"RequestPath"` sets another one), `DevServerPort` its
+     `"DevServerPort"`, `UseDist="true"` its `"UseDist": true` (a run time key); the options of the client move into it:
+     `"Hosting": { "StaticFiles": { ... } }`.
+
+   Any other key of a client is an error. A client that no build feature handles (no `"NgApp"`) is a build error, and a
+   `"NgApp"` client without `"Hosting"` is not supported yet. Two clients at the same request path are an error.
+
+   A local party can have a type set too, in its `Local` (`Parties[i]:Local` for a tenant domain): `"Types"` and
+   `"ExcludedTypes"`, compile time keys. Its exclusions apply to its clients (a client that adds a type that its party
+   excludes is an error); its additions are added to the App.
 
 3. **Move the other BinPath settings:**
    - `<Globalization ActiveCultures="fr, en" />` becomes an aspect of the App:
@@ -103,7 +117,8 @@ guide) is gone: migrate.
 **Behavior:**
 - **The host's `appsettings.json` is generated:** its first line is `// Generated from Front.Builder/ckonf.json: do not
   edit.`, it is written when it changes, without the comments (they are in the `ckonf.json`) and without the compile
-  time keys (the client's `Type` and TypeScript keys, the `Aspects`, the App keys). **The keys of the party are in its
+  time keys (the type sets, the keys of "NgApp", the `RequestPath` and `DevServerPort` of "Hosting", the `Aspects`, the App
+  keys; a feature whose keys are all compile time is written `true`). **The keys of the party are in its
   `"CK-AppIdentity"` section** (first), the other keys of the App follow as they are: the run time configuration is the
   one of the cris-auth guide (the user-secrets and the environment variables keep their `CK-AppIdentity:...` keys). Edit
   the `ckonf.json`, never the projection. `"ProjectCompileKeys": true` (at the root) keeps the compile time keys of the
@@ -114,8 +129,8 @@ guide) is gone: migrate.
   the section of the projection: the old `"CK-AppIdentity": { ... }` level must be removed).
 - **The order of the Apps means nothing:** the engine receives them sorted by name.
 - **The builder needs no new package:** the engines that deduce the configuration are the ones the builders already
-  reference (`CK.AppIdentity.Engine`, M30 of the cris-auth guide; the TypeScript engine through `CK.TS.Angular.Engine` or
-  `CK.TypeScript.Engine`; `CK.Globalization.Engine`), in their versions of the `explo/uc` branch.
+  reference (`CK.AppIdentity.Engine`, M30 of the cris-auth guide; `CK.TS.Angular.Engine` for the "NgApp" clients;
+  `CK.Globalization.Engine`), in their versions of the `explo/uc` branch.
 
 **Check:** the builder's log has "Reading '.../ckonf.json'." and "written from 'ckonf.json'"; the host's
 `appsettings.json` starts with the "Generated" line; the generated code (`$StObjGen`) and the `ck-gen` of the client
@@ -178,6 +193,52 @@ reads the `Http` section of a `DevRunningStatus.json` as an array.
 answers on its `Urls`. CK-Sample-AspNetAuth, CK-Sample-MultiBinPath and the samples of CK-Ng-Admin, CK-Ng-User-UserProfile,
 CK-Ng-Zorro-Contrib and CK-Observable-Domain are migrated this way.
 
+## U3. The client features
+
+A client of a party is a bag of client features, as a party is a bag of features: what it is comes from its features,
+not from its type. The configuration side is in U1 (step 2); this item is about the code.
+
+**Detect:** a use of `IPartyClientFactory`, of a class that specializes `PartyClient`, of `PartyClient.Options` or
+`PartyClient.InitializeOptions`, of `TypeScriptClient`, `TypeScriptClientFactory` or `TypeScriptClientOption`, of
+`ClientInfo.UseDist` or `TypeScriptBinPathAspectConfiguration.UseDist`, or of the `Kind` of the `Clients` section of a
+`DevRunningStatus.json`.
+
+**Do:**
+
+1. **A kind of client becomes a client feature:** a class that specializes `ClientFeature` (CK.AppIdentity.PartyClient)
+   named `XXXClientFeature` (its name, the key of its section in the client, is `"XXX"`), and its driver, a
+   `ClientFeatureDriver<XXXClientFeature>` that creates it (`Create( monitor, client, configuration )`, the
+   `configuration` being the section of the feature) instead of an `IPartyClientFactory`. Its requirements are
+   `[Requires<T>]` on the class: a feature of the party (`[Requires<HttpEndpointFeatureDriver>]`, instead of
+   `RequiredFeatures`) or an abstraction implemented by another feature of the client (an interface that extends
+   `IPartyComponentAbstraction`, `IWebAppBuild` for instance). Its description: override
+   `ClientFeature.ContributeDescription( builder )` (`builder.RequestPath`, `builder.AddFacts`) instead of
+   `PartyClient.Description`.
+2. **`PartyClient` is a container:** read a client's features with `PartyClient.Features` or `GetFeature<T>()` (a
+   feature type or an abstraction): `client.GetFeature<HostingClientFeature>()` instead of a cast to `TypeScriptClient`.
+3. **The options of a client are the options of a client feature:** an option is an `IPartyComponentOption<TFeature>`
+   (still `[PartyClientOption]`), selected from the section of the feature, in `ClientFeature.Options` and
+   `ClientFeature.InitializeOptions`. `TypeScriptClientOption` becomes `HostingClientOption` (`Initialize( monitor,
+   hosting, configuration )`), and `StaticFilesOption` is an option of the "Hosting" feature.
+4. **`TypeScriptClient` becomes two features:** `NgAppClientFeature` (CK.TS.Angular: `Info`, the `ClientInfo`; the web
+   build `IWebAppBuild`) and `HostingClientFeature` (CK.TS.AspNet.Clients: `Info`, `RequestPath`, `UseDist`,
+   `StaticFiles`, `Build`). `ClientInfo.UseDist` and `TypeScriptBinPathAspectConfiguration.UseDist` are gone: it is the
+   run time key `"Hosting:UseDist"`. `TypeScriptBinPathAspectConfiguration.RequestPath` can be set (it sets the `Kind`).
+5. **A script that reads the running status:** the `Clients` section has no `Kind`: the default client application is
+   the one whose `RequestPath` is `/`.
+
+**Behavior:**
+- A party component (`IPartyComponent`) is a resource group (`IResourceGroup`): the topology attributes declare its
+  requirements. The engine generates the `PartyComponentDirectory` (CK.AppIdentity): their requirements, their
+  abstractions and their order. A requirement that is neither a party component nor an abstraction is an engine error.
+- At start, the "PartyClient" feature checks the features of each client: a key that is no feature (nor its type set), a
+  client without feature, a missing requirement, two implementations of a unique abstraction are errors. A feature is
+  declared by its section or by `true`.
+
+**Check:** no `IPartyClientFactory`, `TypeScriptClient` nor `TypeScriptClientOption` is left, and the clients start.
+CK-TS-AspNet (`HostingClientFeature`), CK-TS-Angular (`NgAppClientFeature`) and the tests of CK-AppIdentity are migrated
+this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -185,3 +246,5 @@ CK-Ng-Zorro-Contrib and CK-Observable-Domain are migrated this way.
    the hosts' `appsettings.json` start with the "Generated" line, committed (U1).
 2. Every `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `AddHttpEndpoint` is replaced by
    `ConfigureHttpEndpoint` and `Endpoints` by `Endpoint` (U2).
+3. No `IPartyClientFactory`, `TypeScriptClient` nor `PartyClient` subclass is left: the clients are bags of client
+   features, declared with `NgApp` and `Hosting` (U1, U3).
