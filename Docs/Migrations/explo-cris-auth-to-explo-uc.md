@@ -12,6 +12,7 @@ the **Behavior** and a **Check**.
 | Id | Area | Breaking? |
 |---|---|---|
 | [U1](#u1-the-builders-configuration-ckonfjson-the-hosts-appsettingsjson-are-projections) | The builder's configuration: the `ckonf.json` of a builder (its Apps, their party, the client applications declared with their `Type`, the aspects); the hosts' `appsettings.json` are generated from it | Yes (the builders, the hosts' configuration) |
+| [U2](#u2-one-httpendpoint-per-local-party) | One HttpEndpoint per local party: `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `ConfigureHttpEndpoint`, `HttpEndpointFeatureDriver.Endpoint` | Yes (the configuration of the parties, the application's configuration of the endpoint) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -46,7 +47,7 @@ guide) is gone: migrate.
          "FullName": "Sample/Auth3/$Front/#Dev",
          "Local": {
            "AllowFeatures": "HttpEndpoint",
-           "HttpEndpoint": { "Main": { "Urls": "http://localhost:5300" } },
+           "HttpEndpoint": { "Urls": "http://localhost:5300" },
            "PartyClient": {
              "App": { "Type": "TypeScript", "Kind": "DefaultApp", "DevServerPort": 4200 },
              "MiniApp": {
@@ -122,8 +123,65 @@ applications are unchanged by the migration. CK-Sample-AspNetAuth (five builders
 Apps in one builder), the samples of CK-Ng-Admin, CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib and
 CK-Observable-Domain are migrated this way.
 
+## U2. One HttpEndpoint per local party
+
+A local party has one HTTP endpoint: one origin (its public URL), one pipeline. The named endpoints of
+`Local:HttpEndpoint` are gone: its `Urls` (or its `Kestrel` section) and its options are directly in it. Several listening
+addresses don't need several endpoints: `Urls` takes several (separated by `;`, or an array), a `Kestrel` section
+several Kestrel endpoints.
+
+**Detect:** a `"HttpEndpoint": { "<Name>": { ... } }` in a `ckonf.json`, an `appsettings.json` or a test
+configuration (a key `Local:HttpEndpoint:<Name>:Urls`, `Local:HttpEndpoint:<Name>:Kestrel`,
+`Local:HttpEndpoint:<Name>:ForwardedHeaders`...); a call to `AddHttpEndpoint`; a use of `HttpEndpointFeatureDriver.Endpoints`,
+`RunningHttpEndpoint.Name` or `AspNetServerTestHelperExtensions.EndpointName` (CK.Testing.AspNetServer); a script that
+reads the `Http` section of a `DevRunningStatus.json` as an array.
+
+**Do:**
+
+1. **Remove the endpoint level** of `Local:HttpEndpoint` (in the `ckonf.json` of a builder: the `appsettings.json` of the
+   host is regenerated, see U1):
+
+   ```jsonc
+   // Before.
+   "HttpEndpoint": { "Main": { "Urls": "http://localhost:5300", "ForwardedHeaders": { "KnownProxies": "10.0.0.12" } } }
+   // After.
+   "HttpEndpoint": { "Urls": "http://localhost:5300", "ForwardedHeaders": { "KnownProxies": "10.0.0.12" } }
+   ```
+
+   The keys of a test configuration follow: `Local:HttpEndpoint:Main:Urls` becomes `Local:HttpEndpoint:Urls`.
+2. **Replace `AddHttpEndpoint( name, configure )`** by `HttpEndpointHostApplicationBuilderExtensions.ConfigureHttpEndpoint( configure )`
+   (namespace `Microsoft.Extensions.Hosting`, package CK.AppIdentity.HttpEndpoint):
+
+   ```csharp
+   builder.ConfigureHttpEndpoint( web => web.AppendApplicationBuilder( app => app.UseMiddleware<MyMiddleware>() ) );
+   ```
+
+   It can be called more than once: the configurations apply in their order, after the contributions of the packages.
+   A call without configuration is removed.
+3. **Replace `HttpEndpointFeatureDriver.Endpoints`** (a list) by `HttpEndpointFeatureDriver.Endpoint`: the
+   `RunningHttpEndpoint` (its `Application`, `Urls` and `DefaultUrl`; it has no `Name` any more), null when it is not
+   running. `AspNetServerTestHelperExtensions.EndpointName` is removed: `CreateRunningAspNetServerAsync` sets
+   `Local:HttpEndpoint:Urls` to `http://127.0.0.1:0` unless `Urls` or `Kestrel` is configured.
+4. **A script that reads the running status** (`#Dev/Store/.../DevRunningStatus.json`) reads `Http` as an object:
+   `{ "Urls": [...], "DefaultUrl": "..." }` (null when the endpoint is not running). The `#Dev/Start.ps1` of
+   CK.AppIdentity.Hosting does.
+
+**Behavior:**
+- A `Local:HttpEndpoint` without `Urls` nor `Kestrel` (or with both) fails the start of the party; a child section that
+  has `Urls` or `Kestrel` is reported as a named endpoint ("the endpoint level is removed: move its content into
+  Local:HttpEndpoint").
+- The options of the endpoint (`ForwardedHeaders`) are the party's: their messages name `Local:HttpEndpoint:<Option>`.
+- An `HttpEndpointOption` (a package's option) receives the `Local:HttpEndpoint` section in its `Initialize`.
+- Only the root party has an endpoint, as before.
+
+**Check:** no `HttpEndpoint` section has a named child, no `AddHttpEndpoint` nor `Endpoints` is left, and the party
+answers on its `Urls`. CK-Sample-AspNetAuth, CK-Sample-MultiBinPath and the samples of CK-Ng-Admin, CK-Ng-User-UserProfile,
+CK-Ng-Zorro-Contrib and CK-Observable-Domain are migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
    applications declared with their `"Type"`, the `"Aspects"`), its `CKSetup.xml` has no `<BinPaths>` (or is gone), and
    the hosts' `appsettings.json` start with the "Generated" line, committed (U1).
+2. Every `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `AddHttpEndpoint` is replaced by
+   `ConfigureHttpEndpoint` and `Endpoints` by `Endpoint` (U2).
