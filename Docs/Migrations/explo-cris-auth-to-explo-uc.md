@@ -11,7 +11,7 @@ the **Behavior** and a **Check**.
 
 | Id | Area | Breaking? |
 |---|---|---|
-| [U1](#u1-the-builders-configuration-ckonfjson-the-hosts-appsettingsjson-are-projections) | The builder's configuration: the `ckonf.json` of a builder (its Apps, their party, the client applications declared with their `Type`, the aspects); the hosts' `appsettings.json` are generated from it | Yes (the builders, the hosts' configuration) |
+| [U1](#u1-the-builders-configuration-ckonfjson-the-hosts-appsettingsjson-are-projections) | The builder's configuration: the `ckonf.json` of a builder (its Apps, their party, the client applications declared with their features and their type set, the aspects); the hosts' `appsettings.json` are generated from it | Yes (the builders, the hosts' configuration) |
 | [U3](#u3-the-client-features) | The client features: a `PartyClient` is a bag of `ClientFeature` ("NgApp", "Hosting"), `IPartyClientFactory` and `TypeScriptClient` are gone | Yes (the code that builds or reads clients, the running status) |
 | [U2](#u2-one-httpendpoint-per-local-party) | One HttpEndpoint per local party: `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `ConfigureHttpEndpoint`, `HttpEndpointFeatureDriver.Endpoint` | Yes (the configuration of the parties, the application's configuration of the endpoint) |
 
@@ -242,7 +242,7 @@ this way.
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
-   applications declared with their `"Type"`, the `"Aspects"`), its `CKSetup.xml` has no `<BinPaths>` (or is gone), and
+   applications declared with their features `"NgApp"` and `"Hosting"`, the `"Aspects"`), its `CKSetup.xml` has no `<BinPaths>` (or is gone), and
    the hosts' `appsettings.json` start with the "Generated" line, committed (U1).
 2. Every `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `AddHttpEndpoint` is replaced by
    `ConfigureHttpEndpoint` and `Endpoints` by `Endpoint` (U2).
