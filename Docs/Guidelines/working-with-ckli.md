@@ -33,6 +33,11 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   work: push its branches first (with `ckli push` while it is still in the World). If the folder can't be deleted (a
   process holds it), the World definition is changed but the Stack is not committed: free the folder, delete it, and
   commit `CK.xml`.
+- **The World definition is not per branch.** `CK.xml` (the default World definition of the Stack) lists the
+  repositories of every branch: adding a repository adds it to all the branches, removing one removes it from all of
+  them (`stable` included). So a repository that a branch empties (its projects moved elsewhere on `explo/xxx`) is
+  **not** removed when the branch is pushed: it stays in the World, empty on that branch and alive on the others. It is
+  removed only once its empty state has reached `stable` (the branch integrated into its parent, up to `stable`).
 - **The new repository is empty:** its solution and build files are written by hand, on its `dev/` branch;
   `ckli issue` shows what is still expected.
 - **The Stack is committed, not pushed:** `ckli push` (or `ckli push --stack-only`) publishes the change.
