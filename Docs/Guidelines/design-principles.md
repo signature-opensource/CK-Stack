@@ -29,6 +29,17 @@ The case: the TypeScript engine computes the facts of a client application from 
 TypeScript packages (CK.AppIdentity.PartyClient). The reference is CK.TypeScript's, not CK.TypeScript.Engine's: using
 TypeScript implies using party clients, and the engine follows its model.
 
+## Internals are seen by their tests only
+
+**`InternalsVisibleTo` is used only from a project to its own test project (`X` to `X.Tests`)**, never between two
+projects, even in the same repository. What another project needs is public: a type that is public "for the engine"
+or "for the tests of the contributors" says so in its documentation. A friend assembly is a hidden dependency: a
+project move breaks it silently, and it couples the two projects' code below their contract.
+
+The case: the App builder model was split between CK.Engine and CK.AppBuilder, and CK.Engine opened its internals to
+CK.AppBuilder (and to CK.AppBuilder.Tests). Moving the model to CK.Engine.Configuration, in another repository, would
+have needed a friend assembly across repositories: the model is now one project, with a public contract.
+
 ## Derive, don't store
 
 **A value that can be computed from another one is computed, never stored or configured a second time.** Two copies of
