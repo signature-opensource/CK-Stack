@@ -14,6 +14,11 @@ the **Behavior** and a **Check**.
 | [U1](#u1-the-builders-configuration-ckonfjson-the-hosts-appsettingsjson-are-projections) | The builder's configuration: the `ckonf.json` of a builder (its Apps, their party, the client applications declared with their features and their type set, the aspects); the hosts' `appsettings.json` are generated from it | Yes (the builders, the hosts' configuration) |
 | [U3](#u3-the-client-features) | The client features: a `PartyClient` is a bag of `ClientFeature` ("NgApp", "Hosting"), `IPartyClientFactory` and `TypeScriptClient` are gone | Yes (the code that builds or reads clients, the running status) |
 | [U2](#u2-one-httpendpoint-per-local-party) | One HttpEndpoint per local party: `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `ConfigureHttpEndpoint`, `HttpEndpointFeatureDriver.Endpoint` | Yes (the configuration of the parties, the application's configuration of the endpoint) |
+| [U4](#u4-the-features-are-declared-by-their-key-allowfeatures-and-disallowfeatures-are-gone) | The features are declared by their key (`true`, the section, `false`): `AllowFeatures` and `DisallowFeatures` are gone | Yes (configuration) |
+| [U5](#u5-the-feature-drivers-declare-their-feature-partyfeature) | The feature drivers declare their feature with `[PartyFeature]` (the base constructor takes the service only), the abstractions their cardinality, the maps of the tests list the generated directories | Yes (the feature drivers, the tests) |
+| [U6](#u6-the-description-of-a-party-is-intrinsic) | The description of a party is intrinsic: `PartyDescriptionFeatureDriver` is gone | Yes (the tests) |
+| [U7](#u7-the-keys-of-a-party-are-a-closed-set) | The keys of a party are a closed set: the settings move into their feature's section (KeyManagement, Transport, `AuthCenterRemote:Party`, the CngKeyStore and PasswordLost options) | Yes (configuration) |
+| [U8](#u8-an-option-declares-its-data) | An option reads its `IConfiguration` in its constructor, its owner holds it (`GetOption<T>`): `Initialize` and `InitializeOptions` are gone | Yes (the options, their owners) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -38,7 +43,7 @@ guide) is gone: migrate.
    `appsettings.json` (move it, with its comments) **without its `"CK-AppIdentity"` level**: the keys of the party
    (`FullName`, `Local`, `Parties`, `Defaults`, `DomainName`, `PartyName`, `EnvironmentName`, `StoreRootPath`,
    `TrashBinRetention`, `StrictConfigurationMode`) are directly in the App, next to the other sections of the host
-   (`Logging`, `CK-Monitoring`...). Plus the compile time keys below:
+   (`Logging`, `CK-Monitoring`...); the features are declared by their key (U4). Plus the compile time keys below:
 
    ```jsonc
    // Front.Builder/ckonf.json
@@ -47,7 +52,6 @@ guide) is gone: migrate.
        "Front": {
          "FullName": "Sample/Auth3/$Front/#Dev",
          "Local": {
-           "AllowFeatures": "HttpEndpoint",
            "HttpEndpoint": { "Urls": "http://localhost:5300" },
            "PartyClient": {
              "App": { "NgApp": true, "Hosting": { "RequestPath": "/", "DevServerPort": 4200 } },
@@ -58,7 +62,7 @@ guide) is gone: migrate.
              }
            }
          },
-         "Parties": [ { "PartyName": "$Auth3", "AllowFeatures": "AuthCenterRemote", "Address": "tcp:127.0.0.1:37300" } ],
+         "Parties": [ { "PartyName": "$Auth3", "AuthCenterRemote": true, "Address": "tcp:127.0.0.1:37300" } ],
          "Logging": { "LogLevel": { "Default": "Warning" } }
        }
      }
@@ -186,7 +190,7 @@ reads the `Http` section of a `DevRunningStatus.json` as an array.
   has `Urls` or `Kestrel` is reported as a named endpoint ("the endpoint level is removed: move its content into
   Local:HttpEndpoint").
 - The options of the endpoint (`ForwardedHeaders`) are the party's: their messages name `Local:HttpEndpoint:<Option>`.
-- An `HttpEndpointOption` (a package's option) receives the `Local:HttpEndpoint` section in its `Initialize`.
+- An `HttpEndpointOption` (a package's option) reads its own section in its constructor (U8).
 - Only the root party has an endpoint, as before.
 
 **Check:** no `HttpEndpoint` section has a named child, no `AddHttpEndpoint` nor `Endpoints` is left, and the party
@@ -217,9 +221,9 @@ not from its type. The configuration side is in U1 (step 2); this item is about 
 2. **`PartyClient` is a container:** read a client's features with `PartyClient.Features` or `GetFeature<T>()` (a
    feature type or an abstraction): `client.GetFeature<HostingClientFeature>()` instead of a cast to `TypeScriptClient`.
 3. **The options of a client are the options of a client feature:** an option is an `IPartyComponentOption<TFeature>`
-   (still `[PartyClientOption]`), selected from the section of the feature, in `ClientFeature.Options` and
-   `ClientFeature.InitializeOptions`. `TypeScriptClientOption` becomes `HostingClientOption` (`Initialize( monitor,
-   hosting, configuration )`), and `StaticFilesOption` is an option of the "Hosting" feature.
+   (still `[PartyClientOption]`), selected from the section of the feature and created with it: `ClientFeature.Options`,
+   `ClientFeature.GetOption<T>()`. An option reads its configuration in its constructor (U8). `TypeScriptClientOption`
+   becomes `HostingClientOption`, and `StaticFilesOption` is an option of the "Hosting" feature.
 4. **`TypeScriptClient` becomes two features:** `NgAppClientFeature` (CK.TS.Angular: `Info`, the `ClientInfo`; the web
    build `IWebAppBuild`) and `HostingClientFeature` (CK.TS.AspNet.Clients: `Info`, `RequestPath`, `UseDist`,
    `StaticFiles`, `Build`). `ClientInfo.UseDist` and `TypeScriptBinPathAspectConfiguration.UseDist` are gone: it is the
@@ -239,6 +243,253 @@ not from its type. The configuration side is in U1 (step 2); this item is about 
 CK-TS-AspNet (`HostingClientFeature`), CK-TS-Angular (`NgAppClientFeature`) and the tests of CK-AppIdentity are migrated
 this way.
 
+## U4. The features are declared by their key (`AllowFeatures` and `DisallowFeatures` are gone)
+
+A party declares a feature by its key: `true` or the feature's section declares it, `false` turns off a feature that is
+allowed by default. The declarations are looked up in the party's own keys, then in the `"Defaults"` above it: the
+nearest level wins.
+
+**Detect:** `AllowFeatures` or `DisallowFeatures` in a `ckonf.json`, an `appsettings.json` (a projection: regenerate it,
+see U1) or a test configuration (`c["Local:AllowFeatures"]`, `c["Parties:0:AllowFeatures"]`,
+`c["Defaults:DisallowFeatures"]`...).
+
+**Do:**
+
+1. **Each name of `AllowFeatures` becomes its key, `true`**, unless the party already has the feature's section (the
+   section declares it: only remove the name). Each name of `DisallowFeatures` becomes its key, `false`. A comma-separated
+   string or an array gives several keys. The names don't change: on a remote, the asymmetric features keep their
+   "XXXRemote" name. From CK-Sample-AspNetAuth:
+
+   ```jsonc
+   // Before.
+   "Local": { "AllowFeatures": "HttpEndpoint", "HttpEndpoint": { "Urls": "http://localhost:5300" } },
+   "Parties": [ { "PartyName": "$Auth3", "AllowFeatures": "AuthCenterRemote", "Address": "tcp:127.0.0.1:37300" } ]
+   // After.
+   "Local": { "HttpEndpoint": { "Urls": "http://localhost:5300" } },
+   "Parties": [ { "PartyName": "$Auth3", "AuthCenterRemote": true, "Address": "tcp:127.0.0.1:37300" } ]
+   ```
+
+2. **In a test configuration**, a `true` that the test then completes with settings is a conflict (a configuration key
+   can't have a value and children): `c["Local:AuthCenter"] = "true"` followed by
+   `c["Local:AuthCenter:CriticalLifetimes:Basic"] = "00:05:00"` throws "Unable to set ... since 'Local:AuthCenter' above
+   has value 'true'". Write only the settings (the section declares the feature), or clear the value first:
+   `c["Local:AuthCenter"] = null;`.
+
+**Behavior:**
+- A key whose value is `true` or `false` and that names no feature of the application is reported: a warning, an error
+  in `StrictConfigurationMode` (a typo could leave a feature allowed by default on). Every key of a party is now checked
+  (U7).
+- On a remote, the key of the Local side of an asymmetric feature ("AuthCenter") is an error, unless it is `false`: a
+  remote declares "AuthCenterRemote". A local party can declare "XXXRemote" (the Remote side, for the remotes added
+  later).
+- Declaring a client (`Local:PartyClient:X`) declares the "PartyClient" feature.
+
+**Check:** no `AllowFeatures` nor `DisallowFeatures` is left and the parties start without "names no feature" warnings.
+CK-Sample-AspNetAuth, CK-AspNet, CK-AppIdentity-Transport and CK-Mailer are migrated this way.
+
+## U5. The feature drivers declare their feature: `[PartyFeature]`
+
+The name of a feature, whether it is optional and the side of an asymmetric feature are declared by an attribute and
+computed by the engine (in the generated `PartyComponentDirectory`, CK.AppIdentity): the constructor arguments of
+`ApplicationIdentityFeatureDriver` are gone.
+
+**Detect:** a class that specializes `ApplicationIdentityFeatureDriver` or `ApplicationIdentityStaticFeatureDriver`
+and calls `base( s, ... )` with more than the service; `ClientFeature.GetFeatureName`; an interface that extends
+`IPartyComponentAbstraction`; a test that builds a map with `Types.Add( typeof( ApplicationIdentityService ), ... )`
+or that registers feature drivers by hand (`services.AddSingleton<XXXFeatureDriver>()`).
+
+**Do:**
+
+1. **The base constructor takes the service only:** `base( s )`. The arguments move into the attribute (namespace
+   `CK.AppIdentity`):
+   - `isAllowedByDefault: false` (or nothing): nothing, a feature driver is optional by default (a party has it only when
+     it declares it);
+   - `isAllowedByDefault: true`: `[PartyFeature( IsOptional = false )]` on the class (from CK.AppIdentity.KeyManagement):
+
+     ```csharp
+     [PartyFeature( IsOptional = false )]
+     public partial class KeyManagementFeatureDriver : ApplicationIdentityFeatureDriver
+     {
+         public KeyManagementFeatureDriver( ApplicationIdentityService s, IDataProtectionProvider protectorProvider, ICoreKeyStore keyStore )
+             : base( s )
+     ```
+
+   - a feature name (an asymmetric feature: `base( s, "AuthCenter" )`): the name and the side on each driver, and **the
+     Local side requires the Remote side** (its package references the Remote side's package; from
+     CK.AppIdentity.AuthCenter.Local and .Remote):
+
+     ```csharp
+     [PartyFeature( AuthCenterFeature.Name, Side = FeatureSide.Local )]
+     [Requires<RemoteAuthCenterFeatureDriver>]
+     public sealed class LocalAuthCenterFeatureDriver : ApplicationIdentityFeatureDriver
+
+     [PartyFeature( AuthCenterFeature.Name, Side = FeatureSide.Remote )]
+     public sealed class RemoteAuthCenterFeatureDriver : ApplicationIdentityFeatureDriver
+     ```
+
+     A driver common to the two sides is an abstract base class (it has no feature name); consider first a static
+     helper that both sides call.
+2. **A feature name** is the type name without its "FeatureDriver" suffix (a driver whose type name doesn't end with it
+   gives its name: `[PartyFeature( "Name" )]`). The name of a client feature is its type name without its
+   "ClientFeature" suffix: `ClientFeature.GetFeatureName( type )` is gone, `ClientFeature.Name` is available once the
+   feature is created.
+3. **A party component abstraction declares its cardinality:** an interface that extends `IPartyComponentAbstraction`
+   carries `[IsSingle]` (at most one implementation in a party or a client) or `[IsMultiple]` (namespace `CK.Core`).
+4. **The tests:**
+   - a test that builds a map and lists its types adds the generated directories, `typeof( PartyComponentDirectory )`
+     (and `typeof( PartyComponentOptionDirectory )` when options are used), and both sides of an asymmetric feature
+     (`RemoteAuthCenterFeatureDriver` with `LocalAuthCenterFeatureDriver`);
+   - a test that assembles its services without the engine uses CK.Testing.AppIdentity (CK-AppIdentity, `explo/uc`
+     versions): `services.AddApplicationIdentityForTests( configuration, drivers, otherComponents )`, or
+     `services.AddPartyComponentDirectory( otherComponents )` once its drivers are registered, and
+     `services.AddPartyComponentOptions( optionTypes )` for the options (U8).
+
+**Behavior:**
+- A feature name is made of letters, digits and dots (no `_`), and is unique in a BinPath: a party feature and a client
+  feature can't have the same name. The engine reports a duplicate.
+- The closest `[PartyFeature]` in the base classes gives the name and the optionality. The two sides of an asymmetric
+  feature agree on their optionality, and the Local side must give the name.
+- A driver whose type is not in the `PartyComponentDirectory` throws at construction ("is not a party component of the
+  application"); a service without the directory throws "No PartyComponentDirectory".
+- An abstraction without `[IsSingle]` nor `[IsMultiple]` is an engine error, as a requirement that is neither a party
+  component nor an abstraction (the Local side of an asymmetric feature without its Remote side, for instance).
+
+**Check:** no `base( s, ... )` with more than the service is left, the engine runs and the parties start. CK-AspNet,
+CK-AppIdentity-Transport, CK-Mailer, CK-Cris, CK-Metrics and CK-TS-AspNet are migrated this way.
+
+## U6. The description of a party is intrinsic
+
+The description of a party (its public URL, its routes, its client applications...) is computed by the
+`ApplicationIdentityService` itself, after the feature drivers have set the parties up: it is not a feature any more.
+
+**Detect:** `PartyDescriptionFeatureDriver` (a test that lists it in its types or registers it); a `"PartyDescription"`
+key in a configuration.
+
+**Do:** remove them. A driver contributes to the descriptions as before (`ContributeDescription`,
+`ContributeDerivedDescription`, `OnDescriptionChangedAsync`).
+
+**Behavior:** every party is described; `PublicUrl` is a key of the local party (U7).
+
+**Check:** no `PartyDescriptionFeatureDriver` is left. CK-AspNet and CK-AppIdentity-Transport are migrated this way.
+
+## U7. The keys of a party are a closed set
+
+The keys of a party are its own keys or features (`true`, `false` or the feature's section). The settings of a feature
+are in its section, and what a package adds to a feature is an option of the feature (U8), in its section too.
+
+**Detect:** in a `ckonf.json`, an `appsettings.json` (a projection: regenerate it) or a test configuration, the keys of the
+table below directly in a `Local`, a remote (`Parties[i]`) or a `"Defaults"`.
+
+**Do:** move them.
+
+| Before | After |
+|---|---|
+| `RecoveryPublicKey`, `OperationalKeyDays`, `MaxSignatureDays`, `KeyRotationDays`, `TrustAnchors` (a `Local`) | `"KeyManagement": { ... }` |
+| `AutoTrustKey`, `MaxClockOffset` (a remote, a `"Defaults"`) | `"KeyManagement": { ... }` |
+| `ListeningAddress`, `ListeningTypes`, `NegotiationTimeout`, `AlwaysListening`, `DisallowEviction`, `RouteHosts` (of a party that is not an AuthCenter) | `"Transport": { ... }` |
+| `AuthCenterParty` (a `Local`) | `"AuthCenterRemote": { "Party": "..." }` |
+| `CoreKeyStore:CngProvider`, `CoreKeyStore:AllowFallback`, `CoreKeyStore:MachineWide` (CK.AppIdentity.KeyManagement.Cng) | `"KeyManagement": { "CngKeyStore": { "Provider": "...", "AllowFallback": ..., "MachineWide": ... } }` |
+| `PasswordLostTokenLifetime` (a `Local`, CK.UserProfile.UserPassword.Lost) | `"AuthCenter": { "PasswordLost": { "TokenLifetime": "02:00:00" } }` |
+
+The `RouteHosts` of an Authentication Center stay in its `"AuthCenter"` section. From CK-Sample-AspNetAuth (Worker2 and
+Auth3):
+
+```jsonc
+// Before.
+"Local": { "AuthCenterParty": "Sample/Auth3/$Auth3/#Dev", "TrustAnchors": { "Sample/Auth3/$Auth3/#Dev": "#Dev" } },
+"Defaults": { "ListeningAddress": [ "tcp:127.0.0.1:37300" ] },
+"Parties": [ { "PartyName": "$Front", "AuthCenterRemote": true, "AutoTrustKey": "Once" } ]
+// After.
+"Local": {
+  "AuthCenterRemote": { "Party": "Sample/Auth3/$Auth3/#Dev" },
+  "KeyManagement": { "TrustAnchors": { "Sample/Auth3/$Auth3/#Dev": "#Dev" } }
+},
+"Defaults": { "Transport": { "ListeningAddress": [ "tcp:127.0.0.1:37300" ] } },
+"Parties": [ { "PartyName": "$Front", "AuthCenterRemote": true, "KeyManagement": { "AutoTrustKey": "Once" } } ]
+```
+
+In a test configuration: `c["Parties:0:AutoTrustKey"]` becomes `c["Parties:0:KeyManagement:AutoTrustKey"]`,
+`c["Defaults:ListeningAddress:0"]` becomes `c["Defaults:Transport:ListeningAddress:0"]`.
+
+**Behavior:**
+- **The keys of a party:** in a `Local`, `PublicUrl`, `Assemblies` and `DefaultAssembly`; on a remote, its identity
+  (`FullName`, `DomainName`, `PartyName`, `EnvironmentName`), `Address`, `Assemblies` and `DefaultAssembly`. Any other key
+  must be a feature: an unknown key is a warning, an error in `StrictConfigurationMode`.
+- A section declares its feature (U4): `"Defaults": { "Transport": { ... } }` declares Transport for the parties below
+  (KeyManagement and Transport are allowed by default anyway).
+- A setting is looked up as before (the party's own section, then the nearest `"Defaults"`), at its new path. The local
+  settings (`RecoveryPublicKey`...) are still read from the `Local` only.
+- **CngKeyStore** is an option of KeyManagement, enabled by default when CK.AppIdentity.KeyManagement.Cng is referenced
+  (as before): `"KeyManagement": { "CngKeyStore": false }` puts the keys of a party in files. Its section is resolved as a
+  whole (the party's, otherwise the nearest `"Defaults"`'s), not value by value. An invalid value (an unknown key, a value
+  that is not a boolean) fails the setup instead of a warning. `CngCoreKeyStore`'s constructor is
+  `( DefaultCoreKeyStore fallback, IServiceProvider? services )`.
+- **PasswordLost** is an option of the AuthCenter (CK.UserProfile.UserPassword.Lost now references
+  CK.AppIdentity.AuthCenter.Local), enabled by default: `"AuthCenter": { "PasswordLost": false }` turns the lost
+  password flow off (no recovery mail, the anonymous command answers the same; a recovery link is refused). An
+  application that is not an Authentication Center has no lost password flow. `PasswordLostTokenService.FallbackLifetime`
+  is `PasswordLostOption.DefaultTokenLifetime`, and the service has `Option` and `IsEnabled`.
+- A configured `EnlistRemoteUrl` is still a start error (it is no more supported), wherever it is.
+
+**Check:** the parties start without "unknown key" warnings. CK-Sample-AspNetAuth, CK-Ng-Admin, CK-Ng-User-UserProfile and
+the tests of CK-AppIdentity-Transport are migrated this way.
+
+## U8. An option declares its data
+
+An option (`IPartyComponentOption<TOwner>`: an option of a feature driver, `[FeatureOption]`, or of a client feature,
+`[PartyClientOption]`) reads its configuration in its constructor, and its owner holds it.
+
+**Detect:** an override of `HttpEndpointOption.Initialize`, `HostingClientOption.Initialize` or
+`ClientFeature.InitializeOptions`; a call to `PartyComponentOptionInfo.Create( services )`; an owner that selects its
+options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
+
+**Do:**
+
+1. **The option's constructor reads its configuration:** a parameter of type `IConfiguration`
+   (Microsoft.Extensions.Configuration; a plain one, at most one) is the option's section, null when the option is enabled
+   by default or by `true`. It reads it into its properties and **throws on an invalid value**; the other parameters are
+   services, as before. From CK.AppIdentity.HttpEndpoint:
+
+   ```csharp
+   [FeatureOption]
+   public sealed class ForwardedHeadersOption : HttpEndpointOption
+   {
+       public ForwardedHeadersOption( IConfiguration? configuration )
+       {
+           if( configuration == null )
+           {
+               Throw.CKException( "It must be a section with \"KnownProxies\" or \"KnownNetworks\": the proxies are never trusted by default." );
+           }
+           // ... reads the keys, Throw.CKException( ... ) on an invalid value ...
+           Options = options;
+       }
+
+       public ForwardedHeadersOptions Options { get; }
+   ```
+
+   The messages don't need the configuration path: the owner logs "Unable to create the option '{path}': {message}".
+2. **An owner gets its options:** a feature driver reads the options of a party with `GetOptions( party )` or
+   `GetOption<T>( party )` (null when it is disabled): the base class creates them before the driver's setup. A client
+   feature reads `Options` or `GetOption<T>()`. `ClientFeature.InitializeOptions` is gone. A service of the package that
+   brings an option asks the owner (`keyManagement.GetOption<CngKeyStoreOption>( party )`): it never reads the
+   configuration itself.
+3. **An owner that checks the keys of its section** accepts its option names:
+   `PartyComponentOptionDirectory.IsOptionName( ownerType, key )`.
+4. **A test without engine** registers its options with `services.AddPartyComponentOptions( typeof( MyOption ) )`
+   (CK.Testing.AppIdentity): they are created by reflection, in the given order (no requirements).
+
+**Behavior:**
+- The option of a feature driver is looked up in the feature's section of the party, then in the nearest `"Defaults"`
+  (its whole section).
+- An option that throws fails the setup of the party (an option of a feature driver) or makes the client an error (an
+  option of a client feature).
+- The engine refuses more than one `IConfiguration` parameter and a parameter of a derived configuration type
+  (`IConfigurationSection`, `ImmutableConfigurationSection`).
+
+**Check:** no `Initialize` nor `InitializeOptions` override is left and the engine runs. CK-AspNet (`ForwardedHeadersOption`),
+CK-TS-AspNet (`StaticFilesOption`), CK-AppIdentity-Transport (`CngKeyStoreOption`) and CK-Ng-User-UserProfile
+(`PasswordLostOption`) are migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -248,3 +499,11 @@ this way.
    `ConfigureHttpEndpoint` and `Endpoints` by `Endpoint` (U2).
 3. No `IPartyClientFactory`, `TypeScriptClient` nor `PartyClient` subclass is left: the clients are bags of client
    features, declared with `NgApp` and `Hosting` (U1, U3).
+4. No `AllowFeatures` nor `DisallowFeatures` is left: the features are declared by their key (U4).
+5. Every feature driver calls `base( s )` and declares its feature with `[PartyFeature]` when it is allowed by default or
+   asymmetric; every party component abstraction declares `[IsSingle]` or `[IsMultiple]`; the engine maps of the tests
+   list the generated directories, the tests without engine use CK.Testing.AppIdentity (U5).
+6. No `PartyDescriptionFeatureDriver` nor `"PartyDescription"` key is left (U6).
+7. Every key of a party is one of its own keys or a feature: the settings are in the sections of their feature (U7).
+8. No option has an `Initialize`: each one reads its `IConfiguration` in its constructor; no
+   `ClientFeature.InitializeOptions` override is left (U8).
