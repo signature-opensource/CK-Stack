@@ -56,7 +56,12 @@ guide) is gone: migrate.
            "PartyClient": {
              "App": { "NgApp": true, "Hosting": { "RequestPath": "/", "DevServerPort": 4200 } },
              "MiniApp": {
-               "Types": [ "CK.Ng.Cris.AspNet.CrisAspNetPackage, CK.Ng.Cris.AspNet", "CK.Sample.Front.IFrontInfoQCommand, Front.App" ],
+               "Types": [
+                 "CK.Ng.Cris.AspNet.CrisAspNetPackage, CK.Ng.Cris.AspNet",
+                 "CK.Sample.Front.IFrontInfoQCommand, Front.App",
+                 "CK.TS.Angular.NgAppClientFeature, CK.TS.Angular",
+                 "CK.TypeScript.HostingClientFeature, CK.TS.AspNet.Clients"
+               ],
                "NgApp": true,
                "Hosting": { "DevServerPort": 4201 }
              }
@@ -77,7 +82,13 @@ guide) is gone: migrate.
    `"Local:PartyClient:X"` with:
    - **its type set:** the `Types` and `ExcludedTypes` of the `<TypeScript>` become the `"Types"` and `"ExcludedTypes"` of
      the client (a type is its assembly qualified name, or an object whose keys are its attributes:
-     `{ "Name": "...", "Optional": true }`);
+     `{ "Name": "...", "Optional": true }`). **The types drive:** a client with `"Types"` is restricted to them and to what
+     they require, and a key doesn't bring its type in: such a client also lists its client features,
+     `"CK.TS.Angular.NgAppClientFeature, CK.TS.Angular"` for `"NgApp"` and
+     `"CK.TypeScript.HostingClientFeature, CK.TS.AspNet.Clients"` for `"Hosting"` (otherwise the build fails: the key names a
+     type that is not a member of the set). The TypeScript engine reads the computed set: its TypeScript packages (the
+     listed ones and what they require) and the Pocos it lists; the other listed types (the client features) are not
+     TypeScript types. A client without `"Types"` has all the types of its App;
    - **its framework, `"NgApp"`** (an Angular application, CK.TS.Angular): the other attributes of the `<TypeScript>`
      become its keys: `TargetProjectPath`, `DefaultTypeScriptVersion`, `IntegrationMode`, `InstallYarn`,
      `GitIgnoreCKGenFolder`, `AutoInstallJest`, `EnableTSProjectReferences`, `DefaultCulture`, `ActiveCultures` (a string
@@ -283,6 +294,13 @@ see U1) or a test configuration (`c["Local:AllowFeatures"]`, `c["Parties:0:Allow
 - On a remote, the key of the Local side of an asymmetric feature ("AuthCenter") is an error, unless it is `false`: a
   remote declares "AuthCenterRemote". A local party can declare "XXXRemote" (the Remote side, for the remotes added
   later).
+- The declarations follow the activation of the feature (U5): `false` on a `Required` feature (or client feature, or
+  option) is an error, the party doesn't start; a redundant `true` (on a feature allowed by default or required) or
+  `false` (on an optional one) is a warning. A `ByDefault` or `Required` client feature is there without its key.
+- **The types drive:** a key that declares a feature, a client feature or an option of a feature's section (`true` or a
+  section) must name a member of the type set of its party (of its local party for a remote) or of its client. A
+  party or a client without `"Types"` has all the types of its App: only a restricted set (with `"Types"`) can make it
+  fail. It is a build error (the engine checks the projection of the party) and a start error; `false` is fine.
 - Declaring a client (`Local:PartyClient:X`) declares the "PartyClient" feature.
 
 **Check:** no `AllowFeatures` nor `DisallowFeatures` is left and the parties start without "names no feature" warnings.
@@ -363,8 +381,9 @@ or that registers feature drivers by hand (`services.AddSingleton<XXXFeatureDriv
   client); a party feature and a client feature can have the same name. The engine reports a duplicate, a missing
   attribute, an attribute on a type that is not a concrete package, a `TypeActivation.None`.
 - The two sides of an asymmetric feature agree on their activation.
-- The activation is also the optionality of the package: an `Optional` driver is in an application's type set only when
-  something brings it.
+- The activation is also the optionality of the package (`IsOptional`): the engines that process a type set apply it
+  (the ResourceSpace keeps an optional package only when something requires it). A type set that nothing restricts has
+  all the types of its App, the optional drivers too: a party has an `Optional` feature when it declares it.
 - A driver whose type is not in the `PartyComponentDirectory` throws at construction ("is not a party component of the
   application"); a service without the directory throws "No PartyComponentDirectory".
 - An abstraction without `[IsSingle]` nor `[IsMultiple]` is an engine error, as a requirement that is neither a party
