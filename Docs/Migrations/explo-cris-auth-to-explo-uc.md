@@ -15,10 +15,10 @@ the **Behavior** and a **Check**.
 | [U3](#u3-the-client-features) | The client features: a `PartyClient` is a bag of `ClientFeature` ("NgApp", "Hosting"), `IPartyClientFactory` and `TypeScriptClient` are gone | Yes (the code that builds or reads clients, the running status) |
 | [U2](#u2-one-httpendpoint-per-local-party) | One HttpEndpoint per local party: `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `ConfigureHttpEndpoint`, `HttpEndpointFeatureDriver.Endpoint` | Yes (the configuration of the parties, the application's configuration of the endpoint) |
 | [U4](#u4-the-features-are-declared-by-their-key-allowfeatures-and-disallowfeatures-are-gone) | The features are declared by their key (`true`, the section, `false`): `AllowFeatures` and `DisallowFeatures` are gone | Yes (configuration) |
-| [U5](#u5-the-feature-drivers-declare-their-feature-partyfeature) | The feature drivers declare their feature with `[PartyFeature]` (the base constructor takes the service only), the abstractions their cardinality, the maps of the tests list the generated directories | Yes (the feature drivers, the tests) |
+| [U5](#u5-the-feature-drivers-declare-their-feature-partyfeature) | The feature drivers declare their feature with `[PartyFeature( "Name", TypeActivation.X )]` (the base constructor takes the service only), the client features with `[PartyClientFeature]`, the abstractions their cardinality, the maps of the tests list the generated directories | Yes (the feature drivers, the client features, the tests) |
 | [U6](#u6-the-description-of-a-party-is-intrinsic) | The description of a party is intrinsic: `PartyDescriptionFeatureDriver` is gone | Yes (the tests) |
 | [U7](#u7-the-keys-of-a-party-are-a-closed-set) | The keys of a party are a closed set: the settings move into their feature's section (KeyManagement, Transport, `AuthCenterRemote:Party`, the CngKeyStore and PasswordLost options) | Yes (configuration) |
-| [U8](#u8-an-option-declares-its-data) | An option reads its `IConfiguration` in its constructor, its owner holds it (`GetOption<T>`): `Initialize` and `InitializeOptions` are gone | Yes (the options, their owners) |
+| [U8](#u8-an-option-declares-its-data) | An option declares its name and its activation (`[PartyFeatureOption]`, `[PartyClientFeatureOption]`), reads its `IConfiguration` in its constructor, its owner holds it (`GetOption<T>`): `Initialize` and `InitializeOptions` are gone | Yes (the options, their owners) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -210,7 +210,8 @@ not from its type. The configuration side is in U1 (step 2); this item is about 
 **Do:**
 
 1. **A kind of client becomes a client feature:** a class that specializes `ClientFeature` (CK.AppIdentity.PartyClient)
-   named `XXXClientFeature` (its name, the key of its section in the client, is `"XXX"`), and its driver, a
+   and declares its name (the key of its section in the client) and its activation with
+   `[PartyClientFeature( "XXX", TypeActivation.Optional )]` (see U5), and its driver, a
    `ClientFeatureDriver<XXXClientFeature>` that creates it (`Create( monitor, client, configuration )`, the
    `configuration` being the section of the feature) instead of an `IPartyClientFactory`. Its requirements are
    `[Requires<T>]` on the class: a feature of the party (`[Requires<HttpEndpointFeatureDriver>]`, instead of
@@ -221,7 +222,7 @@ not from its type. The configuration side is in U1 (step 2); this item is about 
 2. **`PartyClient` is a container:** read a client's features with `PartyClient.Features` or `GetFeature<T>()` (a
    feature type or an abstraction): `client.GetFeature<HostingClientFeature>()` instead of a cast to `TypeScriptClient`.
 3. **The options of a client are the options of a client feature:** an option is an `IPartyComponentOption<TFeature>`
-   (still `[PartyClientOption]`), selected from the section of the feature and created with it: `ClientFeature.Options`,
+   (`[PartyClientFeatureOption]`, see U8), selected from the section of the feature and created with it: `ClientFeature.Options`,
    `ClientFeature.GetOption<T>()`. An option reads its configuration in its constructor (U8). `TypeScriptClientOption`
    becomes `HostingClientOption`, and `StaticFilesOption` is an option of the "Hosting" feature.
 4. **`TypeScriptClient` becomes two features:** `NgAppClientFeature` (CK.TS.Angular: `Info`, the `ClientInfo`; the web
@@ -289,50 +290,62 @@ CK-Sample-AspNetAuth, CK-AspNet, CK-AppIdentity-Transport and CK-Mailer are migr
 
 ## U5. The feature drivers declare their feature: `[PartyFeature]`
 
-The name of a feature, whether it is optional and the side of an asymmetric feature are declared by an attribute and
-computed by the engine (in the generated `PartyComponentDirectory`, CK.AppIdentity): the constructor arguments of
-`ApplicationIdentityFeatureDriver` are gone.
+The name of a feature, its activation and the side of an asymmetric feature are declared by an attribute on each
+concrete driver and read by the engine (in the generated `PartyComponentDirectory`, CK.AppIdentity): the constructor
+arguments of `ApplicationIdentityFeatureDriver` are gone. A feature driver, a client feature and an option are
+**configurable types** (`IConfigurableTypeAttribute`, CK.ResourceSpace.Abstractions): the configuration names them (the
+key of their section) and switches them; the name is explicit, it doesn't come from the type name.
 
-**Detect:** a class that specializes `ApplicationIdentityFeatureDriver` or `ApplicationIdentityStaticFeatureDriver`
-and calls `base( s, ... )` with more than the service; `ClientFeature.GetFeatureName`; an interface that extends
+**Detect:** a concrete class that specializes `ApplicationIdentityFeatureDriver` or `ApplicationIdentityStaticFeatureDriver`
+(directly or not: every concrete driver), a concrete class that specializes `ClientFeature` (U3); a call to
+`base( s, ... )` with more than the service; `ClientFeature.GetFeatureName`; an interface that extends
 `IPartyComponentAbstraction`; a test that builds a map with `Types.Add( typeof( ApplicationIdentityService ), ... )`
 or that registers feature drivers by hand (`services.AddSingleton<XXXFeatureDriver>()`).
 
 **Do:**
 
-1. **The base constructor takes the service only:** `base( s )`. The arguments move into the attribute (namespace
-   `CK.AppIdentity`):
-   - `isAllowedByDefault: false` (or nothing): nothing, a feature driver is optional by default (a party has it only when
-     it declares it);
-   - `isAllowedByDefault: true`: `[PartyFeature( IsOptional = false )]` on the class (from CK.AppIdentity.KeyManagement):
+1. **Every concrete feature driver declares its feature:** `[PartyFeature( "Name", TypeActivation.X )]` (namespace
+   `CK.AppIdentity`; `TypeActivation` is in `CK.Core`). The attribute is not inherited: each concrete driver has its own,
+   a driver without it is an engine error. The base constructor takes the service only: `base( s )`.
+   - **The name** is the key of the feature in a party: keep the former name, the type name without its "FeatureDriver"
+     suffix (`HttpEndpointFeatureDriver` is `"HttpEndpoint"`).
+   - **The activation** replaces `isAllowedByDefault`: `TypeActivation.Optional` (was `false` or nothing: a party has the
+     feature only when it declares it), `TypeActivation.ByDefault` (was `true`: a party has it unless it says `false`),
+     or `TypeActivation.Required` (a party always has it). From CK.AppIdentity.KeyManagement:
 
      ```csharp
-     [PartyFeature( IsOptional = false )]
+     [PartyFeature( "KeyManagement", TypeActivation.ByDefault )]
      public partial class KeyManagementFeatureDriver : ApplicationIdentityFeatureDriver
      {
          public KeyManagementFeatureDriver( ApplicationIdentityService s, IDataProtectionProvider protectorProvider, ICoreKeyStore keyStore )
              : base( s )
      ```
 
-   - a feature name (an asymmetric feature: `base( s, "AuthCenter" )`): the name and the side on each driver, and **the
-     Local side requires the Remote side** (its package references the Remote side's package; from
-     CK.AppIdentity.AuthCenter.Local and .Remote):
+   - **An asymmetric feature** (`base( s, "AuthCenter" )`): the feature name and the side on each driver, and **the Local
+     side requires the Remote side** (its package references the Remote side's package; from
+     CK.AppIdentity.AuthCenter.Local and .Remote). The configuration name of the Remote side is the feature name followed
+     by "Remote" ("AuthCenterRemote"), computed by the attribute; the two sides have the same activation:
 
      ```csharp
-     [PartyFeature( AuthCenterFeature.Name, Side = FeatureSide.Local )]
+     [PartyFeature( AuthCenterFeature.Name, TypeActivation.Optional, Side = FeatureSide.Local )]
      [Requires<RemoteAuthCenterFeatureDriver>]
      public sealed class LocalAuthCenterFeatureDriver : ApplicationIdentityFeatureDriver
 
-     [PartyFeature( AuthCenterFeature.Name, Side = FeatureSide.Remote )]
+     [PartyFeature( AuthCenterFeature.Name, TypeActivation.Optional, Side = FeatureSide.Remote )]
      public sealed class RemoteAuthCenterFeatureDriver : ApplicationIdentityFeatureDriver
      ```
 
-     A driver common to the two sides is an abstract base class (it has no feature name); consider first a static
-     helper that both sides call.
-2. **A feature name** is the type name without its "FeatureDriver" suffix (a driver whose type name doesn't end with it
-   gives its name: `[PartyFeature( "Name" )]`). The name of a client feature is its type name without its
-   "ClientFeature" suffix: `ClientFeature.GetFeatureName( type )` is gone, `ClientFeature.Name` is available once the
-   feature is created.
+     A driver common to the two sides is an abstract base class (it has no attribute); consider first a static helper
+     that both sides call.
+2. **Every concrete client feature declares its name:** `[PartyClientFeature( "Name", TypeActivation.X )]`
+   (CK.AppIdentity.PartyClient; a client has an `Optional` feature only when it declares it). From CK.TS.Angular:
+
+   ```csharp
+   [PartyClientFeature( "NgApp", TypeActivation.Optional )]
+   public sealed class NgAppClientFeature : ClientFeature, ITypeScriptFramework, IWebAppBuild
+   ```
+
+   `ClientFeature.Name` is available once the feature is created.
 3. **A party component abstraction declares its cardinality:** an interface that extends `IPartyComponentAbstraction`
    carries `[IsSingle]` (at most one implementation in a party or a client) or `[IsMultiple]` (namespace `CK.Core`).
 4. **The tests:**
@@ -345,17 +358,22 @@ or that registers feature drivers by hand (`services.AddSingleton<XXXFeatureDriv
      `services.AddPartyComponentOptions( optionTypes )` for the options (U8).
 
 **Behavior:**
-- A feature name is made of letters, digits and dots (no `_`), and is unique in a BinPath: a party feature and a client
-  feature can't have the same name. The engine reports a duplicate.
-- The closest `[PartyFeature]` in the base classes gives the name and the optionality. The two sides of an asymmetric
-  feature agree on their optionality, and the Local side must give the name.
+- A name is made of letters, digits and dots, starting with a letter (no `_`), and is unique in its scope: among the
+  feature drivers (the keys of a party, the "XXXRemote" ones included) and among the client features (the keys of a
+  client); a party feature and a client feature can have the same name. The engine reports a duplicate, a missing
+  attribute, an attribute on a type that is not a concrete package, a `TypeActivation.None`.
+- The two sides of an asymmetric feature agree on their activation.
+- The activation is also the optionality of the package: an `Optional` driver is in an application's type set only when
+  something brings it.
 - A driver whose type is not in the `PartyComponentDirectory` throws at construction ("is not a party component of the
   application"); a service without the directory throws "No PartyComponentDirectory".
 - An abstraction without `[IsSingle]` nor `[IsMultiple]` is an engine error, as a requirement that is neither a party
   component nor an abstraction (the Local side of an asymmetric feature without its Remote side, for instance).
 
-**Check:** no `base( s, ... )` with more than the service is left, the engine runs and the parties start. CK-AspNet,
-CK-AppIdentity-Transport, CK-Mailer, CK-Cris, CK-Metrics and CK-TS-AspNet are migrated this way.
+**Check:** every concrete feature driver has its `[PartyFeature]` and every concrete client feature its
+`[PartyClientFeature]`, no `base( s, ... )` with more than the service is left, the engine runs and the parties start.
+CK-AspNet, CK-AppIdentity-Transport, CK-Mailer, CK-Cris, CK-Metrics, CK-Object-Mixer, CK-TS-AspNet and CK-TS-Angular are
+migrated this way.
 
 ## U6. The description of a party is intrinsic
 
@@ -436,22 +454,33 @@ the tests of CK-AppIdentity-Transport are migrated this way.
 
 ## U8. An option declares its data
 
-An option (`IPartyComponentOption<TOwner>`: an option of a feature driver, `[FeatureOption]`, or of a client feature,
-`[PartyClientOption]`) reads its configuration in its constructor, and its owner holds it.
+An option (`IPartyComponentOption<TOwner>`: an option of a feature driver or of a client feature) declares its name and
+its activation, reads its configuration in its constructor, and its owner holds it.
 
-**Detect:** an override of `HttpEndpointOption.Initialize`, `HostingClientOption.Initialize` or
+**Detect:** `[FeatureOption]` or `[PartyClientOption]`; an override of `HttpEndpointOption.Initialize`, `HostingClientOption.Initialize` or
 `ClientFeature.InitializeOptions`; a call to `PartyComponentOptionInfo.Create( services )`; an owner that selects its
 options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
 
 **Do:**
 
-1. **The option's constructor reads its configuration:** a parameter of type `IConfiguration`
+1. **The attribute names the option:** `[FeatureOption]` becomes `[PartyFeatureOption( "Name", TypeActivation.X )]`
+   (CK.AppIdentity.Abstractions), `[PartyClientOption]` becomes `[PartyClientFeatureOption( "Name", TypeActivation.X )]`
+   (CK.AppIdentity.PartyClient). Keep the former name, the type name without its "Option" suffix; `IsEnabledByDefault = true`
+   becomes `TypeActivation.ByDefault`, nothing (opt-in) `TypeActivation.Optional`. From CK.UserProfile.UserPassword.Lost:
+
+   ```csharp
+   [PartyFeatureOption( "PasswordLost", TypeActivation.ByDefault )]
+   public sealed class PasswordLostOption : IPartyComponentOption<LocalAuthCenterFeatureDriver>
+   ```
+
+   `PartyComponentOptionInfo.IsEnabledByDefault` is computed from its `Activation`.
+2. **The option's constructor reads its configuration:** a parameter of type `IConfiguration`
    (Microsoft.Extensions.Configuration; a plain one, at most one) is the option's section, null when the option is enabled
    by default or by `true`. It reads it into its properties and **throws on an invalid value**; the other parameters are
    services, as before. From CK.AppIdentity.HttpEndpoint:
 
    ```csharp
-   [FeatureOption]
+   [PartyFeatureOption( "ForwardedHeaders", TypeActivation.Optional )]
    public sealed class ForwardedHeadersOption : HttpEndpointOption
    {
        public ForwardedHeadersOption( IConfiguration? configuration )
@@ -468,14 +497,14 @@ options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
    ```
 
    The messages don't need the configuration path: the owner logs "Unable to create the option '{path}': {message}".
-2. **An owner gets its options:** a feature driver reads the options of a party with `GetOptions( party )` or
+3. **An owner gets its options:** a feature driver reads the options of a party with `GetOptions( party )` or
    `GetOption<T>( party )` (null when it is disabled): the base class creates them before the driver's setup. A client
    feature reads `Options` or `GetOption<T>()`. `ClientFeature.InitializeOptions` is gone. A service of the package that
    brings an option asks the owner (`keyManagement.GetOption<CngKeyStoreOption>( party )`): it never reads the
    configuration itself.
-3. **An owner that checks the keys of its section** accepts its option names:
+4. **An owner that checks the keys of its section** accepts its option names:
    `PartyComponentOptionDirectory.IsOptionName( ownerType, key )`.
-4. **A test without engine** registers its options with `services.AddPartyComponentOptions( typeof( MyOption ) )`
+5. **A test without engine** registers its options with `services.AddPartyComponentOptions( typeof( MyOption ) )`
    (CK.Testing.AppIdentity): they are created by reflection, in the given order (no requirements).
 
 **Behavior:**
@@ -483,10 +512,11 @@ options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
   (its whole section).
 - An option that throws fails the setup of the party (an option of a feature driver) or makes the client an error (an
   option of a client feature).
+- The name of an option is unique among the options of its owner; a `TypeActivation.Required` option is always enabled.
 - The engine refuses more than one `IConfiguration` parameter and a parameter of a derived configuration type
   (`IConfigurationSection`, `ImmutableConfigurationSection`).
 
-**Check:** no `Initialize` nor `InitializeOptions` override is left and the engine runs. CK-AspNet (`ForwardedHeadersOption`),
+**Check:** no `[FeatureOption]`, `[PartyClientOption]`, `Initialize` nor `InitializeOptions` override is left and the engine runs. CK-AspNet (`ForwardedHeadersOption`),
 CK-TS-AspNet (`StaticFilesOption`), CK-AppIdentity-Transport (`CngKeyStoreOption`) and CK-Ng-User-UserProfile
 (`PasswordLostOption`) are migrated this way.
 
@@ -500,10 +530,11 @@ CK-TS-AspNet (`StaticFilesOption`), CK-AppIdentity-Transport (`CngKeyStoreOption
 3. No `IPartyClientFactory`, `TypeScriptClient` nor `PartyClient` subclass is left: the clients are bags of client
    features, declared with `NgApp` and `Hosting` (U1, U3).
 4. No `AllowFeatures` nor `DisallowFeatures` is left: the features are declared by their key (U4).
-5. Every feature driver calls `base( s )` and declares its feature with `[PartyFeature]` when it is allowed by default or
-   asymmetric; every party component abstraction declares `[IsSingle]` or `[IsMultiple]`; the engine maps of the tests
+5. Every concrete feature driver calls `base( s )` and declares its feature with `[PartyFeature( "Name", TypeActivation.X )]`,
+   every concrete client feature with `[PartyClientFeature( "Name", TypeActivation.X )]`; every party component abstraction declares `[IsSingle]` or `[IsMultiple]`; the engine maps of the tests
    list the generated directories, the tests without engine use CK.Testing.AppIdentity (U5).
 6. No `PartyDescriptionFeatureDriver` nor `"PartyDescription"` key is left (U6).
 7. Every key of a party is one of its own keys or a feature: the settings are in the sections of their feature (U7).
-8. No option has an `Initialize`: each one reads its `IConfiguration` in its constructor; no
+8. Every option declares its name and its activation (`[PartyFeatureOption]`, `[PartyClientFeatureOption]`), no option
+   has an `Initialize`: each one reads its `IConfiguration` in its constructor; no
    `ClientFeature.InitializeOptions` override is left (U8).
