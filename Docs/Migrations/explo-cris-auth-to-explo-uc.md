@@ -381,6 +381,12 @@ or that registers feature drivers by hand (`services.AddSingleton<XXXFeatureDriv
   client); a party feature and a client feature can have the same name. The engine reports a duplicate, a missing
   attribute, an attribute on a type that is not a concrete package, a `TypeActivation.None`.
 - The two sides of an asymmetric feature agree on their activation.
+- **The scopes are checked at build time and at start:** the features a local party has (its declared ones and the ones
+  that are not optional and not turned off) and the features of each client (the same, with the features of its party as
+  its outer scope): a required feature (`[Requires<T>]`) or abstraction must be there, a single abstraction (`[IsSingle]`)
+  is implemented at most once. The uniqueness is the one of what is declared, not of what is available: a client that
+  declares two `IWebAppBuild` is an error, a client that can have both is fine. A party that declares a feature that
+  requires another one must declare it too (it was only seen when a client required it).
 - The activation is also the optionality of the package (`IsOptional`): the engines that process a type set apply it
   (the ResourceSpace keeps an optional package only when something requires it). A type set that nothing restricts has
   all the types of its App, the optional drivers too: a party has an `Optional` feature when it declares it.
