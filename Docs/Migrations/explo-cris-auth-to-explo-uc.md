@@ -20,6 +20,7 @@ the **Behavior** and a **Check**.
 | [U7](#u7-the-keys-of-a-party-are-a-closed-set) | The keys of a party are a closed set: the settings move into their feature's section (KeyManagement, Transport, `AuthCenterRemote:Party`, the CngKeyStore and PasswordLost options) | Yes (configuration) |
 | [U8](#u8-an-option-declares-its-data) | An option declares its name and its activation (`[PartyFeatureOption]`, `[PartyClientFeatureOption]`), reads its `IConfiguration` in its constructor, its owner holds it (`GetOption<T>`): `Initialize` and `InitializeOptions` are gone | Yes (the options, their owners) |
 | [U9](#u9-the-renamed-packages-cktestingengine-cktypecache-cktypeset) | The renamed packages: the testing packages that run the engine are `CK.Testing.Engine.*`, CK.Engine.TypeCollector is CK.TypeCache (and CK.TypeSet), with their namespaces | Yes (the package references, two namespaces) |
+| [U10](#u10-no-tenant-domain-is-added-at-run-time) | No tenant domain is added at run time: `AddTenantDomainAsync`, `AddPartiesAsync` and `AddedDynamicParties` leave the public API, the tenants are configured | Yes (the code that adds tenants, the tests) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -590,6 +591,37 @@ to commit.
 **Check:** no name of the first column is left in a `.csproj` and no `CK.Engine.TypeCollector` in the code; the
 repository builds. Every repository of the World is migrated this way.
 
+## U10. No tenant domain is added at run time
+
+A tenant domain is configured: it is a `Parties` entry of the root that has its own domain (`"FullName":
+"Acme/$Acme"`), in the `ckonf.json` of the App (or the configuration of a test). Adding one at run time will come back
+with the tenant templates (an instance of a template, the template being an already resolved configuration).
+
+**Detect:** `AddTenantDomainAsync`, `AddPartiesAsync` or `AddedDynamicParties` (CK.AppIdentity.Abstractions).
+
+**Do:**
+- A tenant added at run time becomes a configured one:
+
+  ```csharp
+  // Was: var acme = await service.AddTenantDomainAsync( monitor, c => { c["FullName"] = "Acme/$Acme"; c["Parties:0:PartyName"] = "AcmeBox"; } );
+  c["Parties:0:FullName"] = "Acme/$Acme";
+  c["Parties:0:Parties:0:PartyName"] = "AcmeBox";
+  // ...
+  var acme = service.TenantDomains.Single();
+  ```
+
+- `AddPartiesAsync` that added remotes only: `AddMultipleRemotesAsync` on the root (an `ILocalParty`), or
+  `AddRemoteAsync` for one remote. A remote can still be added at run time to a configured tenant domain
+  (`tenant.AddRemoteAsync`) and destroyed (`IOwnedParty.DestroyAsync`).
+- A test whose subject was the lifecycle of a dynamic tenant (destroying it, a static feature refused on it) is removed:
+  CK.AppIdentity tests it.
+
+**Behavior:** `ITenantDomainParty` is still an `IOwnedParty`; `IsDynamic` is false for every tenant domain (a
+configured one can't be destroyed).
+
+**Check:** none of the three names is left. CK-AppIdentity-Transport (AuthCenter and transport tests) and CK-AspNet
+(HttpEndpoint tests) are migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -609,3 +641,4 @@ repository builds. Every repository of the World is migrated this way.
    has an `Initialize`: each one reads its `IConfiguration` in its constructor; no
    `ClientFeature.InitializeOptions` override is left (U8).
 9. No package reference to a former name of U9 is left, no `CK.Engine.TypeCollector` nor `CK.Testing.AppIdentity.Cris` namespace (U9).
+10. No `AddTenantDomainAsync`, `AddPartiesAsync` nor `AddedDynamicParties` is left: the tenant domains are configured (U10).
