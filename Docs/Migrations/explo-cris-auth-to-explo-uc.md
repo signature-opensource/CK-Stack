@@ -19,6 +19,7 @@ the **Behavior** and a **Check**.
 | [U6](#u6-the-description-of-a-party-is-intrinsic) | The description of a party is intrinsic: `PartyDescriptionFeatureDriver` is gone | Yes (the tests) |
 | [U7](#u7-the-keys-of-a-party-are-a-closed-set) | The keys of a party are a closed set: the settings move into their feature's section (KeyManagement, Transport, `AuthCenterRemote:Party`, the CngKeyStore and PasswordLost options) | Yes (configuration) |
 | [U8](#u8-an-option-declares-its-data) | An option declares its name and its activation (`[PartyFeatureOption]`, `[PartyClientFeatureOption]`), reads its `IConfiguration` in its constructor, its owner holds it (`GetOption<T>`): `Initialize` and `InitializeOptions` are gone | Yes (the options, their owners) |
+| [U9](#u9-the-renamed-packages-cktestingengine-cktypecache-cktypeset) | The renamed packages: the testing packages that run the engine are `CK.Testing.Engine.*`, CK.Engine.TypeCollector is CK.TypeCache (and CK.TypeSet), with their namespaces | Yes (the package references, two namespaces) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -545,6 +546,50 @@ options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
 CK-TS-AspNet (`StaticFilesOption`), CK-AppIdentity-Transport (`CngKeyStoreOption`) and CK-Ng-User-UserProfile
 (`PasswordLostOption`) are migrated this way.
 
+## U9. The renamed packages: `CK.Testing.Engine.*`, CK.TypeCache, CK.TypeSet
+
+"Engine" in a package name now means that the package generates and compiles C# code. The testing packages that run
+the engine are named `CK.Testing.Engine.*`; the cache of the types and the type sets, which generate nothing (a
+configuration tool can use them), lose "Engine".
+
+| Was (explo/cris-auth) | Is (explo/uc) | Repository, version line |
+|---|---|---|
+| CK.Testing.StObjEngine | CK.Testing.Engine | CK-StObj, 37.0.0-0.uc |
+| CK.Testing.AspNetServer | CK.Testing.Engine.HttpEndpoint | CK-AspNet, 25.0.0-0.uc |
+| CK.Testing.SqlServerEngine | CK.Testing.Engine.SqlServer | CK-Database, 37.0.0-0.uc |
+| CK.Testing.SqliteEngine | CK.Testing.Engine.Sqlite | CK-Sqlite, 19.0.0-0.uc |
+| CK.Testing.TypeScriptEngine | CK.Testing.Engine.TypeScript | CK-TypeScript, 4.0.0-0.uc |
+| CK.Testing.AppIdentity.Cris | CK.Testing.Engine.AppIdentity.Cris | CK-AppIdentity-Transport, 4.0.0-0.uc |
+| CK.Testing.AppIdentity.AuthCenter | CK.Testing.Engine.AppIdentity.AuthCenter | CK-AppIdentity-Transport, 4.0.0-0.uc |
+| CK.Testing.Cris.Authentication | CK.Testing.Engine.Cris.Authentication | CK-Cris, 3.0.0-0.uc |
+| CK.Engine.TypeCollector (CK-StObj) | CK.TypeCache, and CK.TypeSet for `BinPathTypeGroup` | CK-ResourceSpace and CK-Engine, 36.0.2-0.uc |
+
+CK.Testing.AppIdentity and CK.Testing.AppIdentity.TransportLayer keep their names (they don't run the engine).
+
+**Detect:** a `<PackageReference>` to a name of the first column; `using CK.Engine.TypeCollector;`;
+`using CK.Testing.AppIdentity.Cris;`; a `CKDEPRECATED` build error.
+
+**Do:**
+1. Replace the package references (the second column, the version of its repository's line). A test project rarely
+   references CK.TypeCache or CK.TypeSet directly: CK.Engine brings them.
+2. `using CK.Engine.TypeCollector;` becomes `using CK.TypeCache;` (`GlobalTypeCache`, `ICachedType`, `AssemblyCache`,
+   the engine attributes' implementations), plus `using CK.TypeSet;` where `BinPathTypeGroup` is used (the project must
+   reference CK.TypeSet, directly or through CK.Engine).
+3. `CK.Testing.AppIdentity.Cris` (the namespace of CK.Testing.AppIdentity.Cris: `RunningApplication`,
+   `RunningApplicationPair`, the test commands) becomes `CK.Testing.Engine.AppIdentity.Cris`.
+
+The helpers of the other testing packages stay in the `CK.Testing` namespace: their consumers change only the
+package reference.
+
+**Behavior:** the last version of CK.Testing.StObjEngine, CK.Testing.AspNetServer, CK.Testing.SqlServerEngine,
+CK.Testing.SqliteEngine, CK.Testing.TypeScriptEngine and CK.Testing.AppIdentity.Cris is a tombstone: a project that
+depends on it, directly or not, fails with a `CKDEPRECATED` error that names the replacement. The generated
+`jest.config.js` of the TypeScript tests changes its comment ("CK.Testing.Engine.TypeScript uses this"): a build impact
+to commit.
+
+**Check:** no name of the first column is left in a `.csproj` and no `CK.Engine.TypeCollector` in the code; the
+repository builds. Every repository of the World is migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -563,3 +608,4 @@ CK-TS-AspNet (`StaticFilesOption`), CK-AppIdentity-Transport (`CngKeyStoreOption
 8. Every option declares its name and its activation (`[PartyFeatureOption]`, `[PartyClientFeatureOption]`), no option
    has an `Initialize`: each one reads its `IConfiguration` in its constructor; no
    `ClientFeature.InitializeOptions` override is left (U8).
+9. No package reference to a former name of U9 is left, no `CK.Engine.TypeCollector` nor `CK.Testing.AppIdentity.Cris` namespace (U9).
