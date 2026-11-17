@@ -24,6 +24,7 @@ the **Behavior** and a **Check**.
 | [U11](#u11-the-mail-features-mailsender-and-mailrelay) | The mail features: "EmailSender" becomes "MailSender" (named senders per local party, the "MailKit" option), the relay "MailSender" becomes "MailRelay" (several relays, a sender each) | Yes (configuration, the sender kinds, the relay packages) |
 | [U12](#u12-the-fluid-aspect-is-gone) | The Fluid aspect is gone: the engine of a template package checks its templates | Yes (the builders and tests that configure it) |
 | [U13](#u13-pfeature-is-renamed-model) | "PFeature" is renamed "Model": `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` | Yes (the `AssemblyInfo.cs` that use them) |
+| [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" Builder aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -728,6 +729,49 @@ assembly that still uses them is classified by its references only.
 
 **Check:** no `PFeature` is left. CK-Cris-TypeScript (CK.Cris.AspNet) and CK-Sqlite (CK.Sqlite.Model) are migrated this way.
 
+## U14. The database is the "SqlServer" aspect of `ckonf.json`
+
+An aspect is now a configurable type of a model, found in the type sets of the Apps: the database is the "SqlServer"
+Builder aspect (`SqlServerAspect`, CK.SqlServer.Setup.Model, CK-Database), configured in the root `"Aspects"` of the
+builder's `ckonf.json`. The 3 steps setup (Setupable) is an implementation detail of it: it has no configuration of its own.
+
+**Detect:** a `CKSetup.xml` with `SetupableAspectConfiguration` or `SqlSetupAspectConfiguration`; a builder's `Program.cs`
+that calls `EnsureAspect<SetupableAspectConfiguration>()` or `EnsureAspect<SqlSetupAspectConfiguration>()`; a
+configuration key `AppIdentity:Local:SqlServer:DefaultDatabaseConnectionString`.
+
+**Do:**
+1. Move the database configuration to the root of the builder's `ckonf.json` (from CK-Ng-Admin's sample):
+
+   ```jsonc
+   "Aspects": {
+     "SqlServer": { "DefaultDatabaseConnectionString": "Server=.;Database=AdminSampleDB_LOCAL;Integrated Security=True;TrustServerCertificate=true" }
+   },
+   ```
+
+   The keys: `DefaultDatabaseConnectionString`, `Databases` (by logical name: `"histoDB": { "ConnectionString": "...",
+   "AutoCreate": true }`), `GlobalResolution`, `IgnoreMissingDependencyIsError`. Remove the `<Aspect>` elements from the
+   `CKSetup.xml` (and the file when nothing is left in it), and the `EnsureAspect` code from the `Program.cs` (it becomes
+   `return await CKomposableAppBuilder.RunAsync();`).
+2. The run time connection string is `"SqlServer": { "DefaultDatabaseConnectionString" }`, a root section of the host's
+   `appsettings.json` (projected from `ckonf.json`); `AppIdentity:Local:SqlServer:...` never applied (the section is
+   `CK-AppIdentity`).
+3. A model package that brings an aspect declares it: a package (`IAppBuilderAspect` or `IAppAspect`, an `IResourceGroup`)
+   decorated with `[AppBuilderAspect( "Name", TypeActivation.X )]` or `[AppAspect( "Name", TypeActivation.X )]`, whose
+   constructor reads its `IConfiguration` section and whose `Apply` configures the engine (see the README of the App
+   builder model, CK.Engine.Configuration).
+
+**Behavior:**
+- "SqlServer" is present as soon as an App references CK.SqlServer.Setup.Model (`TypeActivation.ByDefault`); without
+  `DefaultDatabaseConnectionString`, the build fails. Tests that build their `EngineConfiguration`
+  (`EnsureSqlServerConfigurationAspect`) are unchanged.
+- An unknown key of the "SqlServer" section, an invalid value: the build fails.
+- The engines that the models require (their `[RequiredEngine]`) must be referenced by the builder (or the test
+  project): the missing ones are listed in one error before the run (they were a `TypeLoadException` deep in it).
+
+**Check:** no `SetupableAspectConfiguration` nor `SqlSetupAspectConfiguration` in a builder; the hosts' `appsettings.json`
+have a `"SqlServer"` section. CK-Ng-Admin, CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib, CK-Sample-AspNetAuth (Auth3)
+and CK-Sample-MultiBinPath (two Apps, one database) are migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -751,3 +795,4 @@ assembly that still uses them is classified by its references only.
 11. No `"EmailSender"`, `"MailSenderRemote"` nor `"Smtp"` key, no relay `"MailSender": true` (it is `"MailRelay"`), no reference to CK.AppIdentity.MailSender.* or CK.IO.MailSender: the senders are named in `"MailSender"` (U11).
 12. No `FluidAspectConfiguration` is left (U12).
 13. No `PFeature` is left: `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` (U13).
+14. The database is `"Aspects": { "SqlServer" }` in `ckonf.json`: no Setupable/SqlSetup aspect in a builder (U14).
