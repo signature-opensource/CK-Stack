@@ -692,6 +692,22 @@ CK.AppIdentity.MailSender.Local, CK.AppIdentity.MailSender.Remote or CK.IO.MailS
 `"MailRelay"`), and the application starts. CK-Ng-User-UserProfile, CK-Ng-Admin and CK-Sample-AspNetAuth (their
 samples, the PasswordLost tests) are migrated this way.
 
+## U12. The Fluid aspect is gone
+
+CK.Template.Fluid is a library: its templates need no engine aspect. The build-time check of the templates (a
+`Res/Templates/*.liquid` resource that doesn't parse fails the build) is done by the engine of each template package
+(`FluidTemplatePackageAttributeImpl`, CK.Template.Fluid.Engine), for every application that uses it.
+
+**Detect:** `FluidAspectConfiguration` (`<Aspect Type="CK.Setup.FluidAspectConfiguration, CK.Template.Fluid" />` in a
+`CKSetup.xml`, `EnsureAspect<FluidAspectConfiguration>()` in a test).
+
+**Do:** remove it.
+
+**Behavior:** the templates of every template package are checked, with or without configuration (they were checked
+only when the aspect was configured).
+
+**Check:** no `FluidAspectConfiguration` is left. CK-Ng-Admin (its sample) is migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -713,3 +729,5 @@ samples, the PasswordLost tests) are migrated this way.
 9. No package reference to a former name of U9 is left, no `CK.Engine.TypeCollector` nor `CK.Testing.AppIdentity.Cris` namespace (U9).
 10. No `AddTenantDomainAsync`, `AddPartiesAsync` nor `AddedDynamicParties` is left: the tenant domains are configured (U10).
 11. No `"EmailSender"`, `"MailSenderRemote"` nor `"Smtp"` key, no relay `"MailSender": true` (it is `"MailRelay"`), no reference to CK.AppIdentity.MailSender.* or CK.IO.MailSender: the senders are named in `"MailSender"` (U11).
+| [U12](#u12-the-fluid-aspect-is-gone) | The Fluid aspect is gone: the engine of a template package checks its templates | Yes (the builders and tests that configure it) |
+12. No `FluidAspectConfiguration` is left (U12).
