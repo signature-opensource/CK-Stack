@@ -25,6 +25,7 @@ the **Behavior** and a **Check**.
 | [U12](#u12-the-fluid-aspect-is-gone) | The Fluid aspect is gone: the engine of a template package checks its templates | Yes (the builders and tests that configure it) |
 | [U13](#u13-pfeature-is-renamed-model) | "PFeature" is renamed "Model": `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` | Yes (the `AssemblyInfo.cs` that use them) |
 | [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" Builder aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
+| [U15](#u15-globalization-is-an-app-aspect-of-ckonfjson) | Globalization is the "Globalization" App aspect of `ckonf.json`; its configuration classes are in CK.Globalization.StObj | Yes (a `CKSetup.xml` that names them) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -772,6 +773,29 @@ configuration key `AppIdentity:Local:SqlServer:DefaultDatabaseConnectionString`.
 have a `"SqlServer"` section. CK-Ng-Admin, CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib, CK-Sample-AspNetAuth (Auth3)
 and CK-Sample-MultiBinPath (two Apps, one database) are migrated this way.
 
+## U15. Globalization is an App aspect of `ckonf.json`
+
+The back-end translations of an App are the "Globalization" App aspect (`GlobalizationAppAspect`,
+CK.Globalization.StObj, CK-Globalization-Engine): `GlobalizationAspectConfiguration` and
+`GlobalizationBinPathAspectConfiguration` moved from CK.Globalization.Engine to CK.Globalization.StObj (same namespace,
+`CK.Setup`), which now requires its engine (`[RequiredEngine( "CK.Globalization.Engine" )]`).
+
+**Detect:** a `CKSetup.xml` with `CK.Setup.GlobalizationAspectConfiguration, CK.Globalization.Engine` or a
+`<Globalization ActiveCultures="..." />` BinPath element; a call to `GlobalizationBinPathAspectConfiguration.GetActiveCultures()`.
+
+**Do:**
+- Declare the aspect in the App of the builder's `ckonf.json` (from CK-Ng-Admin's sample):
+  `"Aspects": { "Globalization": { "ActiveCultures": "fr" } }` (or an array of culture names), and remove it from the
+  `CKSetup.xml`. A `CKSetup.xml` that keeps it names `CK.Setup.GlobalizationAspectConfiguration, CK.Globalization.StObj`.
+- `GetActiveCultures()` is an extension method of the engine (`GlobalizationBinPathAspectConfigurationExtensions`,
+  CK.Globalization.Engine): the call compiles unchanged with a reference to the engine.
+
+**Behavior:** the aspect is optional: an App has it when its `"Aspects"` declare it (an unknown key of its section, like
+every aspect key that names no aspect of the Apps, fails the build before the contributors run).
+
+**Check:** no `CK.Globalization.Engine` in a `CKSetup.xml`. CK-Ng-Admin and CK-Ng-User-UserProfile (their samples) declare
+it this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -796,3 +820,4 @@ and CK-Sample-MultiBinPath (two Apps, one database) are migrated this way.
 12. No `FluidAspectConfiguration` is left (U12).
 13. No `PFeature` is left: `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` (U13).
 14. The database is `"Aspects": { "SqlServer" }` in `ckonf.json`: no Setupable/SqlSetup aspect in a builder (U14).
+15. Globalization is declared in the `"Aspects"` of an App of `ckonf.json`, no `CK.Globalization.Engine` type in a `CKSetup.xml` (U15).
