@@ -671,7 +671,10 @@ CK.AppIdentity.MailSender.Local, CK.AppIdentity.MailSender.Remote or CK.IO.MailS
 5. **The code that sends mails:** `IDefaultEmailSender` is unchanged (the default sender of the root party). The senders of
    another local party: `party.GetMailSender( name )` (`MailSenderExtensions`, the default one when `name` is null) or its
    `MailSenders` feature.
-6. **PasswordLost** (CK.UserProfile.UserPassword.Lost) accepts `"AuthCenter": { "PasswordLost": { "Sender": "..." } }`;
+6. **PasswordLost** (CK.UserProfile.UserPassword.Lost) accepts `"AuthCenter": { "PasswordLost": { "Sender": "..." } }`,
+   **UserInvitation** (CK.UserManagement.UserInvitation, which now references CK.AppIdentity.AuthCenter.Local) is the
+   "UserInvitation" option of the AuthCenter (always enabled: `"UserInvitation": false` is an error) and accepts
+   `"AuthCenter": { "UserInvitation": { "Sender": "..." } }`;
    `PasswordLostMailer` and `UserManagementMailer` (CK.UserManagement.UserInvitation) no longer take an
    `IDefaultEmailSender` in their constructor (a specialization drops it): they send with the senders of their local party.
 
