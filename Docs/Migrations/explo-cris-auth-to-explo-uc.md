@@ -21,6 +21,7 @@ the **Behavior** and a **Check**.
 | [U8](#u8-an-option-declares-its-data) | An option declares its name and its activation (`[PartyFeatureOption]`, `[PartyClientFeatureOption]`), reads its `IConfiguration` in its constructor, its owner holds it (`GetOption<T>`): `Initialize` and `InitializeOptions` are gone | Yes (the options, their owners) |
 | [U9](#u9-the-renamed-packages-cktestingengine-cktypecache-cktypeset) | The renamed packages: the testing packages that run the engine are `CK.Testing.Engine.*`, CK.Engine.TypeCollector is CK.TypeCache (and CK.TypeSet), with their namespaces | Yes (the package references, two namespaces) |
 | [U10](#u10-no-tenant-domain-is-added-at-run-time) | No tenant domain is added at run time: `AddTenantDomainAsync`, `AddPartiesAsync` and `AddedDynamicParties` leave the public API, the tenants are configured | Yes (the code that adds tenants, the tests) |
+| [U11](#u11-the-mail-features-mailsender-and-mailrelay) | The mail features: "EmailSender" becomes "MailSender" (named senders per local party, the "MailKit" option), the relay "MailSender" becomes "MailRelay" (several relays, a sender each) | Yes (configuration, the sender kinds, the relay packages) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -622,6 +623,72 @@ configured one can't be destroyed).
 **Check:** none of the three names is left. CK-AppIdentity-Transport (AuthCenter and transport tests) and CK-AspNet
 (HttpEndpoint tests) are migrated this way.
 
+## U11. The mail features: "MailSender" and "MailRelay"
+
+How a party sends its mails is the **"MailSender"** feature of CK.Mailer (it was "EmailSender"): each local party (the
+root and its tenant domains) has its own **named** senders, grouped by kind (an option of the feature: "MailKit", from
+CK.Mailer.MailKit; it was "Smtp"). The party that sends the mails of other parties is the **"MailRelay"** feature (it was
+"MailSender"): CK.AppIdentity.MailRelay.Local, CK.AppIdentity.MailRelay.Remote and CK.IO.MailRelay (CK-Mailer, the
+`explo/uc` version line of CK.Mailer) replace CK.AppIdentity.MailSender.Local, .Remote and CK.IO.MailSender.
+
+**Detect:** a `"MailSender"` or `"MailSenderRemote"` key (the relay); an `"EmailSender"` key; a reference to
+CK.AppIdentity.MailSender.Local, CK.AppIdentity.MailSender.Remote or CK.IO.MailSender; `EmailSenderFeatureDriver`,
+`IEmailSenderFactory`, `EmailSenderFactory`, `SmtpEmailSenderFactory`, `RemoteMailSender`, `MailSenderHandler`,
+`LocalMailSenderFeatureDriver`, `RemoteMailSenderFeatureDriver`.
+
+**Do, in this order** (the key `"MailSender"` changes its meaning: rename the relay first):
+1. **The relay:** `"MailSender": true` (the relay, in its `Local`) becomes `"MailRelay": true`, `"MailSenderRemote"`
+   (on a remote) becomes `"MailRelayRemote"`; the package references and the namespaces `CK.AppIdentity.MailSender` and
+   `CK.IO.MailSender` become `CK.AppIdentity.MailRelay` and `CK.IO.MailRelay`; the types:
+   `LocalMailSenderFeatureDriver` -> `LocalMailRelayFeatureDriver`, `RemoteMailSenderFeatureDriver` ->
+   `RemoteMailRelayFeatureDriver`, `MailSenderHandler` -> `MailRelayHandler` (`RemoteMailSender` is gone: a relay is a
+   sender of its local party).
+2. **The senders:** `"EmailSender"` becomes `"MailSender"`, each sender is named inside its kind, `"Default"` names the
+   default one when there are several. From CK-Sample-AspNetAuth (Auth3):
+
+   ```jsonc
+   // Was: "EmailSender": { "Smtp": { "SendEmail": false, "UsePickupDirectory": true, "PickupDirectory": "Mails", "From": "noreply@sample.local" } }
+   "MailSender": {
+     "MailKit": {
+       "NoReply": {
+         "SendEmail": false,
+         "UsePickupDirectory": true,
+         "PickupDirectory": "Mails",
+         "From": "noreply@sample.local"
+       }
+     }
+   }
+   ```
+
+   An array of senders of one kind (`"Smtp": [ {...}, {...} ]`) becomes several named senders. A
+   `"RequiredAuthentication"` key (a typo, it was ignored) is removed: the key is `"RequiresAuthentication"`.
+3. **A party that sent through its relay:** `"EmailSender": { "MailSender": true }` is removed: each remote that declares
+   `"MailRelayRemote"` is a sender of its local party, named after it (`"$Backend"`). `"MailRelayRemote": { "Sender": "Support" }`
+   asks the relay for its "Support" sender.
+4. **A sender kind** (an `EmailSenderFactory`) becomes an option of the feature: a `MailSenderOption` decorated with
+   `[PartyFeatureOption( "Name", TypeActivation.Optional )]` that reads its named senders in its constructor
+   (`MailSenderOption.ReadNamedSenders`, see U8).
+5. **The code that sends mails:** `IDefaultEmailSender` is unchanged (the default sender of the root party). The senders of
+   another local party: `party.GetMailSender( name )` (`MailSenderExtensions`, the default one when `name` is null) or its
+   `MailSenders` feature.
+6. **PasswordLost** (CK.UserProfile.UserPassword.Lost) accepts `"AuthCenter": { "PasswordLost": { "Sender": "..." } }`;
+   `PasswordLostMailer` and `UserManagementMailer` (CK.UserManagement.UserInvitation) no longer take an
+   `IDefaultEmailSender` in their constructor (a specialization drops it): they send with the senders of their local party.
+
+**Behavior:**
+- A mail goes through **one** sender (several senders used to send each mail several times).
+- The senders of a tenant domain are its own (they all went to the root).
+- With several senders and no `"Default"`, an unknown `"Default"`, an unknown key of a MailKit sender or an invalid
+  value: the start of the application fails. A remote that declares `"MailSender"` is a start error.
+- A missing sender (an unknown name, a relay not connected yet, a party without "MailSender") fails the sending of the
+  mail (the `SendResponse.ErrorMessages` say why), it doesn't throw.
+- A relay sends with the sender that the caller names, else its `"MailRelay": { "Sender" }`, else its default; it never
+  relays to another relay.
+
+**Check:** no `"EmailSender"`, `"MailSenderRemote"` nor `"Smtp"` key is left, no `"MailSender": true` (it is
+`"MailRelay"`), and the application starts. CK-Ng-User-UserProfile, CK-Ng-Admin and CK-Sample-AspNetAuth (their
+samples, the PasswordLost tests) are migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -642,3 +709,4 @@ configured one can't be destroyed).
    `ClientFeature.InitializeOptions` override is left (U8).
 9. No package reference to a former name of U9 is left, no `CK.Engine.TypeCollector` nor `CK.Testing.AppIdentity.Cris` namespace (U9).
 10. No `AddTenantDomainAsync`, `AddPartiesAsync` nor `AddedDynamicParties` is left: the tenant domains are configured (U10).
+11. No `"EmailSender"`, `"MailSenderRemote"` nor `"Smtp"` key, no relay `"MailSender": true` (it is `"MailRelay"`), no reference to CK.AppIdentity.MailSender.* or CK.IO.MailSender: the senders are named in `"MailSender"` (U11).
