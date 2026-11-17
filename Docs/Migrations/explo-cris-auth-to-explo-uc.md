@@ -22,6 +22,7 @@ the **Behavior** and a **Check**.
 | [U9](#u9-the-renamed-packages-cktestingengine-cktypecache-cktypeset) | The renamed packages: the testing packages that run the engine are `CK.Testing.Engine.*`, CK.Engine.TypeCollector is CK.TypeCache (and CK.TypeSet), with their namespaces | Yes (the package references, two namespaces) |
 | [U10](#u10-no-tenant-domain-is-added-at-run-time) | No tenant domain is added at run time: `AddTenantDomainAsync`, `AddPartiesAsync` and `AddedDynamicParties` leave the public API, the tenants are configured | Yes (the code that adds tenants, the tests) |
 | [U11](#u11-the-mail-features-mailsender-and-mailrelay) | The mail features: "EmailSender" becomes "MailSender" (named senders per local party, the "MailKit" option), the relay "MailSender" becomes "MailRelay" (several relays, a sender each) | Yes (configuration, the sender kinds, the relay packages) |
+| [U12](#u12-the-fluid-aspect-is-gone) | The Fluid aspect is gone: the engine of a template package checks its templates | Yes (the builders and tests that configure it) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -729,5 +730,4 @@ only when the aspect was configured).
 9. No package reference to a former name of U9 is left, no `CK.Engine.TypeCollector` nor `CK.Testing.AppIdentity.Cris` namespace (U9).
 10. No `AddTenantDomainAsync`, `AddPartiesAsync` nor `AddedDynamicParties` is left: the tenant domains are configured (U10).
 11. No `"EmailSender"`, `"MailSenderRemote"` nor `"Smtp"` key, no relay `"MailSender": true` (it is `"MailRelay"`), no reference to CK.AppIdentity.MailSender.* or CK.IO.MailSender: the senders are named in `"MailSender"` (U11).
-| [U12](#u12-the-fluid-aspect-is-gone) | The Fluid aspect is gone: the engine of a template package checks its templates | Yes (the builders and tests that configure it) |
 12. No `FluidAspectConfiguration` is left (U12).
