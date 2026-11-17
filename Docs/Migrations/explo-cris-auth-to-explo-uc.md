@@ -23,6 +23,7 @@ the **Behavior** and a **Check**.
 | [U10](#u10-no-tenant-domain-is-added-at-run-time) | No tenant domain is added at run time: `AddTenantDomainAsync`, `AddPartiesAsync` and `AddedDynamicParties` leave the public API, the tenants are configured | Yes (the code that adds tenants, the tests) |
 | [U11](#u11-the-mail-features-mailsender-and-mailrelay) | The mail features: "EmailSender" becomes "MailSender" (named senders per local party, the "MailKit" option), the relay "MailSender" becomes "MailRelay" (several relays, a sender each) | Yes (configuration, the sender kinds, the relay packages) |
 | [U12](#u12-the-fluid-aspect-is-gone) | The Fluid aspect is gone: the engine of a template package checks its templates | Yes (the builders and tests that configure it) |
+| [U13](#u13-pfeature-is-renamed-model) | "PFeature" is renamed "Model": `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` | Yes (the `AssemblyInfo.cs` that use them) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -709,6 +710,24 @@ only when the aspect was configured).
 
 **Check:** no `FluidAspectConfiguration` is left. CK-Ng-Admin (its sample) is migrated this way.
 
+## U13. "PFeature" is renamed "Model"
+
+An assembly whose types the engine registers and engineers (the deployed code, as opposed to an Engine) is a **Model**
+(CK.Abstractions, `CK.Setup` namespace).
+
+**Detect:** `IsPFeature`, `IsPFeatureDefiner`, `RemovePFeature` (an `AssemblyInfo.cs`), `AssemblyKind.PFeature`.
+
+**Do:** `[assembly: IsPFeature]` becomes `[assembly: IsModel]`, `[IsPFeatureDefiner]` becomes `[IsModelDefiner]`,
+`[RemovePFeature( "X" )]` becomes `[RemoveModel( "X" )]`; in code that reads the assemblies (CK.TypeCache):
+`AssemblyKind.PFeature`/`PFeatureDefiner` become `Model`/`ModelDefiner`, `CachedAssembly.PFeatures`/`AllPFeatures`
+become `Models`/`AllModels`.
+
+**Behavior:** the legacy attributes recognized by their name (`IsModelAttribute`, `IsModelDependentAttribute`,
+`IsSetupDependencyAttribute`, `ExcludeFromSetupAttribute` of the former CK.Setup packages) are no longer recognized: an
+assembly that still uses them is classified by its references only.
+
+**Check:** no `PFeature` is left. CK-Cris-TypeScript (CK.Cris.AspNet) and CK-Sqlite (CK.Sqlite.Model) are migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
@@ -731,3 +750,4 @@ only when the aspect was configured).
 10. No `AddTenantDomainAsync`, `AddPartiesAsync` nor `AddedDynamicParties` is left: the tenant domains are configured (U10).
 11. No `"EmailSender"`, `"MailSenderRemote"` nor `"Smtp"` key, no relay `"MailSender": true` (it is `"MailRelay"`), no reference to CK.AppIdentity.MailSender.* or CK.IO.MailSender: the senders are named in `"MailSender"` (U11).
 12. No `FluidAspectConfiguration` is left (U12).
+13. No `PFeature` is left: `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` (U13).
