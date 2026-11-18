@@ -27,7 +27,7 @@ the **Behavior** and a **Check**.
 | [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" Builder aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
 | [U15](#u15-globalization-is-an-app-aspect-of-ckonfjson) | Globalization is the "Globalization" App aspect of `ckonf.json`; its configuration classes are in CK.Globalization.StObj | Yes (a `CKSetup.xml` that names them) |
 | [U16](#u16-the-central-configuration-of-a-solution) | The central configuration of a solution: a `ckonf.json` at the root of the repository describes its builders and the links between their parties, the builders' `ckonf.json` are generated from it | No (optional) |
-| [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval | No (new) |
+| [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval, and a tenant template to run-time tenants; a local party runs in one process at a time; `ICoreKeyStore.DeleteAllKeys` | Yes (a custom `ICoreKeyStore`); behavior |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -601,11 +601,12 @@ to commit.
 **Check:** no name of the first column is left in a `.csproj` and no `CK.Engine.TypeCollector` in the code; the
 repository builds. Every repository of the World is migrated this way.
 
-## U10. No tenant domain is added at run time
+## U10. No tenant domain is added from a free configuration at run time
 
 A tenant domain is configured: it is a `Parties` entry of the root that has its own domain (`"FullName":
-"Acme/$Acme"`), in the `ckonf.json` of the App (or the configuration of a test). Adding one at run time will come back
-with the tenant templates (an instance of a template, the template being an already resolved configuration).
+"Acme/$Acme"`), in the `ckonf.json` of the App (or the configuration of a test). A tenant created at run time is an
+instance of an Opened tenant template (U17): nothing creates a tenant from a free configuration anymore (it would have
+nothing to be created again from at the next start).
 
 **Detect:** `AddTenantDomainAsync`, `AddPartiesAsync` or `AddedDynamicParties` (CK.AppIdentity.Abstractions).
 
@@ -920,8 +921,31 @@ to migrate, but a project that wants several identical parties uses it.
    dynamic instances come after the configured ones and are named by their index (`$Worker-3`, `$Worker-4`): a
    configured name in `"Instances"` can't start with a digit. A dynamic instance is started by hand
    (`dotnet run -- --Instance=3`). The link to the fleet copies `"MaxInstanceCount"` in the remote template of the
-   other side; without a central configuration, write it in the entry of `"Parties"`. Only a remote template can be
-   Opened (an Opened tenant template is a configuration error).
+   other side; without a central configuration, write it in the entry of `"Parties"`.
+6. **An Opened tenant template holds run-time tenant domains** (from CK-Sample-AspNetAuth, Worker2 in its central
+   `ckonf.json`):
+
+   ```jsonc
+   "Parties": [
+     { "DomainName": "Sample/Auth3/Customers/{Name}", "PartyName": "${Name}", "InstanceCount": 0, "MaxInstanceCount": 5 }
+   ]
+   ```
+
+   A template whose party name is the last part of its domain, with their placeholders, and without `"Address"`, is a
+   tenant template; an Opened one is written with a `"DomainName"` that ends with `/{Name}` and the `"PartyName"`
+   `"${Name}"` (no `"FullName"`): its run-time tenants are named by their creator (`Acme` is
+   `Sample/Auth3/Customers/Acme/$Acme`). In its inner templates, its placeholders are `{Tenant.Name}` and
+   `{Tenant.Index}`; a party name inside it can't use `{Tenant.Index}`, and a tenant template can't contain another one.
+   The application creates, moves and removes them (`IApplicationIdentityService.AddTenantInstanceAsync( monitor,
+   template, "Acme" )`, `SetTenantIndexAsync`, `RemoveTenantInstanceAsync`; `TenantTemplates`, `UnloadedTenants`), or an
+   operator does it on the tenants page (CK.Ng.AppIdentity.Tenants of CK-Ng-Admin on the page's App, CK.AppIdentity.Tenants
+   of CK-AppIdentity-Transport on the page's App and on the App of the template, the "Tenants" route authorized by the
+   `RouteHosts` of the AuthCenter: `"Tenants": [ "Sample/Auth3/$Worker2/#Dev" ]`).
+7. **A feature driver that keeps secrets in the private store of a party** deletes them when a run-time tenant is
+   removed: it overrides `ApplicationIdentityFeatureDriver.ForgetLocalPartyAsync( monitor, fullName, localStore )`
+   (CK.AppIdentity). **A custom `ICoreKeyStore`** (CK.AppIdentity.KeyManagement) implements `DeleteAllKeys( monitor,
+   ownerFullName, localStore )`: it destroys every key of the party, never into a trash bin (a store that takes the
+   `DefaultCoreKeyStore` delegates to it for the keys it doesn't hold, as `CngCoreKeyStore` does).
 
 **Behavior:**
 - One build per fleet: the host's `appsettings.json` keeps the template (`"InstanceCount"` at its root, the
@@ -940,10 +964,30 @@ to migrate, but a project that wants several identical parties uses it.
   warning). The approval page lists the approved instances (`IGetPartyInstancesQCommand`) and removes one
   (`IRemovePartyInstanceCommand`): its pins are trashed, never its folder (in a shared store, it is also the instance's
   own folder, with its private keys), and it can be approved again.
+- **A run-time tenant is kept by its record:** `-Local/Instance.json` (`{ "Index": 3 }`) in its folder of the store; it
+  is created again at start, before the approved remote instances. Its index is the first free one at its creation (no
+  configured instance, no loaded tenant has it, up to `"MaxInstanceCount"`). A record that the configuration contradicts
+  (its index taken by a configured instance, or above a lowered bound) is not loaded but kept (`UnloadedTenants`, with
+  its reason): `SetTenantIndexAsync` moves it to a free index. Its removal destroys its keys and trashes the rest of its
+  private store: a new tenant of the same name is a new identity.
+- **The central configuration checks the tenant templates:** an Opened one owns its domain prefix (no other tenant
+  template with it, no party of the System directly under it), and in a fleet App a tenant template uses the
+  placeholder of its App (`{Worker.Name}`): each process of a fleet has its own tenants.
+- **A local party runs in one process at a time:** it holds a lock on its private store (`-Local/$Lock.Party`) while it
+  runs. Two hosts started with the same `--Instance`, or the same App started twice on the same store, fail to start
+  ("already running in another process"); a test that starts a party must dispose it before starting it again. The
+  lock is released when the start fails.
+- **An enlistment can't be pushed out:** a holder keeps 4 pending keys per remote, a revealed one is never evicted, and
+  when all are revealed a new key is refused until one expires. The pending approval says how many keys compete for a
+  party (`IPendingApproval.CompetingKeyCount`): the approval page warns when there are several.
+- **A party command reaches a party that is not a remote** when the package of the command names its route
+  (`IPartyCommandRouteProvider`, CK.AppIdentity.Cris): it travels as an `IPartyRoutedCommand`. The tenant commands use
+  the "Tenants" route.
 
 **Check:** the builder's log has "Checking the 2 instances of the party" ("Checking the 3 instances" for an Opened
 fleet: its first dynamic instance is checked too); `#Dev/Start.ps1` lists `Worker.Host[1]` and `Worker.Host[2]`.
-CK-Sample-AspNetAuth (the Worker, an Opened fleet of two, at most four) is migrated this way.
+CK-Sample-AspNetAuth (the Worker, an Opened fleet of two, at most four; Worker2, an Opened tenant template of five) is
+migrated this way.
 
 ## The final checklist
 
@@ -972,4 +1016,6 @@ CK-Sample-AspNetAuth (the Worker, an Opened fleet of two, at most four) is migra
 15. Globalization is declared in the `"Aspects"` of an App of `ckonf.json`, no `CK.Globalization.Engine` type in a `CKSetup.xml` (U15).
 16. A repository with a central `ckonf.json` lists every builder in its `"Builders"`, and the builders' `ckonf.json` start with the "Generated from" line (U16).
 17. A fleet's party name uses `{Name}` or `{Index}`, its hosts are started with `--Instance`; an Opened fleet
-    (`"MaxInstanceCount"`) trusts its dynamic instances by approval only (U17).
+    (`"MaxInstanceCount"`) trusts its dynamic instances by approval only; an Opened tenant template has a `"DomainName"`
+    ending with `/{Name}` and the `"PartyName"` `"${Name}"`; a custom `ICoreKeyStore` implements `DeleteAllKeys`; no test
+    starts the same party twice at once (U17).
