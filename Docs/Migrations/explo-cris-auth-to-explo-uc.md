@@ -27,7 +27,7 @@ the **Behavior** and a **Check**.
 | [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" Builder aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
 | [U15](#u15-globalization-is-an-app-aspect-of-ckonfjson) | Globalization is the "Globalization" App aspect of `ckonf.json`; its configuration classes are in CK.Globalization.StObj | Yes (a `CKSetup.xml` that names them) |
 | [U16](#u16-the-central-configuration-of-a-solution) | The central configuration of a solution: a `ckonf.json` at the root of the repository describes its builders and the links between their parties, the builders' `ckonf.json` are generated from it | No (optional) |
-| [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders | No (new) |
+| [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval | No (new) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -902,8 +902,26 @@ to migrate, but a project that wants several identical parties uses it.
 3. **A template entry of `"Parties"`** (with or without a central configuration) is a tenant domain or a remote per
    instance: `{ "FullName": "Shop-{Name}/$Shop-{Name}", "Instances": [ "Paris", "Lyon" ] }`.
 4. **Start an instance:** the host of a fleet needs `--Instance=<Name or index>` (the `"Instance"` configuration key);
-   `#Dev/Start.ps1` starts every instance. A test that builds the host with `CKomposableAppHost.Build` passes it in its
-   arguments (`CKomposableAppHost.Build( ["--Instance=2"], ... )`).
+   `#Dev/Start.ps1` starts every configured instance. A test that builds the host with `CKomposableAppHost.Build` passes it
+   in its arguments (`CKomposableAppHost.Build( ["--Instance=2"], ... )`).
+5. **An Opened fleet accepts dynamic instances** (from CK-Sample-AspNetAuth, its central `ckonf.json`):
+
+   ```jsonc
+   "Worker/Worker.Builder": {
+     "App": {
+       "InstanceCount": 2,
+       "MaxInstanceCount": 4,
+       "CK-Monitoring": { "GrandOutput": { "Handlers": { "TextFile": { "Path": "Text/{Name}" } } } }
+     }
+   }
+   ```
+
+   `"MaxInstanceCount"` bounds the instances, the configured ones included (`"InstanceCount": 0` is then valid). The
+   dynamic instances come after the configured ones and are named by their index (`$Worker-3`, `$Worker-4`): a
+   configured name in `"Instances"` can't start with a digit. A dynamic instance is started by hand
+   (`dotnet run -- --Instance=3`). The link to the fleet copies `"MaxInstanceCount"` in the remote template of the
+   other side; without a central configuration, write it in the entry of `"Parties"`. Only a remote template can be
+   Opened (an Opened tenant template is a configuration error).
 
 **Behavior:**
 - One build per fleet: the host's `appsettings.json` keeps the template (`"InstanceCount"` at its root, the
@@ -911,10 +929,21 @@ to migrate, but a project that wants several identical parties uses it.
   `"Instance"` in a host that is not a fleet: the start fails.
 - The builder validates the party of every instance. The instances share their type sets, named by the unresolved
   party name (`$Worker-{Name}`): `PartyComponentDirectory` finds the set of an instance through it.
-- The instances are Closed: only the configured ones exist (no instance created at run time).
+- A fleet without `"MaxInstanceCount"` is Closed: only the configured instances exist.
+- **The holder of an Opened remote template** (Auth3 for the Worker) accepts an unknown caller that is one of its
+  dynamic instances as a candidate: a dynamic remote, trusted by an approval only (the enlistment: the approval page
+  says "A new instance of $Worker-{Name}"). An `"AutoTrustKey"` other than `"Never"` on an Opened template is refused
+  (a `SecurityCritical` error, `"Never"` applies). The holder listens from its start (its candidates call before any
+  of their remotes exists). A candidate that doesn't call anymore is destroyed.
+- **Nothing else is stored:** an approved instance exists because its identity is pinned in its folder of the store;
+  it is created again at the next start. Lowering `"MaxInstanceCount"` below an approved index trashes its pins (a
+  warning). The approval page lists the approved instances (`IGetPartyInstancesQCommand`) and removes one
+  (`IRemovePartyInstanceCommand`): its pins are trashed, never its folder (in a shared store, it is also the instance's
+  own folder, with its private keys), and it can be approved again.
 
-**Check:** the builder's log has "Checking the 2 instances of the party"; `#Dev/Start.ps1` lists `Worker.Host[1]` and
-`Worker.Host[2]`. CK-Sample-AspNetAuth (the Worker, a fleet of two) is migrated this way.
+**Check:** the builder's log has "Checking the 2 instances of the party" ("Checking the 3 instances" for an Opened
+fleet: its first dynamic instance is checked too); `#Dev/Start.ps1` lists `Worker.Host[1]` and `Worker.Host[2]`.
+CK-Sample-AspNetAuth (the Worker, an Opened fleet of two, at most four) is migrated this way.
 
 ## The final checklist
 
@@ -942,4 +971,5 @@ to migrate, but a project that wants several identical parties uses it.
 14. The database is `"Aspects": { "SqlServer" }` in `ckonf.json`: no Setupable/SqlSetup aspect in a builder (U14).
 15. Globalization is declared in the `"Aspects"` of an App of `ckonf.json`, no `CK.Globalization.Engine` type in a `CKSetup.xml` (U15).
 16. A repository with a central `ckonf.json` lists every builder in its `"Builders"`, and the builders' `ckonf.json` start with the "Generated from" line (U16).
-17. A fleet's party name uses `{Name}` or `{Index}`, its hosts are started with `--Instance` (U17).
+17. A fleet's party name uses `{Name}` or `{Index}`, its hosts are started with `--Instance`; an Opened fleet
+    (`"MaxInstanceCount"`) trusts its dynamic instances by approval only (U17).
