@@ -11,7 +11,7 @@ the **Behavior** and a **Check**.
 
 | Id | Area | Breaking? |
 |---|---|---|
-| [U1](#u1-the-builders-configuration-ckonfjson-the-hosts-appsettingsjson-are-projections) | The builder's configuration: the `ckonf.json` of a builder (its Apps, their party, the client applications declared with their features and their type set, the aspects); the hosts' `appsettings.json` are generated from it | Yes (the builders, the hosts' configuration) |
+| [U1](#u1-the-builders-configuration-ckonfjson-the-hosts-appsettingsjson-are-projections) | The builder's configuration: the `ckonf.json` of a builder (its App or its Apps, their party, the client applications declared with their features and their type set, the aspects); the hosts' `appsettings.json` are generated from it | Yes (the builders, the hosts' configuration) |
 | [U3](#u3-the-client-features) | The client features: a `PartyClient` is a bag of `ClientFeature` ("NgApp", "Hosting"), `IPartyClientFactory` and `TypeScriptClient` are gone | Yes (the code that builds or reads clients, the running status) |
 | [U2](#u2-one-httpendpoint-per-local-party) | One HttpEndpoint per local party: `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `ConfigureHttpEndpoint`, `HttpEndpointFeatureDriver.Endpoint` | Yes (the configuration of the parties, the application's configuration of the endpoint) |
 | [U4](#u4-the-features-are-declared-by-their-key-allowfeatures-and-disallowfeatures-are-gone) | The features are declared by their key (`true`, the section, `false`): `AllowFeatures` and `DisallowFeatures` are gone | Yes (configuration) |
@@ -26,12 +26,13 @@ the **Behavior** and a **Check**.
 | [U13](#u13-pfeature-is-renamed-model) | "PFeature" is renamed "Model": `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` | Yes (the `AssemblyInfo.cs` that use them) |
 | [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" Builder aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
 | [U15](#u15-globalization-is-an-app-aspect-of-ckonfjson) | Globalization is the "Globalization" App aspect of `ckonf.json`; its configuration classes are in CK.Globalization.StObj | Yes (a `CKSetup.xml` that names them) |
+| [U16](#u16-the-central-configuration-of-a-solution) | The central configuration of a solution: a `ckonf.json` at the root of the repository describes its builders and the links between their parties, the builders' `ckonf.json` are generated from it | No (optional) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
 A builder ("XXX.Builder", run by `CKomposableAppBuilder` of CK.AppBuilder) can have a `ckonf.json`: the configuration of
-what it builds in one engine run, its **Apps** keyed by their name (an App is an "X.App"/"X.Host" pair: one process, its
-root party and its tenants), each one with the configuration of its host, and the **aspects**. The engine
+what it builds in one engine run, its **App** (or its **Apps**: an App is an "X.App"/"X.Host" pair, one process, its
+root party and its tenants) with the configuration of its host, and the **aspects**. The engine
 configuration is deduced from it (an App is a BinPath of the engine), and the `appsettings.json` of each host is
 generated from it. It is the first step of the Unified Configuration. A builder without `ckonf.json` works as before (its
 `CKSetup.xml`), but the help that added the client applications to the host's `appsettings.json` (M14 of the cris-auth
@@ -43,8 +44,11 @@ guide) is gone: migrate.
 
 **Do:**
 
-1. **Create `ckonf.json` in the builder project.** An App is named after its projects: the App "Front" is the
-   "../Front.App" project (its bin folder is the builder's: `bin/{Configuration}/{TargetFramework}`) and the
+1. **Create `ckonf.json` in the builder project.** A builder builds one App, `"App": { ... }`, named after the builder's
+   folder without ".Builder" ("Front.Builder" builds the App "Front"; `"Name"` departs from it). A builder that builds
+   several Apps (sharing the Builder aspects: one database) lists them, `"Apps": [ { "Name": "Back1", ... }, { "Name":
+   "Back2", ... } ]` (CK-Sample-MultiBinPath); `"App"` and `"Apps"` together are an error, the names are unique. An App
+   is named after its projects: the App "Front" is the "../Front.App" project (its bin folder is the builder's: `bin/{Configuration}/{TargetFramework}`) and the
    "../Front.Host" project. `"AppProject"` and `"HostProject"` (relative to the `ckonf.json` folder) depart from this
    convention; a path that leaves the solution's folder is an error. The content of the App is the host's
    `appsettings.json` (move it, with its comments) **without its `"CK-AppIdentity"` level**: the keys of the party
@@ -55,34 +59,33 @@ guide) is gone: migrate.
    ```jsonc
    // Front.Builder/ckonf.json
    {
-     "Apps": {
-       "Front": {
-         "FullName": "Sample/Auth3/$Front/#Dev",
-         "Local": {
-           "HttpEndpoint": { "Urls": "http://localhost:5300" },
-           "PartyClient": {
-             "App": { "NgApp": true, "Hosting": { "RequestPath": "/", "DevServerPort": 4200 } },
-             "MiniApp": {
-               "Types": [
-                 "CK.Ng.Cris.AspNet.CrisAspNetPackage, CK.Ng.Cris.AspNet",
-                 "CK.Sample.Front.IFrontInfoQCommand, Front.App",
-                 "CK.TS.Angular.NgAppClientFeature, CK.TS.Angular",
-                 "CK.TypeScript.HostingClientFeature, CK.TS.AspNet.Clients"
-               ],
-               "NgApp": true,
-               "Hosting": { "DevServerPort": 4201 }
-             }
+     "App": {
+       "FullName": "Sample/Auth3/$Front/#Dev",
+       "Local": {
+         "HttpEndpoint": { "Urls": "http://localhost:5300" },
+         "PartyClient": {
+           "App": { "NgApp": true, "Hosting": { "RequestPath": "/", "DevServerPort": 4200 } },
+           "MiniApp": {
+             "Types": [
+               "CK.Ng.Cris.AspNet.CrisAspNetPackage, CK.Ng.Cris.AspNet",
+               "CK.Sample.Front.IFrontInfoQCommand, Front.App",
+               "CK.TS.Angular.NgAppClientFeature, CK.TS.Angular",
+               "CK.TypeScript.HostingClientFeature, CK.TS.AspNet.Clients"
+             ],
+             "NgApp": true,
+             "Hosting": { "DevServerPort": 4201 }
            }
-         },
-         "Parties": [ { "PartyName": "$Auth3", "AuthCenterRemote": true, "Address": "tcp:127.0.0.1:37300" } ],
-         "Logging": { "LogLevel": { "Default": "Warning" } }
-       }
+         }
+       },
+       "Parties": [ { "PartyName": "$Auth3", "AuthCenterRemote": true, "Address": "tcp:127.0.0.1:37300" } ],
+       "Logging": { "LogLevel": { "Default": "Warning" } }
      }
    }
    ```
 
-   The root of `ckonf.json` has `"Apps"`, `"Aspects"` (see step 3) and `"ProjectCompileKeys"` (see the Behavior); any
-   other key is an error.
+   The root of `ckonf.json` has `"App"` (or `"Apps"`), `"Aspects"` (see step 3) and `"ProjectCompileKeys"` (see the
+   Behavior); any other key is an error. A solution of several builders can describe them in one central
+   configuration instead (U16).
 
 2. **Move the client applications into their declaration.** A client is a bag of client features. A
    `<TypeScript Name="X" ...>` of the BinPath (a client application served by its host) becomes the declared client
@@ -140,13 +143,14 @@ guide) is gone: migrate.
 - **The host's `appsettings.json` is generated:** its first line is `// Generated from Front.Builder/ckonf.json: do not
   edit.`, it is written when it changes, without the comments (they are in the `ckonf.json`) and without the compile
   time keys (the type sets, the keys of "NgApp", the `RequestPath` and `DevServerPort` of "Hosting", the `Aspects`, the App
-  keys; a feature whose keys are all compile time is written `true`). **The keys of the party are in its
+  keys, its `Name`; a feature whose keys are all compile time is written `true`). **The keys of the party are in its
   `"CK-AppIdentity"` section** (first), the other keys of the App follow as they are: the run time configuration is the
   one of the cris-auth guide (the user-secrets and the environment variables keep their `CK-AppIdentity:...` keys). Edit
   the `ckonf.json`, never the projection. `"ProjectCompileKeys": true` (at the root) keeps the compile time keys of the
   clients in the projection (the run time accepts them).
 - **The configuration is checked at build time:** the party of each App is validated when the builder runs (an
-  invalid configuration fails the build), the keys are case insensitive (`Back1` and `back1` is a duplicate: an error),
+  invalid configuration fails the build), the keys and the App names are case insensitive (`Back1` and `back1` is a
+  duplicate: an error),
   an unknown key of the root is an error, and a key named `CK-AppIdentity` in an App that has a party is an error (it is
   the section of the projection: the old `"CK-AppIdentity": { ... }` level must be removed).
 - **The order of the Apps means nothing:** the engine receives them sorted by name.
@@ -156,8 +160,8 @@ guide) is gone: migrate.
 
 **Check:** the builder's log has "Reading '.../ckonf.json'." and "written from 'ckonf.json'"; the host's
 `appsettings.json` starts with the "Generated" line; the generated code (`$StObjGen`) and the `ck-gen` of the client
-applications are unchanged by the migration. CK-Sample-AspNetAuth (five builders), CK-Sample-MultiBinPath (two
-Apps in one builder), the samples of CK-Ng-Admin, CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib and
+applications are unchanged by the migration. CK-Sample-AspNetAuth (five builders, through its central configuration:
+U16), CK-Sample-MultiBinPath (two Apps in one builder), the samples of CK-Ng-Admin, CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib and
 CK-Observable-Domain are migrated this way.
 
 ## U2. One HttpEndpoint per local party
@@ -796,9 +800,77 @@ every aspect key that names no aspect of the Apps, fails the build before the co
 **Check:** no `CK.Globalization.Engine` in a `CKSetup.xml`. CK-Ng-Admin and CK-Ng-User-UserProfile (their samples) declare
 it this way.
 
+## U16. The central configuration of a solution
+
+A solution of several builders (several parties) can describe them once: a `ckonf.json` at the root of the repository
+(its git root, next to `#Dev`). Each builder then generates its own `ckonf.json` from its entry before reading it: the
+domain, the defaults shared by the Apps and the links between the parties are written once. It is optional: a
+repository without it is unchanged.
+
+**Detect:** a repository with several "XXX.Builder" projects whose `ckonf.json` repeat the same domain, the same host
+sections (`Logging`, `CK-Monitoring`), or describe the two sides of a connection in their `Parties`.
+
+**Do:**
+1. **Create the `ckonf.json` at the root of the repository** (from CK-Sample-AspNetAuth, shortened):
+
+   ```jsonc
+   {
+     "Domain": "Sample/Auth3",
+     "Defaults": {
+       "App": {
+         "Logging": { "LogLevel": { "Default": "Warning" } },
+         "CK-Monitoring": { "GlobalDefaultFilter": "Debug", "GrandOutput": { "Handlers": { "Console": true, "TextFile": { "Path": "Text" } } } }
+       }
+     },
+     "Builders": {
+       "Auth3/Auth3.Builder": {
+         "Aspects": { "SqlServer": { "DefaultDatabaseConnectionString": "Server=.;Database=CKSampleAuth3;Integrated Security=True;TrustServerCertificate=true" } },
+         "App": {
+           "Defaults": { "Transport": { "ListeningAddress": [ "tcp:127.0.0.1:37300" ] } },
+           "Local": { "AuthCenter": { ... } }
+         }
+       },
+       "Front/Front.Builder": { "App": { "Local": { "HttpEndpoint": { "Urls": "http://localhost:5300" } } } },
+       "Worker/Worker.Builder": { "App": {} }
+     },
+     "Links": [
+       { "From": "$Front", "To": "$Auth3", "Link": { "AuthCenterRemote": true, "Address": "tcp:127.0.0.1:37300", "KeyManagement": { "AutoTrustKey": "Once" } } },
+       { "From": "$Worker", "To": "$Auth3", "Link": { "Address": "tcp:127.0.0.1:37300", "KeyManagement": { "AutoTrustKey": "Once" } } },
+       { "From": "$Auth3", "To": "$Front", "Link": { "AuthCenterRemote": true, "KeyManagement": { "AutoTrustKey": "Once" } } },
+       { "From": "$Auth3", "To": "$Worker", "Link": { "KeyManagement": { "AutoTrustKey": "Never" } } }
+     ]
+   }
+   ```
+
+   - **`"Builders"`** are keyed by the path of their folder, relative to the root and downward only (`..` is an
+     error). The entry of a builder is the content of its `ckonf.json` (U1: `"Aspects"`, `"App"` or `"Apps"`) without
+     what the other keys give.
+   - **`"Domain"`** (and `"Environment"`, `#Dev` by default) gives the `FullName` of each App that doesn't write it:
+     `{Domain}/${Name}/{Environment}`. The party of an App is `$Name` (or the party of its explicit `FullName`).
+   - **`"Defaults": { "App": { ... } }`** is merged in each App: an App's own value wins, the objects are merged.
+   - **`"Links"`:** a link is the remote entry that `From` has for `To`: `"Link"` is the content of the entry (without
+     its `PartyName`, which is `To`), appended to the `Parties` of `From` in the order of the links. Each side of a
+     connection is a link of its own; a link without its reverse is valid. A remote outside the solution stays in the
+     `Parties` of its App; a remote both linked and in the `Parties` is an error.
+2. **Move the comments into it.** The builders' `ckonf.json` are generated: run the builders (a `ckli build` commits them
+   as build impacts) and commit them.
+
+**Behavior:**
+- **A builder's `ckonf.json` is generated** when the repository has a central configuration: its first line is
+  `// Generated from ../../ckonf.json: do not edit.`, it is written when it changes, without the comments. Edit the
+  central file, never the projection.
+- **Every builder of the repository must be in `"Builders"`:** otherwise its build fails ("The builder ... is not in
+  the central configuration").
+- **The names of the Apps are unique in the solution;** a root key that no package handles is an error (`Domain`,
+  `Environment` and `Links` are handled by CK.AppIdentity.Engine). The keys of a link are checked by the builder of
+  `From`, like the `Parties` it validates.
+
+**Check:** the builders' `ckonf.json` start with the "Generated from" line; the hosts' `appsettings.json` are unchanged
+by the move. CK-Sample-AspNetAuth (five builders, eight links) is migrated this way.
+
 ## The final checklist
 
-1. Every builder has a `ckonf.json` (its `"Apps"` with the keys of their party directly in them, the client
+1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
    applications declared with their features `"NgApp"` and `"Hosting"`, the `"Aspects"`), its `CKSetup.xml` has no `<BinPaths>` (or is gone), and
    the hosts' `appsettings.json` start with the "Generated" line, committed (U1).
 2. Every `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `AddHttpEndpoint` is replaced by
@@ -821,3 +893,4 @@ it this way.
 13. No `PFeature` is left: `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` (U13).
 14. The database is `"Aspects": { "SqlServer" }` in `ckonf.json`: no Setupable/SqlSetup aspect in a builder (U14).
 15. Globalization is declared in the `"Aspects"` of an App of `ckonf.json`, no `CK.Globalization.Engine` type in a `CKSetup.xml` (U15).
+16. A repository with a central `ckonf.json` lists every builder in its `"Builders"`, and the builders' `ckonf.json` start with the "Generated from" line (U16).
