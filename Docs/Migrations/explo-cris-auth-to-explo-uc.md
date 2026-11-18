@@ -27,6 +27,7 @@ the **Behavior** and a **Check**.
 | [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" Builder aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
 | [U15](#u15-globalization-is-an-app-aspect-of-ckonfjson) | Globalization is the "Globalization" App aspect of `ckonf.json`; its configuration classes are in CK.Globalization.StObj | Yes (a `CKSetup.xml` that names them) |
 | [U16](#u16-the-central-configuration-of-a-solution) | The central configuration of a solution: a `ckonf.json` at the root of the repository describes its builders and the links between their parties, the builders' `ckonf.json` are generated from it | No (optional) |
+| [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders | No (new) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -868,6 +869,53 @@ sections (`Logging`, `CK-Monitoring`), or describe the two sides of a connection
 **Check:** the builders' `ckonf.json` start with the "Generated from" line; the hosts' `appsettings.json` are unchanged
 by the move. CK-Sample-AspNetAuth (five builders, eight links) is migrated this way.
 
+## U17. The fleets and the templates of parties
+
+A party described once can have several instances: a **template** is a section with `"InstanceCount": n` or
+`"Instances": [ "Top", "Red" ]` (`ConfigurationTemplate`, CK.Configuration). Its values use the placeholders of an
+instance: `{Index}` (1-based), `{Name}` (the item of `"Instances"`, or the index), `{n+Index}` (`"{5400+Index}"`), and,
+in a template inside a fleet, the fleet's qualified by its App name (`{Trolley.Name}`): the innermost template wins. The
+placeholders are in the values, never in the keys; a `{...}` that is none of these forms is left as is. It is new: nothing
+to migrate, but a project that wants several identical parties uses it.
+
+**Detect:** several builders, or several entries of `"Parties"`, that differ only by a name, a port or a path.
+
+**Do:**
+1. **A fleet is an App with instances** (from CK-Sample-AspNetAuth, its central `ckonf.json`):
+
+   ```jsonc
+   "Worker/Worker.Builder": {
+     "App": {
+       "InstanceCount": 2,
+       "CK-Monitoring": { "GrandOutput": { "Handlers": { "TextFile": { "Path": "Text/{Name}" } } } }
+     }
+   }
+   ```
+
+   Its party name must use `{Name}` or `{Index}` (a build error otherwise): with a central configuration, its derived
+   `FullName` is `{Domain}/${App}-{Name}/{Environment}` (`$Worker-1`, `$Worker-2`); without it, write it
+   (`"FullName": "Sample/$Worker-{Name}/#Dev"`). Template what the instances must not share (ports, paths).
+2. **The links of the central configuration name a fleet by its pattern:** `{ "From": "$Worker-{Name}", "To": "$Auth3" }`
+   is a remote of every instance; `{ "From": "$Auth3", "To": "$Worker-{Name}" }` is a remote template on Auth3 (the
+   fleet's `"InstanceCount"` copied in the entry): one remote per instance, its values can use the placeholders
+   (`"Address": "tcp:10.0.0.1:{37300+Index}"`).
+3. **A template entry of `"Parties"`** (with or without a central configuration) is a tenant domain or a remote per
+   instance: `{ "FullName": "Shop-{Name}/$Shop-{Name}", "Instances": [ "Paris", "Lyon" ] }`.
+4. **Start an instance:** the host of a fleet needs `--Instance=<Name or index>` (the `"Instance"` configuration key);
+   `#Dev/Start.ps1` starts every instance. A test that builds the host with `CKomposableAppHost.Build` passes it in its
+   arguments (`CKomposableAppHost.Build( ["--Instance=2"], ... )`).
+
+**Behavior:**
+- One build per fleet: the host's `appsettings.json` keeps the template (`"InstanceCount"` at its root, the
+  placeholders); CK.AppHost resolves it at start for its instance. A missing or unknown instance in a fleet, an
+  `"Instance"` in a host that is not a fleet: the start fails.
+- The builder validates the party of every instance. The instances share their type sets, named by the unresolved
+  party name (`$Worker-{Name}`): `PartyComponentDirectory` finds the set of an instance through it.
+- The instances are Closed: only the configured ones exist (no instance created at run time).
+
+**Check:** the builder's log has "Checking the 2 instances of the party"; `#Dev/Start.ps1` lists `Worker.Host[1]` and
+`Worker.Host[2]`. CK-Sample-AspNetAuth (the Worker, a fleet of two) is migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -894,3 +942,4 @@ by the move. CK-Sample-AspNetAuth (five builders, eight links) is migrated this 
 14. The database is `"Aspects": { "SqlServer" }` in `ckonf.json`: no Setupable/SqlSetup aspect in a builder (U14).
 15. Globalization is declared in the `"Aspects"` of an App of `ckonf.json`, no `CK.Globalization.Engine` type in a `CKSetup.xml` (U15).
 16. A repository with a central `ckonf.json` lists every builder in its `"Builders"`, and the builders' `ckonf.json` start with the "Generated from" line (U16).
+17. A fleet's party name uses `{Name}` or `{Index}`, its hosts are started with `--Instance` (U17).
