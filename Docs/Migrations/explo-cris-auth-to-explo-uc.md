@@ -29,6 +29,7 @@ the **Behavior** and a **Check**.
 | [U16](#u16-the-central-configuration-of-a-solution) | The central configuration of a solution: a `ckonf.json` at the root of the repository describes its builders and the links between their parties, the builders' `ckonf.json` are generated from it | No (optional) |
 | [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval, and a tenant template to run-time tenants; a local party runs in one process at a time; `ICoreKeyStore.DeleteAllKeys` | Yes (a custom `ICoreKeyStore`); behavior |
 | [U18](#u18-the-configuration-levels-and-lock) | The configuration levels (`Compile`, `Init`, `Run`): a `"$LOCK"` in `ckonf.json` restricts a value to `Compile` (burnt in the generated code, not in the host's `appsettings.json`); a package restricts the values of a kind of party (`[ConfigurationLock]`: KeyManagement's `AutoTrustKey` is `Never` on an Opened remote template, checked at build time) | Behavior (an Opened remote template with another `AutoTrustKey` fails the build) |
+| [U19](#u19-the-run-properties-and-the-dynamic-configuration) | The run properties: `[ConfigurationSection]` on an App singleton, `[ConfigurationLevel( Run )]` on its properties; CK.Cris.DynamicConfiguration initializes them from the configuration and changes them by a command (CK.IO.DynamicConfiguration), CK.AppIdentity.DynamicConfiguration keeps the changes; `CrisExecutionHost.ParallelRunnerCount` is one | No (new) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1054,6 +1055,65 @@ reads a section of the hosts' configuration at start, or projects a value (`AppC
 **Check:** the build succeeds; a locked value is not in the host's `appsettings.json` and is in its generated code
 (`CompiledConfiguration_CK`). CK-Sample-AspNetAuth locks Auth3's connection string this way.
 
+## U19. The run properties and the dynamic configuration
+
+A value that its code can change while the application runs is a **run property**: a `[ConfigurationLevel( Run )]`
+property of an App singleton (an `ISingletonAutoService` or a real object) that declares its section of the App's
+configuration with `[ConfigurationSection( "Name" )]` (CK.ResourceSpace.Abstractions, CK-Abstractions). The packages of
+the dynamic configuration (CK-Cris-Abstractions, CK-Cris, CK-AppIdentity-Transport) initialize them and change them while
+the application runs. It is new: nothing to migrate, but an application that wants to change a value without a restart
+uses it.
+
+**Detect:** a singleton property that the application changes while it runs from its own code or a command of its own
+(a count of workers, a timeout); a section of the hosts' configuration read by such a singleton.
+
+**Do:**
+1. Declare the section and the run properties (from CK.Cris.Executor, CK-Cris):
+
+   ```csharp
+   [ConfigurationSection( "CrisExecutionHost" )]
+   public sealed partial class CrisExecutionHost : ICrisExecutionHost, ISingletonAutoService
+   {
+       [ConfigurationLevel( ConfigurationLevel.Run )]
+       public int ParallelRunnerCount { get => _runnerCount; set { Throw.CheckOutOfRangeArgument( value >= 1 && value <= 1000 ); Push( value ); } }
+   }
+   ```
+
+   The declaration is a contract: the setter is thread safe and validates (it throws on an invalid value). The value is
+   a basic one (a number, a boolean, a string, an enum, a `TimeSpan`, a `Guid`); a decorated property whose type is a
+   class gives access to its own decorated properties (`"Section:Options:Delay"`). The owner doesn't read the
+   configuration.
+2. In the App: reference **CK.Cris.DynamicConfiguration** (CK-Cris) and, in a CK-AppIdentity application,
+   **CK.AppIdentity.DynamicConfiguration** (CK-AppIdentity-Transport: the changes are kept in the store of the root party);
+   in its builder, **CK.Cris.DynamicConfiguration.Engine** (CK-Cris). The application that sends the commands references
+   **CK.IO.DynamicConfiguration** (CK-Cris-Abstractions); a client application that sends them registers them
+   (`[RegisterTypeScriptType( typeof( IConfigurePropertyCommand ) )]`, `IGetRunPropertiesQCommand`), as CK-Sample-AspNetAuth's
+   Admin does.
+3. Configure the initial value in the App's `ckonf.json`, a root key of the App (from CK-Sample-AspNetAuth, Auth3):
+
+   ```jsonc
+   "CrisExecutionHost": { "ParallelRunnerCount": 2 },
+   ```
+
+   A `"$LOCK"` restricts it (U18): to `Init`, it is initialized and not changed; to `Compile`, it is burnt.
+
+**Behavior:**
+- At start (the `DynamicConfigurationService` is an `IHostedService`), the initial value of each run property is resolved,
+  then set once: a configured value that changed since a change was recorded wins (the latest decision), otherwise the
+  recorded change, otherwise the configured value; without any of them, the property keeps the value of its code.
+- `IConfigurePropertyCommand` (a party command at the Critical level, sent to a local party of the application, directly
+  or through the hub of the System): `PropertyPath` ("CrisExecutionHost:ParallelRunnerCount"), `Value` and `CurrentValue`
+  as texts (invariant culture). The current value is compared (the optimistic concurrency): a conflict fails and its
+  message gives the actual value; an invalid value fails with the setter's message; a change made while impersonating
+  is refused. A success is recorded ("DynamicConfiguration.json" in the `-Local` store of the root party).
+- `IGetRunPropertiesQCommand` lists the run properties that can be changed (the restricted ones are not listed), with
+  their type and their current value as a text.
+- The accessors are generated (`RunPropertyDirectory`): no reflection at run time. A type that declares a section and is
+  not an App singleton, a run property of another type, are build errors.
+
+**Check:** the build succeeds; `IGetRunPropertiesQCommand` lists the run properties; a change survives a restart.
+CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1086,3 +1146,5 @@ reads a section of the hosts' configuration at start, or projects a value (`AppC
     starts the same party twice at once (U17).
 18. No Opened remote template has an `"AutoTrustKey"` other than `"Never"`; a contributor that reads a section of the hosts at
     start declares it (`DeclareInitSection`), an aspect that projects a value gives its origin (U18).
+19. A value that the application changes while it runs is a run property (`[ConfigurationSection]`, `[ConfigurationLevel( Run )]`);
+    its App references CK.Cris.DynamicConfiguration (and CK.AppIdentity.DynamicConfiguration), its builder the engine (U19).
