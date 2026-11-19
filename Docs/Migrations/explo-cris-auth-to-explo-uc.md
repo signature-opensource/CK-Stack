@@ -31,6 +31,7 @@ the **Behavior** and a **Check**.
 | [U18](#u18-the-configuration-levels-and-lock) | The configuration levels (`Compile`, `Init`, `Run`): a `"$LOCK"` in `ckonf.json` restricts a value to `Compile` (burnt in the generated code, not in the host's `appsettings.json`); a package restricts the values of a kind of party (`[ConfigurationLock]`: KeyManagement's `AutoTrustKey` is `Never` on an Opened remote template, checked at build time) | Behavior (an Opened remote template with another `AutoTrustKey` fails the build) |
 | [U19](#u19-the-run-properties-and-the-dynamic-configuration) | The run properties: `[ConfigurationSection]` on an App singleton, `[ConfigurationLevel( Run )]` on its properties; CK.Cris.DynamicConfiguration initializes them from the configuration and changes them by a command (CK.IO.DynamicConfiguration), CK.AppIdentity.DynamicConfiguration keeps the changes; `CrisExecutionHost.ParallelRunnerCount` is one | No (new) |
 | [U20](#u20-the-secrets) | The secrets: a secret in `ckonf.json` is a handle `{ "$SECRET": "<Name>" }`, projected (or burnt) as is; the host resolves it at start from the configuration key `Secrets:<Name>` (`#Dev/Secrets.json` in development); `[ConfigurationSecret]`, `AppConfiguration.AddSecretKey`; the "SqlServer" aspect accepts a handle | No (new); `SqlServerAspect.Databases` items are `SqlServerAspect.DatabaseConfiguration` |
+| [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `IAuthCenterSchemeFamilyOption`; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1154,8 +1155,9 @@ with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its
 3. A package that knows that a value is a secret declares it, so that a plain value is reported at build time:
    `[ConfigurationSecret( path )]` on a configurable type (built like a `[ConfigurationLock]` path: a kind of party, then
    the path in the section of the type, with the `*` and `[*]` patterns), or `AppConfiguration.AddSecretKey( path )`
-   from a contributor that reads its keys by hand. In the stack, only the "SqlServer" aspect declares one (its default
-   connection string).
+   from a contributor that reads its keys by hand. In the stack: the client secrets of the "Oidc" scheme family
+   (`[ConfigurationSecret( "Party:*:ClientSecret" )]` on `AuthCenterOidcOption`, U21) and the default connection
+   string of the "SqlServer" aspect.
 4. An aspect that needs the value at build time (the setup of a development database) resolves it with
    `AppBuilderContext.TryResolveSecret( monitor, name, out value )` (from `#Dev/Secrets.json`) and projects the handle:
    `AppConfiguration.ProjectValue( "<path>:$SECRET", name, "<origin>:$SECRET" )`.
@@ -1172,6 +1174,57 @@ with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its
 
 **Check:** the build succeeds; the hosts' `appsettings.json` hold the handles; the host starts with the values in
 `#Dev/Secrets.json` and fails with the list of the missing names without them.
+
+## U21. The scheme families are options of the AuthCenter
+
+A scheme family of the AuthCenter (OpenID Connect, passkeys) is an option of the `LocalAuthCenterFeatureDriver`
+(CK.AppIdentity.AuthCenter.Local, CK-AppIdentity-Transport): its section is the sub-section of its name
+(`"AuthCenter:Oidc"`, `"AuthCenter:Passkey"`), that its constructor reads, and the AuthCenter creates the family of each
+local Authentication Center. The configuration of the schemes doesn't change.
+
+**Detect:** `AuthCenterOidcFeatureDriver`, `AuthCenterPasskeyFeatureDriver`, `AuthCenterOidcConfiguration`,
+`AuthCenterPasskeyConfiguration`, `IAuthCenterSchemeConfiguration`, `LocalAuthCenter.GetSchemeSettings`; the keys
+`"AuthCenterOidc"` or `"AuthCenterPasskey"` in a configuration.
+
+**Do:**
+1. **A test that lists the types of the family** lists the option instead (from CK.AppIdentity.AuthCenter.Tests):
+
+   ```csharp
+   engine.FirstBinPath.Types.Add( typeof( Oidc.AuthCenterOidcOption ), typeof( Oidc.AuthCenterOidcHttpClient ) );
+   engine.FirstBinPath.Types.Add( typeof( Passkey.AuthCenterPasskeyOption ), typeof( Passkey.AuthCenterPasskeyHandlers ) /* ... */ );
+   ```
+
+   A test without engine registers the option: `services.AddPartyComponentOptions( typeof( Oidc.AuthCenterOidcOption ) )`
+   (CK.Testing.AppIdentity), with `services.AddSingleton<Oidc.AuthCenterOidcHttpClient>()`.
+2. **A configuration that disables a family** writes it in the AuthCenter's section: `"AuthCenterOidc": false` becomes
+   `"AuthCenter": { "Oidc": false }` (the same for `"Passkey"`).
+3. **A family of its own** is an option of the AuthCenter that creates the family (from CK.AppIdentity.AuthCenter.Oidc):
+
+   ```csharp
+   [PartyFeatureOption( "Oidc", TypeActivation.ByDefault )]
+   [ConfigurationSecret( "Party:*:ClientSecret" )]
+   public sealed class AuthCenterOidcOption : IPartyComponentOption<LocalAuthCenterFeatureDriver>, IAuthCenterSchemeFamilyOption
+   {
+       public AuthCenterOidcOption( IConfiguration? configuration, AuthCenterOidcHttpClient http )
+       {
+           _http = http;
+           Schemes = OidcSchemeOptions.Read( configuration );
+       }
+
+       public IAuthCenterScheme CreateFamily( IActivityMonitor monitor, ILocalParty local ) => new AuthCenterOidc( Schemes, _http.Client );
+   }
+   ```
+
+   Its constructor reads its section (null when it is absent) and throws on an invalid value (U8); its feature driver and
+   its `IAuthCenterSchemeConfiguration` are removed.
+
+**Behavior:**
+- The families are created for every local Authentication Center, the dynamic tenants included, right after its
+  `LocalAuthCenter`; `LocalAuthCenter.SchemeFamilies` lists them as before.
+- An invalid section of a family fails the setup of the party ("Unable to create the option 'AuthCenter:Oidc': ..."),
+  a sub-section of the AuthCenter that is not an option of an installed package is still an error.
+
+**Check:** no type of the Detect list is left; the scheme listing shows the same schemes.
 
 ## The final checklist
 
@@ -1210,3 +1263,5 @@ with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its
     its App references CK.Cris.DynamicConfiguration (and CK.AppIdentity.DynamicConfiguration), its builder the engine (U19).
 20. No secret value is left in a configuration file: a handle `{ "$SECRET": "<Name>" }`, its value in `#Dev/Secrets.json`
     in development, `Secrets:<Name>` elsewhere (U20).
+21. No family feature driver, `IAuthCenterSchemeConfiguration` nor `"AuthCenterOidc"`/`"AuthCenterPasskey"` key is left:
+    the scheme families are options of the AuthCenter (U21).
