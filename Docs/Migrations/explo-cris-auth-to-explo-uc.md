@@ -33,6 +33,7 @@ the **Behavior** and a **Check**.
 | [U20](#u20-the-secrets) | The secrets: a secret in `ckonf.json` is a handle `{ "$SECRET": "<Name>" }`, projected (or burnt) as is; the host resolves it at start from the configuration key `Secrets:<Name>` (`#Dev/Secrets.json` in development); `[ConfigurationSecret]`, `AppConfiguration.AddSecretKey`; the "SqlServer" aspect accepts a handle | No (new); `SqlServerAspect.Databases` items are `SqlServerAspect.DatabaseConfiguration` |
 | [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `IAuthCenterSchemeFamilyOption`; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
 | [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
+| [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1258,6 +1259,67 @@ properties are declared `new`).
 
 **Check:** an Oidc login completes.
 
+## U23. The deployments
+
+A solution with a central configuration (U16) may describe its deployments: its `ckonf.json` is the development one
+(`#Dev`), each other deployment is a folder of its `Deployment` folder (next to the central `ckonf.json`), an overlay of
+it. It is new: a solution without `Deployment` folder is unchanged.
+
+**Detect:** a solution whose configurations of another environment are kept by hand (an `appsettings.Production.json`,
+a copy of the `ckonf.json`).
+
+**Do:**
+1. **A deployment is a folder whose name starts with `#`** (its environment); the folders above it are its domain
+   (none: the central domain). Its `ckonf.json` is a JSON Merge Patch (RFC 7396) of the central configuration: an object
+   merges, `null` removes, any other value (an array included) replaces. From CK-Sample-AspNetAuth's
+   `Deployment/#Production/ckonf.json`:
+
+   ```jsonc
+   {
+     "Builders": {
+       "Auth3/Auth3.Builder": {
+         "Aspects": { "SqlServer": { "DefaultDatabaseConnectionString": { "$SECRET": "Auth3:Database" } } },
+         "App": { "Defaults": { "Transport": { "ListeningAddress": [ "tcp:0.0.0.0:37300" ] } }, "Demo": null }
+       },
+       "Front/Front.Builder": { "App": { "Local": { "HttpEndpoint": { "Urls": "http://*:5300" } } } }
+     },
+     "Links": [ { "From": "$Front", "To": "$Auth3", "Link": { "AuthCenterRemote": true, "Address": "tcp:auth3.sample.example.com:37300", "KeyManagement": { "AutoTrustKey": "Never" } } } ]
+   }
+   ```
+
+   `"$BASE": "#Production"` overlays another deployment instead of the central configuration. `"Domain"` and
+   `"Environment"` can't be written (the path gives them); `Deployment/#Dev`, a path that spells the central domain and
+   a `.` in a domain part are errors; `Deployment/Assets`, the folders whose name starts with `.` and the folders without
+   a `#` folder below them are ignored.
+2. **Mark what each deployment must write itself** in the central configuration: `"$PER_DEPLOYMENT"` on any object, an
+   array of patterns relative to it (from CK-Sample-AspNetAuth's `ckonf.json`):
+
+   ```jsonc
+   "App": {
+     "$PER_DEPLOYMENT": [ "Demo", "Local:MailSender", "Local:AuthCenter:Passkey:RpId", "Local:AuthCenter:RouteHosts" ],
+     ...
+   },
+   "$PER_DEPLOYMENT": [ "Links:[*]:Link:KeyManagement:AutoTrustKey" ],
+   ```
+
+   The packages declare theirs: `[ConfigurationPerDeployment( "Party:Urls" )]` on a configurable type (the HttpEndpoint
+   feature), `[ConfigurationPerDeployment( "Party:ListeningAddress" )]` (the Transport feature), the address of a link
+   (the AppIdentity contributor: `CentralProjectionContext.AddPerDeploymentKey( "Links:[*]:Link:Address" )`), and
+   `AppConfiguration.AddPerDeploymentKey( path )` for a reader of its own.
+3. **Commit the `ckonf.merged.json`** that the builders write next to each overlay (a build impact of the first build:
+   `ckli build --build-impacts commit`).
+
+**Behavior:**
+- Every builder run merges the deployments and writes their `ckonf.merged.json` when it changes (its first line lists its
+  sources); the markers are build inputs, removed from every projection and from the merged files.
+- A value per deployment that a deployment inherits (from the central configuration or from its base) instead of writing
+  it in its own overlay (`null` counts) fails the build: "The deployment '#Production' inherits "...": a value per
+  deployment is written by the deployment itself". An array or a `null` of the overlay writes everything below it.
+- CKli warns that a `Deployment` folder without `GenerateAssets.cs` is ignored by its build: the assets of the
+  deployments come later.
+
+**Check:** the build succeeds; each deployment folder has its `ckonf.merged.json`, committed.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1298,3 +1360,4 @@ properties are declared `new`).
 21. No family feature driver, `IAuthCenterSchemeConfiguration` nor `"AuthCenterOidc"`/`"AuthCenterPasskey"` key is left:
     the scheme families are options of the AuthCenter (U21).
 22. The payload of every "Oidc" login provider implements `IOidcLoginPayload` (U22).
+23. Each deployment (a `Deployment/#X` folder) writes its values per deployment, and its `ckonf.merged.json` is committed (U23).
