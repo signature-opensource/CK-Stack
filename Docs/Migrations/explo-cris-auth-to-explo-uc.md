@@ -28,6 +28,7 @@ the **Behavior** and a **Check**.
 | [U15](#u15-globalization-is-an-app-aspect-of-ckonfjson) | Globalization is the "Globalization" App aspect of `ckonf.json`; its configuration classes are in CK.Globalization.StObj | Yes (a `CKSetup.xml` that names them) |
 | [U16](#u16-the-central-configuration-of-a-solution) | The central configuration of a solution: a `ckonf.json` at the root of the repository describes its builders and the links between their parties, the builders' `ckonf.json` are generated from it | No (optional) |
 | [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval, and a tenant template to run-time tenants; a local party runs in one process at a time; `ICoreKeyStore.DeleteAllKeys` | Yes (a custom `ICoreKeyStore`); behavior |
+| [U18](#u18-the-configuration-levels-and-lock) | The configuration levels (`Compile`, `Init`, `Run`): a `"$LOCK"` in `ckonf.json` restricts a value to `Compile` (burnt in the generated code, not in the host's `appsettings.json`); a package restricts the values of a kind of party (`[ConfigurationLock]`: KeyManagement's `AutoTrustKey` is `Never` on an Opened remote template, checked at build time) | Behavior (an Opened remote template with another `AutoTrustKey` fails the build) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -991,6 +992,64 @@ fleet: its first dynamic instance is checked too); `#Dev/Start.ps1` lists `Worke
 CK-Sample-AspNetAuth (the Worker, an Opened fleet of two, at most four; Worker2, an Opened tenant template of five) is
 migrated this way.
 
+## U18. The configuration levels and `"$LOCK"`
+
+A configuration value has a level (`ConfigurationLevel`, CK.ResourceSpace.Abstractions, CK-Abstractions): `Compile`
+(fixed by the build), `Init` (read when the application starts) or `Run` (changed while it runs). The level is a
+capability of the code that reads the value: the engine inputs (the compile keys of the contributors) are `Compile`, the
+sections that the code reads at start are `Init`. The configuration can only lower it, with a `"$LOCK"`. It is new: nothing
+to migrate, but a project that wants a value fixed by its build uses it.
+
+**Detect:** an Opened remote template (`"MaxInstanceCount"` on an entry of `"Parties"`, or a link to an Opened fleet)
+whose `"KeyManagement": { "AutoTrustKey" }` is not `"Never"`; an `IAppBuilderContributor` (or an aspect) of your own that
+reads a section of the hosts' configuration at start, or projects a value (`AppConfiguration.ProjectValue`).
+
+**Do:**
+1. To fix a value at build time, write a `"$LOCK"` in the object that holds it (in a builder's `ckonf.json`, or in the
+   central one: a builder's entry, or `Defaults:App` for every App). From CK-Sample-AspNetAuth (the central
+   `ckonf.json`, Auth3's database):
+
+   ```jsonc
+   "Aspects": {
+     "SqlServer": {
+       "DefaultDatabaseConnectionString": "Server=.;Database=CKSampleAuth3;Integrated Security=True;TrustServerCertificate=true",
+       "$LOCK": { "DefaultDatabaseConnectionString": "Compile" }
+     }
+   },
+   ```
+
+   The patterns are relative to the object that holds the `"$LOCK"`: the configuration's `:` paths, where a whole segment
+   `*` is any member of an object and `[*]` any item of an array (`"Parties:[*]:Address": "Compile"`,
+   `"HttpEndpoint:Kestrel:Endpoints:*:Certificate": "Compile"`). An index (`Parties:0`) is refused. A `"$LOCK"` in a party
+   (`"Local"`, an entry of `"Parties"`) locks its value; in a `"Defaults"`, it locks the value of every party below it
+   (its own key, otherwise the nearest `"Defaults"`), at the path of each party.
+2. An Opened remote template keeps `"AutoTrustKey": "Never"` (or nothing): its dynamic instances are trusted by an
+   approval only.
+3. A contributor of your own declares what it reads at start, so that a `"$LOCK"` can restrict it:
+   `AppConfiguration.DeclareInitSection( path )`; its sections of a kind (the parties of the AppIdentity contributor):
+   `AppConfiguration.DeclareAnchor( path, kinds, fallbacks )`. An aspect that projects a value from its configuration
+   gives its origin: `ProjectValue( path, value, origin )` (the configuration path of the value, `"ckonf:Aspects:SqlServer:DefaultDatabaseConnectionString"`):
+   a `"$LOCK"` on the origin burns the projected value. A package restricts the values of a kind of party with
+   `[ConfigurationLock( "OpenedRemoteTemplate:AutoTrustKey", ConfigurationLevel.Compile, Value = "Never" )]` on its feature
+   driver (the kind of the parties, then the path in the feature's section).
+
+**Behavior:**
+- A `"$LOCK"` is a build input: the builder removes it before anything reads the configuration, it is never projected.
+- A value restricted to `Compile` is burnt: it is not written in the host's `appsettings.json` (except a value that is an
+  item of an array: its removal would shift the next ones), it is in the generated code (`CompiledConfiguration`,
+  CK.AppIdentity), and CK.AppHost adds it after the other configuration sources, before the resolution of a fleet's
+  placeholders. A configured value that differs, or a value that a lock covers without being burnt, is ignored with a
+  warning (the values are never logged). A literal pattern that matches no value burns its absence.
+- The build fails on an invalid level or pattern, a locked value that no code declares (`"Logging"`, `"CK-Monitoring"`:
+  not declared yet), a level above the capability of the code (`"Run"` on a value read at start). In the central
+  `Defaults:App`, the lowest level of a pattern wins.
+- KeyManagement's `AutoTrustKey` other than `Never` written on an Opened remote template fails the build (it was refused
+  at run time only, which it still is); a value from a `"Defaults"` is replaced by `Never` (an info).
+- A changed `"$LOCK"` changes the signature of the generated code: the engine runs again.
+
+**Check:** the build succeeds; a locked value is not in the host's `appsettings.json` and is in its generated code
+(`CompiledConfiguration_CK`). CK-Sample-AspNetAuth locks Auth3's connection string this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1021,3 +1080,5 @@ migrated this way.
     (`"MaxInstanceCount"`) trusts its dynamic instances by approval only; an Opened tenant template has a `"DomainName"`
     ending with `/{Name}` and the `"PartyName"` `"${Name}"`; a custom `ICoreKeyStore` implements `DeleteAllKeys`; no test
     starts the same party twice at once (U17).
+18. No Opened remote template has an `"AutoTrustKey"` other than `"Never"`; a contributor that reads a section of the hosts at
+    start declares it (`DeclareInitSection`), an aspect that projects a value gives its origin (U18).
