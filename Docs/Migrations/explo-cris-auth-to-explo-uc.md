@@ -32,6 +32,7 @@ the **Behavior** and a **Check**.
 | [U19](#u19-the-run-properties-and-the-dynamic-configuration) | The run properties: `[ConfigurationSection]` on an App singleton, `[ConfigurationLevel( Run )]` on its properties; CK.Cris.DynamicConfiguration initializes them from the configuration and changes them by a command (CK.IO.DynamicConfiguration), CK.AppIdentity.DynamicConfiguration keeps the changes; `CrisExecutionHost.ParallelRunnerCount` is one | No (new) |
 | [U20](#u20-the-secrets) | The secrets: a secret in `ckonf.json` is a handle `{ "$SECRET": "<Name>" }`, projected (or burnt) as is; the host resolves it at start from the configuration key `Secrets:<Name>` (`#Dev/Secrets.json` in development); `[ConfigurationSecret]`, `AppConfiguration.AddSecretKey`; the "SqlServer" aspect accepts a handle | No (new); `SqlServerAspect.Databases` items are `SqlServerAspect.DatabaseConfiguration` |
 | [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `IAuthCenterSchemeFamilyOption`; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
+| [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1226,6 +1227,37 @@ local Authentication Center. The configuration of the schemes doesn't change.
 
 **Check:** no type of the Detect list is left; the scheme listing shows the same schemes.
 
+## U22. The payload of the "Oidc" login provider is an `IOidcLoginPayload`
+
+The OpenID Connect scheme family (CK.AppIdentity.AuthCenter.Oidc) fills the payload of the "Oidc" login provider through
+a contract: `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions), no more by reflection on its
+`SchemeSuffix`, `Sub` and `Claims` properties. CK.DB.User.UserOidc's `IUserOidcInfo` implements it.
+
+**Detect:** an `ILoginProvider` whose `ProviderNames` contain "Oidc", other than the one of CK.DB.User.UserOidc (a
+test provider, a provider of its own).
+
+**Do:** its payload implements `IOidcLoginPayload` (a reference to CK.AuthenticationInfo.Oidc). From
+CK.Testing.Engine.Cris.Authentication (CK-Cris):
+
+```csharp
+public sealed class FakeOidcPayload : IOidcLoginPayload
+{
+    public string SchemeSuffix { get; set; } = "";
+    public string Sub { get; set; } = "";
+    public string Claims { get; set; } = "";
+}
+```
+
+A Poco payload declares it as a base interface: `public interface IUserOidcInfo : IPoco, IOidcLoginPayload` (its
+properties are declared `new`).
+
+**Behavior:**
+- The start of an Oidc login fails when there is no "Oidc" login provider or when its payload is not an
+  `IOidcLoginPayload`: the user is never sent to the identity provider (the code is not consumed for nothing).
+- The `Claims` are always set (a JSON object, empty when not provided).
+
+**Check:** an Oidc login completes.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1265,3 +1297,4 @@ local Authentication Center. The configuration of the schemes doesn't change.
     in development, `Secrets:<Name>` elsewhere (U20).
 21. No family feature driver, `IAuthCenterSchemeConfiguration` nor `"AuthCenterOidc"`/`"AuthCenterPasskey"` key is left:
     the scheme families are options of the AuthCenter (U21).
+22. The payload of every "Oidc" login provider implements `IOidcLoginPayload` (U22).
