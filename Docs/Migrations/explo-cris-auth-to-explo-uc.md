@@ -939,8 +939,8 @@ to migrate, but a project that wants several identical parties uses it.
    The application creates, moves and removes them (`IApplicationIdentityService.AddTenantInstanceAsync( monitor,
    template, "Acme" )`, `SetTenantIndexAsync`, `RemoveTenantInstanceAsync`; `TenantTemplates`, `UnloadedTenants`), or an
    operator does it on the tenants page (CK.Ng.AppIdentity.Tenants of CK-Ng-Admin on the page's App, CK.AppIdentity.Tenants
-   of CK-AppIdentity-Transport on the page's App and on the App of the template, the "Tenants" route authorized by the
-   `RouteHosts` of the AuthCenter: `"Tenants": [ "Sample/Auth3/$Worker2/#Dev" ]`).
+   of CK-AppIdentity-Transport on the page's App and on the App of the template; both Apps are linked to the
+   AuthCenter: the page's App needs no link with the App of the template).
 7. **A feature driver that keeps secrets in the private store of a party** deletes them when a run-time tenant is
    removed: it overrides `ApplicationIdentityFeatureDriver.ForgetLocalPartyAsync( monitor, fullName, localStore )`
    (CK.AppIdentity). **A custom `ICoreKeyStore`** (CK.AppIdentity.KeyManagement) implements `DeleteAllKeys( monitor,
@@ -980,9 +980,11 @@ to migrate, but a project that wants several identical parties uses it.
 - **An enlistment can't be pushed out:** a holder keeps 4 pending keys per remote, a revealed one is never evicted, and
   when all are revealed a new key is refused until one expires. The pending approval says how many keys compete for a
   party (`IPendingApproval.CompetingKeyCount`): the approval page warns when there are several.
-- **A party command reaches a party that is not a remote** when the package of the command names its route
-  (`IPartyCommandRouteProvider`, CK.AppIdentity.Cris): it travels as an `IPartyRoutedCommand`. The tenant commands use
-  the "Tenants" route.
+- **The AuthCenter is the hub of the System's administration:** a party command whose target is not a remote of the
+  current local party goes through its remote AuthCenter (`IPartyRelay` of CK.AppIdentity.Cris, implemented by
+  CK.AppIdentity.AuthCenter), as an `IPartyRoutedCommand` along [the party, the AuthCenter, the target]: it was "no
+  route" before. The AuthCenter is also the directory: `IGetAcceptingRemotesQCommand` lists its remotes that accept a
+  command (the tenants page finds the Apps that hold tenant templates this way).
 
 **Check:** the builder's log has "Checking the 2 instances of the party" ("Checking the 3 instances" for an Opened
 fleet: its first dynamic instance is checked too); `#Dev/Start.ps1` lists `Worker.Host[1]` and `Worker.Host[2]`.
