@@ -9,6 +9,14 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   numbered lines, `⊙` marks the current repository and `→·` the upstream ones that will build with it; `·→` marks
   the consumers, built only with `--continue`. The last line says how many builds `--focus` leaves out.
 - **ckli refuses to build when any repository of the World is dirty**, not only the ones it builds: commit (or stash) first.
+- **During the work, a World build is `ckli build --skip-tests`**; `dotnet test` runs the test projects of what changed.
+  **Before sharing, one `ckli build --build-impacts commit --with-tests`**: it builds what needs a build and runs the
+  tests of every commit that was only built with `--skip-tests`.
+- **`--max-dop 2`** for a build that runs the tests: with the default (4), the parallel node processes of the TypeScript
+  tests exhausted the memory of the machine. `MSBUILDDISABLENODEREUSE=1` (an environment variable) lowers it too.
+- **A failed build:** `ckli log` opens the log file of the last run (the logs are in the `Logs/Text` folder of the
+  Stack repository): the output of `dotnet test` (its `Error Message:` lines) is there. For the errors of the compiler,
+  build the repository with `dotnet` (see "Package versions" below for its restore).
 - **Never edit a repository while it builds:** its "Updated dependencies" commit stages everything in the working tree.
 - **A build that changes a tracked file fails** and lists the files that it created, modified or deleted (a test that
   regenerates a fixture, an engine that adds a `.gitignore` line). `--build-impacts commit` amends them to the built
@@ -16,8 +24,10 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   (an engine change that regenerates the test applications), pass `--build-impacts commit` from the first run: it
   saves the failed run and the manual commit. Then read what it committed: only a correct regeneration (the engine's
   normalization) belongs to the repository. Unexpected impacts: build without the option and look at the list.
-- **Push with `ckli push`**, never a `git push` per repository. It pushes the Stack repository too; `--stack-only`
-  pushes only the Stack repository.
+- **Share with `ckli publish`**, after the tested build: it pushes the repositories **and** the NuGet packages of the
+  package references, so that the other developers work on this basis.
+- **Push with `ckli push`**, never a `git push` per repository: it pushes the branches (not the packages) and the Stack
+  repository too; `--stack-only` pushes only the Stack repository.
 - **Move, retire or rename a project with `ckli project move` and `ckli project retire`**, never by hand: see
   [Managing projects across repositories](managing-projects-across-repositories.md).
 
@@ -41,6 +51,12 @@ Rules for building and testing the repositories of this stack with ckli. They ap
 - **The new repository is empty:** its solution and build files are written by hand, on its `dev/` branch;
   `ckli issue` shows what is still expected.
 - **The Stack is committed, not pushed:** `ckli push` (or `ckli push --stack-only`) publishes the change.
+
+## Projects
+
+- **A new project is added to the solution of its repository** (its `.slnx`): the build knows the projects of the
+  solution only.
+- **A new packable project has a `README.md` and a `docs/Package.md`** (see [the documentation guidelines](documentation.md)).
 
 ## Package versions
 

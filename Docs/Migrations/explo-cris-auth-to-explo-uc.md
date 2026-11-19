@@ -978,7 +978,9 @@ to migrate, but a project that wants several identical parties uses it.
 - **A local party runs in one process at a time:** it holds a lock on its private store (`-Local/$Lock.Party`) while it
   runs. Two hosts started with the same `--Instance`, or the same App started twice on the same store, fail to start
   ("already running in another process"); a test that starts a party must dispose it before starting it again. The
-  lock is released when the start fails.
+  lock is released when the start fails. The test projects of a solution run in parallel processes: the test server of
+  CK.Testing.Engine.HttpEndpoint (`CreateRunningAspNetServerAsync`) uses the `TestStore` folder of its test project
+  (unless its identity configures a `"StoreRootPath"`), not the store of the user that all the test projects shared.
 - **An enlistment can't be pushed out:** a holder keeps 4 pending keys per remote, a revealed one is never evicted, and
   when all are revealed a new key is refused until one expires. The pending approval says how many keys compete for a
   party (`IPendingApproval.CompetingKeyCount`): the approval page warns when there are several.
@@ -1143,7 +1145,8 @@ CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this w
 17. A fleet's party name uses `{Name}` or `{Index}`, its hosts are started with `--Instance`; an Opened fleet
     (`"MaxInstanceCount"`) trusts its dynamic instances by approval only; an Opened tenant template has a `"DomainName"`
     ending with `/{Name}` and the `"PartyName"` `"${Name}"`; a custom `ICoreKeyStore` implements `DeleteAllKeys`; no test
-    starts the same party twice at once (U17).
+    starts the same party twice at once; a repository whose tests use `CreateRunningAspNetServerAsync`
+    (CK.Testing.Engine.HttpEndpoint) ignores `/Tests/*/TestStore/` (U17).
 18. No Opened remote template has an `"AutoTrustKey"` other than `"Never"`; a contributor that reads a section of the hosts at
     start declares it (`DeclareInitSection`), an aspect that projects a value gives its origin (U18).
 19. A value that the application changes while it runs is a run property (`[ConfigurationSection]`, `[ConfigurationLevel( Run )]`);
