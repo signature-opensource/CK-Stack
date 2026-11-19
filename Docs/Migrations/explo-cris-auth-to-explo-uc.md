@@ -30,6 +30,7 @@ the **Behavior** and a **Check**.
 | [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval, and a tenant template to run-time tenants; a local party runs in one process at a time; `ICoreKeyStore.DeleteAllKeys` | Yes (a custom `ICoreKeyStore`); behavior |
 | [U18](#u18-the-configuration-levels-and-lock) | The configuration levels (`Compile`, `Init`, `Run`): a `"$LOCK"` in `ckonf.json` restricts a value to `Compile` (burnt in the generated code, not in the host's `appsettings.json`); a package restricts the values of a kind of party (`[ConfigurationLock]`: KeyManagement's `AutoTrustKey` is `Never` on an Opened remote template, checked at build time) | Behavior (an Opened remote template with another `AutoTrustKey` fails the build) |
 | [U19](#u19-the-run-properties-and-the-dynamic-configuration) | The run properties: `[ConfigurationSection]` on an App singleton, `[ConfigurationLevel( Run )]` on its properties; CK.Cris.DynamicConfiguration initializes them from the configuration and changes them by a command (CK.IO.DynamicConfiguration), CK.AppIdentity.DynamicConfiguration keeps the changes; `CrisExecutionHost.ParallelRunnerCount` is one | No (new) |
+| [U20](#u20-the-secrets) | The secrets: a secret in `ckonf.json` is a handle `{ "$SECRET": "<Name>" }`, projected (or burnt) as is; the host resolves it at start from the configuration key `Secrets:<Name>` (`#Dev/Secrets.json` in development); `[ConfigurationSecret]`, `AppConfiguration.AddSecretKey`; the "SqlServer" aspect accepts a handle | No (new); `SqlServerAspect.Databases` items are `SqlServerAspect.DatabaseConfiguration` |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1116,6 +1117,62 @@ uses it.
 **Check:** the build succeeds; `IGetRunPropertiesQCommand` lists the run properties; a change survives a restart.
 CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this way.
 
+## U20. The secrets
+
+A secret (a client secret, a password, a connection string with credentials) is never written in a configuration file:
+its place holds a **handle**, the name of the secret, that the host resolves when it starts (`ConfigurationSecret`,
+CK.ResourceSpace.Abstractions). It is new: a plain value still works, but it is in the files.
+
+**Detect:** a secret value in a `ckonf.json` or an `appsettings.json` (`ClientSecret`, `Password`, a connection string
+with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its `.csproj`).
+
+**Do:**
+1. Replace the value by a handle in the `ckonf.json` (from CK-Sample-AspNetAuth's README, a scheme of the AuthCenter):
+
+   ```jsonc
+   "Google": {
+     "Authority": "https://accounts.google.com",
+     "ClientId": "...",
+     "ClientSecret": { "$SECRET": "Google:ClientSecret" },
+     "Scopes": "openid email"
+   }
+   ```
+
+   `"$SECRET"` is the only key of its object; a name is made of segments separated by `:` made of letters, digits, `_`
+   and `-`. The connection strings of the "SqlServer" aspect (U14) accept a handle too
+   (`"DefaultDatabaseConnectionString": { "$SECRET": "Db" }`, and the `ConnectionString` of its `"Databases"`).
+2. Give the values, by name, as the configuration keys `Secrets:<Name>` of the host:
+   - in development, in the `#Dev/Secrets.json` file at the root of the solution (`#Dev` is ignored by git), whose root is
+     the content of the `Secrets` section, shared by the parties of the solution:
+
+     ```json
+     { "Google": { "ClientSecret": "..." } }
+     ```
+
+   - elsewhere, from any configuration source of the host: an environment variable (`Secrets__Google__ClientSecret`), a
+     vault provider added by the `configure` action of `CKomposableAppHost.Build`.
+3. A package that knows that a value is a secret declares it, so that a plain value is reported at build time:
+   `[ConfigurationSecret( path )]` on a configurable type (built like a `[ConfigurationLock]` path: a kind of party, then
+   the path in the section of the type, with the `*` and `[*]` patterns), or `AppConfiguration.AddSecretKey( path )`
+   from a contributor that reads its keys by hand. In the stack, only the "SqlServer" aspect declares one (its default
+   connection string).
+4. An aspect that needs the value at build time (the setup of a development database) resolves it with
+   `AppBuilderContext.TryResolveSecret( monitor, name, out value )` (from `#Dev/Secrets.json`) and projects the handle:
+   `AppConfiguration.ProjectValue( "<path>:$SECRET", name, "<origin>:$SECRET" )`.
+
+**Behavior:**
+- The handle is projected as is in the host's `appsettings.json`; a `"$LOCK"` to `Compile` on the value burns the handle,
+  never a value (U18).
+- The host (CK.AppHost) resolves every handle after the burnt values and the instance of a fleet, through a last
+  configuration source: the code reads the value at the path of the handle. A missing secret fails the start, with all
+  the missing names at once; a value is never logged.
+- At build time, an invalid handle is an error; a plain value where a secret is declared is an information line (the
+  development configuration accepts it).
+- The legacy SQL setup still writes the connection strings it uses in the generated code and its logs.
+
+**Check:** the build succeeds; the hosts' `appsettings.json` hold the handles; the host starts with the values in
+`#Dev/Secrets.json` and fails with the list of the missing names without them.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1151,3 +1208,5 @@ CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this w
     start declares it (`DeclareInitSection`), an aspect that projects a value gives its origin (U18).
 19. A value that the application changes while it runs is a run property (`[ConfigurationSection]`, `[ConfigurationLevel( Run )]`);
     its App references CK.Cris.DynamicConfiguration (and CK.AppIdentity.DynamicConfiguration), its builder the engine (U19).
+20. No secret value is left in a configuration file: a handle `{ "$SECRET": "<Name>" }`, its value in `#Dev/Secrets.json`
+    in development, `Secrets:<Name>` elsewhere (U20).
