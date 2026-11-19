@@ -14,9 +14,8 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   tests of every commit that was only built with `--skip-tests`.
 - **`--max-dop 2`** for a build that runs the tests: with the default (4), the parallel node processes of the TypeScript
   tests exhausted the memory of the machine. `MSBUILDDISABLENODEREUSE=1` (an environment variable) lowers it too.
-- **A failed build:** `ckli log` opens the log file of the last run (the logs are in the `Logs/Text` folder of the
-  Stack repository): the output of `dotnet test` (its `Error Message:` lines) is there. For the errors of the compiler,
-  build the repository with `dotnet` (see "Package versions" below for its restore).
+- **A failed build or publish** displays its errors and the path of its log file: no need to open the log (`ckli log`
+  opens the log file of the last run; the logs are in the `Logs/Text` folder of the Stack repository).
 - **Never edit a repository while it builds:** its "Updated dependencies" commit stages everything in the working tree.
 - **A build that changes a tracked file fails** and lists the files that it created, modified or deleted (a test that
   regenerates a fixture, an engine that adds a `.gitignore` line). `--build-impacts commit` amends them to the built
