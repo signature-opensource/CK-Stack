@@ -1031,7 +1031,11 @@ reads a section of the hosts' configuration at start, or projects a value (`AppC
    gives its origin: `ProjectValue( path, value, origin )` (the configuration path of the value, `"ckonf:Aspects:SqlServer:DefaultDatabaseConnectionString"`):
    a `"$LOCK"` on the origin burns the projected value. A package restricts the values of a kind of party with
    `[ConfigurationLock( "OpenedRemoteTemplate:AutoTrustKey", ConfigurationLevel.Compile, Value = "Never" )]` on its feature
-   driver (the kind of the parties, then the path in the feature's section).
+   driver: the kind of the parties ("Party", "Local", "TenantDomain", "TenantTemplate", "Remote", "RemoteTemplate",
+   "OpenedRemoteTemplate", or "Client" for a client feature), then the path in the type's section. On an option, the
+   path is in the option's section, in each concrete owner of the App (`<Owner>:<Option>`: an option of a base owner
+   applies to the derived ones). A contributor that knows where the sections of its types are resolves them
+   (`IAppBuilderContributor.ResolveSections`); the default is the configurable name.
 
 **Behavior:**
 - A `"$LOCK"` is a build input: the builder removes it before anything reads the configuration, it is never projected.
