@@ -35,7 +35,7 @@ the **Behavior** and a **Check**.
 | [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
 | [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
 | [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
-| [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed builder (generated copies of the builder and its hosts, built for the deployment) in one asset per deployment, with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`Builders`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
+| [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed App (generated copies of the builder and its hosts, built for the deployment) in one asset per App (`Production-Auth3.Front.zip`; `"SingleZipAsset"`: one per deployment), with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`Builders`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1362,8 +1362,9 @@ reversible. The party names, the full names and the links don't change.
 ## U25. The assets of the deployments
 
 The deployments of U23 are built: CKli runs `Deployment/GenerateAssets.cs` after the build of the repository (the
-version as its argument), and the asset of each deployment (a zip of `Deployment/Assets/{AssetName}`) is part of the
-release. CKli runs it on demand (`ckli build --with-assets`, and always for `ckli publish`). It is new: a solution without
+version as its argument), and the assets of each deployment are part of the release: one per App by default
+(`Production-Auth3.Front.zip`, a zip of `Deployment/Assets/Production-Auth3.Front`), one per deployment with
+`"Deployment": { "SingleZipAsset": true }` (`Production.zip`, a folder per App in it). CKli runs it on demand (`ckli build --with-assets`, and always for `ckli publish`). It is new: a solution without
 `GenerateAssets.cs` is unchanged.
 
 **Do:**
@@ -1406,7 +1407,8 @@ release. CKli runs it on demand (`ckli build --with-assets`, and always for `ckl
   tracks) in `Deployment/.build/{AssetName}/` (ignored by git; `#Production` is `Production`, `Paris/Shop/#Staging` is
   `Paris.Shop.Staging`), the copied builder builds the deployment (`ckonf.deployment.json`: its `ckonf.json` is the
   projection of the merged configuration, its `.App` projects are the originals), and each host is published
-  (`dotnet publish -c Release`) in `Deployment/Assets/{AssetName}/{Host}`. Its publication properties are written in a
+  (`dotnet publish -c Release`) in `Deployment/Assets/{AssetName}-{App}` (or `{AssetName}/{App}` with
+  `"SingleZipAsset"`: the App name, without `.Host`). Its publication properties are written in a
   `<PropertyGroup>` of the copied host project (not on the command line: the generated builder runs on the build
   machine). The manifest written by the builder (`$StObjGen/Deployment.manifest`) is added, with the version, to the
   `CK.AppHost.Published.json` of the published host (`"Deployment"`): the full name, the version, the deployment, the
@@ -1429,13 +1431,15 @@ release. CKli runs it on demand (`ckli build --with-assets`, and always for `ckl
   script of each one (`ng build`) and publishes its output at the same relative path (`Clients/App/dist/App/browser`).
   `node` must be on the path; `CKClientsPublish=false` opts out. The development build doesn't change.
 - Every publication of a host writes `CK.AppHost.Published.json` next to its executable (the effective `"Publish"`
-  properties: `RuntimeIdentifier`, `SelfContained`, `PublishSingleFile`...). A published host uses its own folder as its
+  properties: the `Executable` to start, `RuntimeIdentifier`, `SelfContained`, `PublishSingleFile`...), without the XML
+  documentation of its assemblies and packages (`PublishDocumentationFiles` and `PublishReferencesDocumentationFiles`
+  default to false). A published host uses its own folder as its
   content root, whatever the directory it is started from, unless `--contentRoot`, `DOTNET_CONTENTROOT` or
   `ASPNETCORE_CONTENTROOT` gives one, and logs its version and its deployment at start. A host of the base SDK (a
   worker) publishes its `appsettings.json` too. A self-contained host may reference its builder (CK.AppHost turns off
   the SDK check NETSDK1150: the reference only orders the builds).
 
-**Check:** `ckli build` produces the asset of each deployment (`$Local/Assets/{Repo}/{Version}/Production.zip`); a
+**Check:** `ckli build --with-assets` produces the assets of each deployment (`$Local/Assets/{Repo}/{Version}/Production-Auth3.Front.zip`...); a
 published host starts in the environment of its deployment.
 
 ## The final checklist
