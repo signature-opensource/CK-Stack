@@ -1423,6 +1423,9 @@ version as its argument), and the assets of each deployment are part of the rele
   names of each instance (`"Secrets"` of each configured one). A secret that the build itself needs has no placeholder.
 - The build of a deployment never reads a secret (`AppBuilderContext.Deployment`: `TryResolveSecret` fails), never
   writes in `#Dev`, never sets up a database.
+- A published host carries its real `InformationalVersion` (`{version}/{commit}/{date}`, as CKli builds).
+- The `Address` of a remote may be a host name (`tcp:auth3.sample.example.com:37300`, `mtls:` too): it is resolved when
+  connecting, at each connection. A `ListeningAddress` stays an IP address (a host name is an error).
 - A host built for a deployment burns the full name of its party: its environment (`Production`) is the .NET environment
   of the host unless `--environment`, `DOTNET_ENVIRONMENT` or `ASPNETCORE_ENVIRONMENT` gives one. At start, a `#Dev`
   party in a host that is not in Development is a warning; another party in a host in Development is an error.
