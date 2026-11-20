@@ -37,6 +37,7 @@ the **Behavior** and a **Check**.
 | [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
 | [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed App (generated copies of the builder and its hosts, built for the deployment) in one asset per App (`Production-Auth3.Front.zip`; `"SingleZipAsset"`: one per deployment), with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`Builders`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
+| [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -423,7 +424,7 @@ migrated this way.
 
 ## U6. The description of a party is intrinsic
 
-The description of a party (its public URL, its routes, its client applications...) is computed by the
+The description of a party (its public URL, its client applications...) is computed by the
 `ApplicationIdentityService` itself, after the feature drivers have set the parties up: it is not a feature any more.
 
 **Detect:** `PartyDescriptionFeatureDriver` (a test that lists it in its types or registers it); a `"PartyDescription"`
@@ -450,13 +451,12 @@ table below directly in a `Local`, a remote (`Parties[i]`) or a `"Defaults"`.
 |---|---|
 | `RecoveryPublicKey`, `OperationalKeyDays`, `MaxSignatureDays`, `KeyRotationDays`, `TrustAnchors` (a `Local`) | `"KeyManagement": { ... }` |
 | `AutoTrustKey`, `MaxClockOffset` (a remote, a `"Defaults"`) | `"KeyManagement": { ... }` |
-| `ListeningAddress`, `ListeningTypes`, `NegotiationTimeout`, `AlwaysListening`, `DisallowEviction`, `RouteHosts` (of a party that is not an AuthCenter) | `"Transport": { ... }` |
+| `ListeningAddress`, `ListeningTypes`, `NegotiationTimeout`, `AlwaysListening`, `DisallowEviction` | `"Transport": { ... }` |
 | `AuthCenterParty` (a `Local`) | `"AuthCenterRemote": { "Party": "..." }` |
 | `CoreKeyStore:CngProvider`, `CoreKeyStore:AllowFallback`, `CoreKeyStore:MachineWide` (CK.AppIdentity.KeyManagement.Cng) | `"KeyManagement": { "CngKeyStore": { "Provider": "...", "AllowFallback": ..., "MachineWide": ... } }` |
 | `PasswordLostTokenLifetime` (a `Local`, CK.UserProfile.UserPassword.Lost) | `"AuthCenter": { "PasswordLost": { "TokenLifetime": "02:00:00" } }` |
 
-The `RouteHosts` of an Authentication Center stay in its `"AuthCenter"` section. From CK-Sample-AspNetAuth (Worker2 and
-Auth3):
+`RouteHosts` is gone (U27). From CK-Sample-AspNetAuth (Worker2 and Auth3):
 
 ```jsonc
 // Before.
@@ -1303,7 +1303,7 @@ a copy of the `ckonf.json`).
 
    ```jsonc
    "App": {
-     "$PER_DEPLOYMENT": [ "Demo", "Local:MailSender", "Local:AuthCenter:Passkey:RpId", "Local:AuthCenter:RouteHosts" ],
+     "$PER_DEPLOYMENT": [ "Demo", "Local:MailSender", "Local:AuthCenter:Passkey:RpId" ],
      ...
    },
    "$PER_DEPLOYMENT": [ "Links:[*]:Link:KeyManagement:AutoTrustKey" ],
@@ -1488,6 +1488,48 @@ ticket does both, and while it is open nobody else can enlist under the expected
 
 **Check:** open a ticket on the approval page, start the expected party with it: it is trusted without a code, the
 ticket is listed as used.
+
+## U27. The routes are gone: a System is a star around its Authentication Center
+
+**What changes:** the parties announce no routes any more. Every party that designates an Authentication Center is linked
+to it; a command for a party that is not a remote goes through the center (the hub, `IPartyRelay`): at most
+[party, center, target]. What a route carried is a fact read where it is needed: the approval page is the client
+application with the `"Enlistment"` fact (`[PartyClientFact( "Enlistment", ... )]`), the center reads it from the
+descriptions of its remotes and states its URL (`EnlistmentUrlStatement`); the pending approvals and the instances are
+asked through the hub (`[Internal] IGetHeldEnlistmentQCommand`), no more collected along a route.
+
+**Why:** the routes served an arbitrary topology (announced, computed and propagated by every party, authorized against
+hijacking by `RouteHosts`). In a star, they computed nothing; the center already knows every identity: nothing to hijack.
+A large System will add delegates of the center (the AuthCenterProxy), never routes.
+
+**Detect:** `RouteHosts` in a configuration (`"Transport:RouteHosts"`, `"AuthCenter:RouteHosts"`, a `$PER_DEPLOYMENT`
+pattern); `PartyDescription.Routes`, `Collected`, `FindRoute`, `PartyRoute`, `CollectedItem`, `HostRoute`, `Collect`,
+`ContributeDerivedDescription`/`DerivedBuilder`; `IPartyRoutedCommand.RouteName`/`Destination`,
+`PartyRoutedCommandSender.SendAsync( ..., routeName, ... )`; `AuthCenterFeature.RouteName`; `IAuthorizeRouteHostCommand`;
+`IApprovePartyCommand.Routes`, `IPendingApproval.Routes`.
+
+**Do:**
+1. Remove the `RouteHosts` (and its `$PER_DEPLOYMENT` pattern): nothing replaces it, the approval page is found from its
+   fact.
+2. Link every party that designates an AuthCenter (`Local:AuthCenterRemote:Party`) to it: the center must be one of its
+   remotes.
+3. A driver that contributed to the second phase of the description contributes in `ContributeDescription` (the
+   description has one phase: `PartyDescription.Builder.Build()`).
+4. A routed command is sent along a path: `PartyRoutedCommandSender.SendToAsync( monitor, services, origin, command,
+   destination )` (a direct remote, otherwise through the hub) or `SendAlongPathAsync`.
+
+**Behavior:**
+- A `RouteHosts` configuration fails the setup (an explicit message); so does an AuthCenter designated by
+  `Local:AuthCenterRemote:Party` that is not a remote of the party.
+- Several approval pages among the remotes of the center: an error of the center (`SecurityCritical`), no page is stated.
+- A holder accepts an approval countersigned by its AuthCenter (without AuthCenter: from itself or a direct remote that
+  serves the approval page). The removal of an instance (`IRemoveHeldPartyInstanceCommand`) requires the operator at the
+  Critical level: without AuthCenter, only a page served by the holder removes it.
+- The descriptions, the initial message of the transport and the signed System list lose their route parts (the wire
+  format changes: all the parties of a System use the same version).
+
+**Check:** the sample: the Admin is the approval page without configuration; a Worker waiting on Auth3 is approved from
+the Admin through Auth3. The references are CK-AppIdentity-Transport's `EnlistmentPageTests` and `EnlistmentTests`.
 
 ## The final checklist
 
