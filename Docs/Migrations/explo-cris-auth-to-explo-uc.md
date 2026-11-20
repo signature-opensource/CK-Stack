@@ -1330,8 +1330,8 @@ App `Front`, the party `$Front`). It is now the identity of its party: its domai
 domain mapped to `.`, and so are its projects. The parts of a domain and a party name have no `.`: the name is
 reversible. The party names, the full names and the links don't change.
 
-**Detect:** a central `ckonf.json` with a `"Domain"`: the build fails with "The name of App 'Front' in '...' must be the
-identity of its party: 'Sample.Auth3.Front' (...)".
+**Detect:** a central `ckonf.json` with a `"Domain"`: the build fails with "The name of ... must be the identity of its party:
+'Sample.Auth3.Front' (...)".
 
 **Do:**
 1. **Optionally, choose a `"GlobalDomainPrefix"`** in the central `ckonf.json` (only there: a deployment can't write
