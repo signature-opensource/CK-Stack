@@ -1414,7 +1414,13 @@ release. It is new: a solution without `GenerateAssets.cs` is unchanged.
 - A host built for a deployment burns the full name of its party: its environment (`Production`) is the .NET environment
   of the host unless `--environment`, `DOTNET_ENVIRONMENT` or `ASPNETCORE_ENVIRONMENT` gives one. At start, a `#Dev`
   party in a host that is not in Development is a warning; another party in a host in Development is an error.
-- The client applications are not in the published hosts yet.
+- The client applications are built by the publication of their host and published with it: the builder writes
+  `$StObjGen/Clients.props` (the TypeScript engine), the publish target of CK.TS.AspNet.Clients runs the yarn `build`
+  script of each one (`ng build`) and publishes its output at the same relative path (`Clients/App/dist/App/browser`).
+  `node` must be on the path; `CKClientsPublish=false` opts out. The development build doesn't change.
+- A published host (a `CK.AppHost.published` marker next to its executable) uses its own folder as its content root,
+  whatever the directory it is started from, unless `--contentRoot`, `DOTNET_CONTENTROOT` or `ASPNETCORE_CONTENTROOT`
+  gives one. A host of the base SDK (a worker) publishes its `appsettings.json` too.
 - Known CKli limit: CKli restores the repository's `nuget.config` (without the local feed) before running
   `GenerateAssets.cs`: a `#:package` version built locally is found only in the NuGet cache.
 
