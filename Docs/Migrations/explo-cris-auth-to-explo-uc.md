@@ -34,6 +34,7 @@ the **Behavior** and a **Check**.
 | [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `IAuthCenterSchemeFamilyOption`; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
 | [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
 | [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
+| [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1322,6 +1323,41 @@ a copy of the `ckonf.json`).
 
 **Check:** the build succeeds; each deployment folder has its `ckonf.merged.json`, committed.
 
+## U24. The name of an App is the identity of its party
+
+In a solution with a central configuration (U16), the name of an App was its party name (`Front/Front.Builder` built the
+App `Front`, the party `$Front`). It is now the identity of its party: its domain then its party name, the `/` of the
+domain mapped to `.`, and so are its projects. The parts of a domain and a party name have no `.`: the name is
+reversible. The party names, the full names and the links don't change.
+
+**Detect:** a central `ckonf.json` with a `"Domain"`: the build fails with "The name of App 'Front' in '...' must be the
+identity of its party: 'Sample.Auth3.Front' (...)".
+
+**Do:**
+1. **Optionally, choose a `"GlobalDomainPrefix"`** in the central `ckonf.json` (only there: a deployment can't write
+   it): the `"Domain"` or a prefix of it (whole parts), left out of the names. From CK-Sample-AspNetAuth:
+
+   ```jsonc
+   "Domain": "Sample/Auth3",
+   "GlobalDomainPrefix": "Sample",
+   ```
+
+   The App of `$Front` is then `Auth3.Front`; with the whole domain as prefix, the names stay the party names.
+2. **Rename each triplet** to the name the error gives: the folders and the `.csproj` files of `X.App`, `X.Builder` and
+   `X.Host`, the `ProjectReference`s, the `.slnx`, the keys of `"Builders"` (`"Front/Auth3.Front.Builder"`), the
+   assembly qualified names of the configuration (`"CK.Sample.Front.IFrontInfoQCommand, Auth3.Front.App"`), the tests
+   that load a host (`Assembly.Load( "Auth3.Front.Host" )`), the `launchSettings.json` profiles. The parent folder is
+   free (the sample keeps the party name: `Front/Auth3.Front.Builder`).
+3. **Delete the old manifests** of `#Dev/Parties` (named after the Host projects: `Auth3.Front.Host.json`); the build
+   writes the new ones.
+
+**Behavior:**
+- An App whose explicit `FullName` (or `PartyName`) disagrees with its name is an error; a `FullName` outside the
+  `"GlobalDomainPrefix"` too. A fleet's name is its party without the placeholder (`Auth3.Worker` for `$Worker-{Name}`).
+- Without `"Domain"`, the names are the party names (no `.`).
+
+**Check:** the build succeeds; the `FullName`s of the projected `ckonf.json` are unchanged.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1363,3 +1399,4 @@ a copy of the `ckonf.json`).
     the scheme families are options of the AuthCenter (U21).
 22. The payload of every "Oidc" login provider implements `IOidcLoginPayload` (U22).
 23. Each deployment (a `Deployment/#X` folder) writes its values per deployment, and its `ckonf.merged.json` is committed (U23).
+24. The App projects of a central configuration are named after the identity of their party (U24).
