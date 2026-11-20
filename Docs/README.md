@@ -19,6 +19,14 @@ The rules for working in the repositories of the stack ([Guidelines/](Guidelines
 | [Working with ckli](Guidelines/working-with-ckli.md) | Building, testing or changing the package versions of a repository with ckli. |
 | [The .wip folder](Guidelines/the-wip-folder.md) | Keeping working notes: the shared notes of the team (`Shared/`) and your own (`User/`). |
 
+## Tools
+
+The scripts of the stack ([../Tools/](../Tools)): copied with the Stack when an LTS is created.
+
+| Tool | |
+|---|---|
+| [Unix](../Tools/Unix/README.md) | Runs the tests of a repository on Linux (from Windows: a dedicated WSL distribution); a repository declares its specific passes in `Tests/Unix/unix-tests.conf`. |
+
 ## Migrations
 
 What a repository (or a World) that uses the stack must change to move from a release to the next one
