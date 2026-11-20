@@ -33,7 +33,7 @@ the **Behavior** and a **Check**.
 | [U20](#u20-the-secrets) | The secrets: a secret in `ckonf.json` is a handle `{ "$SECRET": "<Name>" }`, projected (or burnt) as is; the host resolves it at start from the configuration key `Secrets:<Name>` (`#Dev/Secrets.json` in development); `[ConfigurationSecret]`, `AppConfiguration.AddSecretKey`; the "SqlServer" aspect accepts a handle | No (new); `SqlServerAspect.Databases` items are `SqlServerAspect.DatabaseConfiguration` |
 | [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `IAuthCenterSchemeFamilyOption`; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
 | [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
-| [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
+| [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1304,7 +1304,9 @@ a copy of the `ckonf.json`).
 
    The packages declare theirs: `[ConfigurationPerDeployment( "Party:Urls" )]` on a configurable type (the HttpEndpoint
    feature), `[ConfigurationPerDeployment( "Party:ListeningAddress" )]` (the Transport feature), the address of a link
-   (the AppIdentity contributor: `CentralProjectionContext.AddPerDeploymentKey( "Links:[*]:Link:Address" )`), and
+   (the AppIdentity contributor: `CentralProjectionContext.AddPerDeploymentKey( "Links:[*]:Link:Address" )`), the
+   address of a remote written in the `Parties` of an App (the AppIdentity contributor:
+   `AppConfiguration.AddPerDeploymentPartyKey( "Remote", "Address" )`, a property of the parties of a kind), and
    `AppConfiguration.AddPerDeploymentKey( path )` for a reader of its own.
 3. **Commit the `ckonf.merged.json`** that the builders write next to each overlay (a build impact of the first build:
    `ckli build --build-impacts commit`).
