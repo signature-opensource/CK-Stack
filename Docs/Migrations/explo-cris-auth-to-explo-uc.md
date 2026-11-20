@@ -35,6 +35,7 @@ the **Behavior** and a **Check**.
 | [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
 | [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
 | [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
+| [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed builder (generated copies of the builder and its hosts, built for the deployment) in one asset per deployment, with a `Deployment.json` manifest; the settings are the `"Deployment"` key (`Builders`, `SelfContained`, `RuntimeIdentifier`); a host built for a deployment has the environment of its party | No (new); behavior (the environment of the host and of the party are checked at start) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1319,7 +1320,7 @@ a copy of the `ckonf.json`).
   it in its own overlay (`null` counts) fails the build: "The deployment '#Production' inherits "...": a value per
   deployment is written by the deployment itself". An array or a `null` of the overlay writes everything below it.
 - CKli warns that a `Deployment` folder without `GenerateAssets.cs` is ignored by its build: the assets of the
-  deployments come later.
+  deployments are U25.
 
 **Check:** the build succeeds; each deployment folder has its `ckonf.merged.json`, committed.
 
@@ -1357,6 +1358,54 @@ reversible. The party names, the full names and the links don't change.
 - Without `"Domain"`, the names are the party names (no `.`).
 
 **Check:** the build succeeds; the `FullName`s of the projected `ckonf.json` are unchanged.
+
+## U25. The assets of the deployments
+
+The deployments of U23 are built: CKli runs `Deployment/GenerateAssets.cs` after the build of the repository (the
+version as its argument), and the asset of each deployment (a zip of `Deployment/Assets/{AssetName}`) is part of the
+release. It is new: a solution without `GenerateAssets.cs` is unchanged.
+
+**Do:**
+1. **Write `Deployment/GenerateAssets.cs`** (CK.AppDeployment, a package of CK-StObj):
+
+   ```csharp
+   #:package CK.AppDeployment@37.0.0-0.uc.0.ci.31
+   return await CK.Setup.AppDeployment.RunAsync( args );
+   ```
+
+   CKli doesn't upgrade a `#:package` version yet: update it by hand.
+2. **Write `Deployment/.gitignore`** with `Assets/` (CKli creates it otherwise: a build impact).
+3. **Choose the deployed builders** when not all of them can be deployed: a builder whose engine sets up a database at
+   build time (the SqlServer aspect) fails in the build of a deployment. From CK-Sample-AspNetAuth's
+   `Deployment/#Production/ckonf.json`:
+
+   ```jsonc
+   "Deployment": {
+     "Builders": [ "Front/Auth3.Front.Builder", "Admin/Auth3.Admin.Builder", "Worker/Auth3.Worker.Builder", "Worker2/Auth3.Worker2.Builder" ]
+   },
+   ```
+
+   `"SelfContained"` (it requires a `"RuntimeIdentifier"`) and `"RuntimeIdentifier"` say how the hosts are published.
+   In the central configuration, the `"Deployment"` key holds the defaults of every deployment.
+
+**Behavior:**
+- For each deployment and deployed builder, CK.AppDeployment copies the builder and the hosts of its Apps (the files git
+  tracks) in `Deployment/.build/{AssetName}/` (ignored by git; `#Production` is `Production`, `Paris/Shop/#Staging` is
+  `Paris.Shop.Staging`), the copied builder builds the deployment (`ckonf.deployment.json`: its `ckonf.json` is the
+  projection of the merged configuration, its `.App` projects are the originals), and each host is published
+  (`dotnet publish -c Release`) in `Deployment/Assets/{AssetName}/{Host}` with its `Deployment.json` manifest: the full
+  name, the version, the deployment, the names of the secrets the host needs, its values per deployment.
+- The build of a deployment never reads a secret (`AppBuilderContext.Deployment`: `TryResolveSecret` fails), never
+  writes in `#Dev`, never sets up a database.
+- A host built for a deployment burns the full name of its party: its environment (`Production`) is the .NET environment
+  of the host unless `--environment`, `DOTNET_ENVIRONMENT` or `ASPNETCORE_ENVIRONMENT` gives one. At start, a `#Dev`
+  party in a host that is not in Development is a warning; another party in a host in Development is an error.
+- The client applications are not in the published hosts yet.
+- Known CKli limit: CKli restores the repository's `nuget.config` (without the local feed) before running
+  `GenerateAssets.cs`: a `#:package` version built locally is found only in the NuGet cache.
+
+**Check:** `ckli build` produces the asset of each deployment (`$Local/Assets/{Repo}/{Version}/Production.zip`); a
+published host starts in the environment of its deployment.
 
 ## The final checklist
 
@@ -1400,3 +1449,4 @@ reversible. The party names, the full names and the links don't change.
 22. The payload of every "Oidc" login provider implements `IOidcLoginPayload` (U22).
 23. Each deployment (a `Deployment/#X` folder) writes its values per deployment, and its `ckonf.merged.json` is committed (U23).
 24. The App projects of a central configuration are named after the identity of their party (U24).
+25. A solution with deployments has its `Deployment/GenerateAssets.cs`; the builders that can't be deployed are left out (U25).
