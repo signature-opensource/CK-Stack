@@ -1406,6 +1406,9 @@ release. It is new: a solution without `GenerateAssets.cs` is unchanged.
   Opened fleet (`"Dynamic": { "From": 4, "To": 6 }`). A fleet is one published host: the platform starts one process per
   instance.
 - The remote templates of the links to a fleet follow its size (copied from the same merged configuration).
+- A secret handle of a fleet App may use its placeholders (`{ "$SECRET": "Worker:{Name}:Key" }`: a secret per
+  instance, resolved with the instance at start): the build checks the name of each instance, the manifest lists the
+  names of each instance (`"Secrets"` of each configured one). A secret that the build itself needs has no placeholder.
 - The build of a deployment never reads a secret (`AppBuilderContext.Deployment`: `TryResolveSecret` fails), never
   writes in `#Dev`, never sets up a database.
 - A host built for a deployment burns the full name of its party: its environment (`Production`) is the .NET environment
