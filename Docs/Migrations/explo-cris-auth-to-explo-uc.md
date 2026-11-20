@@ -36,6 +36,7 @@ the **Behavior** and a **Check**.
 | [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
 | [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
 | [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed App (generated copies of the builder and its hosts, built for the deployment) in one asset per App (`Production-Auth3.Front.zip`; `"SingleZipAsset"`: one per deployment), with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`Builders`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
+| [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1172,6 +1173,10 @@ with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its
 - The host (CK.AppHost) resolves every handle after the burnt values and the instance of a fleet, through a last
   configuration source: the code reads the value at the path of the handle. A missing secret fails the start, with all
   the missing names at once; a value is never logged.
+- An optional handle, `{ "$SECRET?": "<Name>" }`, names a secret that may be missing: its path is then absent (as if
+  nothing were configured there), the missing optional names are logged. The deployment chooses it (a one-time
+  enlistment ticket, U26; a feature activated by its secret); `ConfigurationSecret.IsHandlePath( path, out valuePath,
+  out isOptional )` and `IsHandleKey` recognize both keys.
 - At build time, an invalid handle is an error; a plain value where a secret is declared is an information line (the
   development configuration accepts it).
 - The legacy SQL setup still writes the connection strings it uses in the generated code and its logs.
@@ -1442,8 +1447,47 @@ version as its argument), and the assets of each deployment are part of the rele
   worker) publishes its `appsettings.json` too. A self-contained host may reference its builder (CK.AppHost turns off
   the SDK check NETSDK1150: the reference only orders the builds).
 
+- The manifest of a deployed host (in `CK.AppHost.Published.json`, under "Deployment", and per configured instance of a
+  fleet) lists the names of its required secrets ("Secrets") and of its optional ones ("OptionalSecrets").
+
 **Check:** `ckli build --with-assets` produces the assets of each deployment (`$Local/Assets/{Repo}/{Version}/Production-Auth3.Front.zip`...); a
 published host starts in the environment of its deployment.
+
+## U26. The pre-authorized enlistment ticket
+
+**What changes:** an operator who expects a party (a deployed host, an instance of a fleet) opens an enlistment ticket
+for it; the party starts with it and the Authentication Center trusts its key at once: no approval code, no pending
+approval. It replaces the anchors file of a deployment (the ticket carries the anchor of the center).
+
+**Why:** a deployed party can't show an approval code to an operator, and its first start must anchor its center: the
+ticket does both, and while it is open nobody else can enlist under the expected name.
+
+**Migration:**
+1. Nothing to change in the code: CK.AppIdentity.AuthCenter.Enlistment (on the center) holds the tickets
+   (`AuthCenterEnlistmentTickets`, the `IEnlistmentTicketAuthority` of the transport), the approval page
+   (CK.Ng.AppIdentity.Enlistment) opens them ("Expect a party"), `ckey ticket open|list|revoke` too on the center.
+2. In a deployment, the expected party reads its ticket from `Local:KeyManagement:EnlistTicket`, a secret: give it as an
+   optional handle (U20), the ticket is needed at the first start only:
+
+   ```jsonc
+   "KeyManagement": { "TrustAnchors": null, "EnlistTicket": { "$SECRET?": "Enlist:Worker2" } }
+   // a fleet: { "$SECRET?": "Enlist:Worker-{Name}" }
+   ```
+
+   The operator gives `Secrets__Enlist__Worker2=ckt1....` (or the vault's `Secrets:Enlist:Worker2`) at the first start.
+
+**Behavior:**
+- A ticket is a one-time P-256 key (`EnlistTicket`, `ckt1.` + base64url): the center keeps its public key only (one
+  json file per ticket in its local store "EnlistTickets"), the text is shown once. Its lifetime is 1 day by default,
+  7 days at most. Opening, listing and revoking require the Critical level (forwarded to the center by any party).
+- The ticket anchors its center at the checkpoint it carries (a different configured anchor of the center is an error).
+- The proof travels in an optional field of the initial message of the transport (all the parties of a System use the
+  same transport version): the id and a signature over the full name, the identity checkpoint, the holder and the
+  ephemeral key of the connection. The center trusts the key at once and marks the ticket used.
+- While a ticket is open for a party, a key presented without a valid proof is refused (no pending approval).
+
+**Check:** open a ticket on the approval page, start the expected party with it: it is trusted without a code, the
+ticket is listed as used.
 
 ## The final checklist
 
