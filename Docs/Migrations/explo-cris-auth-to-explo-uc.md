@@ -1387,6 +1387,12 @@ release. It is new: a solution without `GenerateAssets.cs` is unchanged.
 
    `"SelfContained"` (it requires a `"RuntimeIdentifier"`) and `"RuntimeIdentifier"` say how the hosts are published.
    In the central configuration, the `"Deployment"` key holds the defaults of every deployment.
+4. **Write the size of each fleet** in each deployment (`"InstanceCount"`, `"Instances"`, `"MaxInstanceCount"` are values
+   per deployment: inherited, they fail the build):
+
+   ```jsonc
+   "Worker/Auth3.Worker.Builder": { "App": { "InstanceCount": 3, "MaxInstanceCount": 6 } },
+   ```
 
 **Behavior:**
 - For each deployment and deployed builder, CK.AppDeployment copies the builder and the hosts of its Apps (the files git
@@ -1394,7 +1400,12 @@ release. It is new: a solution without `GenerateAssets.cs` is unchanged.
   `Paris.Shop.Staging`), the copied builder builds the deployment (`ckonf.deployment.json`: its `ckonf.json` is the
   projection of the merged configuration, its `.App` projects are the originals), and each host is published
   (`dotnet publish -c Release`) in `Deployment/Assets/{AssetName}/{Host}` with its `Deployment.json` manifest: the full
-  name, the version, the deployment, the names of the secrets the host needs, its values per deployment.
+  name, the version, the deployment, the names of the secrets the host needs, its values per deployment. The manifest of
+  a fleet lists its instances (`"Instances"`): each configured one with its full name (`Sample/Auth3/$Worker-1/#Production`),
+  its start arguments (`--Instance=1`) and its values per deployment resolved, and the indexes of the dynamic ones of an
+  Opened fleet (`"Dynamic": { "From": 4, "To": 6 }`). A fleet is one published host: the platform starts one process per
+  instance.
+- The remote templates of the links to a fleet follow its size (copied from the same merged configuration).
 - The build of a deployment never reads a secret (`AppBuilderContext.Deployment`: `TryResolveSecret` fails), never
   writes in `#Dev`, never sets up a database.
 - A host built for a deployment burns the full name of its party: its environment (`Production`) is the .NET environment
