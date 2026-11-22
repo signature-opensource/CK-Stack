@@ -1,7 +1,7 @@
 {
   "StackUrl": "https://github.com/signature-opensource/CK-Stack",
   "World": "CK",
-  "Version": "2026.303.0-0.cris-auth",
+  "Version": "2026.10.30-0.cris-auth",
   "IsDeprecated": false,
   "Repositories": [
     {
