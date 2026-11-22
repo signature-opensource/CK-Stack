@@ -1557,7 +1557,15 @@ the account. A host that calls `PersistKeysTo...` or `ProtectKeysWith...` keeps 
    ```
 
    To change it, give the new key as `KeyRingKey` and the old one as `KeyRingPreviousKey` (a secret too): the existing
-   keys of the ring stay readable.
+   keys of the ring stay readable. A secret can be a file: CK.AppHost reads `$CREDENTIALS_DIRECTORY` (systemd) and
+   `$CK_SECRETS_DIRECTORY` (a mounted secret volume), one secret per file (`__` separates the segments of its name). On
+   Linux with a TPM, bind the key to the machine with a systemd credential:
+
+   ```
+   head -c 32 /dev/urandom | base64 -w0 | systemd-creds encrypt --with-key=tpm2 --name=KeyRing - /etc/credstore.encrypted/KeyRing
+   # In the unit of the service:
+   LoadCredentialEncrypted=KeyRing
+   ```
 3. On Windows with CK.AppIdentity.KeyManagement.Cng, nothing to do: the ring is protected by the provider of the root
    party (its `CngKeyStore` option), bound to the computer as the identity keys are.
 
