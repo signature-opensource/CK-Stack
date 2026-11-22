@@ -38,6 +38,7 @@ the **Behavior** and a **Check**.
 | [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed App (generated copies of the builder and its hosts, built for the deployment) in one asset per App (`Production-Auth3.Front.zip`; `"SingleZipAsset"`: one per deployment), with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`Builders`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
+| [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1530,6 +1531,45 @@ pattern); `PartyDescription.Routes`, `Collected`, `FindRoute`, `PartyRoute`, `Co
 
 **Check:** the sample: the Admin is the approval page without configuration; a Worker waiting on Auth3 is approved from
 the Admin through Auth3. The references are CK-AppIdentity-Transport's `EnlistmentPageTests` and `EnlistmentTests`.
+
+## U28. The DataProtection key ring is in the store of the party
+
+**What changes:** the DataProtection key ring of a process (it protects the identity key files, the encryption keys of
+the parties and what ASP.NET protects) is in the private store of the root party, `-Local/DataProtection-Keys`, no more
+in the folder of the account (`%LOCALAPPDATA%\ASP.NET\DataProtection-Keys`, `~/.aspnet/DataProtection-Keys`). Its
+encryption at rest: the secret `Local:KeyManagement:KeyRingKey` of the root party, otherwise the CNG store
+(CK.AppIdentity.KeyManagement.Cng: the TPM), otherwise DPAPI on Windows, otherwise none (a warning outside `#Dev`).
+
+**Why:** the folder of the account is shared by all its applications, unencrypted on Linux, and absent when the account
+has no profile (a container, a service account): ASP.NET then keeps the ring in memory and a restart loses the identity
+of the party. The store of the party is where its identity is.
+
+**Detect:** a `#Dev/Store` (or a deployed store) created before this version: its key files were protected by the ring of
+the account. A host that calls `PersistKeysTo...` or `ProtectKeysWith...` keeps its choice (nothing to detect).
+
+**Migration:**
+1. In development: delete `#Dev/Store` (or the store of the parties that don't start) and start again: new identities,
+   new pins, new enlistments. A party that can't open its keys says why ("Its key ring may have changed").
+2. In a deployment on Linux (or in a container), encrypt the ring with a secret key, the base64 of 32 random bytes:
+
+   ```jsonc
+   "Local": { "KeyManagement": { "KeyRingKey": { "$SECRET": "KeyRing" } } }
+   ```
+
+   To change it, give the new key as `KeyRingKey` and the old one as `KeyRingPreviousKey` (a secret too): the existing
+   keys of the ring stay readable.
+3. On Windows with CK.AppIdentity.KeyManagement.Cng, nothing to do: the ring is protected by the provider of the root
+   party (its `CngKeyStore` option), bound to the computer as the identity keys are.
+
+**Behavior:**
+- The protection is chosen at the first use of the ring; each file records it: a change applies to the new keys of the
+  ring (one every 90 days), the existing ones stay readable as long as their protection is available.
+- An invalid `KeyRingKey` or `KeyRingPreviousKey` fails the start.
+- The ring and the identity key files are in the same store: a copy of the store gives the keys away unless the ring is
+  encrypted (a secret key kept apart, the TPM, or DPAPI on the same computer and account).
+
+**Check:** start a party: `-Local/DataProtection-Keys/key-*.xml` is in its store; with `KeyRingKey`, the file's
+`decryptorType` is `SecretKeyXmlDecryptor`; nothing new in the folder of the account.
 
 ## The final checklist
 
