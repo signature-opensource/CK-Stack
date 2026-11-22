@@ -282,4 +282,5 @@
     <Repository Url="https://github.com/signature-opensource/CK-TS-Angular" />
     <Repository Url="https://github.com/signature-opensource/CK-TS-AspNet" />
   </Folder>
+  <Repository Url="https://github.com/signature-opensource/CK-Configurator" />
 </CK>
