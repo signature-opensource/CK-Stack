@@ -11,7 +11,10 @@ Rules for building and testing the repositories of this stack with ckli. They ap
 - **ckli refuses to build when any repository of the World is dirty**, not only the ones it builds: commit (or stash) first.
 - **During the work, a World build is `ckli build --skip-tests`**; `dotnet test` runs the test projects of what changed.
   **Before sharing, one `ckli build --build-impacts commit --with-tests`**: it builds what needs a build and runs the
-  tests of every commit that was only built with `--skip-tests`.
+  tests of every commit that was only built with `--skip-tests`. **Run it from the most upstream repository that
+  changed:** its `--dry-run` lists every changed repository and all their consumers. Started further down (from a
+  sample), it sees the changes of that repository only, re-tests the versions already built, and misses an upstream
+  change (a fixed test, new code).
 - **`--max-dop 2`** for a build that runs the tests: with the default (4), the parallel node processes of the TypeScript
   tests exhausted the memory of the machine. `MSBUILDDISABLENODEREUSE=1` (an environment variable) lowers it too.
 - **A failed build or publish** displays its errors and the path of its log file: no need to open the log (`ckli log`
