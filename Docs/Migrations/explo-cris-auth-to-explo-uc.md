@@ -1476,6 +1476,11 @@ ticket does both, and while it is open nobody else can enlist under the expected
    ```
 
    The operator gives `Secrets__Enlist__Worker2=ckt1....` (or the vault's `Secrets:Enlist:Worker2`) at the first start.
+3. In a deployment where no key is trusted on first use (`"AutoTrustKey": "Never"`), every party linked to the
+   Authentication Center takes a ticket this way, the party that hosts the approval page included. Its ticket comes
+   first: it is opened with `ckey ticket open <FullName>` on the center's machine (the page isn't running yet); the next
+   ones are opened on the page. The ticket replaces the anchors of the parties: the center trusts the key that proves
+   it, and the party anchors the center from it.
 
 **Behavior:**
 - A ticket is a one-time P-256 key (`EnlistTicket`, `ckt1.` + base64url): the center keeps its public key only (one
