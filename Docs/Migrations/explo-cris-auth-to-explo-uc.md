@@ -1312,10 +1312,10 @@ a copy of the `ckonf.json`).
 
    The packages declare theirs: `[ConfigurationPerDeployment( "Party:Urls" )]` on a configurable type (the HttpEndpoint
    feature), `[ConfigurationPerDeployment( "Party:ListeningAddress" )]` (the Transport feature), the address of a link
-   (the AppIdentity contributor: `CentralProjectionContext.AddPerDeploymentKey( "Links:[*]:Link:Address" )`), the
-   address of a remote written in the `Parties` of an App (the AppIdentity contributor:
-   `AppConfiguration.AddPerDeploymentPartyKey( "Remote", "Address" )`, a property of the parties of a kind), and
-   `AppConfiguration.AddPerDeploymentKey( path )` for a reader of its own.
+   (the AppIdentity engine: `[assembly: CentralConfigurationKey( "Links", PerDeployment = ["[*]:Link:Address"] )]`), the
+   address of a remote written in the `Parties` of an App (the AppIdentity engine:
+   `[assembly: ConfigurationPerDeployment( "Remote:Address" )]`, a property of the parties of a kind), the size of a
+   fleet (the App builder), and `AppConfiguration.AddPerDeploymentKey( path )` for a reader of its own.
 3. **Commit the `ckonf.merged.json`** that the builders write next to each overlay (a build impact of the first build:
    `ckli build --build-impacts commit`).
 
