@@ -30,6 +30,15 @@ the **Behavior** and a **Check**.
 | [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval, and a tenant template to run-time tenants; a local party runs in one process at a time; `ICoreKeyStore.DeleteAllKeys` | Yes (a custom `ICoreKeyStore`); behavior |
 | [U18](#u18-the-configuration-levels-and-lock) | The configuration levels (`Compile`, `Init`, `Run`): a `"$LOCK"` in `ckonf.json` restricts a value to `Compile` (burnt in the generated code, not in the host's `appsettings.json`); a package restricts the values of a kind of party (`[ConfigurationLock]`: KeyManagement's `AutoTrustKey` is `Never` on an Opened remote template, checked at build time) | Behavior (an Opened remote template with another `AutoTrustKey` fails the build) |
 | [U19](#u19-the-run-properties-and-the-dynamic-configuration) | The run properties: `[ConfigurationSection]` on an App singleton, `[ConfigurationLevel( Run )]` on its properties; CK.Cris.DynamicConfiguration initializes them from the configuration and changes them by a command (CK.IO.DynamicConfiguration), CK.AppIdentity.DynamicConfiguration keeps the changes; `CrisExecutionHost.ParallelRunnerCount` is one | No (new) |
+| [U20](#u20-the-secrets) | The secrets: a secret in `ckonf.json` is a handle `{ "$SECRET": "<Name>" }`, projected (or burnt) as is; the host resolves it at start from the configuration key `Secrets:<Name>` (`#Dev/Secrets.json` in development); `[ConfigurationSecret]`, `AppConfiguration.AddSecretKey`; the "SqlServer" aspect accepts a handle | No (new); `SqlServerAspect.Databases` items are `SqlServerAspect.DatabaseConfiguration` |
+| [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `IAuthCenterSchemeFamilyOption`; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
+| [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
+| [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
+| [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
+| [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed App (generated copies of the builder and its hosts, built for the deployment) in one asset per App (`Production-Auth3.Front.zip`; `"SingleZipAsset"`: one per deployment), with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`Builders`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
+| [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
+| [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
+| [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -416,7 +425,7 @@ migrated this way.
 
 ## U6. The description of a party is intrinsic
 
-The description of a party (its public URL, its routes, its client applications...) is computed by the
+The description of a party (its public URL, its client applications...) is computed by the
 `ApplicationIdentityService` itself, after the feature drivers have set the parties up: it is not a feature any more.
 
 **Detect:** `PartyDescriptionFeatureDriver` (a test that lists it in its types or registers it); a `"PartyDescription"`
@@ -443,13 +452,12 @@ table below directly in a `Local`, a remote (`Parties[i]`) or a `"Defaults"`.
 |---|---|
 | `RecoveryPublicKey`, `OperationalKeyDays`, `MaxSignatureDays`, `KeyRotationDays`, `TrustAnchors` (a `Local`) | `"KeyManagement": { ... }` |
 | `AutoTrustKey`, `MaxClockOffset` (a remote, a `"Defaults"`) | `"KeyManagement": { ... }` |
-| `ListeningAddress`, `ListeningTypes`, `NegotiationTimeout`, `AlwaysListening`, `DisallowEviction`, `RouteHosts` (of a party that is not an AuthCenter) | `"Transport": { ... }` |
+| `ListeningAddress`, `ListeningTypes`, `NegotiationTimeout`, `AlwaysListening`, `DisallowEviction` | `"Transport": { ... }` |
 | `AuthCenterParty` (a `Local`) | `"AuthCenterRemote": { "Party": "..." }` |
 | `CoreKeyStore:CngProvider`, `CoreKeyStore:AllowFallback`, `CoreKeyStore:MachineWide` (CK.AppIdentity.KeyManagement.Cng) | `"KeyManagement": { "CngKeyStore": { "Provider": "...", "AllowFallback": ..., "MachineWide": ... } }` |
 | `PasswordLostTokenLifetime` (a `Local`, CK.UserProfile.UserPassword.Lost) | `"AuthCenter": { "PasswordLost": { "TokenLifetime": "02:00:00" } }` |
 
-The `RouteHosts` of an Authentication Center stay in its `"AuthCenter"` section. From CK-Sample-AspNetAuth (Worker2 and
-Auth3):
+`RouteHosts` is gone (U27). From CK-Sample-AspNetAuth (Worker2 and Auth3):
 
 ```jsonc
 // Before.
@@ -1116,6 +1124,466 @@ uses it.
 **Check:** the build succeeds; `IGetRunPropertiesQCommand` lists the run properties; a change survives a restart.
 CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this way.
 
+## U20. The secrets
+
+A secret (a client secret, a password, a connection string with credentials) is never written in a configuration file:
+its place holds a **handle**, the name of the secret, that the host resolves when it starts (`ConfigurationSecret`,
+CK.ResourceSpace.Abstractions). It is new: a plain value still works, but it is in the files.
+
+**Detect:** a secret value in a `ckonf.json` or an `appsettings.json` (`ClientSecret`, `Password`, a connection string
+with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its `.csproj`).
+
+**Do:**
+1. Replace the value by a handle in the `ckonf.json` (from CK-Sample-AspNetAuth's README, a scheme of the AuthCenter):
+
+   ```jsonc
+   "Google": {
+     "Authority": "https://accounts.google.com",
+     "ClientId": "...",
+     "ClientSecret": { "$SECRET": "Google:ClientSecret" },
+     "Scopes": "openid email"
+   }
+   ```
+
+   `"$SECRET"` is the only key of its object; a name is made of segments separated by `:` made of letters, digits, `_`
+   and `-`. The connection strings of the "SqlServer" aspect (U14) accept a handle too
+   (`"DefaultDatabaseConnectionString": { "$SECRET": "Db" }`, and the `ConnectionString` of its `"Databases"`).
+2. Give the values, by name, as the configuration keys `Secrets:<Name>` of the host:
+   - in development, in the `#Dev/Secrets.json` file at the root of the solution (`#Dev` is ignored by git), whose root is
+     the content of the `Secrets` section, shared by the parties of the solution:
+
+     ```json
+     { "Google": { "ClientSecret": "..." } }
+     ```
+
+   - elsewhere, from any configuration source of the host: an environment variable (`Secrets__Google__ClientSecret`), a
+     vault provider added by the `configure` action of `CKomposableAppHost.Build`.
+3. A package that knows that a value is a secret declares it, so that a plain value is reported at build time:
+   `[ConfigurationSecret( path )]` on a configurable type (built like a `[ConfigurationLock]` path: a kind of party, then
+   the path in the section of the type, with the `*` and `[*]` patterns), or `AppConfiguration.AddSecretKey( path )`
+   from a contributor that reads its keys by hand. In the stack: the client secrets of the "Oidc" scheme family
+   (`[ConfigurationSecret( "Party:*:ClientSecret" )]` on `AuthCenterOidcOption`, U21) and the default connection
+   string of the "SqlServer" aspect.
+4. An aspect that needs the value at build time (the setup of a development database) resolves it with
+   `AppBuilderContext.TryResolveSecret( monitor, name, out value )` (from `#Dev/Secrets.json`) and projects the handle:
+   `AppConfiguration.ProjectValue( "<path>:$SECRET", name, "<origin>:$SECRET" )`.
+
+**Behavior:**
+- The handle is projected as is in the host's `appsettings.json`; a `"$LOCK"` to `Compile` on the value burns the handle,
+  never a value (U18).
+- The host (CK.AppHost) resolves every handle after the burnt values and the instance of a fleet, through a last
+  configuration source: the code reads the value at the path of the handle. A missing secret fails the start, with all
+  the missing names at once; a value is never logged.
+- An optional handle, `{ "$SECRET?": "<Name>" }`, names a secret that may be missing: its path is then absent (as if
+  nothing were configured there), the missing optional names are logged. The deployment chooses it (a one-time
+  enlistment ticket, U26; a feature activated by its secret); `ConfigurationSecret.IsHandlePath( path, out valuePath,
+  out isOptional )` and `IsHandleKey` recognize both keys.
+- At build time, an invalid handle is an error; a plain value where a secret is declared is an information line (the
+  development configuration accepts it).
+- The legacy SQL setup still writes the connection strings it uses in the generated code and its logs.
+
+**Check:** the build succeeds; the hosts' `appsettings.json` hold the handles; the host starts with the values in
+`#Dev/Secrets.json` and fails with the list of the missing names without them.
+
+## U21. The scheme families are options of the AuthCenter
+
+A scheme family of the AuthCenter (OpenID Connect, passkeys) is an option of the `LocalAuthCenterFeatureDriver`
+(CK.AppIdentity.AuthCenter.Local, CK-AppIdentity-Transport): its section is the sub-section of its name
+(`"AuthCenter:Oidc"`, `"AuthCenter:Passkey"`), that its constructor reads, and the AuthCenter creates the family of each
+local Authentication Center. The configuration of the schemes doesn't change.
+
+**Detect:** `AuthCenterOidcFeatureDriver`, `AuthCenterPasskeyFeatureDriver`, `AuthCenterOidcConfiguration`,
+`AuthCenterPasskeyConfiguration`, `IAuthCenterSchemeConfiguration`, `LocalAuthCenter.GetSchemeSettings`; the keys
+`"AuthCenterOidc"` or `"AuthCenterPasskey"` in a configuration.
+
+**Do:**
+1. **A test that lists the types of the family** lists the option instead (from CK.AppIdentity.AuthCenter.Tests):
+
+   ```csharp
+   engine.FirstBinPath.Types.Add( typeof( Oidc.AuthCenterOidcOption ), typeof( Oidc.AuthCenterOidcHttpClient ) );
+   engine.FirstBinPath.Types.Add( typeof( Passkey.AuthCenterPasskeyOption ), typeof( Passkey.AuthCenterPasskeyHandlers ) /* ... */ );
+   ```
+
+   A test without engine registers the option: `services.AddPartyComponentOptions( typeof( Oidc.AuthCenterOidcOption ) )`
+   (CK.Testing.AppIdentity), with `services.AddSingleton<Oidc.AuthCenterOidcHttpClient>()`.
+2. **A configuration that disables a family** writes it in the AuthCenter's section: `"AuthCenterOidc": false` becomes
+   `"AuthCenter": { "Oidc": false }` (the same for `"Passkey"`).
+3. **A family of its own** is an option of the AuthCenter that creates the family (from CK.AppIdentity.AuthCenter.Oidc):
+
+   ```csharp
+   [PartyFeatureOption( "Oidc", TypeActivation.ByDefault )]
+   [ConfigurationSecret( "Party:*:ClientSecret" )]
+   public sealed class AuthCenterOidcOption : IPartyComponentOption<LocalAuthCenterFeatureDriver>, IAuthCenterSchemeFamilyOption
+   {
+       public AuthCenterOidcOption( IConfiguration? configuration, AuthCenterOidcHttpClient http )
+       {
+           _http = http;
+           Schemes = OidcSchemeOptions.Read( configuration );
+       }
+
+       public IAuthCenterScheme CreateFamily( IActivityMonitor monitor, ILocalParty local ) => new AuthCenterOidc( Schemes, _http.Client );
+   }
+   ```
+
+   Its constructor reads its section (null when it is absent) and throws on an invalid value (U8); its feature driver and
+   its `IAuthCenterSchemeConfiguration` are removed.
+
+**Behavior:**
+- The families are created for every local Authentication Center, the dynamic tenants included, right after its
+  `LocalAuthCenter`; `LocalAuthCenter.SchemeFamilies` lists them as before.
+- An invalid section of a family fails the setup of the party ("Unable to create the option 'AuthCenter:Oidc': ..."),
+  a sub-section of the AuthCenter that is not an option of an installed package is still an error.
+
+**Check:** no type of the Detect list is left; the scheme listing shows the same schemes.
+
+## U22. The payload of the "Oidc" login provider is an `IOidcLoginPayload`
+
+The OpenID Connect scheme family (CK.AppIdentity.AuthCenter.Oidc) fills the payload of the "Oidc" login provider through
+a contract: `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions), no more by reflection on its
+`SchemeSuffix`, `Sub` and `Claims` properties. CK.DB.User.UserOidc's `IUserOidcInfo` implements it.
+
+**Detect:** an `ILoginProvider` whose `ProviderNames` contain "Oidc", other than the one of CK.DB.User.UserOidc (a
+test provider, a provider of its own).
+
+**Do:** its payload implements `IOidcLoginPayload` (a reference to CK.AuthenticationInfo.Oidc). From
+CK.Testing.Engine.Cris.Authentication (CK-Cris):
+
+```csharp
+public sealed class FakeOidcPayload : IOidcLoginPayload
+{
+    public string SchemeSuffix { get; set; } = "";
+    public string Sub { get; set; } = "";
+    public string Claims { get; set; } = "";
+}
+```
+
+A Poco payload declares it as a base interface: `public interface IUserOidcInfo : IPoco, IOidcLoginPayload` (its
+properties are declared `new`).
+
+**Behavior:**
+- The start of an Oidc login fails when there is no "Oidc" login provider or when its payload is not an
+  `IOidcLoginPayload`: the user is never sent to the identity provider (the code is not consumed for nothing).
+- The `Claims` are always set (a JSON object, empty when not provided).
+
+**Check:** an Oidc login completes.
+
+## U23. The deployments
+
+A solution with a central configuration (U16) may describe its deployments: its `ckonf.json` is the development one
+(`#Dev`), each other deployment is a folder of its `Deployment` folder (next to the central `ckonf.json`), an overlay of
+it. It is new: a solution without `Deployment` folder is unchanged.
+
+**Detect:** a solution whose configurations of another environment are kept by hand (an `appsettings.Production.json`,
+a copy of the `ckonf.json`).
+
+**Do:**
+1. **A deployment is a folder whose name starts with `#`** (its environment); the folders above it are its domain
+   (none: the central domain). Its `ckonf.json` is a JSON Merge Patch (RFC 7396) of the central configuration: an object
+   merges, `null` removes, any other value (an array included) replaces. From CK-Sample-AspNetAuth's
+   `Deployment/#Production/ckonf.json`:
+
+   ```jsonc
+   {
+     "Builders": {
+       "Auth3/Auth3.Builder": {
+         "Aspects": { "SqlServer": { "DefaultDatabaseConnectionString": { "$SECRET": "Auth3:Database" } } },
+         "App": { "Defaults": { "Transport": { "ListeningAddress": [ "tcp:0.0.0.0:37300" ] } }, "Demo": null }
+       },
+       "Front/Front.Builder": { "App": { "Local": { "HttpEndpoint": { "Urls": "http://*:5300" } } } }
+     },
+     "Links": [ { "From": "$Front", "To": "$Auth3", "Link": { "AuthCenterRemote": true, "Address": "tcp:auth3.sample.example.com:37300", "KeyManagement": { "AutoTrustKey": "Never" } } } ]
+   }
+   ```
+
+   `"$BASE": "#Production"` overlays another deployment instead of the central configuration. `"Domain"` and
+   `"Environment"` can't be written (the path gives them); `Deployment/#Dev`, a path that spells the central domain and
+   a `.` in a domain part are errors; `Deployment/Assets`, the folders whose name starts with `.` and the folders without
+   a `#` folder below them are ignored.
+2. **Mark what each deployment must write itself** in the central configuration: `"$PER_DEPLOYMENT"` on any object, an
+   array of patterns relative to it (from CK-Sample-AspNetAuth's `ckonf.json`):
+
+   ```jsonc
+   "App": {
+     "$PER_DEPLOYMENT": [ "Demo", "Local:MailSender", "Local:AuthCenter:Passkey:RpId" ],
+     ...
+   },
+   "$PER_DEPLOYMENT": [ "Links:[*]:Link:KeyManagement:AutoTrustKey" ],
+   ```
+
+   The packages declare theirs: `[ConfigurationPerDeployment( "Party:Urls" )]` on a configurable type (the HttpEndpoint
+   feature), `[ConfigurationPerDeployment( "Party:ListeningAddress" )]` (the Transport feature), the address of a link
+   (the AppIdentity engine: `[assembly: CentralConfigurationKey( "Links", PerDeployment = ["[*]:Link:Address"] )]`), the
+   address of a remote written in the `Parties` of an App (the AppIdentity engine:
+   `[assembly: ConfigurationPerDeployment( "Remote:Address" )]`, a property of the parties of a kind), the size of a
+   fleet (the App builder), and `AppConfiguration.AddPerDeploymentKey( path )` for a reader of its own.
+3. **Commit the `ckonf.merged.json`** that the builders write next to each overlay (a build impact of the first build:
+   `ckli build --build-impacts commit`).
+
+**Behavior:**
+- Every builder run merges the deployments and writes their `ckonf.merged.json` when it changes (its first line lists its
+  sources); the markers are build inputs, removed from every projection and from the merged files.
+- A value per deployment that a deployment inherits (from the central configuration or from its base) instead of writing
+  it in its own overlay (`null` counts) fails the build: "The deployment '#Production' inherits "...": a value per
+  deployment is written by the deployment itself". An array or a `null` of the overlay writes everything below it.
+- CKli warns that a `Deployment` folder without `GenerateAssets.cs` is ignored by its build: the assets of the
+  deployments are U25.
+
+**Check:** the build succeeds; each deployment folder has its `ckonf.merged.json`, committed.
+
+## U24. The name of an App is the identity of its party
+
+In a solution with a central configuration (U16), the name of an App was its party name (`Front/Front.Builder` built the
+App `Front`, the party `$Front`). It is now the identity of its party: its domain then its party name, the `/` of the
+domain mapped to `.`, and so are its projects. The parts of a domain and a party name have no `.`: the name is
+reversible. The party names, the full names and the links don't change.
+
+**Detect:** a central `ckonf.json` with a `"Domain"`: the build fails with "The name of ... must be the identity of its party:
+'Sample.Auth3.Front' (...)".
+
+**Do:**
+1. **Optionally, choose a `"GlobalDomainPrefix"`** in the central `ckonf.json` (only there: a deployment can't write
+   it): the `"Domain"` or a prefix of it (whole parts), left out of the names. From CK-Sample-AspNetAuth:
+
+   ```jsonc
+   "Domain": "Sample/Auth3",
+   "GlobalDomainPrefix": "Sample",
+   ```
+
+   The App of `$Front` is then `Auth3.Front`; with the whole domain as prefix, the names stay the party names.
+2. **Rename each triplet** to the name the error gives: the folders and the `.csproj` files of `X.App`, `X.Builder` and
+   `X.Host`, the `ProjectReference`s, the `.slnx`, the keys of `"Builders"` (`"Front/Auth3.Front.Builder"`), the
+   assembly qualified names of the configuration (`"CK.Sample.Front.IFrontInfoQCommand, Auth3.Front.App"`), the tests
+   that load a host (`Assembly.Load( "Auth3.Front.Host" )`), the `launchSettings.json` profiles. The parent folder is
+   free (the sample keeps the party name: `Front/Auth3.Front.Builder`).
+3. **Delete the old manifests** of `#Dev/Parties` (named after the Host projects: `Auth3.Front.Host.json`); the build
+   writes the new ones.
+
+**Behavior:**
+- An App whose explicit `FullName` (or `PartyName`) disagrees with its name is an error; a `FullName` outside the
+  `"GlobalDomainPrefix"` too. A fleet's name is its party without the placeholder (`Auth3.Worker` for `$Worker-{Name}`).
+- Without `"Domain"`, the names are the party names (no `.`).
+
+**Check:** the build succeeds; the `FullName`s of the projected `ckonf.json` are unchanged.
+
+## U25. The assets of the deployments
+
+The deployments of U23 are built: CKli runs `Deployment/GenerateAssets.cs` after the build of the repository (the
+version as its argument), and the assets of each deployment are part of the release: one per App by default
+(`Production-Auth3.Front.zip`, a zip of `Deployment/Assets/Production-Auth3.Front`), one per deployment with
+`"Deployment": { "SingleZipAsset": true }` (`Production.zip`, a folder per App in it). CKli runs it on demand (`ckli build --with-assets`, and always for `ckli publish`). It is new: a solution without
+`GenerateAssets.cs` is unchanged.
+
+**Do:**
+1. **Write `Deployment/GenerateAssets.cs`** (CK.AppDeployment, a package of CK-StObj):
+
+   ```csharp
+   #:package CK.AppDeployment@37.0.0-0.uc.0.ci.36
+   return await CK.Setup.AppDeployment.RunAsync( args );
+   ```
+
+   CKli upgrades the `#:package` version (CKli 0.55) and runs the script with the local feed.
+2. **Write `Deployment/.gitignore`** with `Assets/` (CKli creates it otherwise: a build impact).
+3. **Choose the deployed builders** when not all of them can be deployed: a builder whose engine sets up a database at
+   build time (the SqlServer aspect) fails in the build of a deployment. From CK-Sample-AspNetAuth's
+   `Deployment/#Production/ckonf.json`:
+
+   ```jsonc
+   "Deployment": {
+     "Builders": [ "Front/Auth3.Front.Builder", "Admin/Auth3.Admin.Builder", "Worker/Auth3.Worker.Builder", "Worker2/Auth3.Worker2.Builder" ],
+     // The MSBuild properties of the publication of the hosts (applied as-is), then the ones of an App over them.
+     "Publish": { "RuntimeIdentifier": "linux-x64" },
+     "Apps": { "Auth3.Worker2": { "Publish": { "SelfContained": true, "PublishSingleFile": true } } }
+   },
+   ```
+
+   `"Publish"` is not modeled: any MSBuild property (`RuntimeIdentifier`, `SelfContained`, `PublishSingleFile`,
+   `PublishTrimmed`, `PublishAot`, `InvariantGlobalization`...), a string, a number or a boolean; MSBuild and the SDK
+   report the rest at publish. An App's empty value resets a property (the SDK default); a deployment removes an
+   inherited one with `null`. In the central configuration, the `"Deployment"` key holds the defaults of every
+   deployment. AOT and trimming are not expected to work yet (the stack uses run-time reflection).
+4. **Write the size of each fleet** in each deployment (`"InstanceCount"`, `"Instances"`, `"MaxInstanceCount"` are values
+   per deployment: inherited, they fail the build):
+
+   ```jsonc
+   "Worker/Auth3.Worker.Builder": { "App": { "InstanceCount": 3, "MaxInstanceCount": 6 } },
+   ```
+
+**Behavior:**
+- For each deployment and deployed builder, CK.AppDeployment copies the builder and the hosts of its Apps (the files git
+  tracks) in `Deployment/.build/{AssetName}/` (ignored by git; `#Production` is `Production`, `Paris/Shop/#Staging` is
+  `Paris.Shop.Staging`), the copied builder builds the deployment (`ckonf.deployment.json`: its `ckonf.json` is the
+  projection of the merged configuration, its `.App` projects are the originals), and each host is published
+  (`dotnet publish -c Release`) in `Deployment/Assets/{AssetName}-{App}` (or `{AssetName}/{App}` with
+  `"SingleZipAsset"`: the App name, without `.Host`). Its publication properties are written in a
+  `<PropertyGroup>` of the copied host project (not on the command line: the generated builder runs on the build
+  machine). The manifest written by the builder (`$StObjGen/Deployment.manifest`) is added, with the version, to the
+  `CK.AppHost.Published.json` of the published host (`"Deployment"`): the full name, the version, the deployment, the
+  publication properties, the names of the secrets the host needs, its values per deployment. The manifest of
+  a fleet lists its instances (`"Instances"`): each configured one with its full name (`Sample/Auth3/$Worker-1/#Production`),
+  its start arguments (`--Instance=1`) and its values per deployment resolved, and the indexes of the dynamic ones of an
+  Opened fleet (`"Dynamic": { "From": 4, "To": 6 }`). A fleet is one published host: the platform starts one process per
+  instance.
+- The remote templates of the links to a fleet follow its size (copied from the same merged configuration).
+- A secret handle of a fleet App may use its placeholders (`{ "$SECRET": "Worker:{Name}:Key" }`: a secret per
+  instance, resolved with the instance at start): the build checks the name of each instance, the manifest lists the
+  names of each instance (`"Secrets"` of each configured one). A secret that the build itself needs has no placeholder.
+- The build of a deployment never reads a secret (`AppBuilderContext.Deployment`: `TryResolveSecret` fails), never
+  writes in `#Dev`, never sets up a database.
+- A published host carries its real `InformationalVersion` (`{version}/{commit}/{date}`, as CKli builds).
+- The `Address` of a remote may be a host name (`tcp:auth3.sample.example.com:37300`, `mtls:` too): it is resolved when
+  connecting, at each connection. A `ListeningAddress` stays an IP address (a host name is an error).
+- A host built for a deployment burns the full name of its party: its environment (`Production`) is the .NET environment
+  of the host unless `--environment`, `DOTNET_ENVIRONMENT` or `ASPNETCORE_ENVIRONMENT` gives one. At start, a `#Dev`
+  party in a host that is not in Development is a warning; another party in a host in Development is an error.
+- The client applications are built by the publication of their host and published with it: the builder writes
+  `$StObjGen/Clients.props` (the TypeScript engine), the publish target of CK.TS.AspNet.Clients runs the yarn `build`
+  script of each one (`ng build`) and publishes its output at the same relative path (`Clients/App/dist/App/browser`).
+  `node` must be on the path; `CKClientsPublish=false` opts out. The development build doesn't change.
+- Every publication of a host writes `CK.AppHost.Published.json` next to its executable (the effective `"Publish"`
+  properties: the `Executable` to start, `RuntimeIdentifier`, `SelfContained`, `PublishSingleFile`...), without the XML
+  documentation of its assemblies and packages (`PublishDocumentationFiles` and `PublishReferencesDocumentationFiles`
+  default to false). A published host uses its own folder as its
+  content root, whatever the directory it is started from, unless `--contentRoot`, `DOTNET_CONTENTROOT` or
+  `ASPNETCORE_CONTENTROOT` gives one, and logs its version and its deployment at start. A host of the base SDK (a
+  worker) publishes its `appsettings.json` too. A self-contained host may reference its builder (CK.AppHost turns off
+  the SDK check NETSDK1150: the reference only orders the builds).
+
+- The manifest of a deployed host (in `CK.AppHost.Published.json`, under "Deployment", and per configured instance of a
+  fleet) lists the names of its required secrets ("Secrets") and of its optional ones ("OptionalSecrets").
+
+**Check:** `ckli build --with-assets` produces the assets of each deployment (`$Local/Assets/{Repo}/{Version}/Production-Auth3.Front.zip`...); a
+published host starts in the environment of its deployment.
+
+## U26. The pre-authorized enlistment ticket
+
+**What changes:** an operator who expects a party (a deployed host, an instance of a fleet) opens an enlistment ticket
+for it; the party starts with it and the Authentication Center trusts its key at once: no approval code, no pending
+approval. It replaces the anchors file of a deployment (the ticket carries the anchor of the center).
+
+**Why:** a deployed party can't show an approval code to an operator, and its first start must anchor its center: the
+ticket does both, and while it is open nobody else can enlist under the expected name.
+
+**Migration:**
+1. Nothing to change in the code: CK.AppIdentity.AuthCenter.Enlistment (on the center) holds the tickets
+   (`AuthCenterEnlistmentTickets`, the `IEnlistmentTicketAuthority` of the transport), the approval page
+   (CK.Ng.AppIdentity.Enlistment) opens them ("Expect a party"), `ckey ticket open|list|revoke` too on the center.
+2. In a deployment, the expected party reads its ticket from `Local:KeyManagement:EnlistTicket`, a secret: give it as an
+   optional handle (U20), the ticket is needed at the first start only:
+
+   ```jsonc
+   "KeyManagement": { "TrustAnchors": null, "EnlistTicket": { "$SECRET?": "Enlist:Worker2" } }
+   // a fleet: { "$SECRET?": "Enlist:Worker-{Name}" }
+   ```
+
+   The operator gives `Secrets__Enlist__Worker2=ckt1....` (or the vault's `Secrets:Enlist:Worker2`) at the first start.
+3. In a deployment where no key is trusted on first use (`"AutoTrustKey": "Never"`), every party linked to the
+   Authentication Center takes a ticket this way, the party that hosts the approval page included. Its ticket comes
+   first: it is opened with `ckey ticket open <FullName>` on the center's machine (the page isn't running yet); the next
+   ones are opened on the page. The ticket replaces the anchors of the parties: the center trusts the key that proves
+   it, and the party anchors the center from it.
+
+**Behavior:**
+- A ticket is a one-time P-256 key (`EnlistTicket`, `ckt1.` + base64url): the center keeps its public key only (one
+  json file per ticket in its local store "EnlistTickets"), the text is shown once. Its lifetime is 1 day by default,
+  7 days at most. Opening, listing and revoking require the Critical level (forwarded to the center by any party).
+- The ticket anchors its center at the checkpoint it carries (a different configured anchor of the center is an error).
+- The proof travels in an optional field of the initial message of the transport (all the parties of a System use the
+  same transport version): the id and a signature over the full name, the identity checkpoint, the holder and the
+  ephemeral key of the connection. The center trusts the key at once and marks the ticket used.
+- While a ticket is open for a party, a key presented without a valid proof is refused (no pending approval).
+
+**Check:** open a ticket on the approval page, start the expected party with it: it is trusted without a code, the
+ticket is listed as used.
+
+## U27. The routes are gone: a System is a star around its Authentication Center
+
+**What changes:** the parties announce no routes any more. Every party that designates an Authentication Center is linked
+to it; a command for a party that is not a remote goes through the center (the hub, `IPartyRelay`): at most
+[party, center, target]. What a route carried is a fact read where it is needed: the approval page is the client
+application with the `"Enlistment"` fact (`[PartyClientFact( "Enlistment", ... )]`), the center reads it from the
+descriptions of its remotes and states its URL (`EnlistmentUrlStatement`); the pending approvals and the instances are
+asked through the hub (`[Internal] IGetHeldEnlistmentQCommand`), no more collected along a route.
+
+**Why:** the routes served an arbitrary topology (announced, computed and propagated by every party, authorized against
+hijacking by `RouteHosts`). In a star, they computed nothing; the center already knows every identity: nothing to hijack.
+A large System will add delegates of the center (the AuthCenterProxy), never routes.
+
+**Detect:** `RouteHosts` in a configuration (`"Transport:RouteHosts"`, `"AuthCenter:RouteHosts"`, a `$PER_DEPLOYMENT`
+pattern); `PartyDescription.Routes`, `Collected`, `FindRoute`, `PartyRoute`, `CollectedItem`, `HostRoute`, `Collect`,
+`ContributeDerivedDescription`/`DerivedBuilder`; `IPartyRoutedCommand.RouteName`/`Destination`,
+`PartyRoutedCommandSender.SendAsync( ..., routeName, ... )`; `AuthCenterFeature.RouteName`; `IAuthorizeRouteHostCommand`;
+`IApprovePartyCommand.Routes`, `IPendingApproval.Routes`.
+
+**Do:**
+1. Remove the `RouteHosts` (and its `$PER_DEPLOYMENT` pattern): nothing replaces it, the approval page is found from its
+   fact.
+2. Link every party that designates an AuthCenter (`Local:AuthCenterRemote:Party`) to it: the center must be one of its
+   remotes.
+3. A driver that contributed to the second phase of the description contributes in `ContributeDescription` (the
+   description has one phase: `PartyDescription.Builder.Build()`).
+4. A routed command is sent along a path: `PartyRoutedCommandSender.SendToAsync( monitor, services, origin, command,
+   destination )` (a direct remote, otherwise through the hub) or `SendAlongPathAsync`.
+
+**Behavior:**
+- A `RouteHosts` configuration fails the setup (an explicit message); so does an AuthCenter designated by
+  `Local:AuthCenterRemote:Party` that is not a remote of the party.
+- Several approval pages among the remotes of the center: an error of the center (`SecurityCritical`), no page is stated.
+- A holder accepts an approval countersigned by its AuthCenter (without AuthCenter: from itself or a direct remote that
+  serves the approval page). The removal of an instance (`IRemoveHeldPartyInstanceCommand`) requires the operator at the
+  Critical level: without AuthCenter, only a page served by the holder removes it.
+- The descriptions, the initial message of the transport and the signed System list lose their route parts (the wire
+  format changes: all the parties of a System use the same version).
+
+**Check:** the sample: the Admin is the approval page without configuration; a Worker waiting on Auth3 is approved from
+the Admin through Auth3. The references are CK-AppIdentity-Transport's `EnlistmentPageTests` and `EnlistmentTests`.
+
+## U28. The DataProtection key ring is in the store of the party
+
+**What changes:** the DataProtection key ring of a process (it protects the identity key files, the encryption keys of
+the parties and what ASP.NET protects) is in the private store of the root party, `-Local/DataProtection-Keys`, no more
+in the folder of the account (`%LOCALAPPDATA%\ASP.NET\DataProtection-Keys`, `~/.aspnet/DataProtection-Keys`). Its
+encryption at rest: the secret `Local:KeyManagement:KeyRingKey` of the root party, otherwise the CNG store
+(CK.AppIdentity.KeyManagement.Cng: the TPM), otherwise DPAPI on Windows, otherwise none (a warning outside `#Dev`).
+
+**Why:** the folder of the account is shared by all its applications, unencrypted on Linux, and absent when the account
+has no profile (a container, a service account): ASP.NET then keeps the ring in memory and a restart loses the identity
+of the party. The store of the party is where its identity is.
+
+**Detect:** a `#Dev/Store` (or a deployed store) created before this version: its key files were protected by the ring of
+the account. A host that calls `PersistKeysTo...` or `ProtectKeysWith...` keeps its choice (nothing to detect).
+
+**Migration:**
+1. In development: delete `#Dev/Store` (or the store of the parties that don't start) and start again: new identities,
+   new pins, new enlistments. A party that can't open its keys says why ("Its key ring may have changed").
+2. In a deployment on Linux (or in a container), encrypt the ring with a secret key, the base64 of 32 random bytes:
+
+   ```jsonc
+   "Local": { "KeyManagement": { "KeyRingKey": { "$SECRET": "KeyRing" } } }
+   ```
+
+   To change it, give the new key as `KeyRingKey` and the old one as `KeyRingPreviousKey` (a secret too): the existing
+   keys of the ring stay readable. A secret can be a file: CK.AppHost reads `$CREDENTIALS_DIRECTORY` (systemd) and
+   `$CK_SECRETS_DIRECTORY` (a mounted secret volume), one secret per file (`__` separates the segments of its name). On
+   Linux with a TPM, bind the key to the machine with a systemd credential:
+
+   ```
+   head -c 32 /dev/urandom | base64 -w0 | systemd-creds encrypt --with-key=tpm2 --name=KeyRing - /etc/credstore.encrypted/KeyRing
+   # In the unit of the service:
+   LoadCredentialEncrypted=KeyRing
+   ```
+3. On Windows with CK.AppIdentity.KeyManagement.Cng, nothing to do: the ring is protected by the provider of the root
+   party (its `CngKeyStore` option), bound to the computer as the identity keys are.
+
+**Behavior:**
+- The protection is chosen at the first use of the ring; each file records it: a change applies to the new keys of the
+  ring (one every 90 days), the existing ones stay readable as long as their protection is available.
+- An invalid `KeyRingKey` or `KeyRingPreviousKey` fails the start.
+- The ring and the identity key files are in the same store: a copy of the store gives the keys away unless the ring is
+  encrypted (a secret key kept apart, the TPM, or DPAPI on the same computer and account).
+
+**Check:** start a party: `-Local/DataProtection-Keys/key-*.xml` is in its store; with `KeyRingKey`, the file's
+`decryptorType` is `SecretKeyXmlDecryptor`; nothing new in the folder of the account.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1151,3 +1619,11 @@ CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this w
     start declares it (`DeclareInitSection`), an aspect that projects a value gives its origin (U18).
 19. A value that the application changes while it runs is a run property (`[ConfigurationSection]`, `[ConfigurationLevel( Run )]`);
     its App references CK.Cris.DynamicConfiguration (and CK.AppIdentity.DynamicConfiguration), its builder the engine (U19).
+20. No secret value is left in a configuration file: a handle `{ "$SECRET": "<Name>" }`, its value in `#Dev/Secrets.json`
+    in development, `Secrets:<Name>` elsewhere (U20).
+21. No family feature driver, `IAuthCenterSchemeConfiguration` nor `"AuthCenterOidc"`/`"AuthCenterPasskey"` key is left:
+    the scheme families are options of the AuthCenter (U21).
+22. The payload of every "Oidc" login provider implements `IOidcLoginPayload` (U22).
+23. Each deployment (a `Deployment/#X` folder) writes its values per deployment, and its `ckonf.merged.json` is committed (U23).
+24. The App projects of a central configuration are named after the identity of their party (U24).
+25. A solution with deployments has its `Deployment/GenerateAssets.cs`; the builders that can't be deployed are left out (U25).

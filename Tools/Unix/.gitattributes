@@ -1,0 +1,2 @@
+# Bash fails on CRLF: the scripts keep LF line endings (the root .gitattributes checks out CRLF).
+*.sh text eol=lf
