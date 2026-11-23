@@ -15,6 +15,13 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   changed:** its `--dry-run` lists every changed repository and all their consumers. Started further down (from a
   sample), it sees the changes of that repository only, re-tests the versions already built, and misses an upstream
   change (a fixed test, new code).
+- **Changes in independent repositories: build and publish from the World root.** A build or a publish started in a
+  repository pivots on it: it covers that repository and its consumers only. When the changed repositories are not
+  consumers of one another (CK-Configuration, CK-Abstractions and CK-CodeGen, for instance), none of them is "the most
+  upstream": run the tested build and `ckli publish` from the folder of the World (the root of the Stack's clones), where
+  they cover every changed repository. Started from one of them, the others' commits are neither built nor tested, and a
+  `ckli publish --regular` builds their consumers against their last regular versions (a build error, or worse, a stale
+  package). Before a tested build or a publish, check in its `--dry-run` that every changed repository is listed.
 - **`--max-dop 2`** for a build that runs the tests: with the default (4), the parallel node processes of the TypeScript
   tests exhausted the memory of the machine. `MSBUILDDISABLENODEREUSE=1` (an environment variable) lowers it too.
 - **A failed build or publish** displays its errors and the path of its log file: no need to open the log (`ckli log`
