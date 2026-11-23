@@ -334,7 +334,7 @@ CK-Sample-AspNetAuth, CK-AspNet, CK-AppIdentity-Transport and CK-Mailer are migr
 The name of a feature, its activation and the side of an asymmetric feature are declared by an attribute on each
 concrete driver and read by the engine (in the generated `PartyComponentDirectory`, CK.AppIdentity): the constructor
 arguments of `ApplicationIdentityFeatureDriver` are gone. A feature driver, a client feature and an option are
-**configurable types** (`IConfigurableTypeAttribute`, CK.ResourceSpace.Abstractions): the configuration names them (the
+**configurable types** (`IConfigurableTypeAttribute`, CK.Abstractions): the configuration names them (the
 key of their section) and switches them; the name is explicit, it doesn't come from the type name.
 
 **Detect:** a concrete class that specializes `ApplicationIdentityFeatureDriver` or `ApplicationIdentityStaticFeatureDriver`
@@ -1005,7 +1005,7 @@ migrated this way.
 
 ## U18. The configuration levels and `"$LOCK"`
 
-A configuration value has a level (`ConfigurationLevel`, CK.ResourceSpace.Abstractions, CK-Abstractions): `Compile`
+A configuration value has a level (`ConfigurationLevel`, CK.Abstractions, CK-Abstractions): `Compile`
 (fixed by the build), `Init` (read when the application starts) or `Run` (changed while it runs). The level is a
 capability of the code that reads the value: the engine inputs (the compile keys of the contributors) are `Compile`, the
 sections that the code reads at start are `Init`. The configuration can only lower it, with a `"$LOCK"`. It is new: nothing
@@ -1069,7 +1069,7 @@ reads a section of the hosts' configuration at start, or projects a value (`AppC
 
 A value that its code can change while the application runs is a **run property**: a `[ConfigurationLevel( Run )]`
 property of an App singleton (an `ISingletonAutoService` or a real object) that declares its section of the App's
-configuration with `[ConfigurationSection( "Name" )]` (CK.ResourceSpace.Abstractions, CK-Abstractions). The packages of
+configuration with `[ConfigurationSection( "Name" )]` (CK.Abstractions, CK-Abstractions). The packages of
 the dynamic configuration (CK-Cris-Abstractions, CK-Cris, CK-AppIdentity-Transport) initialize them and change them while
 the application runs. It is new: nothing to migrate, but an application that wants to change a value without a restart
 uses it.
@@ -1128,7 +1128,7 @@ CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this w
 
 A secret (a client secret, a password, a connection string with credentials) is never written in a configuration file:
 its place holds a **handle**, the name of the secret, that the host resolves when it starts (`ConfigurationSecret`,
-CK.ResourceSpace.Abstractions). It is new: a plain value still works, but it is in the files.
+CK.Abstractions). It is new: a plain value still works, but it is in the files.
 
 **Detect:** a secret value in a `ckonf.json` or an `appsettings.json` (`ClientSecret`, `Password`, a connection string
 with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its `.csproj`).
