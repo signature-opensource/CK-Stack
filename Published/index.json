@@ -7,7 +7,7 @@
       "2026.9.25"
     ],
     "(stable-ci)": [
-      "2026.11.3--ci.0"
+      "2026.11.23--ci.0"
     ],
     "explo/cris-auth": [
       "2026.11.6-0.cris-auth",
@@ -31,5 +31,8 @@
   },
   "Deprecated": {
     "(stable)": []
-  }
+  },
+  "LTSWorlds": [
+    "@net8"
+  ]
 }
