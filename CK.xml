@@ -90,6 +90,7 @@
         <VersionTag InfVersion="1.0.0-0" />
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Engine" />
+      <Repository Url="https://github.com/signature-opensource/CK-ConfigurationModel" />
     </Folder>
   </Folder>
   <Folder Name="Database">
