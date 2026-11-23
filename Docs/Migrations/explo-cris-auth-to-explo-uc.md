@@ -1674,6 +1674,10 @@ working: nothing has to change.
   not unknown keys of an aspect), a missing required key, a value that can't be converted (the invariant culture:
   `"00:05:00"` for a `TimeSpan`), then `Validate`. A modeled option that fails fails the setup of the party, a modeled
   aspect fails the build.
+- **A model without its generated description** (its project misses the direct CK.ConfigurationModel reference) fails
+  the engine run (a modeled option) or the build of the App (a modeled aspect) with "The configuration model '...' has no
+  generated description: the project '...' must reference the CK.ConfigurationModel package directly"; the configurator
+  shows no schema for it.
 - The "Passkey" option of the AuthCenter: its configuration (`"RpId"`, `"RpName"`, `"Timeout"`) doesn't change; the
   scheme is available when an `"RpId"` is configured (and an `IPasskeyStore` registered); an `"RpName"` without
   `"RpId"`, and an unknown key of its section, are now errors.
