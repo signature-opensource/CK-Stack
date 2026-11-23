@@ -39,7 +39,7 @@ the **Behavior** and a **Check**.
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
-| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` partial class (CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect or an option, received by its constructor, read key by key along the `"Defaults"` and validated, described as a JSON Schema; the "Globalization" App aspect and the "Passkey" option of the AuthCenter have one | No (new); behavior (the "Passkey" option: its errors, `"RpName"` without `"RpId"` is an error) |
+| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect or an option, received by its constructor, read key by key along the `"Defaults"` and validated, described as a JSON Schema; the "Globalization" App aspect and the "Passkey" option of the AuthCenter have one | No (new); behavior (the "Passkey" option: its errors, `"RpName"` without `"RpId"` is an error) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1599,17 +1599,16 @@ working: nothing has to change.
 `configuration.GetSection( ... )`, a `Read( IConfiguration )` helper that throws on an invalid value).
 
 **Do:**
-1. **Reference CK.ConfigurationModel** (CK-ConfigurationModel, the `explo/uc` line) **directly** in the project that
-   declares the model: its source generator is an analyzer of the package, and an analyzer doesn't flow through a
-   transitive reference.
-2. **Declare the model:** a `[ConfigurationModel]` **partial** top level class (CK.Core). Its keys are its public
+1. **Reference CK.ConfigurationModel** (CK-ConfigurationModel, the `explo/uc` line) in the project that declares the
+   model, unless it comes through another reference (CK.AppIdentity and CK.AppBuilder bring it).
+2. **Declare the model:** a public `[ConfigurationModel]` class (CK.Core) with a parameterless constructor. Its keys are its public
    properties with a setter or an `init` accessor: `required` is required, nullable is optional, an initializer is the
    default; a get-only property is a derived member, not a key. An optional `IConfigurationModel.Validate( UserMessageCollector, path )`
    reports what the types can't say. From CK.AppIdentity.AuthCenter.Passkey (CK-AppIdentity-Transport):
 
    ```csharp
    [ConfigurationModel]
-   public sealed partial class AuthCenterPasskeyOptionConfiguration : IConfigurationModel
+   public sealed class AuthCenterPasskeyOptionConfiguration : IConfigurationModel
    {
        public string? RpId { get; init; }
 
@@ -1636,7 +1635,7 @@ working: nothing has to change.
    The supported property types: a basic value (string, bool, int, long, double, decimal, an enum by name, `TimeSpan`,
    `Guid`, `Uri`), a nested model, a list (an array, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`) of
    values or models, a dictionary of models by name (`IReadOnlyDictionary<string, TModel>`), an opaque `IConfiguration`.
-   The generator reports `CKCM001` (not `partial`), `CKCM002` (an unsupported property type), `CKCM003` (a nested class).
+   An unsupported property type is an error of the engine run (a modeled option) or of the App build (a modeled aspect).
    `[ConfigurationLevel]`, `[ConfigurationSecret]` and `[ConfigurationPerDeployment]` (CK.Abstractions) also decorate
    the properties of a model (without a path).
 3. **Name it on its owner and receive it:** `[Configuration<TModel>]` (CK.Abstractions) on the aspect or the option, and
@@ -1674,15 +1673,16 @@ working: nothing has to change.
   not unknown keys of an aspect), a missing required key, a value that can't be converted (the invariant culture:
   `"00:05:00"` for a `TimeSpan`), then `Validate`. A modeled option that fails fails the setup of the party, a modeled
   aspect fails the build.
-- **A model without its generated description** (its project misses the direct CK.ConfigurationModel reference) fails
-  the engine run (a modeled option) or the build of the App (a modeled aspect) with "The configuration model '...' has no
-  generated description: the project '...' must reference the CK.ConfigurationModel package directly"; the configurator
-  shows no schema for it.
+- **The description of a model** is read by reflection at build time (the App builder, the engines, the configurator); at
+  run time, the options engine generates it with the creation of the model (no reflection: an `[UnsafeAccessor]` calls
+  its constructor and its `init` setters, so its initializers are its defaults). A type that is not a model (not a
+  `[ConfigurationModel]`, an unsupported property type, no parameterless constructor, not public for an option) fails the
+  engine run or the App build with the reason.
 - The "Passkey" option of the AuthCenter: its configuration (`"RpId"`, `"RpName"`, `"Timeout"`) doesn't change; the
   scheme is available when an `"RpId"` is configured (and an `IPasskeyStore` registered); an `"RpName"` without
   `"RpId"`, and an unknown key of its section, are now errors.
 
-**Check:** the project builds without `CKCM00x` error, the owner starts (or the App builds) with its configuration, and
+**Check:** the engine runs (or the App builds), the owner starts (or the App builds) with its configuration, and
 the configurator shows the JSON Schema of the model in the detail of the type.
 
 ## The final checklist
@@ -1728,5 +1728,5 @@ the configurator shows the JSON Schema of the model in the detail of the type.
 23. Each deployment (a `Deployment/#X` folder) writes its values per deployment, and its `ckonf.merged.json` is committed (U23).
 24. The App projects of a central configuration are named after the identity of their party (U24).
 25. A solution with deployments has its `Deployment/GenerateAssets.cs`; the builders that can't be deployed are left out (U25).
-26. A project that declares a `[ConfigurationModel]` references CK.ConfigurationModel directly; a "Passkey" section has
+26. A "Passkey" section has
     no `"RpName"` without `"RpId"` nor any unknown key (U29).
