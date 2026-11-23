@@ -1,7 +1,7 @@
 {
-  "StackUrl": "https://github.com/signature-opensource/ck-stack",
+  "StackUrl": "https://github.com/signature-opensource/CK-Stack",
   "World": "CK",
-  "Version": "2026.11.3--ci.0",
+  "Version": "2026.11.23--ci.0",
   "IsDeprecated": false,
   "Repositories": [
     {
@@ -543,7 +543,7 @@
     },
     {
       "Url": "https://github.com/signature-opensource/CK-Ng-Admin",
-      "Id": "1vfvAIBNis8",
+      "Id": "FefQ9dVRzhY",
       "Packages": [
         "CK.Ng.Admin@3.0.0--ci.17",
         "CK.Ng.Admin.UserManagement@3.0.0--ci.17",
@@ -596,17 +596,17 @@
       "Url": "https://github.com/signature-opensource/CK-Observable-Domain",
       "Id": "pgaWA85SAcM",
       "Packages": [
-        "CK.IO.ObservableDevice@20.1.0--ci.9",
-        "CK.Ng.ObservableDomain.SignalR@20.1.0--ci.9",
-        "CK.Ng.ObservableDomain.WebSocket@20.1.0--ci.9",
-        "CK.Observable.Cris@20.1.0--ci.9",
-        "CK.Observable.Device@20.1.0--ci.9",
-        "CK.Observable.Domain@20.1.0--ci.9",
-        "CK.Observable.League@20.1.0--ci.9",
-        "CK.Observable.SignalRWatcher@20.1.0--ci.9",
-        "CK.Observable.WebSocketWatcher@20.1.0--ci.9",
-        "CK.TS.ObservableDomain@20.1.0--ci.9",
-        "CK.TS.ObservableDomain.DualCasing@20.1.0--ci.9"
+        "CK.IO.ObservableDevice@20.1.0--ci.11",
+        "CK.Ng.ObservableDomain.SignalR@20.1.0--ci.11",
+        "CK.Ng.ObservableDomain.WebSocket@20.1.0--ci.11",
+        "CK.Observable.Cris@20.1.0--ci.11",
+        "CK.Observable.Device@20.1.0--ci.11",
+        "CK.Observable.Domain@20.1.0--ci.11",
+        "CK.Observable.League@20.1.0--ci.11",
+        "CK.Observable.SignalRWatcher@20.1.0--ci.11",
+        "CK.Observable.WebSocketWatcher@20.1.0--ci.11",
+        "CK.TS.ObservableDomain@20.1.0--ci.11",
+        "CK.TS.ObservableDomain.DualCasing@20.1.0--ci.11"
       ]
     },
     {
@@ -945,6 +945,7 @@
             "Repositories": [
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -997,7 +998,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
@@ -1031,6 +1031,7 @@
             "Repositories": [
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1082,7 +1083,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
@@ -1117,6 +1117,7 @@
               "NRzmaNIsfgE",
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "Ajd6n0XKyi0",
@@ -1157,7 +1158,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "3R_O8Z_c79U",
               "vukgP5V2utw",
@@ -1199,6 +1199,7 @@
               "NRzmaNIsfgE",
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1253,7 +1254,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "3R_O8Z_c79U",
               "vukgP5V2utw",
@@ -1286,6 +1286,7 @@
             "Repositories": [
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1338,7 +1339,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
@@ -1372,6 +1372,7 @@
             "Repositories": [
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1424,7 +1425,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
@@ -1458,6 +1458,7 @@
             "Repositories": [
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1510,7 +1511,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
@@ -1544,6 +1544,7 @@
             "Repositories": [
               "NRzmaNIsfgE",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "KQePC1Po0Cw",
               "YVynyM1doTc",
@@ -1571,7 +1572,6 @@
               "uMHr66Cmiro",
               "71gdiDvLOsE",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "3R_O8Z_c79U",
               "vukgP5V2utw",
@@ -1601,6 +1601,7 @@
               "NRzmaNIsfgE",
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "Ajd6n0XKyi0",
@@ -1638,7 +1639,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "3R_O8Z_c79U",
               "vukgP5V2utw",
@@ -1699,6 +1699,7 @@
             "Repositories": [
               "2fEdV71a5BA",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "eLi2pYsCiiI",
               "KQePC1Po0Cw",
@@ -1751,7 +1752,6 @@
               "71gdiDvLOsE",
               "pgaWA85SAcM",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "tKz0kTr_l9Q",
               "3R_O8Z_c79U",
@@ -1783,17 +1783,17 @@
           {
             "Version": "10.0.12",
             "Repositories": [
-              "QYFVPZpqhqs",
-              "1vfvAIBNis8"
+              "FefQ9dVRzhY",
+              "QYFVPZpqhqs"
             ]
           },
           {
             "Version": "10.0.0",
             "Repositories": [
+              "FefQ9dVRzhY",
               "I2cylf2Ru0E",
               "QYFVPZpqhqs",
-              "NP5MBHbfHLE",
-              "1vfvAIBNis8"
+              "NP5MBHbfHLE"
             ]
           },
           {
@@ -1801,6 +1801,7 @@
             "Repositories": [
               "NRzmaNIsfgE",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "KQePC1Po0Cw",
               "YVynyM1doTc",
@@ -1828,7 +1829,6 @@
               "uMHr66Cmiro",
               "71gdiDvLOsE",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "3R_O8Z_c79U",
               "vukgP5V2utw",
@@ -1851,6 +1851,7 @@
             "Repositories": [
               "NRzmaNIsfgE",
               "rzheU9-ntBE",
+              "FefQ9dVRzhY",
               "3V-iEa54gBg",
               "KQePC1Po0Cw",
               "YVynyM1doTc",
@@ -1878,7 +1879,6 @@
               "uMHr66Cmiro",
               "71gdiDvLOsE",
               "nLIakHlCJcc",
-              "1vfvAIBNis8",
               "HbMnF2Wm8NA",
               "3R_O8Z_c79U",
               "vukgP5V2utw",
@@ -1899,5 +1899,20 @@
         ]
       }
     ]
-  }
+  },
+  "Feeds": [
+    {
+      "Name": "NuGet",
+      "Url": "https://api.nuget.org/v3/index.json",
+      "PushQualityFilter": "[papa,stable]",
+      "SecretKey": "NUGET_ORG_PUSH_API_KEY"
+    },
+    {
+      "Name": "Signature-OpenSource",
+      "Url": "https://pkgs.dev.azure.com/Signature-OpenSource/Feeds/_packaging/NetCore3/nuget/v3/index.json",
+      "PushQualityFilter": "[explo,stable],AllowCI",
+      "SecretKey": "AZURE_FEED_SIGNATURE_OPENSOURCE_PAT"
+    }
+  ],
+  "Upstreams": []
 }
