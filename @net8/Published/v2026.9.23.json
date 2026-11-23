@@ -1,7 +1,7 @@
 {
   "StackUrl": "https://github.com/signature-opensource/CK-Stack",
-  "World": "CK@net8",
-  "Version": "2026.327.0",
+  "World": "CK",
+  "Version": "2026.9.23",
   "IsDeprecated": false,
   "Repositories": [
     {
@@ -589,17 +589,17 @@
       "Url": "https://github.com/signature-opensource/CK-Observable-Domain",
       "Id": "pgaWA85SAcM",
       "Packages": [
-        "CK.IO.ObservableDevice@18.1.2",
-        "CK.Ng.ObservableDomain.SignalR@18.1.2",
-        "CK.Ng.ObservableDomain.WebSocket@18.1.2",
-        "CK.Observable.Cris@18.1.2",
-        "CK.Observable.Device@18.1.2",
-        "CK.Observable.Domain@18.1.2",
-        "CK.Observable.League@18.1.2",
-        "CK.Observable.SignalRWatcher@18.1.2",
-        "CK.Observable.WebSocketWatcher@18.1.2",
-        "CK.TS.ObservableDomain@18.1.2",
-        "CK.TS.ObservableDomain.DualCasing@18.1.2"
+        "CK.IO.ObservableDevice@18.1.1",
+        "CK.Ng.ObservableDomain.SignalR@18.1.1",
+        "CK.Ng.ObservableDomain.WebSocket@18.1.1",
+        "CK.Observable.Cris@18.1.1",
+        "CK.Observable.Device@18.1.1",
+        "CK.Observable.Domain@18.1.1",
+        "CK.Observable.League@18.1.1",
+        "CK.Observable.SignalRWatcher@18.1.1",
+        "CK.Observable.WebSocketWatcher@18.1.1",
+        "CK.TS.ObservableDomain@18.1.1",
+        "CK.TS.ObservableDomain.DualCasing@18.1.1"
       ]
     },
     {
@@ -2250,5 +2250,7 @@
         ]
       }
     ]
-  }
+  },
+  "Feeds": [],
+  "Upstreams": []
 }
