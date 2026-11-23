@@ -7,9 +7,6 @@
     </BranchModel>
     <VersionTag AutoFixRemovableTag="true">
       <Packages>
-        <!-- A source generator runs in the compiler: Roslyn no newer than the compiler of the oldest SDK that global.json
-             accepts (10.0.100: Roslyn 5.0). CK.CodeGen.Roslyn follows (one version per package in the World). -->
-        <Package Name="Microsoft.CodeAnalysis.CSharp" Version="5.0.0[Lock]" />
         <Package Name="DotNet.ReproducibleBuilds" Version="1.2.39[Lock]" />
         <Package Name="Microsoft.AspNetCore.*" Version="10.0.0[LockMajor]" />
       </Packages>
