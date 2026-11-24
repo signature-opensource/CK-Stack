@@ -31,7 +31,7 @@ the **Behavior** and a **Check**.
 | [U18](#u18-the-configuration-levels-and-lock) | The configuration levels (`Compile`, `Init`, `Run`): a `"$LOCK"` in `ckonf.json` restricts a value to `Compile` (burnt in the generated code, not in the host's `appsettings.json`); a package restricts the values of a kind of party (`[ConfigurationLock]`: KeyManagement's `AutoTrustKey` is `Never` on an Opened remote template, checked at build time) | Behavior (an Opened remote template with another `AutoTrustKey` fails the build) |
 | [U19](#u19-the-run-properties-and-the-dynamic-configuration) | The run properties: `[ConfigurationSection]` on an App singleton, `[ConfigurationLevel( Run )]` on its properties; CK.Cris.DynamicConfiguration initializes them from the configuration and changes them by a command (CK.IO.DynamicConfiguration), CK.AppIdentity.DynamicConfiguration keeps the changes; `CrisExecutionHost.ParallelRunnerCount` is one | No (new) |
 | [U20](#u20-the-secrets) | The secrets: a secret in `ckonf.json` is a handle `{ "$SECRET": "<Name>" }`, projected (or burnt) as is; the host resolves it at start from the configuration key `Secrets:<Name>` (`#Dev/Secrets.json` in development); `[ConfigurationSecret]`, `AppConfiguration.AddSecretKey`; the "SqlServer" aspect accepts a handle | No (new); `SqlServerAspect.Databases` items are `SqlServerAspect.DatabaseConfiguration` |
-| [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `IAuthCenterSchemeFamilyOption`; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
+| [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `AuthCenterPasswordOption` ("Password": the "Basic" scheme), `AuthCenterWeakOption` ("Weak"), `IAuthCenterSchemeFamilyOption`; a scheme is available only through an enabled family and its provider; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (an AuthCenter references the families of its logins, a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
 | [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
 | [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
 | [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
@@ -494,7 +494,10 @@ In a test configuration: `c["Parties:0:AutoTrustKey"]` becomes `c["Parties:0:Key
   CK.AppIdentity.AuthCenter.Local), enabled by default: `"AuthCenter": { "PasswordLost": false }` turns the lost
   password flow off (no recovery mail, the anonymous command answers the same; a recovery link is refused). An
   application that is not an Authentication Center has no lost password flow. `PasswordLostTokenService.FallbackLifetime`
-  is `PasswordLostOption.DefaultTokenLifetime`, and the service has `Option` and `IsEnabled`.
+  is `PasswordLostOption.DefaultTokenLifetime`, and the service has `Option` and `IsEnabled`. It exists only with the
+  "Password" option of the AuthCenter and the "MailSender" feature of the party (`[Requires<AuthCenterPasswordOption>]`,
+  `[Requires<MailSenderFeatureDriver>]`): left to its default it is disabled without them, enabled explicitly it is an
+  error. "UserInvitation" (CK.UserManagement.UserInvitation, required) requires "MailSender" too.
 - A configured `EnlistRemoteUrl` is still a start error (it is no more supported), wherever it is.
 
 **Check:** the parties start without "unknown key" warnings. CK-Sample-AspNetAuth, CK-Ng-Admin, CK-Ng-User-UserProfile and
@@ -564,6 +567,12 @@ options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
 - An option that throws fails the setup of the party (an option of a feature driver) or makes the client an error (an
   option of a client feature).
 - The name of an option is unique among the options of its owner; a `TypeActivation.Required` option is always enabled.
+- **An option can require a configurable type of its level or above** (`[Requires<T>]`, not optional): a party feature
+  for an option of a feature driver or of a client feature (`[Requires<MailSenderFeatureDriver>]`), an aspect for an
+  option of an aspect. Outside the options of its owner, the requirement doesn't order it but means "only with it", as
+  between options: an option enabled by default is disabled without it (an information is logged), an option enabled
+  explicitly (or required) is an error, at run time and, for an explicit option of a party, at build time. An option of
+  a party component can require a feature driver only (the engine refuses another type).
 - The engine refuses more than one `IConfiguration` parameter and a parameter of a derived configuration type
   (`IConfigurationSection`, `ImmutableConfigurationSection`).
 
@@ -1204,16 +1213,32 @@ with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its
 
 ## U21. The scheme families are options of the AuthCenter
 
-A scheme family of the AuthCenter (OpenID Connect, passkeys) is an option of the `LocalAuthCenterFeatureDriver`
-(CK.AppIdentity.AuthCenter.Local, CK-AppIdentity-Transport): its section is the sub-section of its name
-(`"AuthCenter:Oidc"`, `"AuthCenter:Passkey"`), that its constructor reads, and the AuthCenter creates the family of each
-local Authentication Center. The configuration of the schemes doesn't change.
+A scheme family of the AuthCenter (OpenID Connect, passkeys, the password and the weak logins) is an option of the
+`LocalAuthCenterFeatureDriver` (CK.AppIdentity.AuthCenter.Local, CK-AppIdentity-Transport): its section is the
+sub-section of its name (`"AuthCenter:Oidc"`, `"AuthCenter:Passkey"`), that its constructor reads, and the AuthCenter
+creates the family of each local Authentication Center. **A scheme is available only through an enabled family and its
+registered login provider:** the "Basic" scheme needs the "Password" option (CK.AppIdentity.AuthCenter.Password), the
+"Weak" scheme the "Weak" option (CK.AppIdentity.AuthCenter.Weak). An option holds the family only, never the provider
+(the provider is the backend's: CK.DB.User.UserPassword, CK.DB.Actor.WeakActor...). The configuration of the schemes
+doesn't change.
 
 **Detect:** `AuthCenterOidcFeatureDriver`, `AuthCenterPasskeyFeatureDriver`, `AuthCenterOidcConfiguration`,
 `AuthCenterPasskeyConfiguration`, `IAuthCenterSchemeConfiguration`, `LocalAuthCenter.GetSchemeSettings`; the keys
-`"AuthCenterOidc"` or `"AuthCenterPasskey"` in a configuration.
+`"AuthCenterOidc"` or `"AuthCenterPasskey"` in a configuration; an AuthCenter application (it references
+CK.AppIdentity.AuthCenter.Local) that references a login provider (CK.DB.User.UserPassword, CK.DB.Actor.WeakActor) without
+its family.
 
 **Do:**
+0. **An AuthCenter references the families of its login methods:** CK.AppIdentity.AuthCenter.Password for "Basic" and
+   CK.AppIdentity.AuthCenter.Weak for "Weak" (from Auth3.Auth3.App, CK-Sample-AspNetAuth):
+
+   ```xml
+   <PackageReference Include="CK.AppIdentity.AuthCenter.Password" Version="4.0.0-0.uc..." />
+   <PackageReference Include="CK.AppIdentity.AuthCenter.Weak" Version="4.0.0-0.uc..." />
+   ```
+
+   A test that lists the types adds `typeof( Password.AuthCenterPasswordOption )` and `typeof( Weak.AuthCenterWeakOption )`;
+   `AddAuthCenterApplication` (CK.Testing.Engine.AppIdentity.AuthCenter) brings both.
 1. **A test that lists the types of the family** lists the option instead (from CK.AppIdentity.AuthCenter.Tests):
 
    ```csharp
@@ -1248,10 +1273,15 @@ local Authentication Center. The configuration of the schemes doesn't change.
 **Behavior:**
 - The families are created for every local Authentication Center, the dynamic tenants included, right after its
   `LocalAuthCenter`; `LocalAuthCenter.SchemeFamilies` lists them as before.
+- **A scheme without an enabled family is not available:** `IGetLoginSchemesQCommand` lists the schemes of the enabled
+  families whose provider is registered (nothing without a local AuthCenter), and the login of any other scheme fails with
+  `"Authentication.UnknownScheme"`. `"AuthCenter": { "Password": false }` (or `"Weak"`, `"Passkey"`, `"Oidc"`) turns a
+  login method off for a party. The password management commands are not affected.
 - An invalid section of a family fails the setup of the party ("Unable to create the option 'AuthCenter:Oidc': ..."),
   a sub-section of the AuthCenter that is not an option of an installed package is still an error.
 
-**Check:** no type of the Detect list is left; the scheme listing shows the same schemes.
+**Check:** no type of the Detect list is left; the scheme listing shows the same schemes (an AuthCenter without the
+"Password" family no longer lists "Basic").
 
 ## U22. The payload of the "Oidc" login provider is an `IOidcLoginPayload`
 
