@@ -39,7 +39,7 @@ the **Behavior** and a **Check**.
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
-| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect or an option, received by its constructor, read key by key along the `"Defaults"` and validated, described as a JSON Schema; the "Globalization" App aspect and the "Passkey" option of the AuthCenter have one | No (new); behavior (the "Passkey" option: its errors, `"RpName"` without `"RpId"` is an error) |
+| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect or an option, received by its constructor, read key by key along the `"Defaults"` and validated, described as a JSON Schema; the "Globalization" App aspect and the "Passkey" option of the AuthCenter have one | No (new); behavior (the "Passkey" option: its errors, `"RpName"` without `"RpId"` is an error) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -335,7 +335,7 @@ CK-Sample-AspNetAuth, CK-AspNet, CK-AppIdentity-Transport and CK-Mailer are migr
 The name of a feature, its activation and the side of an asymmetric feature are declared by an attribute on each
 concrete driver and read by the engine (in the generated `PartyComponentDirectory`, CK.AppIdentity): the constructor
 arguments of `ApplicationIdentityFeatureDriver` are gone. A feature driver, a client feature and an option are
-**configurable types** (`IConfigurableTypeAttribute`, CK.Abstractions): the configuration names them (the
+**configurable types** (`IConfigurableTypeAttribute`, CK.AppBuilder.Abstractions): the configuration names them (the
 key of their section) and switches them; the name is explicit, it doesn't come from the type name.
 
 **Detect:** a concrete class that specializes `ApplicationIdentityFeatureDriver` or `ApplicationIdentityStaticFeatureDriver`
@@ -346,8 +346,8 @@ or that registers feature drivers by hand (`services.AddSingleton<XXXFeatureDriv
 
 **Do:**
 
-1. **Every concrete feature driver declares its feature:** `[PartyFeature( "Name", TypeActivation.X )]` (namespace
-   `CK.AppIdentity`; `TypeActivation` is in `CK.Core`). The attribute is not inherited: each concrete driver has its own,
+1. **Every concrete feature driver declares its feature:** `[PartyFeature( "Name", TypeActivation.X )]` (CK.AppBuilder.Abstractions,
+   namespace `CK.AppIdentity`; `TypeActivation` is in `CK.Core`; CK.AppIdentity brings the package). The attribute is not inherited: each concrete driver has its own,
    a driver without it is an engine error. The base constructor takes the service only: `base( s )`.
    - **The name** is the key of the feature in a party: keep the former name, the type name without its "FeatureDriver"
      suffix (`HttpEndpointFeatureDriver` is `"HttpEndpoint"`).
@@ -512,8 +512,8 @@ options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
 **Do:**
 
 1. **The attribute names the option:** `[FeatureOption]` becomes `[PartyFeatureOption( "Name", TypeActivation.X )]`
-   (CK.AppIdentity.Abstractions), `[PartyClientOption]` becomes `[PartyClientFeatureOption( "Name", TypeActivation.X )]`
-   (CK.AppIdentity.PartyClient). Keep the former name, the type name without its "Option" suffix; `IsEnabledByDefault = true`
+   (CK.AppBuilder.Abstractions, namespace `CK.AppIdentity`), `[PartyClientOption]` becomes
+   `[PartyClientFeatureOption( "Name", TypeActivation.X )]` (same package and namespace). Keep the former name, the type name without its "Option" suffix; `IsEnabledByDefault = true`
    becomes `TypeActivation.ByDefault`, nothing (opt-in) `TypeActivation.Optional`. From CK.UserProfile.UserPassword.Lost:
 
    ```csharp
@@ -590,6 +590,18 @@ configuration tool can use them), lose "Engine".
 | CK.Engine.TypeCollector (CK-StObj) | CK.TypeCache, and CK.TypeSet for `BinPathTypeGroup` | CK-ResourceSpace and CK-Engine, 36.0.2-0.uc |
 
 CK.Testing.AppIdentity and CK.Testing.AppIdentity.TransportLayer keep their names (they don't run the engine).
+
+Two moves keep the package names:
+- **CK.AppBuilder and CK.AppDeployment** are produced by CK-AppBuilder (version line 37.0.1-0.uc), no longer by CK-StObj:
+  a `<PackageReference>` only takes the new version.
+- **The declarations of the configuration** are in **CK.AppBuilder.Abstractions** (CK-Abstractions, 32.0.0-0.uc): the
+  configuration attributes of CK.Abstractions (`IConfigurableTypeAttribute`, `TypeActivation`, `[Configuration...]`),
+  `[ConfigurationModel]` and `IConfigurationModel`, the aspect declarations (`[AppBuilderAspect]`, `[AppAspect]`, their
+  options; `ICKomposableAppBuilder` is in CK.Engine.Configuration), `[PartyFeature]`, `[PartyFeatureOption]`,
+  `IPartyComponent`, `IApplicationIdentityFeatureDriver`, `IPartyComponentOption<TOwner>`, `[PartyClientFeature]`,
+  `[PartyClientFeatureOption]` and `[PartyClientFact]` (its `IsValidKey` and `IsValidValue` are the rules of the facts).
+  The namespaces don't change. CK.AppIdentity and CK.Engine.Configuration bring it: only a project that uses them
+  without these references (a CK.Abstractions only package) references it.
 
 **Detect:** a `<PackageReference>` to a name of the first column; `using CK.Engine.TypeCollector;`;
 `using CK.Testing.AppIdentity.Cris;`; a `CKDEPRECATED` build error.
@@ -776,10 +788,11 @@ configuration key `AppIdentity:Local:SqlServer:DefaultDatabaseConnectionString`.
 2. The run time connection string is `"SqlServer": { "DefaultDatabaseConnectionString" }`, a root section of the host's
    `appsettings.json` (projected from `ckonf.json`); `AppIdentity:Local:SqlServer:...` never applied (the section is
    `CK-AppIdentity`).
-3. A model package that brings an aspect declares it: a package (`IAppBuilderAspect` or `IAppAspect`, an `IResourceGroup`)
-   decorated with `[AppBuilderAspect( "Name", TypeActivation.X )]` or `[AppAspect( "Name", TypeActivation.X )]`, whose
-   constructor reads its `IConfiguration` section and whose `Apply` configures the engine (see the README of the App
-   builder model, CK.Engine.Configuration).
+3. A model package that brings an aspect declares it: a package decorated with `[AppBuilderAspect( "Name", TypeActivation.X )]`
+   or `[AppAspect( "Name", TypeActivation.X )]` (CK.AppBuilder.Abstractions, namespace `CK.Setup`), whose constructor reads
+   its `IConfiguration` section and that implements `IAppBuilderAspectApply` or `IAppAspectApply` (CK.Engine.Configuration:
+   the `IAppBuilderAspect` and `IAppAspect` of CK.AppBuilder.Abstractions are markers), whose `Apply` configures the engine
+   (see the README of the App builder model, CK.Engine.Configuration).
 
 **Behavior:**
 - "SqlServer" is present as soon as an App references CK.SqlServer.Setup.Model (`TypeActivation.ByDefault`); without
@@ -1009,7 +1022,7 @@ migrated this way.
 
 ## U18. The configuration levels and `"$LOCK"`
 
-A configuration value has a level (`ConfigurationLevel`, CK.Abstractions, CK-Abstractions): `Compile`
+A configuration value has a level (`ConfigurationLevel`, CK.AppBuilder.Abstractions, CK-Abstractions): `Compile`
 (fixed by the build), `Init` (read when the application starts) or `Run` (changed while it runs). The level is a
 capability of the code that reads the value: the engine inputs (the compile keys of the contributors) are `Compile`, the
 sections that the code reads at start are `Init`. The configuration can only lower it, with a `"$LOCK"`. It is new: nothing
@@ -1073,7 +1086,7 @@ reads a section of the hosts' configuration at start, or projects a value (`AppC
 
 A value that its code can change while the application runs is a **run property**: a `[ConfigurationLevel( Run )]`
 property of an App singleton (an `ISingletonAutoService` or a real object) that declares its section of the App's
-configuration with `[ConfigurationSection( "Name" )]` (CK.Abstractions, CK-Abstractions). The packages of
+configuration with `[ConfigurationSection( "Name" )]` (CK.AppBuilder.Abstractions, CK-Abstractions). The packages of
 the dynamic configuration (CK-Cris-Abstractions, CK-Cris, CK-AppIdentity-Transport) initialize them and change them while
 the application runs. It is new: nothing to migrate, but an application that wants to change a value without a restart
 uses it.
@@ -1132,7 +1145,7 @@ CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this w
 
 A secret (a client secret, a password, a connection string with credentials) is never written in a configuration file:
 its place holds a **handle**, the name of the secret, that the host resolves when it starts (`ConfigurationSecret`,
-CK.Abstractions). It is new: a plain value still works, but it is in the files.
+CK.AppBuilder.Abstractions). It is new: a plain value still works, but it is in the files.
 
 **Detect:** a secret value in a `ckonf.json` or an `appsettings.json` (`ClientSecret`, `Password`, a connection string
 with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its `.csproj`).
@@ -1378,7 +1391,7 @@ version as its argument), and the assets of each deployment are part of the rele
 `GenerateAssets.cs` is unchanged.
 
 **Do:**
-1. **Write `Deployment/GenerateAssets.cs`** (CK.AppDeployment, a package of CK-StObj):
+1. **Write `Deployment/GenerateAssets.cs`** (CK.AppDeployment, a package of CK-AppBuilder):
 
    ```csharp
    #:package CK.AppDeployment@37.0.0-0.uc.0.ci.36
@@ -1601,10 +1614,11 @@ working: nothing has to change.
 **Do:**
 1. **Reference CK.ConfigurationModel** (CK-ConfigurationModel, the `explo/uc` line) in the project that declares the
    model, unless it comes through another reference (CK.AppIdentity and CK.AppBuilder bring it).
-2. **Declare the model:** a public `[ConfigurationModel]` class (CK.Core) with a parameterless constructor. Its keys are its public
+2. **Declare the model:** a public `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, namespace `CK.Core`) with a
+   parameterless constructor. Its keys are its public
    properties with a setter or an `init` accessor: `required` is required, nullable is optional, an initializer is the
-   default; a get-only property is a derived member, not a key. An optional `IConfigurationModel.Validate( UserMessageCollector, path )`
-   reports what the types can't say. From CK.AppIdentity.AuthCenter.Passkey (CK-AppIdentity-Transport):
+   default; a get-only property is a derived member, not a key. An optional `IConfigurationModel.Validate( IConfigurationValidationContext )`
+   (the `Path` of the section, `Error` and `Warn`, messages in the invariant culture) reports what the types can't say. From CK.AppIdentity.AuthCenter.Passkey (CK-AppIdentity-Transport):
 
    ```csharp
    [ConfigurationModel]
@@ -1620,12 +1634,12 @@ working: nothing has to change.
 
        public string? EffectiveRpName => RpName ?? NormalizedRpId;
 
-       public void Validate( UserMessageCollector collector, string path )
+       public void Validate( IConfigurationValidationContext context )
        {
            var rpId = NormalizedRpId;
            if( rpId != null && (rpId.Length == 0 || Uri.CheckHostName( rpId ) != UriHostNameType.Dns) )
            {
-               collector.Error( $"'{path}:RpId' must be a domain name (\"example.com\" or \"localhost\"), without scheme nor port." );
+               context.Error( $"'{context.Path}:RpId' must be a domain name (\"example.com\" or \"localhost\"), without scheme nor port." );
            }
            // ...
        }
@@ -1636,9 +1650,9 @@ working: nothing has to change.
    `Guid`, `Uri`), a nested model, a list (an array, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`) of
    values or models, a dictionary of models by name (`IReadOnlyDictionary<string, TModel>`), an opaque `IConfiguration`.
    An unsupported property type is an error of the engine run (a modeled option) or of the App build (a modeled aspect).
-   `[ConfigurationLevel]`, `[ConfigurationSecret]` and `[ConfigurationPerDeployment]` (CK.Abstractions) also decorate
+   `[ConfigurationLevel]`, `[ConfigurationSecret]` and `[ConfigurationPerDeployment]` (CK.AppBuilder.Abstractions) also decorate
    the properties of a model (without a path).
-3. **Name it on its owner and receive it:** `[Configuration<TModel>]` (CK.Abstractions) on the aspect or the option, and
+3. **Name it on its owner and receive it:** `[Configuration<TModel>]` (CK.AppBuilder.Abstractions) on the aspect or the option, and
    a constructor parameter of the model type instead of the `IConfiguration`. The option (or the aspect) always
    receives a model: without a section, it has its defaults. From CK.AppIdentity.AuthCenter.Passkey:
 
@@ -1655,7 +1669,7 @@ working: nothing has to change.
    ```csharp
    [AppAspect( "Globalization", TypeActivation.Optional )]
    [Configuration<GlobalizationAppAspectConfiguration>]
-   public sealed class GlobalizationAppAspect : IAppAspect
+   public sealed class GlobalizationAppAspect : IAppAspectApply
    {
        public GlobalizationAppAspect( GlobalizationAppAspectConfiguration configuration )
    ```
