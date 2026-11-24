@@ -92,6 +92,7 @@
       </Repository>
       <Repository Url="https://github.com/signature-opensource/CK-Engine" />
       <Repository Url="https://github.com/signature-opensource/CK-ConfigurationModel" />
+      <Repository Url="https://github.com/signature-opensource/CK-AppBuilder" />
     </Folder>
   </Folder>
   <Folder Name="Database">
