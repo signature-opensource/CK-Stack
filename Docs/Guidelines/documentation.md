@@ -21,6 +21,11 @@ repository, and its documentation must move with it. So the details always live 
   `Directory.Build.props` sets it as `PackageReadmeFile` when it exists): a few lines saying what the
   package provides and its main types or entry points, not a copy of the `README.md`. It is read
   outside any repository, so any link in it is an absolute URL (see below).
+  **Its first paragraph is the description of the package**: the shared `Directory.Build.targets`
+  makes it the NuGet `<description>` when packing (after the `#` title, if any, up to the first blank
+  line, its Markdown removed). Write it as one or two sentences that read well without Markdown, and
+  put a "See the README" link in a paragraph of its own. A project with a `docs/Package.md` has no
+  `<Description>` in its csproj.
 - **Images and other documentation files** (diagrams, presentations, samples) are in the project's
   `docs/` folder, never in a repository-level folder: they move with the project.
 
