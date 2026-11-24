@@ -39,6 +39,7 @@ the **Behavior** and a **Check**.
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
+| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect or an option, received by its constructor, read key by key along the `"Defaults"` and validated, described as a JSON Schema; the "Globalization" App aspect and the "Passkey" option of the AuthCenter have one | No (new); behavior (the "Passkey" option: its errors, `"RpName"` without `"RpId"` is an error) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -334,7 +335,7 @@ CK-Sample-AspNetAuth, CK-AspNet, CK-AppIdentity-Transport and CK-Mailer are migr
 The name of a feature, its activation and the side of an asymmetric feature are declared by an attribute on each
 concrete driver and read by the engine (in the generated `PartyComponentDirectory`, CK.AppIdentity): the constructor
 arguments of `ApplicationIdentityFeatureDriver` are gone. A feature driver, a client feature and an option are
-**configurable types** (`IConfigurableTypeAttribute`, CK.ResourceSpace.Abstractions): the configuration names them (the
+**configurable types** (`IConfigurableTypeAttribute`, CK.Abstractions): the configuration names them (the
 key of their section) and switches them; the name is explicit, it doesn't come from the type name.
 
 **Detect:** a concrete class that specializes `ApplicationIdentityFeatureDriver` or `ApplicationIdentityStaticFeatureDriver`
@@ -544,6 +545,9 @@ options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
    ```
 
    The messages don't need the configuration path: the owner logs "Unable to create the option '{path}': {message}".
+
+   Instead of an `IConfiguration`, an option can receive a configuration model (U29): its section is then read and
+   validated for it, key by key along the `"Defaults"`.
 3. **An owner gets its options:** a feature driver reads the options of a party with `GetOptions( party )` or
    `GetOption<T>( party )` (null when it is disabled): the base class creates them before the driver's setup. A client
    feature reads `Options` or `GetOption<T>()`. `ClientFeature.InitializeOptions` is gone. A service of the package that
@@ -556,7 +560,7 @@ options itself (`PartyComponentOptionDirectory.TrySelect` followed by `Create`).
 
 **Behavior:**
 - The option of a feature driver is looked up in the feature's section of the party, then in the nearest `"Defaults"`
-  (its whole section).
+  (its whole section; an option with a configuration model is read key by key along all of them, U29).
 - An option that throws fails the setup of the party (an option of a feature driver) or makes the client an error (an
   option of a client feature).
 - The name of an option is unique among the options of its owner; a `TypeActivation.Required` option is always enabled.
@@ -1005,7 +1009,7 @@ migrated this way.
 
 ## U18. The configuration levels and `"$LOCK"`
 
-A configuration value has a level (`ConfigurationLevel`, CK.ResourceSpace.Abstractions, CK-Abstractions): `Compile`
+A configuration value has a level (`ConfigurationLevel`, CK.Abstractions, CK-Abstractions): `Compile`
 (fixed by the build), `Init` (read when the application starts) or `Run` (changed while it runs). The level is a
 capability of the code that reads the value: the engine inputs (the compile keys of the contributors) are `Compile`, the
 sections that the code reads at start are `Init`. The configuration can only lower it, with a `"$LOCK"`. It is new: nothing
@@ -1069,7 +1073,7 @@ reads a section of the hosts' configuration at start, or projects a value (`AppC
 
 A value that its code can change while the application runs is a **run property**: a `[ConfigurationLevel( Run )]`
 property of an App singleton (an `ISingletonAutoService` or a real object) that declares its section of the App's
-configuration with `[ConfigurationSection( "Name" )]` (CK.ResourceSpace.Abstractions, CK-Abstractions). The packages of
+configuration with `[ConfigurationSection( "Name" )]` (CK.Abstractions, CK-Abstractions). The packages of
 the dynamic configuration (CK-Cris-Abstractions, CK-Cris, CK-AppIdentity-Transport) initialize them and change them while
 the application runs. It is new: nothing to migrate, but an application that wants to change a value without a restart
 uses it.
@@ -1128,7 +1132,7 @@ CK-Sample-AspNetAuth changes Auth3's `ParallelRunnerCount` from the Admin this w
 
 A secret (a client secret, a password, a connection string with credentials) is never written in a configuration file:
 its place holds a **handle**, the name of the secret, that the host resolves when it starts (`ConfigurationSecret`,
-CK.ResourceSpace.Abstractions). It is new: a plain value still works, but it is in the files.
+CK.Abstractions). It is new: a plain value still works, but it is in the files.
 
 **Detect:** a secret value in a `ckonf.json` or an `appsettings.json` (`ClientSecret`, `Password`, a connection string
 with `Password=`); secrets in the user-secrets of a host (`UserSecretsId` in its `.csproj`).
@@ -1584,6 +1588,103 @@ the account. A host that calls `PersistKeysTo...` or `ProtectKeysWith...` keeps 
 **Check:** start a party: `-Local/DataProtection-Keys/key-*.xml` is in its store; with `KeyRingKey`, the file's
 `decryptorType` is `SecretKeyXmlDecryptor`; nothing new in the folder of the account.
 
+## U29. A section can be a configuration model
+
+A configurable type (an App aspect, a Builder aspect, an option of a feature driver or of a client feature) can receive
+its configuration as a **model**: a class whose properties are the keys of its section, read and validated for it, and
+described as a JSON Schema for the tools (the configurator shows it). A type that reads its `IConfiguration` keeps
+working: nothing has to change.
+
+**Detect:** an aspect or an option whose constructor reads the keys of its section by hand (`configuration["Key"]`,
+`configuration.GetSection( ... )`, a `Read( IConfiguration )` helper that throws on an invalid value).
+
+**Do:**
+1. **Reference CK.ConfigurationModel** (CK-ConfigurationModel, the `explo/uc` line) in the project that declares the
+   model, unless it comes through another reference (CK.AppIdentity and CK.AppBuilder bring it).
+2. **Declare the model:** a public `[ConfigurationModel]` class (CK.Core) with a parameterless constructor. Its keys are its public
+   properties with a setter or an `init` accessor: `required` is required, nullable is optional, an initializer is the
+   default; a get-only property is a derived member, not a key. An optional `IConfigurationModel.Validate( UserMessageCollector, path )`
+   reports what the types can't say. From CK.AppIdentity.AuthCenter.Passkey (CK-AppIdentity-Transport):
+
+   ```csharp
+   [ConfigurationModel]
+   public sealed class AuthCenterPasskeyOptionConfiguration : IConfigurationModel
+   {
+       public string? RpId { get; init; }
+
+       public string? RpName { get; init; }
+
+       public TimeSpan Timeout { get; init; } = TimeSpan.FromMinutes( 5 );
+
+       public string? NormalizedRpId => RpId?.Trim().ToLowerInvariant();
+
+       public string? EffectiveRpName => RpName ?? NormalizedRpId;
+
+       public void Validate( UserMessageCollector collector, string path )
+       {
+           var rpId = NormalizedRpId;
+           if( rpId != null && (rpId.Length == 0 || Uri.CheckHostName( rpId ) != UriHostNameType.Dns) )
+           {
+               collector.Error( $"'{path}:RpId' must be a domain name (\"example.com\" or \"localhost\"), without scheme nor port." );
+           }
+           // ...
+       }
+   }
+   ```
+
+   The supported property types: a basic value (string, bool, int, long, double, decimal, an enum by name, `TimeSpan`,
+   `Guid`, `Uri`), a nested model, a list (an array, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`) of
+   values or models, a dictionary of models by name (`IReadOnlyDictionary<string, TModel>`), an opaque `IConfiguration`.
+   An unsupported property type is an error of the engine run (a modeled option) or of the App build (a modeled aspect).
+   `[ConfigurationLevel]`, `[ConfigurationSecret]` and `[ConfigurationPerDeployment]` (CK.Abstractions) also decorate
+   the properties of a model (without a path).
+3. **Name it on its owner and receive it:** `[Configuration<TModel>]` (CK.Abstractions) on the aspect or the option, and
+   a constructor parameter of the model type instead of the `IConfiguration`. The option (or the aspect) always
+   receives a model: without a section, it has its defaults. From CK.AppIdentity.AuthCenter.Passkey:
+
+   ```csharp
+   [PartyFeatureOption( "Passkey", TypeActivation.ByDefault )]
+   [Configuration<AuthCenterPasskeyOptionConfiguration>]
+   public sealed class AuthCenterPasskeyOption : IPartyComponentOption<LocalAuthCenterFeatureDriver>, IAuthCenterSchemeFamilyOption
+   {
+       public AuthCenterPasskeyOption( AuthCenterPasskeyOptionConfiguration configuration, IServiceProvider services )
+   ```
+
+   From CK.Globalization.StObj (CK-Globalization-Engine), an App aspect:
+
+   ```csharp
+   [AppAspect( "Globalization", TypeActivation.Optional )]
+   [Configuration<GlobalizationAppAspectConfiguration>]
+   public sealed class GlobalizationAppAspect : IAppAspect
+   {
+       public GlobalizationAppAspect( GlobalizationAppAspectConfiguration configuration )
+   ```
+
+4. **A test that reads a model** uses `ConfigurationModelReader.TryRead<T>( section, path, collector, out var model )`
+   with `new UserMessageCollector( new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault ) )`
+   (CK.Globalization). A test without engine that registers a modeled option (`services.AddPartyComponentOptions`) gives
+   it its model as the engine does.
+
+**Behavior:**
+- **Key by key:** each key is taken from the nearest level that has it: the option's section in the party, then in each
+  `"Defaults"` above it (a nested model key by key, a dictionary entry by entry, a list as a whole). An aspect has only
+  its own section. A list of values also accepts a comma separated string (`"ActiveCultures": "fr, en"`).
+- **Every error is reported, then the creation fails:** an unknown key at any level (the names of the owner's options are
+  not unknown keys of an aspect), a missing required key, a value that can't be converted (the invariant culture:
+  `"00:05:00"` for a `TimeSpan`), then `Validate`. A modeled option that fails fails the setup of the party, a modeled
+  aspect fails the build.
+- **The description of a model** is read by reflection at build time (the App builder, the engines, the configurator); at
+  run time, the options engine generates it with the creation of the model (no reflection: an `[UnsafeAccessor]` calls
+  its constructor and its `init` setters, so its initializers are its defaults). A type that is not a model (not a
+  `[ConfigurationModel]`, an unsupported property type, no parameterless constructor, not public for an option) fails the
+  engine run or the App build with the reason.
+- The "Passkey" option of the AuthCenter: its configuration (`"RpId"`, `"RpName"`, `"Timeout"`) doesn't change; the
+  scheme is available when an `"RpId"` is configured (and an `IPasskeyStore` registered); an `"RpName"` without
+  `"RpId"`, and an unknown key of its section, are now errors.
+
+**Check:** the engine runs (or the App builds), the owner starts (or the App builds) with its configuration, and
+the configurator shows the JSON Schema of the model in the detail of the type.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1627,3 +1728,5 @@ the account. A host that calls `PersistKeysTo...` or `ProtectKeysWith...` keeps 
 23. Each deployment (a `Deployment/#X` folder) writes its values per deployment, and its `ckonf.merged.json` is committed (U23).
 24. The App projects of a central configuration are named after the identity of their party (U24).
 25. A solution with deployments has its `Deployment/GenerateAssets.cs`; the builders that can't be deployed are left out (U25).
+26. A "Passkey" section has
+    no `"RpName"` without `"RpId"` nor any unknown key (U29).

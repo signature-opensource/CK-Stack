@@ -15,6 +15,19 @@ Rules for building and testing the repositories of this stack with ckli. They ap
   changed:** its `--dry-run` lists every changed repository and all their consumers. Started further down (from a
   sample), it sees the changes of that repository only, re-tests the versions already built, and misses an upstream
   change (a fixed test, new code).
+- **Changes in independent repositories: `ckli *build` and `ckli *publish`.** `ckli build` and `ckli publish` started
+  in a repository pivot on it: they cover that repository and its consumers only. When the changed repositories are not
+  consumers of one another (CK-Configuration, CK-Abstractions and CK-CodeGen, for instance), none of them is "the most
+  upstream": started from one of them, the others' commits are neither built nor tested, and a `ckli publish --regular`
+  builds their consumers against their last regular versions (a build error, or worse, a stale package).
+  - **`ckli *build` / `ckli *publish`** (the upstream closure) take the producers of the current repository too: run from
+    the most downstream repository of the work (the one that consumes all the changes), they build, test and publish
+    every changed upstream it depends on, then propagate to the consumers. They take the same options as `build` and
+    `publish` (`--with-tests`, `--build-impacts commit`, `--regular`, `--max-dop`...). The consumers of the upstreams that
+    the current repository doesn't consume (other samples, other databases) are not in the closure: a later build takes them.
+  - **From the folder of the World** (the root of the Stack's clones), `ckli build` and `ckli publish` cover every
+    changed repository of the World and all their consumers.
+  - Before a tested build or a publish, check in its `--dry-run` that every changed repository is listed.
 - **`--max-dop 2`** for a build that runs the tests: with the default (4), the parallel node processes of the TypeScript
   tests exhausted the memory of the machine. `MSBUILDDISABLENODEREUSE=1` (an environment variable) lowers it too.
 - **A failed build or publish** displays its errors and the path of its log file: no need to open the log (`ckli log`
