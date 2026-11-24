@@ -1424,7 +1424,7 @@ version as its argument), and the assets of each deployment are part of the rele
 1. **Write `Deployment/GenerateAssets.cs`** (CK.AppDeployment, a package of CK-AppBuilder):
 
    ```csharp
-   #:package CK.AppDeployment@37.0.0-0.uc.0.ci.36
+   #:package CK.AppDeployment@37.0.1-0.uc.0.ci.4
    return await CK.Setup.AppDeployment.RunAsync( args );
    ```
 
