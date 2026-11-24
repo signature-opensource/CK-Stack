@@ -9,15 +9,4 @@
   "Deprecated": {
     "(stable)": []
   }
-{
-  "Alive": {
-    "(stable)": [
-      "2026.11.23",
-      "2026.9.23",
-      "2026.9.11"
-    ]
-  },
-  "Deprecated": {
-    "(stable)": []
-  }
 }
