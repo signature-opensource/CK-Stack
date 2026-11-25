@@ -39,7 +39,7 @@ the **Behavior** and a **Check**.
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
-| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopWindow", "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation") have one | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`) |
+| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopWindow", "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation"), "MailSender" (and "MailKit"), the "SqlServer" Builder aspect have one; a secret read before the handles are resolved is a `ConfigurationSecretValue` | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`, the MailKit senders to `"MailKit": { "Senders": { ... } }`, MailKit's `"UseSsl"` is gone; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`, every model is validated: nested, items, entries) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1642,7 +1642,8 @@ working: nothing has to change.
 `configuration.GetSection( ... )`, a `Read( IConfiguration )` helper that throws on an invalid value); a feature driver
 that reads its section in its setup (`LocalConfiguration.Configuration.TryGetSection( "XXX" )`); a client feature driver
 whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ... } } }` (the schemes are now in
-`"Schemes"`).
+`"Schemes"`); a `"MailSender": { "MailKit": { "<Sender>": { ... } } }` (the senders are now in `"Senders"`), a MailKit
+`"UseSsl"`; a `MailSenderOption.ReadNamedSenders` or `MailKitOption.Read` call; a `new SqlServerAspect( IConfiguration )`.
 
 **Do:**
 1. **Reference CK.ConfigurationModel** (CK-ConfigurationModel, the `explo/uc` line) in the project that declares the
@@ -1685,6 +1686,10 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
    `IReadOnlyDictionary<string, TimeSpan>`), an opaque `IConfiguration`. A model is a class: a section whose keys are
    names (the schemes of an option) is a dictionary property of it (`"Oidc": { "Schemes": { ... } }`), never the section
    itself.
+   A secret read before the handles are resolved (a Builder aspect: the build reads the configuration files) is a
+   `[ConfigurationSecret]` property of type `ConfigurationSecretValue` (CK.AppBuilder.Abstractions): a value, or the name
+   of the secret of its handle (`IsHandle`, `SecretName`), that the aspect resolves (`AppBuilderContext.TryResolveSecret`)
+   or projects as a handle. At run time the handles are resolved: a secret is a `string`.
    An unsupported property type is an error of the engine run (a modeled option) or of the App build (a modeled aspect).
    `[ConfigurationLevel]`, `[ConfigurationSecret]` and `[ConfigurationPerDeployment]` (CK.AppBuilder.Abstractions) also decorate
    the properties of a model (without a path).
@@ -1756,6 +1761,18 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
   "PasswordLost" and "UserInvitation". Their errors are the reader's (`Unknown key '<path>'`) and the models' `Validate`;
   `HttpEndpointFeatureDriver` no longer takes the `PartyComponentOptionDirectory`, nor `LocalAuthCenterFeatureDriver`
   the `IServiceProvider`.
+- "MailSender" (`MailSenderConfiguration`: its `"Default"`) and its option "MailKit" (`MailKitOptionConfiguration`):
+  **its senders are in `"Senders"`**, each one a `MailKitSenderConfiguration` (the keys of today, the `"Password"` is a
+  secret: `"Party:Senders:*:Password"`); **`"UseSsl"` is gone**: `"SocketOptions"` (MailKit's `SecureSocketOptions`) is
+  `"Auto"` by default. A `"MailKit"` option needs at least one sender. A sender kind (a `MailSenderOption`) has its own
+  model; `MailSenderOption.ReadNamedSenders` and `MailKitOption.Read` are gone, `MailKitSenderOptions.SocketOptions` is
+  not nullable.
+- The "SqlServer" Builder aspect (`SqlServerConfiguration`, keys unchanged): its connection strings are
+  `ConfigurationSecretValue`; `SqlServerAspect( SqlServerConfiguration, IConfiguration? )` (the section is the origin of
+  the projected connection string), its configuration is `SqlServerAspect.Configuration`.
+- **Every model is validated** (its `Validate`), a nested one, an item of a list and an entry of a dictionary too, once
+  its keys are read without error. A JSON `null` is not a value (`must be a value, not a section`): a key without
+  default is absent.
 
 **Check:** the engine runs (or the App builds), the owner starts (or the App builds) with its configuration, and
 the configurator shows the JSON Schema of the model in the detail of the type.
