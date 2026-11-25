@@ -39,7 +39,7 @@ the **Behavior** and a **Check**.
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
-| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect or an option, received by its constructor, read key by key along the `"Defaults"` and validated, described as a JSON Schema; the "Globalization" App aspect and the "Passkey" option of the AuthCenter have one | No (new); behavior (the "Passkey" option: its errors, `"RpName"` without `"RpId"` is an error) |
+| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopWindow", "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation") have one | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1633,13 +1633,16 @@ the account. A host that calls `PersistKeysTo...` or `ProtectKeysWith...` keeps 
 
 ## U29. A section can be a configuration model
 
-A configurable type (an App aspect, a Builder aspect, an option of a feature driver or of a client feature) can receive
-its configuration as a **model**: a class whose properties are the keys of its section, read and validated for it, and
+A configurable type (an App aspect, a Builder aspect, a feature driver, a client feature, an option of a feature driver
+or of a client feature) can receive its configuration as a **model**: a class whose properties are the keys of its section, read and validated for it, and
 described as a JSON Schema for the tools (the configurator shows it). A type that reads its `IConfiguration` keeps
 working: nothing has to change.
 
 **Detect:** an aspect or an option whose constructor reads the keys of its section by hand (`configuration["Key"]`,
-`configuration.GetSection( ... )`, a `Read( IConfiguration )` helper that throws on an invalid value).
+`configuration.GetSection( ... )`, a `Read( IConfiguration )` helper that throws on an invalid value); a feature driver
+that reads its section in its setup (`LocalConfiguration.Configuration.TryGetSection( "XXX" )`); a client feature driver
+whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ... } } }` (the schemes are now in
+`"Schemes"`).
 
 **Do:**
 1. **Reference CK.ConfigurationModel** (CK-ConfigurationModel, the `explo/uc` line) in the project that declares the
@@ -1678,7 +1681,10 @@ working: nothing has to change.
 
    The supported property types: a basic value (string, bool, int, long, double, decimal, an enum by name, `TimeSpan`,
    `Guid`, `Uri`), a nested model, a list (an array, `IReadOnlyList<T>`, `IReadOnlyCollection<T>`, `IEnumerable<T>`) of
-   values or models, a dictionary of models by name (`IReadOnlyDictionary<string, TModel>`), an opaque `IConfiguration`.
+   values or models, a dictionary by name of models or of values (`IReadOnlyDictionary<string, TModel>`,
+   `IReadOnlyDictionary<string, TimeSpan>`), an opaque `IConfiguration`. A model is a class: a section whose keys are
+   names (the schemes of an option) is a dictionary property of it (`"Oidc": { "Schemes": { ... } }`), never the section
+   itself.
    An unsupported property type is an error of the engine run (a modeled option) or of the App build (a modeled aspect).
    `[ConfigurationLevel]`, `[ConfigurationSecret]` and `[ConfigurationPerDeployment]` (CK.AppBuilder.Abstractions) also decorate
    the properties of a model (without a path).
@@ -1704,10 +1710,25 @@ working: nothing has to change.
        public GlobalizationAppAspect( GlobalizationAppAspectConfiguration configuration )
    ```
 
-4. **A test that reads a model** uses `ConfigurationModelReader.TryRead<T>( section, path, collector, out var model )`
+4. **A feature driver** names its model with `[Configuration<TModel>]` and gets the model of a party with
+   `ApplicationIdentityFeatureDriver.GetModel<TModel>( party )` (read before its setup, with its options) instead of
+   reading its section. The model of an asymmetric feature is the one of its side: the Local side reads the local
+   parties ("XXX"), the Remote side the remotes ("XXXRemote"). From CK.AppIdentity.HttpEndpoint (CK-AspNet):
+
+   ```csharp
+   [PartyFeature( "HttpEndpoint", TypeActivation.Optional )]
+   [Configuration<HttpEndpointConfiguration>]
+   public sealed class HttpEndpointFeatureDriver : ApplicationIdentityStaticFeatureDriver, IDevRunningStatusContributor
+   ...
+       var m = GetModel<HttpEndpointConfiguration>( ApplicationIdentityService );
+   ```
+
+   **A client feature** names its model on its feature type, and its driver specializes `ClientFeatureDriver<T, TModel>`:
+   its `Create( monitor, client, configuration, model )` receives it (the "DesktopWindow" of CK.AppHost.Desktop).
+5. **A test that reads a model** uses `ConfigurationModelReader.TryRead<T>( section, path, collector, out var model )`
    with `new UserMessageCollector( new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault ) )`
-   (CK.Globalization). A test without engine that registers a modeled option (`services.AddPartyComponentOptions`) gives
-   it its model as the engine does.
+   (CK.Globalization). A test without engine that registers a modeled option (`services.AddPartyComponentOptions`) or a
+   modeled component (`services.AddPartyComponentDirectory`) gives it its model as the engine does.
 
 **Behavior:**
 - **Key by key:** each key is taken from the nearest level that has it: the option's section in the party, then in each
@@ -1722,9 +1743,19 @@ working: nothing has to change.
   its constructor and its `init` setters, so its initializers are its defaults). A type that is not a model (not a
   `[ConfigurationModel]`, an unsupported property type, no parameterless constructor, not public for an option) fails the
   engine run or the App build with the reason.
+- **A configuration key with a value and keys** (`"HttpEndpoint": "true"` and `"HttpEndpoint:Urls"` from two sources) is a
+  section: its keys are read.
 - The "Passkey" option of the AuthCenter: its configuration (`"RpId"`, `"RpName"`, `"Timeout"`) doesn't change; the
   scheme is available when an `"RpId"` is configured (and an `IPasskeyStore` registered); an `"RpName"` without
   `"RpId"`, and an unknown key of its section, are now errors.
+- The models of the packages (their keys don't change, except Oidc's): "HttpEndpoint" (`HttpEndpointConfiguration`:
+  `Urls`, `Kestrel`, `DefaultEndpoint`), its options "InProcess" and "ForwardedHeaders", "DesktopWindow"
+  (`DesktopWindowConfiguration`), "AuthCenter" (`AuthCenterConfiguration`: the lifetimes, `CriticalLifetimes`; read key
+  by key with the `"Defaults"` of the party), its options "Oidc" (`AuthCenterOidcOptionConfiguration`: **its schemes are
+  in `"Schemes"`**, each one an `OidcSchemeConfiguration`; the secret path is `"Party:Schemes:*:ClientSecret"`),
+  "PasswordLost" and "UserInvitation". Their errors are the reader's (`Unknown key '<path>'`) and the models' `Validate`;
+  `HttpEndpointFeatureDriver` no longer takes the `PartyComponentOptionDirectory`, nor `LocalAuthCenterFeatureDriver`
+  the `IServiceProvider`.
 
 **Check:** the engine runs (or the App builds), the owner starts (or the App builds) with its configuration, and
 the configurator shows the JSON Schema of the model in the detail of the type.
