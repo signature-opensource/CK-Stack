@@ -29,6 +29,26 @@ The case: the TypeScript engine computes the facts of a client application from 
 TypeScript packages (CK.AppIdentity.PartyClient). The reference is CK.TypeScript's, not CK.TypeScript.Engine's: using
 TypeScript implies using party clients, and the engine follows its model.
 
+## A configuration section is read through its owner's model
+
+**Every configuration section has one owner: the component that declares its model** (`[Configuration<TModel>]` for
+its run time keys). **Nobody reads a section but through that model**, at run time and in the engines alike. A key is a
+string: a package that reads another package's section by its name escapes the compiler, the package dependencies and
+the topology, and nothing catches it when the owner moves or changes. Reading another package's section means
+referencing its model type, so the dependency is visible and the compiler enforces the layering.
+
+The case: the TypeScript engine (CK-TypeScript) read `RequestPath` and `DevServerPort` from the "Hosting" section of a
+client, by a constant `"Hosting"`, while the "Hosting" client feature is in CK.TS.AspNet.Clients, downstream of it. An
+upstream engine owned half of the meaning of a downstream feature's section, and no build could see it.
+
+- **A component that reads its section has a model.** A component without model has no configuration of its own: its
+  section can only enable or disable its options.
+- **The compile time keys are modeled too**, by a model of their own: the engines read them, and the editor of the
+  configuration needs their description as much as the run time keys'.
+- **A value belongs to the component whose meaning it is**, not to the one that happens to read it first: the request
+  path and the dev server port of a client application describe its web build (they are written into its project), not
+  its hosting.
+
 ## Internals are seen by their tests only
 
 **`InternalsVisibleTo` is used only from a project to its own test project (`X` to `X.Tests`)**, never between two
