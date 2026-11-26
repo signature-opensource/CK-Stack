@@ -93,6 +93,7 @@
       <Repository Url="https://github.com/signature-opensource/CK-Engine" />
       <Repository Url="https://github.com/signature-opensource/CK-ConfigurationModel" />
       <Repository Url="https://github.com/signature-opensource/CK-AppBuilder" />
+      <Repository Url="https://github.com/signature-opensource/CK-AppHost-Desktop" />
     </Folder>
   </Folder>
   <Folder Name="Database">
