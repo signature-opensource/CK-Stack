@@ -40,7 +40,8 @@ the **Behavior** and a **Check**.
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
 | [U30](#u30-a-builder-manages-an-appcontext) | A Builder manages an AppContext (its Apps and the AppContext aspects that apply to all of them: one engine run): the central configuration keys the `"AppContexts"` by name (`"RootPath"`: the folder of its projects), the Builder is `{RootPath}/{Name}.Builder`, the single App is the party of the AppContext name (`"$Front"`), the Builder aspects are AppContext aspects (`AppContextAspectAttribute`, `IAppContextAspect`...), `AppBuilderConfiguration` is `AppContextConfiguration`, a deployment lists `"AppContexts"`; a host references the Builder of its AppContext (any `*.Builder`) | **Yes:** `"Builders"` becomes `"AppContexts"`, the Builders are renamed, the aspect types are renamed |
-| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopWindow", "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation"), "MailSender" (and "MailKit"), the "SqlServer" AppContext aspect have one; a secret read before the handles are resolved is a `ConfigurationSecretValue` | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`, the MailKit senders to `"MailKit": { "Senders": { ... } }`, MailKit's `"UseSsl"` is gone; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`, every model is validated: nested, items, entries) |
+| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopNgApp" (U31), "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation"), "MailSender" (and "MailKit"), the "SqlServer" AppContext aspect have one; a secret read before the handles are resolved is a `ConfigurationSecretValue` | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`, the MailKit senders to `"MailKit": { "Senders": { ... } }`, MailKit's `"UseSsl"` is gone; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`, every model is validated: nested, items, entries) |
+| [U31](#u31-a-host-runs-with-ckomposableapphostrun-a-package-of-the-app-can-run-it) | A host runs with `CKomposableAppHost.Run` (synchronous, the exit code), its project is `Microsoft.NET.Sdk`/`Exe`; a package of the App can run it (`IAppHostRunner`, CK.AppHost); a deployment can package an App as a desktop application (CK.Ng.AppHost.DesktopNgApp of the new repository CK-AppHost-Desktop, its "DesktopNgApp" aspect) | **Yes:** `RunAsync` is gone; behavior (a host project is a plain executable) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -1464,6 +1465,26 @@ version as its argument), and the assets of each deployment are part of the rele
    ```jsonc
    "Worker": { "App": { "InstanceCount": 3, "MaxInstanceCount": 6 } },
    ```
+5. **Add packages to a deployed App** when a deployment needs what the App of the solution doesn't have (a desktop
+   packaging, U31): the deployment names them, `GenerateAssets.cs` gives their versions. From CK-Configurator:
+
+   ```jsonc
+   // Deployment/#Production/ckonf.json
+   "Deployment": { "Apps": { "$Configurator": { "Packages": [ "CK.Ng.AppHost.DesktopNgApp" ] } } }
+   ```
+
+   ```csharp
+   // Deployment/GenerateAssets.cs
+   #:package CK.AppDeployment@37.0.1-0.uc.1.ci.22
+   //ck-package CK.Ng.AppHost.DesktopNgApp@0.0.1-0.uc.0.ci.5
+   return await CK.Setup.AppDeployment.RunAsync( args );
+   ```
+
+   `"Packages"` lists package identifiers only (a version is an error). A `//ck-package Name@Version` line is a comment
+   for `dotnet` (nothing is restored for the script) and a package reference of the solution for CKli 0.61 or later:
+   it orders the builds, is upgraded to the World's version, and a new version of the package triggers a build. A
+   listed package without its line is an error, so is a line without version. The App must discover its folder: an App
+   with `"Assemblies"` or `"Types"` can't receive packages (an error).
 
 **Behavior:**
 - For each deployment and deployed AppContext, CK.AppDeployment copies its Builder and the hosts of its Apps (the files git
@@ -1480,6 +1501,11 @@ version as its argument), and the assets of each deployment are part of the rele
   its start arguments (`--Instance=1`) and its values per deployment resolved, and the indexes of the dynamic ones of an
   Opened fleet (`"Dynamic": { "From": 4, "To": 6 }`). A fleet is one published host: the platform starts one process per
   instance.
+- An App to which the deployment adds packages is built from a wrapper project (`{App folder}/{App folder}.Deployment.csproj`
+  next to the generated builder, named like the original folder so that the BinPath keeps its name): it references the
+  original `.App` project and the added packages, the generated builder and host reference it instead of the original
+  (`CentralDeployment.GetAppProjectFolder`). What an added package does is its own: its types, its aspects, its
+  `buildTransitive` MSBuild files.
 - The remote templates of the links to a fleet follow its size (copied from the same merged configuration).
 - A secret handle of a fleet App may use its placeholders (`{ "$SECRET": "Worker:{Name}:Key" }`: a secret per
   instance, resolved with the instance at start): the build checks the name of each instance, the manifest lists the
@@ -1739,7 +1765,7 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
    ```
 
    **A client feature** names its model on its feature type, and its driver specializes `ClientFeatureDriver<T, TModel>`:
-   its `Create( monitor, client, configuration, model )` receives it (the "DesktopWindow" of CK.AppHost.Desktop).
+   its `Create( monitor, client, configuration, model )` receives it.
 5. **A test that reads a model** uses `ConfigurationModelReader.TryRead<T>( section, path, collector, out var model )`
    with `new UserMessageCollector( new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault ) )`
    (CK.Globalization). A test without engine that registers a modeled option (`services.AddPartyComponentOptions`) or a
@@ -1764,8 +1790,8 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
   scheme is available when an `"RpId"` is configured (and an `IPasskeyStore` registered); an `"RpName"` without
   `"RpId"`, and an unknown key of its section, are now errors.
 - The models of the packages (their keys don't change, except Oidc's): "HttpEndpoint" (`HttpEndpointConfiguration`:
-  `Urls`, `Kestrel`, `DefaultEndpoint`), its options "InProcess" and "ForwardedHeaders", "DesktopWindow"
-  (`DesktopWindowConfiguration`), "AuthCenter" (`AuthCenterConfiguration`: the lifetimes, `CriticalLifetimes`; read key
+  `Urls`, `Kestrel`, `DefaultEndpoint`), its options "InProcess" and "ForwardedHeaders", the "DesktopNgApp" App aspect
+  (`DesktopNgAppConfiguration`, U31), "AuthCenter" (`AuthCenterConfiguration`: the lifetimes, `CriticalLifetimes`; read key
   by key with the `"Defaults"` of the party), its options "Oidc" (`AuthCenterOidcOptionConfiguration`: **its schemes are
   in `"Schemes"`**, each one an `OidcSchemeConfiguration`; the secret path is `"Party:Schemes:*:ClientSecret"`),
   "PasswordLost" and "UserInvitation". Their errors are the reader's (`Unknown key '<path>'`) and the models' `Validate`;
@@ -1838,6 +1864,81 @@ it (`Auth3.Front.Host` and `Auth3.Front.Builder`).
 
 **Check:** the Builders are `{RootPath}/{Name}.Builder`; the build succeeds; the configurator shows the AppContexts.
 
+## U31. A host runs with `CKomposableAppHost.Run`; a package of the App can run it
+
+`CKomposableAppHost.RunAsync` is gone: a host's `Program.cs` is `CKomposableAppHost.Run`, synchronous (on the main
+thread of the process: a desktop window needs it on macOS), and it returns the exit code. What the process runs is
+decided by the packages of the App, never by the host project: an `IAppHostRunner` (CK.AppHost) runs the host instead
+of `host.Run()`. A host project is a plain executable of the base SDK.
+
+**Detect:** `CKomposableAppHost.RunAsync` in a `Program.cs`; a host project (it references CK.AppHost) whose SDK is
+`Microsoft.NET.Sdk.Web`.
+
+**Do:**
+1. **The `Program.cs` of every host** (CK.AppHost of CK-AspNet, 25.0.0-0.uc.4.ci.85 or later):
+
+   ```csharp
+   return CK.Core.CKomposableAppHost.Run( args );
+   ```
+
+   `Run` takes the command line only (the `configure` action of `RunAsync` is gone: `CKomposableAppHost.Build` keeps it,
+   for the tests).
+2. **Every host project is `Microsoft.NET.Sdk` with `<OutputType>Exe</OutputType>`** (the web server is the
+   "HttpEndpoint" feature of the App, it brings ASP.NET Core). From CK-Sample-AspNetAuth's `Front/Auth3.Front.Host`:
+
+   ```xml
+   <Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+       <TargetFramework>net10.0</TargetFramework>
+       <OutputType>Exe</OutputType>
+       <IsPackable>false</IsPackable>
+       <RootNamespace>CK.Sample.Front</RootNamespace>
+     </PropertyGroup>
+   ```
+
+   CK.AppHost publishes the `appsettings.json` of the host (the base SDK doesn't). An `appsettings.Development.json` is
+   read from the project folder in Development (the content root), it is not published.
+3. **A World that clones the stack clones CK-AppHost-Desktop** (`Core/CKomposable/CK-AppHost-Desktop`), a new repository
+   (its packages were not released before).
+4. **To package an App as a desktop application** (optional): add CK.Ng.AppHost.DesktopNgApp (CK-AppHost-Desktop,
+   0.0.1-0.uc.0.ci.5 or later) to the App in a deployment (U25: `"Packages"` and its `//ck-package` line), and
+   configure its "DesktopNgApp" App aspect there. From CK-Configurator's `Deployment/#Production/ckonf.json`:
+
+   ```jsonc
+   "AppContexts": {
+     "Configurator": {
+       "App": {
+         // The window shows the client application "App".
+         "Aspects": { "DesktopNgApp": { "Client": "App", "Title": "CK Configurator" } },
+         // No port: the runner makes the endpoint in process (the "Urls" of the development are removed).
+         "Local": { "HttpEndpoint": { "Urls": null } }
+       }
+     }
+   }
+   ```
+
+   The App of the solution stays a web application (a browser and the dev server's live reload in Development). A shell
+   that shows the "Last log" and "Open folder" links loads them by name (they exist in the deployment only):
+   `resolveNamedComponentTypeAsync( 'desktop-log-links' )` of `@local/ck-gen/CK/Angular/NamedComponentsResolver`,
+   rendered with `NgComponentOutlet` (null when absent).
+
+**Behavior:**
+- A failure of `Run` (a missing secret, an invalid configuration, a port already in use...) is written on the standard
+  error and logged, and `Run` returns 1: never an unhandled exception.
+- An `IAppHostRunner` is a real object (the generated code has it before the host is built): `IAppHostRunner.ConfigureHost`
+  configures the builder of the host, `IAppHostRunner.Run` runs it, `IAppHostRunner.OnBuildFailure` is called when the host
+  fails to build. An App has at most one runner (the engine refuses two).
+- CK.AppHost sets `CKIsAppHost` in a host project: CK.AppHost.Desktop (a package of the App) makes such a host a `WinExe`
+  (no console); a Builder that references the same App keeps its console.
+- With CK.Ng.AppHost.DesktopNgApp, the host is run by `DesktopNgAppRunner` (CK.AppHost.DesktopNgApp): a native window
+  (InfiniFrame, tested on Windows only) shows the client at `app://localhost/`, the endpoint of the party is in process
+  (no port: the runner sets `"HttpEndpoint": { "InProcess": true }`, an endpoint with `"Urls"` is then an error), the
+  logs of the published application are in `{LocalApplicationData}/{Domain}-{Party}/Logs`, a failure is shown in the
+  window, closing the window stops the host.
+
+**Check:** no `RunAsync` nor `Microsoft.NET.Sdk.Web` host is left; the hosts build and start. A desktop deployment
+publishes a `WinExe` that opens its window.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -1883,3 +1984,5 @@ it (`Auth3.Front.Host` and `Auth3.Front.Builder`).
 25. A solution with deployments has its `Deployment/GenerateAssets.cs`; the builders that can't be deployed are left out (U25).
 26. A "Passkey" section has
     no `"RpName"` without `"RpId"` nor any unknown key (U29).
+27. Every host's `Program.cs` is `return CK.Core.CKomposableAppHost.Run( args );`, every host project is `Microsoft.NET.Sdk`
+    with `<OutputType>Exe</OutputType>`; a World that clones the stack clones CK-AppHost-Desktop (U31).
