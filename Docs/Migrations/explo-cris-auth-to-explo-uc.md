@@ -24,7 +24,7 @@ the **Behavior** and a **Check**.
 | [U11](#u11-the-mail-features-mailsender-and-mailrelay) | The mail features: "EmailSender" becomes "MailSender" (named senders per local party, the "MailKit" option), the relay "MailSender" becomes "MailRelay" (several relays, a sender each) | Yes (configuration, the sender kinds, the relay packages) |
 | [U12](#u12-the-fluid-aspect-is-gone) | The Fluid aspect is gone: the engine of a template package checks its templates | Yes (the builders and tests that configure it) |
 | [U13](#u13-pfeature-is-renamed-model) | "PFeature" is renamed "Model": `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` | Yes (the `AssemblyInfo.cs` that use them) |
-| [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" Builder aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
+| [U14](#u14-the-database-is-the-sqlserver-aspect-of-ckonfjson) | The database is the "SqlServer" AppContext aspect of `ckonf.json`; the aspects are types of the models; the required engines are checked | Yes (the builders, the run time connection string) |
 | [U15](#u15-globalization-is-an-app-aspect-of-ckonfjson) | Globalization is the "Globalization" App aspect of `ckonf.json`; its configuration classes are in CK.Globalization.StObj | Yes (a `CKSetup.xml` that names them) |
 | [U16](#u16-the-central-configuration-of-a-solution) | The central configuration of a solution: a `ckonf.json` at the root of the repository describes its builders and the links between their parties, the builders' `ckonf.json` are generated from it | No (optional) |
 | [U17](#u17-the-fleets-and-the-templates-of-parties) | The fleets and the templates of parties: `"InstanceCount"`/`"Instances"` on an App (one process per instance, `--Instance`) or on an entry of `"Parties"` (a tenant domain or a remote per instance), the `{Index}`/`{Name}` placeholders; `"MaxInstanceCount"` opens a fleet to dynamic instances, enlisted by approval, and a tenant template to run-time tenants; a local party runs in one process at a time; `ICoreKeyStore.DeleteAllKeys` | Yes (a custom `ICoreKeyStore`); behavior |
@@ -34,12 +34,14 @@ the **Behavior** and a **Check**.
 | [U21](#u21-the-scheme-families-are-options-of-the-authcenter) | The scheme families of the AuthCenter are its options: `AuthCenterOidcOption` ("Oidc"), `AuthCenterPasskeyOption` ("Passkey"), `AuthCenterPasswordOption` ("Password": the "Basic" scheme), `AuthCenterWeakOption` ("Weak"), `IAuthCenterSchemeFamilyOption`; a scheme is available only through an enabled family and its provider; the family feature drivers, `IAuthCenterSchemeConfiguration` and `LocalAuthCenter.GetSchemeSettings` are gone | Yes (an AuthCenter references the families of its logins, a family of its own, a test that registers the family types); configuration (`"AuthCenterOidc"`/`"AuthCenterPasskey"` keys) |
 | [U22](#u22-the-payload-of-the-oidc-login-provider-is-an-ioidcloginpayload) | The payload of the "Oidc" login provider implements `IOidcLoginPayload` (CK.AuthenticationInfo.Oidc, CK-Auth-Abstractions): the AuthCenter fills it without reflection and checks it when a login starts | Yes (an "Oidc" login provider of its own) |
 | [U23](#u23-the-deployments) | The deployments: the folders of `Deployment/` next to the central `ckonf.json` (`#Production`, `Paris/Shop/#Staging`) are overlays of it (JSON Merge Patch, `"$BASE"`), merged in `ckonf.merged.json` by every builder run; the values per deployment (`"$PER_DEPLOYMENT"`, `[ConfigurationPerDeployment]`, the HttpEndpoint's `Urls`, the Transport's `ListeningAddress`, the address of a remote and of a link) must be written by each deployment | No (new); behavior (a deployment that inherits a value per deployment fails the build) |
-| [U24](#u24-the-name-of-an-app-is-the-identity-of-its-party) | In a central configuration, the name of an App (and of its `.App`, `.Builder` and `.Host` projects) is the identity of its party: its domain then its party name, `/` mapped to `.` (`Sample.Auth3.Front`), without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front`) | Yes: the projects of a central configuration are renamed (a name that disagrees fails the build) |
-| [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed App (generated copies of the builder and its hosts, built for the deployment) in one asset per App (`Production-Auth3.Front.zip`; `"SingleZipAsset"`: one per deployment), with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`Builders`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
+| [U24](#u24-the-name-of-an-app-is-its-party-name-its-projects-carry-the-domain-of-the-solution) | The name of an App is its party name (`"$Front"`, `"Customers.$Acme"`); its `.App` and `.Host` projects are named after the domain of the solution without the optional `"GlobalDomainPrefix"` (`"Sample"`: `Auth3.Front.App`) | Yes: the projects of a central configuration are renamed (a missing project fails the build) |
+| [U25](#u25-the-assets-of-the-deployments) | The assets of the deployments: `Deployment/GenerateAssets.cs` calls CK.AppDeployment, that publishes a host per deployed App (generated copies of the builder and its hosts, built for the deployment) in one asset per App (`Production-Auth3.Front.zip`; `"SingleZipAsset"`: one per deployment), with its manifest in `CK.AppHost.Published.json`; the settings are the `"Deployment"` key (`AppContexts`, `Publish`: the MSBuild properties of the publication, as-is, `Apps`: the ones of an App); a host built for a deployment has the environment of its party; the client applications are built by the publication; a published host's content root is its folder | No (new); behavior (the environment of the host and of the party are checked at start) |
 | [U26](#u26-the-pre-authorized-enlistment-ticket) | The pre-authorized enlistment ticket: "Expect a party" (approval page) or `ckey ticket open` on the Authentication Center opens a one-time ticket, the party starts with it (`Local:KeyManagement:EnlistTicket`, an optional secret handle `{ "$SECRET?": "Enlist:Worker2" }`) and is trusted at once; it carries the anchor of the center | No (new) |
 | [U27](#u27-the-routes-are-gone-a-system-is-a-star-around-its-authentication-center) | The routes are gone: a System is a star around its Authentication Center (a command beyond one hop goes through it); the approval page is the client application with the "Enlistment" fact, stated by the center; the pending approvals are asked through the hub; `RouteHosts` is removed (a setup error) | Yes (a `RouteHosts` configuration, the route APIs) |
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
-| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopWindow", "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation"), "MailSender" (and "MailKit"), the "SqlServer" Builder aspect have one; a secret read before the handles are resolved is a `ConfigurationSecretValue` | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`, the MailKit senders to `"MailKit": { "Senders": { ... } }`, MailKit's `"UseSsl"` is gone; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`, every model is validated: nested, items, entries) |
+| [U30](#u30-a-builder-manages-an-appcontext) | A Builder manages an AppContext (its Apps and the AppContext aspects that apply to all of them: one engine run): the central configuration keys the `"AppContexts"` by name (`"RootPath"`: the folder of its projects), the Builder is `{RootPath}/{Name}.Builder`, the single App is the party of the AppContext name (`"$Front"`), the Builder aspects are AppContext aspects (`AppContextAspectAttribute`, `IAppContextAspect`...), `AppBuilderConfiguration` is `AppContextConfiguration`, a deployment lists `"AppContexts"`; a host references the Builder of its AppContext (any `*.Builder`) | **Yes:** `"Builders"` becomes `"AppContexts"`, the Builders are renamed, the aspect types are renamed |
+| [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopNgApp" (U31), "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation"), "MailSender" (and "MailKit"), the "SqlServer" AppContext aspect have one; a secret read before the handles are resolved is a `ConfigurationSecretValue` | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`, the MailKit senders to `"MailKit": { "Senders": { ... } }`, MailKit's `"UseSsl"` is gone; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`, every model is validated: nested, items, entries) |
+| [U31](#u31-a-host-runs-with-ckomposableapphostrun-a-package-of-the-app-can-run-it) | A host runs with `CKomposableAppHost.Run` (synchronous, the exit code), its project is `Microsoft.NET.Sdk`/`Exe`; a package of the App can run it (`IAppHostRunner`, CK.AppHost); a deployment can package an App as a desktop application (CK.Ng.AppHost.DesktopNgApp of the new repository CK-AppHost-Desktop, its "DesktopNgApp" aspect) | **Yes:** `RunAsync` is gone; behavior (a host project is a plain executable) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -57,12 +59,13 @@ guide) is gone: migrate.
 
 **Do:**
 
-1. **Create `ckonf.json` in the builder project.** A builder builds one App, `"App": { ... }`, named after the builder's
-   folder without ".Builder" ("Front.Builder" builds the App "Front"; `"Name"` departs from it). A builder that builds
-   several Apps (sharing the Builder aspects: one database) lists them, `"Apps": [ { "Name": "Back1", ... }, { "Name":
-   "Back2", ... } ]` (CK-Sample-MultiBinPath); `"App"` and `"Apps"` together are an error, the names are unique. An App
-   is named after its projects: the App "Front" is the "../Front.App" project (its bin folder is the builder's: `bin/{Configuration}/{TargetFramework}`) and the
-   "../Front.Host" project. `"AppProject"` and `"HostProject"` (relative to the `ckonf.json` folder) depart from this
+1. **Create `ckonf.json` in the builder project.** A Builder manages an AppContext (U30), named after it
+   ("Front.Builder" manages the AppContext "Front"). Its single App, `"App": { ... }`, is its party: "$Front" (the name
+   of an App is its party name; `"Name"` departs from it). An AppContext of several Apps (sharing the AppContext aspects:
+   one database) lists them, `"Apps": [ { "Name": "$Back1", ... }, { "Name": "$Back2", ... } ]`
+   (CK-Sample-MultiBinPath); `"App"` and `"Apps"` together are an error, the names are unique. The projects of an App
+   are named after it without the `$`: the App "$Front" is the "../Front.App" project (its bin folder is the Builder's:
+   `bin/{Configuration}/{TargetFramework}`; its engine BinPath is "Front") and the "../Front.Host" project. `"AppProject"` and `"HostProject"` (relative to the `ckonf.json` folder) depart from this
    convention; a path that leaves the solution's folder is an error. The content of the App is the host's
    `appsettings.json` (move it, with its comments) **without its `"CK-AppIdentity"` level**: the keys of the party
    (`FullName`, `Local`, `Parties`, `Defaults`, `DomainName`, `PartyName`, `EnvironmentName`, `StoreRootPath`,
@@ -605,7 +608,7 @@ Two moves keep the package names:
   a `<PackageReference>` only takes the new version.
 - **The declarations of the configuration** are in **CK.AppBuilder.Abstractions** (CK-Abstractions, 32.0.0-0.uc): the
   configuration attributes of CK.Abstractions (`IConfigurableTypeAttribute`, `TypeActivation`, `[Configuration...]`),
-  `[ConfigurationModel]` and `IConfigurationModel`, the aspect declarations (`[AppBuilderAspect]`, `[AppAspect]`, their
+  `[ConfigurationModel]` and `IConfigurationModel`, the aspect declarations (`[AppContextAspect]`, `[AppAspect]`, their
   options; `ICKomposableAppBuilder` is in CK.Engine.Configuration), `[PartyFeature]`, `[PartyFeatureOption]`,
   `IPartyComponent`, `IApplicationIdentityFeatureDriver`, `IPartyComponentOption<TOwner>`, `[PartyClientFeature]`,
   `[PartyClientFeatureOption]` and `[PartyClientFact]` (its `IsValidKey` and `IsValidValue` are the rules of the facts).
@@ -774,7 +777,7 @@ assembly that still uses them is classified by its references only.
 ## U14. The database is the "SqlServer" aspect of `ckonf.json`
 
 An aspect is now a configurable type of a model, found in the type sets of the Apps: the database is the "SqlServer"
-Builder aspect (`SqlServerAspect`, CK.SqlServer.Setup.Model, CK-Database), configured in the root `"Aspects"` of the
+AppContext aspect (`SqlServerAspect`, CK.SqlServer.Setup.Model, CK-Database), configured in the root `"Aspects"` of the
 builder's `ckonf.json`. The 3 steps setup (Setupable) is an implementation detail of it: it has no configuration of its own.
 
 **Detect:** a `CKSetup.xml` with `SetupableAspectConfiguration` or `SqlSetupAspectConfiguration`; a builder's `Program.cs`
@@ -797,10 +800,10 @@ configuration key `AppIdentity:Local:SqlServer:DefaultDatabaseConnectionString`.
 2. The run time connection string is `"SqlServer": { "DefaultDatabaseConnectionString" }`, a root section of the host's
    `appsettings.json` (projected from `ckonf.json`); `AppIdentity:Local:SqlServer:...` never applied (the section is
    `CK-AppIdentity`).
-3. A model package that brings an aspect declares it: a package decorated with `[AppBuilderAspect( "Name", TypeActivation.X )]`
+3. A model package that brings an aspect declares it: a package decorated with `[AppContextAspect( "Name", TypeActivation.X )]`
    or `[AppAspect( "Name", TypeActivation.X )]` (CK.AppBuilder.Abstractions, namespace `CK.Setup`), whose constructor reads
-   its `IConfiguration` section and that implements `IAppBuilderAspectApply` or `IAppAspectApply` (CK.Engine.Configuration:
-   the `IAppBuilderAspect` and `IAppAspect` of CK.AppBuilder.Abstractions are markers), whose `Apply` configures the engine
+   its `IConfiguration` section and that implements `IAppContextAspectApply` or `IAppAspectApply` (CK.Engine.Configuration:
+   the `IAppContextAspect` and `IAppAspect` of CK.AppBuilder.Abstractions are markers), whose `Apply` configures the engine
    (see the README of the App builder model, CK.Engine.Configuration).
 
 **Behavior:**
@@ -840,8 +843,9 @@ it this way.
 
 ## U16. The central configuration of a solution
 
-A solution of several builders (several parties) can describe them once: a `ckonf.json` at the root of the repository
-(its git root, next to `#Dev`). Each builder then generates its own `ckonf.json` from its entry before reading it: the
+A solution of several AppContexts (several parties) can describe them once: a `ckonf.json` at the root of the
+repository (its git root, next to `#Dev`). Each Builder then generates its own `ckonf.json` from its AppContext before
+reading it: the
 domain, the defaults shared by the Apps and the links between the parties are written once. It is optional: a
 repository without it is unchanged.
 
@@ -854,22 +858,24 @@ sections (`Logging`, `CK-Monitoring`), or describe the two sides of a connection
    ```jsonc
    {
      "Domain": "Sample/Auth3",
+     "GlobalDomainPrefix": "Sample",
      "Defaults": {
        "App": {
          "Logging": { "LogLevel": { "Default": "Warning" } },
          "CK-Monitoring": { "GlobalDefaultFilter": "Debug", "GrandOutput": { "Handlers": { "Console": true, "TextFile": { "Path": "Text" } } } }
        }
      },
-     "Builders": {
-       "Auth3/Auth3.Builder": {
+     "AppContexts": {
+       "Auth3": {
+         "RootPath": "Auth3",
          "Aspects": { "SqlServer": { "DefaultDatabaseConnectionString": "Server=.;Database=CKSampleAuth3;Integrated Security=True;TrustServerCertificate=true" } },
          "App": {
            "Defaults": { "Transport": { "ListeningAddress": [ "tcp:127.0.0.1:37300" ] } },
            "Local": { "AuthCenter": { ... } }
          }
        },
-       "Front/Front.Builder": { "App": { "Local": { "HttpEndpoint": { "Urls": "http://localhost:5300" } } } },
-       "Worker/Worker.Builder": { "App": {} }
+       "Front": { "RootPath": "Front", "App": { "Local": { "HttpEndpoint": { "Urls": "http://localhost:5300" } } } },
+       "Worker": { "RootPath": "Worker", "App": {} }
      },
      "Links": [
        { "From": "$Front", "To": "$Auth3", "Link": { "AuthCenterRemote": true, "Address": "tcp:127.0.0.1:37300", "KeyManagement": { "AutoTrustKey": "Once" } } },
@@ -880,31 +886,33 @@ sections (`Logging`, `CK-Monitoring`), or describe the two sides of a connection
    }
    ```
 
-   - **`"Builders"`** are keyed by the path of their folder, relative to the root and downward only (`..` is an
-     error). The entry of a builder is the content of its `ckonf.json` (U1: `"Aspects"`, `"App"` or `"Apps"`) without
-     what the other keys give.
+   - **`"AppContexts"`** are keyed by their name (U30); `"RootPath"` (optional, relative to the root, downward only) is
+     the folder of the Builder (`{RootPath}/{Name}.Builder`) and of the projects of the Apps. The entry of an
+     AppContext is the content of its Builder's `ckonf.json` (U1: `"Aspects"`, `"App"` or `"Apps"`) without what the
+     other keys give.
    - **`"Domain"`** (and `"Environment"`, `#Dev` by default) gives the `FullName` of each App that doesn't write it:
-     `{Domain}/${Name}/{Environment}`. The party of an App is `$Name` (or the party of its explicit `FullName`).
+     `{Domain}/{Party}/{Environment}` (the name of an App is its party: U24). `"Domain"` and `"GlobalDomainPrefix"` also
+     name the projects of the Apps (U24).
    - **`"Defaults": { "App": { ... } }`** is merged in each App: an App's own value wins, the objects are merged.
    - **`"Links"`:** a link is the remote entry that `From` has for `To`: `"Link"` is the content of the entry (without
      its `PartyName`, which is `To`), appended to the `Parties` of `From` in the order of the links. Each side of a
      connection is a link of its own; a link without its reverse is valid. A remote outside the solution stays in the
      `Parties` of its App; a remote both linked and in the `Parties` is an error.
-2. **Move the comments into it.** The builders' `ckonf.json` are generated: run the builders (a `ckli build` commits them
-   as build impacts) and commit them.
+2. **Move the comments into it.** The Builders' `ckonf.json` are generated: run the Builders (a `ckli build` commits
+   them as build impacts) and commit them.
 
 **Behavior:**
-- **A builder's `ckonf.json` is generated** when the repository has a central configuration: its first line is
+- **A Builder's `ckonf.json` is generated** when the repository has a central configuration: its first line is
   `// Generated from ../../ckonf.json: do not edit.`, it is written when it changes, without the comments. Edit the
   central file, never the projection.
-- **Every builder of the repository must be in `"Builders"`:** otherwise its build fails ("The builder ... is not in
-  the central configuration").
-- **The names of the Apps are unique in the solution;** a root key that no package handles is an error (`Domain`,
-  `Environment` and `Links` are handled by CK.AppIdentity.Engine). The keys of a link are checked by the builder of
-  `From`, like the `Parties` it validates.
+- **Every Builder of the repository manages an AppContext of `"AppContexts"`:** otherwise its build fails ("The
+  Builder ... manages no AppContext of the central configuration").
+- **The names of the Apps are unique in the solution;** a root key that no package handles is an error (`Environment`
+  and `Links` are handled by CK.AppIdentity.Engine, `Domain` and `GlobalDomainPrefix` are the central configuration's).
+  The keys of a link are checked by the Builder of `From`, like the `Parties` it validates.
 
-**Check:** the builders' `ckonf.json` start with the "Generated from" line; the hosts' `appsettings.json` are unchanged
-by the move. CK-Sample-AspNetAuth (five builders, eight links) is migrated this way.
+**Check:** the Builders' `ckonf.json` start with the "Generated from" line; the hosts' `appsettings.json` are unchanged
+by the move. CK-Sample-AspNetAuth (five AppContexts, eight links) is migrated this way.
 
 ## U17. The fleets and the templates of parties
 
@@ -1331,12 +1339,12 @@ a copy of the `ckonf.json`).
 
    ```jsonc
    {
-     "Builders": {
-       "Auth3/Auth3.Builder": {
+     "AppContexts": {
+       "Auth3": {
          "Aspects": { "SqlServer": { "DefaultDatabaseConnectionString": { "$SECRET": "Auth3:Database" } } },
          "App": { "Defaults": { "Transport": { "ListeningAddress": [ "tcp:0.0.0.0:37300" ] } }, "Demo": null }
        },
-       "Front/Front.Builder": { "App": { "Local": { "HttpEndpoint": { "Urls": "http://*:5300" } } } }
+       "Front": { "App": { "Local": { "HttpEndpoint": { "Urls": "http://*:5300" } } } }
      },
      "Links": [ { "From": "$Front", "To": "$Auth3", "Link": { "AuthCenterRemote": true, "Address": "tcp:auth3.sample.example.com:37300", "KeyManagement": { "AutoTrustKey": "Never" } } } ]
    }
@@ -1377,38 +1385,41 @@ a copy of the `ckonf.json`).
 
 **Check:** the build succeeds; each deployment folder has its `ckonf.merged.json`, committed.
 
-## U24. The name of an App is the identity of its party
+## U24. The name of an App is its party name, its projects carry the domain of the solution
 
-In a solution with a central configuration (U16), the name of an App was its party name (`Front/Front.Builder` built the
-App `Front`, the party `$Front`). It is now the identity of its party: its domain then its party name, the `/` of the
-domain mapped to `.`, and so are its projects. The parts of a domain and a party name have no `.`: the name is
-reversible. The party names, the full names and the links don't change.
+In a solution with a central configuration (U16), the name of an App is its party name (`"$Front"`), possibly after the
+segments of its domain relative to the `"Domain"` (`"Customers.$Acme"`: the party `$Acme` of `{Domain}/Customers`).
+Its projects are named after the domain of the solution, without its optional `"GlobalDomainPrefix"`, then the App name
+without the `$` (`Auth3.Front.App`, `Auth3.Front.Host`): an assembly name is global, it carries the identity of the
+solution. The Builder is named after its AppContext (U30), not after an App.
 
-**Detect:** a central `ckonf.json` with a `"Domain"`: the build fails with "The name of ... must be the identity of its party:
-'Sample.Auth3.Front' (...)".
+**Detect:** a central `ckonf.json` with a `"Domain"`; App names without `$`; `.App`/`.Host` projects whose name is not
+`{RelativeDomain}.{Party}` (the build fails: "The project folder ... of the App ... doesn't exist (by convention: ...)").
 
 **Do:**
 1. **Optionally, choose a `"GlobalDomainPrefix"`** in the central `ckonf.json` (only there: a deployment can't write
-   it): the `"Domain"` or a prefix of it (whole parts), left out of the names. From CK-Sample-AspNetAuth:
+   it): the `"Domain"` or a prefix of it (whole parts), left out of the project names. From CK-Sample-AspNetAuth:
 
    ```jsonc
    "Domain": "Sample/Auth3",
    "GlobalDomainPrefix": "Sample",
    ```
 
-   The App of `$Front` is then `Auth3.Front`; with the whole domain as prefix, the names stay the party names.
-2. **Rename each triplet** to the name the error gives: the folders and the `.csproj` files of `X.App`, `X.Builder` and
-   `X.Host`, the `ProjectReference`s, the `.slnx`, the keys of `"Builders"` (`"Front/Auth3.Front.Builder"`), the
-   assembly qualified names of the configuration (`"CK.Sample.Front.IFrontInfoQCommand, Auth3.Front.App"`), the tests
-   that load a host (`Assembly.Load( "Auth3.Front.Host" )`), the `launchSettings.json` profiles. The parent folder is
-   free (the sample keeps the party name: `Front/Auth3.Front.Builder`).
+   The projects of `$Front` are then `Auth3.Front.App` and `Auth3.Front.Host`; with the whole domain as prefix, they are
+   `Front.App` and `Front.Host`.
+2. **Rename the `.App` and `.Host` projects** to these names (the folders and the `.csproj` files, the
+   `ProjectReference`s, the `.slnx`, the assembly qualified names of the configuration
+   (`"CK.Sample.Front.IFrontInfoQCommand, Auth3.Front.App"`), the tests that load a host
+   (`Assembly.Load( "Auth3.Front.Host" )`), the `launchSettings.json` profiles), in the `"RootPath"` of their AppContext.
+   `"AppProject"` and `"HostProject"` (relative to the `"RootPath"`) depart from the convention.
 3. **Delete the old manifests** of `#Dev/Parties` (named after the Host projects: `Auth3.Front.Host.json`); the build
    writes the new ones.
 
 **Behavior:**
-- An App whose explicit `FullName` (or `PartyName`) disagrees with its name is an error; a `FullName` outside the
-  `"GlobalDomainPrefix"` too. A fleet's name is its party without the placeholder (`Auth3.Worker` for `$Worker-{Name}`).
-- Without `"Domain"`, the names are the party names (no `.`).
+- An App whose explicit `FullName` (or `PartyName`) is not its party in its domain is an error. A fleet's name is its
+  party without the placeholder (`"$Worker"` for `$Worker-{Name}`); the placeholder of the fleet App in its templates
+  is its party without `$` (`{Worker.Name}`).
+- Without `"Domain"`, the projects are named after the App alone (`Front.App`).
 
 **Check:** the build succeeds; the `FullName`s of the projected `ckonf.json` are unchanged.
 
@@ -1430,16 +1441,16 @@ version as its argument), and the assets of each deployment are part of the rele
 
    CKli upgrades the `#:package` version (CKli 0.55) and runs the script with the local feed.
 2. **Write `Deployment/.gitignore`** with `Assets/` (CKli creates it otherwise: a build impact).
-3. **Choose the deployed builders** when not all of them can be deployed: a builder whose engine sets up a database at
-   build time (the SqlServer aspect) fails in the build of a deployment. From CK-Sample-AspNetAuth's
+3. **Choose the deployed AppContexts** when not all of them can be deployed: an AppContext whose engine sets up a
+   database at build time (the SqlServer aspect) fails in the build of a deployment. From CK-Sample-AspNetAuth's
    `Deployment/#Production/ckonf.json`:
 
    ```jsonc
    "Deployment": {
-     "Builders": [ "Front/Auth3.Front.Builder", "Admin/Auth3.Admin.Builder", "Worker/Auth3.Worker.Builder", "Worker2/Auth3.Worker2.Builder" ],
+     "AppContexts": [ "Front", "Admin", "Worker", "Worker2" ],
      // The MSBuild properties of the publication of the hosts (applied as-is), then the ones of an App over them.
      "Publish": { "RuntimeIdentifier": "linux-x64" },
-     "Apps": { "Auth3.Worker2": { "Publish": { "SelfContained": true, "PublishSingleFile": true } } }
+     "Apps": { "$Worker2": { "Publish": { "SelfContained": true, "PublishSingleFile": true } } }
    },
    ```
 
@@ -1452,11 +1463,31 @@ version as its argument), and the assets of each deployment are part of the rele
    per deployment: inherited, they fail the build):
 
    ```jsonc
-   "Worker/Auth3.Worker.Builder": { "App": { "InstanceCount": 3, "MaxInstanceCount": 6 } },
+   "Worker": { "App": { "InstanceCount": 3, "MaxInstanceCount": 6 } },
+   ```
+5. **Add packages to a deployed App** when a deployment needs what the App of the solution doesn't have (a desktop
+   packaging, U31): the deployment names them, `GenerateAssets.cs` gives their versions. From CK-Configurator:
+
+   ```jsonc
+   // Deployment/#Production/ckonf.json
+   "Deployment": { "Apps": { "$Configurator": { "Packages": [ "CK.Ng.AppHost.DesktopNgApp" ] } } }
    ```
 
+   ```csharp
+   // Deployment/GenerateAssets.cs
+   #:package CK.AppDeployment@37.0.1-0.uc.1.ci.22
+   //ck-package CK.Ng.AppHost.DesktopNgApp@0.0.1-0.uc.0.ci.5
+   return await CK.Setup.AppDeployment.RunAsync( args );
+   ```
+
+   `"Packages"` lists package identifiers only (a version is an error). A `//ck-package Name@Version` line is a comment
+   for `dotnet` (nothing is restored for the script) and a package reference of the solution for CKli 0.61 or later:
+   it orders the builds, is upgraded to the World's version, and a new version of the package triggers a build. A
+   listed package without its line is an error, so is a line without version. The App must discover its folder: an App
+   with `"Assemblies"` or `"Types"` can't receive packages (an error).
+
 **Behavior:**
-- For each deployment and deployed builder, CK.AppDeployment copies the builder and the hosts of its Apps (the files git
+- For each deployment and deployed AppContext, CK.AppDeployment copies its Builder and the hosts of its Apps (the files git
   tracks) in `Deployment/.build/{AssetName}/` (ignored by git; `#Production` is `Production`, `Paris/Shop/#Staging` is
   `Paris.Shop.Staging`), the copied builder builds the deployment (`ckonf.deployment.json`: its `ckonf.json` is the
   projection of the merged configuration, its `.App` projects are the originals), and each host is published
@@ -1470,6 +1501,11 @@ version as its argument), and the assets of each deployment are part of the rele
   its start arguments (`--Instance=1`) and its values per deployment resolved, and the indexes of the dynamic ones of an
   Opened fleet (`"Dynamic": { "From": 4, "To": 6 }`). A fleet is one published host: the platform starts one process per
   instance.
+- An App to which the deployment adds packages is built from a wrapper project (`{App folder}/{App folder}.Deployment.csproj`
+  next to the generated builder, named like the original folder so that the BinPath keeps its name): it references the
+  original `.App` project and the added packages, the generated builder and host reference it instead of the original
+  (`CentralDeployment.GetAppProjectFolder`). What an added package does is its own: its types, its aspects, its
+  `buildTransitive` MSBuild files.
 - The remote templates of the links to a fleet follow its size (copied from the same merged configuration).
 - A secret handle of a fleet App may use its placeholders (`{ "$SECRET": "Worker:{Name}:Key" }`: a secret per
   instance, resolved with the instance at start): the build checks the name of each instance, the manifest lists the
@@ -1633,7 +1669,7 @@ the account. A host that calls `PersistKeysTo...` or `ProtectKeysWith...` keeps 
 
 ## U29. A section can be a configuration model
 
-A configurable type (an App aspect, a Builder aspect, a feature driver, a client feature, an option of a feature driver
+A configurable type (an App aspect, an AppContext aspect, a feature driver, a client feature, an option of a feature driver
 or of a client feature) can receive its configuration as a **model**: a class whose properties are the keys of its section, read and validated for it, and
 described as a JSON Schema for the tools (the configurator shows it). A type that reads its `IConfiguration` keeps
 working: nothing has to change.
@@ -1686,7 +1722,7 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
    `IReadOnlyDictionary<string, TimeSpan>`), an opaque `IConfiguration`. A model is a class: a section whose keys are
    names (the schemes of an option) is a dictionary property of it (`"Oidc": { "Schemes": { ... } }`), never the section
    itself.
-   A secret read before the handles are resolved (a Builder aspect: the build reads the configuration files) is a
+   A secret read before the handles are resolved (an AppContext aspect: the build reads the configuration files) is a
    `[ConfigurationSecret]` property of type `ConfigurationSecretValue` (CK.AppBuilder.Abstractions): a value, or the name
    of the secret of its handle (`IsHandle`, `SecretName`), that the aspect resolves (`AppBuilderContext.TryResolveSecret`)
    or projects as a handle. At run time the handles are resolved: a secret is a `string`.
@@ -1729,7 +1765,7 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
    ```
 
    **A client feature** names its model on its feature type, and its driver specializes `ClientFeatureDriver<T, TModel>`:
-   its `Create( monitor, client, configuration, model )` receives it (the "DesktopWindow" of CK.AppHost.Desktop).
+   its `Create( monitor, client, configuration, model )` receives it.
 5. **A test that reads a model** uses `ConfigurationModelReader.TryRead<T>( section, path, collector, out var model )`
    with `new UserMessageCollector( new CurrentCultureInfo( new TranslationService(), NormalizedCultureInfo.CodeDefault ) )`
    (CK.Globalization). A test without engine that registers a modeled option (`services.AddPartyComponentOptions`) or a
@@ -1754,8 +1790,8 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
   scheme is available when an `"RpId"` is configured (and an `IPasskeyStore` registered); an `"RpName"` without
   `"RpId"`, and an unknown key of its section, are now errors.
 - The models of the packages (their keys don't change, except Oidc's): "HttpEndpoint" (`HttpEndpointConfiguration`:
-  `Urls`, `Kestrel`, `DefaultEndpoint`), its options "InProcess" and "ForwardedHeaders", "DesktopWindow"
-  (`DesktopWindowConfiguration`), "AuthCenter" (`AuthCenterConfiguration`: the lifetimes, `CriticalLifetimes`; read key
+  `Urls`, `Kestrel`, `DefaultEndpoint`), its options "InProcess" and "ForwardedHeaders", the "DesktopNgApp" App aspect
+  (`DesktopNgAppConfiguration`, U31), "AuthCenter" (`AuthCenterConfiguration`: the lifetimes, `CriticalLifetimes`; read key
   by key with the `"Defaults"` of the party), its options "Oidc" (`AuthCenterOidcOptionConfiguration`: **its schemes are
   in `"Schemes"`**, each one an `OidcSchemeConfiguration`; the secret path is `"Party:Schemes:*:ClientSecret"`),
   "PasswordLost" and "UserInvitation". Their errors are the reader's (`Unknown key '<path>'`) and the models' `Validate`;
@@ -1767,7 +1803,7 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
   `"Auto"` by default. A `"MailKit"` option needs at least one sender. A sender kind (a `MailSenderOption`) has its own
   model; `MailSenderOption.ReadNamedSenders` and `MailKitOption.Read` are gone, `MailKitSenderOptions.SocketOptions` is
   not nullable.
-- The "SqlServer" Builder aspect (`SqlServerConfiguration`, keys unchanged): its connection strings are
+- The "SqlServer" AppContext aspect (`SqlServerConfiguration`, keys unchanged): its connection strings are
   `ConfigurationSecretValue`; `SqlServerAspect( SqlServerConfiguration, IConfiguration? )` (the section is the origin of
   the projected connection string), its configuration is `SqlServerAspect.Configuration`.
 - **Every model is validated** (its `Validate`), a nested one, an item of a list and an entry of a dictionary too, once
@@ -1776,6 +1812,132 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
 
 **Check:** the engine runs (or the App builds), the owner starts (or the App builds) with its configuration, and
 the configurator shows the JSON Schema of the model in the detail of the type.
+
+## U30. A Builder manages an AppContext
+
+An **AppContext** is what one engine run builds: its Apps (each one a process, a party) and the AppContext aspects that
+apply to all of them (the "SqlServer" aspect: one database setup). **Its Builder** (the `{Name}.Builder` project, run by
+`CKomposableAppBuilder`) manages it. The central configuration (U16) keys the configuration by the AppContext, no longer
+by the path of a Builder.
+
+**Detect:** a central `ckonf.json` with `"Builders": { "Front/Auth3.Front.Builder": ... }`; a deployment with
+`"Deployment": { "Builders": [ ... ] }`; the types `AppBuilderAspectAttribute`, `AppBuilderAspectOptionAttribute`,
+`IAppBuilderAspect`, `IAppBuilderAspectOption`, `IAppBuilderAspectApply`, `AppBuilderConfiguration`, `CentralBuilder`,
+`CentralConfiguration.Builders`/`FindBuilder`, `CentralDeployment.DeployedBuilders`; a host whose Builder is named after
+it (`Auth3.Front.Host` and `Auth3.Front.Builder`).
+
+**Do:**
+1. **Key the AppContexts by name** in the central `ckonf.json` (and its deployments): `"AppContexts": { "Front": {
+   "RootPath": "Front", "App": { ... } } }`. The name is letters, digits, `_`, `-` and `.` (no `$`: it is not a party);
+   `"RootPath"` (optional, empty: the root) is the folder of its Builder and of the projects of its Apps, relative to
+   the root, downward only; it is structural (a deployment doesn't write it).
+2. **Rename each Builder** after its AppContext, in its `RootPath` (`git mv Front/Auth3.Front.Builder Front/Front.Builder`,
+   its `.csproj`), with the `.slnx`, the `ProjectReference` of the hosts, the `package.json` scripts of the client
+   applications that point at its `bin` folder (`ck-watch`). Its generated `ckonf.json` now has the `"AppProject"` and
+   `"HostProject"` of each App (the Builder doesn't know the domain of the solution).
+3. **Name the Apps after their party** (U24): the single App is the AppContext name with a `$` before its last segment
+   (`"Front"`: `"$Front"`, `"CK.Ng.Admin.Sample"`: `"CK.Ng.Admin.$Sample"`); an explicit `"Name"` has its `$`
+   (`"$Back1"`). The engine BinPath of an App is named after its `.App` project (`Auth3.Front`).
+4. **The deployments** list the names: `"Deployment": { "AppContexts": [ "Front", "Admin" ] }`; their `"Apps"` are keyed
+   by App name (`"$Worker2"`); the `ckonf.deployment.json` of a generated Builder names its `"AppContext"`; the asset of
+   an App is named after its projects (`Production-Auth3.Front`).
+5. **Rename the types** of the AppContext aspects and of the configuration:
+
+   | Was | Is |
+   |---|---|
+   | `AppBuilderAspectAttribute`, `AppBuilderAspectOptionAttribute` | `AppContextAspectAttribute`, `AppContextAspectOptionAttribute` |
+   | `IAppBuilderAspect`, `IAppBuilderAspectOption<T>`, `IAppBuilderAspectApply` | `IAppContextAspect`, `IAppContextAspectOption<T>`, `IAppContextAspectApply` |
+   | `AppBuilderConfiguration` | `AppContextConfiguration` |
+   | `CentralBuilder` (`Path`, `Folder`), `CentralConfiguration.Builders`, `FindBuilder( folder )` | `CentralAppContext` (`Name`, `RootPath`, `Folder`, `BuilderFolder`), `CentralConfiguration.AppContexts`, `FindAppContext( name )`, `FindAppContextOfBuilder( folder )` |
+   | `CentralProjectionContext.Builder`, `CentralApp.Builder` | `.AppContext` |
+   | `CentralDeployment.DeployedBuilders`, `CentralDeploymentSettings.Builders` | `DeployedAppContexts`, `AppContexts` |
+   | `GetAssetFolder( string appName )` | `GetAssetFolder( CentralApp app )` |
+
+   The Builder keeps its names: `CKomposableAppBuilder`, `IAppBuilderContributor`, `AppBuilderContext` (one run of a
+   Builder), the CK.AppBuilder packages, `CKAppBuilderRunAfterBuild`.
+
+**Behavior:**
+- **A host references the Builder of its AppContext** (CK.AppHost): any referenced `*.Builder` project, or the one that
+  `CKAppHostBuilder` names; the host's name no longer gives it.
+- `"Domain"` and `"GlobalDomainPrefix"` are keys of the central configuration itself (`CentralConfiguration.Domain`,
+  `RelativeDomain`): CK.AppIdentity reads them from there.
+
+**Check:** the Builders are `{RootPath}/{Name}.Builder`; the build succeeds; the configurator shows the AppContexts.
+
+## U31. A host runs with `CKomposableAppHost.Run`; a package of the App can run it
+
+`CKomposableAppHost.RunAsync` is gone: a host's `Program.cs` is `CKomposableAppHost.Run`, synchronous (on the main
+thread of the process: a desktop window needs it on macOS), and it returns the exit code. What the process runs is
+decided by the packages of the App, never by the host project: an `IAppHostRunner` (CK.AppHost) runs the host instead
+of `host.Run()`. A host project is a plain executable of the base SDK.
+
+**Detect:** `CKomposableAppHost.RunAsync` in a `Program.cs`; a host project (it references CK.AppHost) whose SDK is
+`Microsoft.NET.Sdk.Web`.
+
+**Do:**
+1. **The `Program.cs` of every host** (CK.AppHost of CK-AspNet, 25.0.0-0.uc.4.ci.85 or later):
+
+   ```csharp
+   return CK.Core.CKomposableAppHost.Run( args );
+   ```
+
+   `Run` takes the command line only (the `configure` action of `RunAsync` is gone: `CKomposableAppHost.Build` keeps it,
+   for the tests).
+2. **Every host project is `Microsoft.NET.Sdk` with `<OutputType>Exe</OutputType>`** (the web server is the
+   "HttpEndpoint" feature of the App, it brings ASP.NET Core). From CK-Sample-AspNetAuth's `Front/Auth3.Front.Host`:
+
+   ```xml
+   <Project Sdk="Microsoft.NET.Sdk">
+     <PropertyGroup>
+       <TargetFramework>net10.0</TargetFramework>
+       <OutputType>Exe</OutputType>
+       <IsPackable>false</IsPackable>
+       <RootNamespace>CK.Sample.Front</RootNamespace>
+     </PropertyGroup>
+   ```
+
+   CK.AppHost publishes the `appsettings.json` of the host (the base SDK doesn't). An `appsettings.Development.json` is
+   read from the project folder in Development (the content root), it is not published.
+3. **A World that clones the stack clones CK-AppHost-Desktop** (`Core/CKomposable/CK-AppHost-Desktop`), a new repository
+   (its packages were not released before).
+4. **To package an App as a desktop application** (optional): add CK.Ng.AppHost.DesktopNgApp (CK-AppHost-Desktop,
+   0.0.1-0.uc.0.ci.5 or later) to the App in a deployment (U25: `"Packages"` and its `//ck-package` line), and
+   configure its "DesktopNgApp" App aspect there. From CK-Configurator's `Deployment/#Production/ckonf.json`:
+
+   ```jsonc
+   "AppContexts": {
+     "Configurator": {
+       "App": {
+         // The window shows the client application "App".
+         "Aspects": { "DesktopNgApp": { "Client": "App", "Title": "CK Configurator" } },
+         // No port: the runner makes the endpoint in process (the "Urls" of the development are removed).
+         "Local": { "HttpEndpoint": { "Urls": null } }
+       }
+     }
+   }
+   ```
+
+   The App of the solution stays a web application (a browser and the dev server's live reload in Development). A shell
+   that shows the "Last log" and "Open folder" links loads them by name (they exist in the deployment only):
+   `resolveNamedComponentTypeAsync( 'desktop-log-links' )` of `@local/ck-gen/CK/Angular/NamedComponentsResolver`,
+   rendered with `NgComponentOutlet` (null when absent).
+
+**Behavior:**
+- A failure of `Run` (a missing secret, an invalid configuration, a port already in use...) is written on the standard
+  error and logged, and `Run` returns 1: never an unhandled exception.
+- An `IAppHostRunner` is a real object (the generated code has it before the host is built): `IAppHostRunner.ConfigureHost`
+  configures the builder of the host, `IAppHostRunner.Run` runs it, `IAppHostRunner.OnBuildFailure` is called when the host
+  fails to build. An App has at most one runner (the engine refuses two).
+- CK.AppHost sets `CKIsAppHost` in a host project: CK.AppHost.Desktop (a package of the App) makes such a host a `WinExe`
+  (no console); a Builder that references the same App keeps its console.
+- With CK.Ng.AppHost.DesktopNgApp, the host is run by `DesktopNgAppRunner` (CK.AppHost.DesktopNgApp): a native window
+  (InfiniFrame, tested on Windows only) shows the client at `app://localhost/`, the endpoint of the party is in process
+  (no port: the runner sets `"HttpEndpoint": { "InProcess": true }`, an endpoint with `"Urls"` is then an error), the
+  logs of the published application are in `{LocalApplicationData}/{Domain}-{Party}/Logs`, a failure is shown in the
+  window, closing the window stops the host.
+
+**Check:** no `RunAsync` nor `Microsoft.NET.Sdk.Web` host is left; the hosts build and start. A desktop deployment
+publishes a `WinExe` that opens its window.
 
 ## The final checklist
 
@@ -1802,7 +1964,7 @@ the configurator shows the JSON Schema of the model in the detail of the type.
 13. No `PFeature` is left: `[IsModel]`, `[IsModelDefiner]`, `[RemoveModel]` (U13).
 14. The database is `"Aspects": { "SqlServer" }` in `ckonf.json`: no Setupable/SqlSetup aspect in a builder (U14).
 15. Globalization is declared in the `"Aspects"` of an App of `ckonf.json`, no `CK.Globalization.Engine` type in a `CKSetup.xml` (U15).
-16. A repository with a central `ckonf.json` lists every builder in its `"Builders"`, and the builders' `ckonf.json` start with the "Generated from" line (U16).
+16. A repository with a central `ckonf.json` lists every AppContext in its `"AppContexts"` (each Builder is `{RootPath}/{Name}.Builder`, U30), and the Builders' `ckonf.json` start with the "Generated from" line (U16).
 17. A fleet's party name uses `{Name}` or `{Index}`, its hosts are started with `--Instance`; an Opened fleet
     (`"MaxInstanceCount"`) trusts its dynamic instances by approval only; an Opened tenant template has a `"DomainName"`
     ending with `/{Name}` and the `"PartyName"` `"${Name}"`; a custom `ICoreKeyStore` implements `DeleteAllKeys`; no test
@@ -1822,3 +1984,5 @@ the configurator shows the JSON Schema of the model in the detail of the type.
 25. A solution with deployments has its `Deployment/GenerateAssets.cs`; the builders that can't be deployed are left out (U25).
 26. A "Passkey" section has
     no `"RpName"` without `"RpId"` nor any unknown key (U29).
+27. Every host's `Program.cs` is `return CK.Core.CKomposableAppHost.Run( args );`, every host project is `Microsoft.NET.Sdk`
+    with `<OutputType>Exe</OutputType>`; a World that clones the stack clones CK-AppHost-Desktop (U31).

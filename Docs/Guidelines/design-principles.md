@@ -9,7 +9,7 @@ Each one comes from a case of the stack: the case is given, so that the rule can
 needs: its services, its middlewares, its configuration, its contribution to what other packages read. The application
 references it; it doesn't wire it.
 
-- **A host is one line.** `Program.cs` is `await CK.Core.CKomposableAppHost.RunAsync( args );` (CK.AppHost): the
+- **A host is one line.** `Program.cs` is `return CK.Core.CKomposableAppHost.Run( args );` (CK.AppHost): the
   bootstrap is the same for every party, so it is a package, not a copy. Copies of a host bootstrap drift: the Zorro demo's
   was an old copy that nobody had updated when it was replaced.
 - **A package contributes through an extension point**, never through code the application must call:
