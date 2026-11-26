@@ -3,7 +3,9 @@
     <BranchModel Root="stable">
       <Explo Name="explo/cris-auth" Link="Full" Parent="stable">
         <Explo Name="explo/linux" Link="Full" />
-        <Explo Name="explo/uc" Link="Full" />
+        <Explo Name="explo/uc" Link="Full">
+          <Explo Name="explo/uc-fixes" Link="Full" />
+        </Explo>
       </Explo>
     </BranchModel>
     <VersionTag AutoFixRemovableTag="true">
