@@ -16,6 +16,9 @@
     "explo/cris-auth-ci": [
       "2026.11.12.1-0.cris-auth.0.ci.0"
     ],
+    "explo/linux": [
+      "2026.11.27-0.linux"
+    ],
     "explo/uc": [
       "2026.11.25-0.uc",
       "2026.11.24.2-0.uc",
