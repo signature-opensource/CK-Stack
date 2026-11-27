@@ -41,7 +41,8 @@ the **Behavior** and a **Check**.
 | [U28](#u28-the-dataprotection-key-ring-is-in-the-store-of-the-party) | The DataProtection key ring is in the private store of the root party (`-Local/DataProtection-Keys`), encrypted by the secret `KeyRingKey`, the CNG store (the TPM), DPAPI on Windows, or nothing (a warning outside `#Dev`) | Yes (a store created before: its keys can't be opened; delete it in development) |
 | [U30](#u30-a-builder-manages-an-appcontext) | A Builder manages an AppContext (its Apps and the AppContext aspects that apply to all of them: one engine run): the central configuration keys the `"AppContexts"` by name (`"RootPath"`: the folder of its projects), the Builder is `{RootPath}/{Name}.Builder`, the single App is the party of the AppContext name (`"$Front"`), the Builder aspects are AppContext aspects (`AppContextAspectAttribute`, `IAppContextAspect`...), `AppBuilderConfiguration` is `AppContextConfiguration`, a deployment lists `"AppContexts"`; a host references the Builder of its AppContext (any `*.Builder`) | **Yes:** `"Builders"` becomes `"AppContexts"`, the Builders are renamed, the aspect types are renamed |
 | [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopNgApp" (U31), "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation"), "MailSender" (and "MailKit"), the "SqlServer" AppContext aspect have one; a secret read before the handles are resolved is a `ConfigurationSecretValue` | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`, the MailKit senders to `"MailKit": { "Senders": { ... } }`, MailKit's `"UseSsl"` is gone; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`, every model is validated: nested, items, entries) |
-| [U31](#u31-a-host-runs-with-ckomposableapphostrun-a-package-of-the-app-can-run-it) | A host runs with `CKomposableAppHost.Run` (synchronous, the exit code), its project is `Microsoft.NET.Sdk`/`Exe`; a package of the App can run it (`IAppHostRunner`, CK.AppHost); a deployment can package an App as a desktop application (CK.Ng.AppHost.DesktopNgApp of the new repository CK-AppHost-Desktop, its "DesktopNgApp" aspect) | **Yes:** `RunAsync` is gone; behavior (a host project is a plain executable) |
+| [U31](#u31-a-host-runs-with-ckomposableapphostrun-a-package-of-the-app-can-run-it) | A host runs with `CKomposableAppHost.Run` (synchronous, the exit code), its project is `Microsoft.NET.Sdk`/`Exe`; a package of the App can run it (`IAppHostRunner`, CK.AppHost); a deployment can package an App as a desktop application (CK.Ng.AppHost.DesktopNgApp of the new repository CK-AppHost-Desktop, the "DesktopNgApp" option of a client's "NgApp") | **Yes:** `RunAsync` is gone; behavior (a host project is a plain executable) |
+| [U32](#u32-a-section-is-read-only-through-its-owners-model) | A section is read only through its owner's model: the compile time model of a component (`[CompileConfiguration<TModel>]`: NgApp's `RequestPath` and `DevServerPort`, read by the build); a component without model has no configuration of its own; the reading follows `StrictConfigurationMode` (a warning in `#Dev`); a client's `"Types"` are type names; Transport's `ListeningAddress` is keyed by transport type; KeyManagement reads its local keys on the party only (`[ConfigurationNoDefaults]`); "Metrics" (its consumers are its options) and "CrisHttpSender" are optional with a model | **Yes:** configuration (`"Hosting"`, `"Types"`, `"ListeningAddress"`, the Metrics consumers), a driver that reads its section by hand; behavior (an unknown key is an error outside `#Dev`) |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -80,7 +81,7 @@ guide) is gone: migrate.
        "Local": {
          "HttpEndpoint": { "Urls": "http://localhost:5300" },
          "PartyClient": {
-           "App": { "NgApp": true, "Hosting": { "RequestPath": "/", "DevServerPort": 4200 } },
+           "App": { "NgApp": { "RequestPath": "/", "DevServerPort": 4200 }, "Hosting": true },
            "MiniApp": {
              "Types": [
                "CK.Ng.Cris.AspNet.CrisAspNetPackage, CK.Ng.Cris.AspNet",
@@ -88,8 +89,8 @@ guide) is gone: migrate.
                "CK.TS.Angular.NgAppClientFeature, CK.TS.Angular",
                "CK.TypeScript.HostingClientFeature, CK.TS.AspNet.Clients"
              ],
-             "NgApp": true,
-             "Hosting": { "DevServerPort": 4201 }
+             "NgApp": { "DevServerPort": 4201 },
+             "Hosting": true
            }
          }
        },
@@ -107,8 +108,8 @@ guide) is gone: migrate.
    `<TypeScript Name="X" ...>` of the BinPath (a client application served by its host) becomes the declared client
    `"Local:PartyClient:X"` with:
    - **its type set:** the `Types` and `ExcludedTypes` of the `<TypeScript>` become the `"Types"` and `"ExcludedTypes"` of
-     the client (a type is its assembly qualified name, or an object whose keys are its attributes:
-     `{ "Name": "...", "Optional": true }`). **The types drive:** a client with `"Types"` is restricted to them and to what
+     the client (a type is its assembly qualified name; the TypeScript settings of a type go to the `"Types"` of
+     `"NgApp"`, below: U32). **The types drive:** a client with `"Types"` is restricted to them and to what
      they require, and a key doesn't bring its type in: such a client also lists its client features,
      `"CK.TS.Angular.NgAppClientFeature, CK.TS.Angular"` for `"NgApp"` and
      `"CK.TypeScript.HostingClientFeature, CK.TS.AspNet.Clients"` for `"Hosting"` (otherwise the build fails: the key names a
@@ -116,17 +117,19 @@ guide) is gone: migrate.
      listed ones and what they require) and the Pocos it lists; the other listed types (the client features) are not
      TypeScript types. A client without `"Types"` has all the types of its App;
    - **its framework, `"NgApp"`** (an Angular application, CK.TS.Angular): the other attributes of the `<TypeScript>`
-     become its keys: `TargetProjectPath`, `DefaultTypeScriptVersion`, `IntegrationMode`, `InstallYarn`,
-     `GitIgnoreCKGenFolder`, `AutoInstallJest`, `EnableTSProjectReferences`, `DefaultCulture`, `ActiveCultures` (a string
-     or an array), `TypeFilterName` and the list `Barrels`. Without any of them: `"NgApp": true` (an empty object `{}` is
-     no declaration);
-   - **its hosting, `"Hosting"`** (CK.TS.AspNet.Clients): `Kind="DefaultApp"` becomes `"RequestPath": "/"` (an `App`
-     needs nothing: its request path is `/{kebab-name}`, `"RequestPath"` sets another one), `DevServerPort` its
-     `"DevServerPort"`, `UseDist="true"` its `"UseDist": true` (a run time key); the options of the client move into it:
-     `"Hosting": { "StaticFiles": { ... } }`.
+     become the keys of its compile time model (`TypeScriptClientCompileConfiguration`, U32): `TargetProjectPath`,
+     `DefaultTypeScriptVersion`, `IntegrationMode`, `InstallYarn`, `GitIgnoreCKGenFolder`, `AutoInstallJest`,
+     `EnableTSProjectReferences`, `DefaultCulture`, `ActiveCultures` (a string or an array), `TypeFilterName`, the list
+     `Barrels` and the TypeScript settings of types (`"Types": [ { "Name": "...", "TypeName": "..." } ]`);
+     `Kind="DefaultApp"` becomes `"RequestPath": "/"` (an `App` needs nothing: its request path is `/{kebab-name}`,
+     `"RequestPath"` sets another one), `DevServerPort` its `"DevServerPort"`. Without any of them: `"NgApp": true` (an
+     empty object `{}` is no declaration);
+   - **its hosting, `"Hosting"`** (CK.TS.AspNet.Clients): the client is served by its party. `UseDist="true"` becomes its
+     `"UseDist": true` (a run time key); the options of the client move into it: `"Hosting": { "StaticFiles": { ... } }`.
+     Without them: `"Hosting": true`.
 
-   Any other key of a client is an error. A client that no build feature handles (no `"NgApp"`) is a build error, and a
-   `"NgApp"` client without `"Hosting"` is not supported yet. Two clients at the same request path are an error.
+   Any other key of a client is an error. A client that no build feature handles (no `"NgApp"`) is a build error. Two
+   clients at the same request path are an error.
 
    A local party can have a type set too, in its `Local` (`Parties[i]:Local` for a tenant domain): `"Types"` and
    `"ExcludedTypes"`, compile time keys. Its exclusions apply to its clients (a client that adds a type that its party
@@ -158,7 +161,7 @@ guide) is gone: migrate.
 **Behavior:**
 - **The host's `appsettings.json` is generated:** its first line is `// Generated from Front.Builder/ckonf.json: do not
   edit.`, it is written when it changes, without the comments (they are in the `ckonf.json`) and without the compile
-  time keys (the type sets, the keys of "NgApp", the `RequestPath` and `DevServerPort` of "Hosting", the `Aspects`, the App
+  time keys (the type sets, the keys of the compile time models: "NgApp"'s, the `Aspects`, the App
   keys, its `Name`; a feature whose keys are all compile time is written `true`). **The keys of the party are in its
   `"CK-AppIdentity"` section** (first), the other keys of the App follow as they are: the run time configuration is the
   one of the cris-auth guide (the user-secrets and the environment variables keep their `CK-AppIdentity:...` keys). Edit
@@ -266,7 +269,7 @@ not from its type. The configuration side is in U1 (step 2); this item is about 
 4. **`TypeScriptClient` becomes two features:** `NgAppClientFeature` (CK.TS.Angular: `Info`, the `ClientInfo`; the web
    build `IWebAppBuild`) and `HostingClientFeature` (CK.TS.AspNet.Clients: `Info`, `RequestPath`, `UseDist`,
    `StaticFiles`, `Build`). `ClientInfo.UseDist` and `TypeScriptBinPathAspectConfiguration.UseDist` are gone: it is the
-   run time key `"Hosting:UseDist"`. `TypeScriptBinPathAspectConfiguration.RequestPath` can be set (it sets the `Kind`).
+   run time key `"Hosting:UseDist"` (Hosting's model, `HostingConfiguration`). `TypeScriptBinPathAspectConfiguration.RequestPath` can be set (it sets the `Kind`).
 5. **A script that reads the running status:** the `Clients` section has no `Kind`: the default client application is
    the one whose `RequestPath` is `/`.
 
@@ -473,12 +476,13 @@ table below directly in a `Local`, a remote (`Parties[i]`) or a `"Defaults"`.
   "AuthCenterRemote": { "Party": "Sample/Auth3/$Auth3/#Dev" },
   "KeyManagement": { "TrustAnchors": { "Sample/Auth3/$Auth3/#Dev": "#Dev" } }
 },
-"Defaults": { "Transport": { "ListeningAddress": [ "tcp:127.0.0.1:37300" ] } },
+"Defaults": { "Transport": { "ListeningAddress": { "tcp": "127.0.0.1:37300" } } },
 "Parties": [ { "PartyName": "$Front", "AuthCenterRemote": true, "KeyManagement": { "AutoTrustKey": "Once" } } ]
 ```
 
 In a test configuration: `c["Parties:0:AutoTrustKey"]` becomes `c["Parties:0:KeyManagement:AutoTrustKey"]`,
-`c["Defaults:ListeningAddress:0"]` becomes `c["Defaults:Transport:ListeningAddress:0"]`.
+`c["Defaults:ListeningAddress:0"] = "tcp:127.0.0.1:37300"` becomes `c["Defaults:Transport:ListeningAddress:tcp"] = "127.0.0.1:37300"`
+(`ListeningAddress` is keyed by transport type: U32).
 
 **Behavior:**
 - **The keys of a party:** in a `Local`, `PublicUrl`, `Assemblies` and `DefaultAssembly`; on a remote, its identity
@@ -487,7 +491,7 @@ In a test configuration: `c["Parties:0:AutoTrustKey"]` becomes `c["Parties:0:Key
 - A section declares its feature (U4): `"Defaults": { "Transport": { ... } }` declares Transport for the parties below
   (KeyManagement and Transport are allowed by default anyway).
 - A setting is looked up as before (the party's own section, then the nearest `"Defaults"`), at its new path. The local
-  settings (`RecoveryPublicKey`...) are still read from the `Local` only.
+  settings (`RecoveryPublicKey`...) are still read from the `Local` only: one of them in a `"Defaults"` is an error (U32).
 - **CngKeyStore** is an option of KeyManagement, enabled by default when CK.AppIdentity.KeyManagement.Cng is referenced
   (as before): `"KeyManagement": { "CngKeyStore": false }` puts the keys of a party in files. Its section is resolved as a
   whole (the party's, otherwise the nearest `"Defaults"`'s), not value by value. An invalid value (an unknown key, a value
@@ -501,7 +505,6 @@ In a test configuration: `c["Parties:0:AutoTrustKey"]` becomes `c["Parties:0:Key
   "Password" option of the AuthCenter and the "MailSender" feature of the party (`[Requires<AuthCenterPasswordOption>]`,
   `[Requires<MailSenderFeatureDriver>]`): left to its default it is disabled without them, enabled explicitly it is an
   error. "UserInvitation" (CK.UserManagement.UserInvitation, required) requires "MailSender" too.
-- A configured `EnlistRemoteUrl` is still a start error (it is no more supported), wherever it is.
 
 **Check:** the parties start without "unknown key" warnings. CK-Sample-AspNetAuth, CK-Ng-Admin, CK-Ng-User-UserProfile and
 the tests of CK-AppIdentity-Transport are migrated this way.
@@ -870,7 +873,7 @@ sections (`Logging`, `CK-Monitoring`), or describe the two sides of a connection
          "RootPath": "Auth3",
          "Aspects": { "SqlServer": { "DefaultDatabaseConnectionString": "Server=.;Database=CKSampleAuth3;Integrated Security=True;TrustServerCertificate=true" } },
          "App": {
-           "Defaults": { "Transport": { "ListeningAddress": [ "tcp:127.0.0.1:37300" ] } },
+           "Defaults": { "Transport": { "ListeningAddress": { "tcp": "127.0.0.1:37300" } } },
            "Local": { "AuthCenter": { ... } }
          }
        },
@@ -1342,7 +1345,7 @@ a copy of the `ckonf.json`).
      "AppContexts": {
        "Auth3": {
          "Aspects": { "SqlServer": { "DefaultDatabaseConnectionString": { "$SECRET": "Auth3:Database" } } },
-         "App": { "Defaults": { "Transport": { "ListeningAddress": [ "tcp:0.0.0.0:37300" ] } }, "Demo": null }
+         "App": { "Defaults": { "Transport": { "ListeningAddress": { "tcp": "0.0.0.0:37300" } } }, "Demo": null }
        },
        "Front": { "App": { "Local": { "HttpEndpoint": { "Urls": "http://*:5300" } } } }
      },
@@ -1608,8 +1611,9 @@ pattern); `PartyDescription.Routes`, `Collected`, `FindRoute`, `PartyRoute`, `Co
    destination )` (a direct remote, otherwise through the hub) or `SendAlongPathAsync`.
 
 **Behavior:**
-- A `RouteHosts` configuration fails the setup (an explicit message); so does an AuthCenter designated by
-  `Local:AuthCenterRemote:Party` that is not a remote of the party.
+- A `RouteHosts` key is an unknown key of the "Transport" or "AuthCenter" model (U32: a warning in `#Dev`, an error
+  elsewhere); an AuthCenter designated by `Local:AuthCenterRemote:Party` that is not a remote of the party fails the
+  setup.
 - Several approval pages among the remotes of the center: an error of the center (`SecurityCritical`), no page is stated.
 - A holder accepts an approval countersigned by its AuthCenter (without AuthCenter: from itself or a direct remote that
   serves the approval page). The removal of an instance (`IRemoveHeldPartyInstanceCommand`) requires the operator at the
@@ -1790,8 +1794,8 @@ whose `Create` reads its section; an `"AuthCenter": { "Oidc": { "<Scheme>": { ..
   scheme is available when an `"RpId"` is configured (and an `IPasskeyStore` registered); an `"RpName"` without
   `"RpId"`, and an unknown key of its section, are now errors.
 - The models of the packages (their keys don't change, except Oidc's): "HttpEndpoint" (`HttpEndpointConfiguration`:
-  `Urls`, `Kestrel`, `DefaultEndpoint`), its options "InProcess" and "ForwardedHeaders", the "DesktopNgApp" App aspect
-  (`DesktopNgAppConfiguration`, U31), "AuthCenter" (`AuthCenterConfiguration`: the lifetimes, `CriticalLifetimes`; read key
+  `Urls`, `Kestrel`, `DefaultEndpoint`), its options "InProcess" and "ForwardedHeaders", the "DesktopNgApp" option of
+  "NgApp" (`DesktopNgAppConfiguration`, U31), "AuthCenter" (`AuthCenterConfiguration`: the lifetimes, `CriticalLifetimes`; read key
   by key with the `"Defaults"` of the party), its options "Oidc" (`AuthCenterOidcOptionConfiguration`: **its schemes are
   in `"Schemes"`**, each one an `OidcSchemeConfiguration`; the secret path is `"Party:Schemes:*:ClientSecret"`),
   "PasswordLost" and "UserInvitation". Their errors are the reader's (`Unknown key '<path>'`) and the models' `Validate`;
@@ -1901,17 +1905,20 @@ of `host.Run()`. A host project is a plain executable of the base SDK.
 3. **A World that clones the stack clones CK-AppHost-Desktop** (`Core/CKomposable/CK-AppHost-Desktop`), a new repository
    (its packages were not released before).
 4. **To package an App as a desktop application** (optional): add CK.Ng.AppHost.DesktopNgApp (CK-AppHost-Desktop,
-   0.0.1-0.uc.0.ci.5 or later) to the App in a deployment (U25: `"Packages"` and its `//ck-package` line), and
-   configure its "DesktopNgApp" App aspect there. From CK-Configurator's `Deployment/#Production/ckonf.json`:
+   0.0.1-0.uc.0.ci.9 or later) to the App in a deployment (U25: `"Packages"` and its `//ck-package` line), and enable
+   the "DesktopNgApp" option of the "NgApp" feature of the client that the window shows (its model:
+   `DesktopNgAppConfiguration`, `Title`, `Width`, `Height`). From CK-Configurator's `Deployment/#Production/ckonf.json`:
 
    ```jsonc
    "AppContexts": {
      "Configurator": {
        "App": {
-         // The window shows the client application "App".
-         "Aspects": { "DesktopNgApp": { "Client": "App", "Title": "CK Configurator" } },
-         // No port: the runner makes the endpoint in process (the "Urls" of the development are removed).
-         "Local": { "HttpEndpoint": { "Urls": null } }
+         "Local": {
+           // No port: the build makes the endpoint in process (the "Urls" of the development are removed).
+           "HttpEndpoint": { "Urls": null },
+           // The window shows the client application "App".
+           "PartyClient": { "App": { "NgApp": { "DesktopNgApp": { "Title": "CK Configurator" } } } }
+         }
        }
      }
    }
@@ -1931,18 +1938,123 @@ of `host.Run()`. A host project is a plain executable of the base SDK.
 - CK.AppHost sets `CKIsAppHost` in a host project: CK.AppHost.Desktop (a package of the App) makes such a host a `WinExe`
   (no console); a Builder that references the same App keeps its console.
 - With CK.Ng.AppHost.DesktopNgApp, the host is run by `DesktopNgAppRunner` (CK.AppHost.DesktopNgApp): a native window
-  (InfiniFrame, tested on Windows only) shows the client at `app://localhost/`, the endpoint of the party is in process
-  (no port: the runner sets `"HttpEndpoint": { "InProcess": true }`, an endpoint with `"Urls"` is then an error), the
-  logs of the published application are in `{LocalApplicationData}/{Domain}-{Party}/Logs`, a failure is shown in the
-  window, closing the window stops the host.
+  (InfiniFrame, tested on Windows only) shows the client whose "NgApp" enables the "DesktopNgApp" option, at
+  `app://localhost/`. The window opens with the title and the size of the option (read before the host starts:
+  `PartyClientFeatureDriver.TryFindOptionModels`). The endpoint of the party is in process: the build of the App
+  (CK.AppHost.DesktopNgApp.Engine) projects `"HttpEndpoint": { "InProcess": true }` (an endpoint with `"Urls"` is then
+  an error); two clients of an App with the option are a build error (the window shows one client). The option requires
+  the "Hosting" feature of its client. The logs of the published application are in
+  `{LocalApplicationData}/{Domain}-{Party}/Logs`, a failure is shown in the window, closing the window stops the host.
+- A runner of your own specializes `DesktopHostRunner`: `GetWindowSettings( IServiceProvider services )` receives the
+  services of the built host (not started).
 
 **Check:** no `RunAsync` nor `Microsoft.NET.Sdk.Web` host is left; the hosts build and start. A desktop deployment
 publishes a `WinExe` that opens its window.
 
+## U32. A section is read only through its owner's model
+
+A configuration section has one owner, and it is read only through the owner's model: never by its keys, by the owner
+or by another package. A component (a feature driver, a client feature, an option) has two models: its run time model
+(`[Configuration<TModel>]`, U29) and its compile time model (`[CompileConfiguration<TModel>]`, CK.AppBuilder.Abstractions:
+the keys that the build reads, the run time ignores them). **A component without model has no configuration of its
+own:** its section has only its options and its compile time keys. The type set of a party or a client (`"Types"`,
+`"ExcludedTypes"`) is `TypeSetConfiguration`'s (CK.Engine.Configuration).
+
+**Detect:**
+- In a `ckonf.json` (or a test configuration): a client's `"Hosting"` with `"RequestPath"` or `"DevServerPort"`; an
+  entry of a client's or a party's `"Types"` that is an object (`{ "Name": "...", ... }`); a `"ListeningAddress"` that is
+  a string or an array; a `"MetricsCsv"` or `"MetricsInfluxDb"` section; a KeyManagement local key (`TrustAnchors`,
+  `EnlistTicket`, `RecoveryPublicKey`, `KeyRotationDays`, `OperationalKeyDays`, `MaxSignatureDays`, `KeyRingKey`,
+  `KeyRingPreviousKey`) in a `"Defaults"`.
+- In code: a feature driver or a client feature driver that reads keys of its section (`configuration["..."]`,
+  `GetSection`, `TryResolveValue`... in its `Create` or its setup) without `[Configuration<TModel>]`; a driver that checks
+  its keys (`PartyComponentOptionDirectory.IsOptionName`); `TypeScriptFrameworkAppBuilderContributor.HostingFeatureName`,
+  `TypeScriptBinPathAspectConfiguration.ClientConfigurationKeys`; `CsvMetricsConsumerFeatureDriver`,
+  `InfluxDbMetricsConsumerFeatureDriver`; `ITransportTypeService.ParseAddress( ..., ImmutableConfigurationSection )`,
+  `TransportTypeAddress.Section`; `DesktopHostRunner.GetWindowSettings( IConfiguration )`.
+
+**Do:**
+1. **The request path and the dev server port of a client are its web build's:** they move from `"Hosting"` to
+   `"NgApp"` (the compile time model of the TypeScript client, `TypeScriptClientCompileConfiguration` of CK.TypeScript),
+   `"Hosting"` keeps `"UseDist"` and its options (`true` without them). From CK-Sample-AspNetAuth's `ckonf.json`:
+
+   ```jsonc
+   // Before.
+   "App": { "NgApp": true, "Hosting": { "RequestPath": "/", "DevServerPort": 4200 } },
+   // After.
+   "App": { "NgApp": { "RequestPath": "/", "DevServerPort": 4200 }, "Hosting": true },
+   ```
+
+   The builders' generated `ckonf.json` and the deployments' `ckonf.merged.json` follow at the next build (commit them).
+2. **A type of `"Types"` is its name:** an object entry of a client becomes its name; the TypeScript settings of the type
+   (`TypeName`, `Folder`, `FileName`, `SameFileAs`, `SameFolderAs`) go to the `"Types"` of `"NgApp"`:
+   `"NgApp": { "Types": [ { "Name": "Acme.Thing, Acme", "TypeName": "Thing" } ] }`.
+3. **Transport's `ListeningAddress` is keyed by transport type** (the address without its prefix): the entries are merged
+   along the levels, the nearest winning for a type (as before); `"ListeningTypes"` excludes an inherited one.
+
+   ```jsonc
+   // Before.
+   "Defaults": { "Transport": { "ListeningAddress": [ "tcp:0.0.0.0:37300", "mtls:0.0.0.0:37301" ] } }
+   // After.
+   "Defaults": { "Transport": { "ListeningAddress": { "tcp": "0.0.0.0:37300", "mtls": "0.0.0.0:37301" } } }
+   ```
+
+   In a test configuration: `c["Defaults:Transport:ListeningAddress:0"] = "tcp:127.0.0.1:37300"` becomes
+   `c["Defaults:Transport:ListeningAddress:tcp"] = "127.0.0.1:37300"`.
+4. **The Metrics consumers are options of "Metrics"** (CK-Metrics): `"MetricsCsv"` becomes `"Metrics": { "Csv": { ... } }`,
+   `"MetricsInfluxDb"` becomes `"Metrics": { "InfluxDb": { ... } }` (same keys). "Metrics" is optional: a party declares
+   it (`true` or its section). InfluxDB's `Token` and `Password` are secrets (`{ "$SECRET": "<Name>" }`, U20). A consumer
+   of your own is an option of the feature: an `IMetricsConsumerOption` (`[PartyFeatureOption( "Name", TypeActivation.Optional )]`,
+   its `[Configuration<TModel>]`) whose `CreateConsumer( monitor, log, party )` creates it: the "Metrics" driver
+   registers and starts it once its FasterLog is ready.
+5. **A driver of your own that reads its section declares its model** (`[ConfigurationModel]` class, U29):
+   `[Configuration<TModel>]` on the feature driver (`GetModel<TModel>( party )`) or on the client feature
+   (`ClientFeatureDriver<T, TModel>`), and stops reading the section and checking its keys. A setting that was "on when
+   its section exists" makes the feature `TypeActivation.Optional`. A setting that must be configured on each party (a
+   security setting) is `[ConfigurationNoDefaults]` on the property of the model (CK.AppBuilder.Abstractions).
+6. **A value read by the build** is the compile time model of its component: `[CompileConfiguration<TModel>]`. An App
+   builder contributor receives it from the AppIdentity contributor (CK.AppIdentity.Engine):
+   `DeclaredClient.GetCompileModel<TModel>( featureName )`, `AppIdentityAppBuilderContributor.GetPartyCompileModel<TModel>( app, featureName )`;
+   `DeclaredClient.IsOptionEnabled( featureName, optionType )` says what the configuration enables. A TypeScript
+   framework's client feature declares `[CompileConfiguration<TypeScriptClientCompileConfiguration>]` (its
+   `TypeScriptFrameworkAppBuilderContributor` reads it).
+7. **A transport type of your own:** `ParseAddress( monitor, typed, string path )` (the configuration path, for the
+   errors), `TransportTypeAddress.Path`.
+8. **A test that expects a configuration error** in a `#Dev` party sets `"StrictConfigurationMode": true` (with a store
+   that only the current user can write: a store writable by other accounts is a warning, an error in strict mode).
+
+**Behavior:**
+- **The reading follows `StrictConfigurationMode`** (true unless the environment is `#Dev`): an unknown key of a section
+  (a model's, or a component without model) and a value that can't be read (a wrong type, an unknown enum name) are
+  errors that fail the setup in strict mode, warnings in `#Dev` (the key keeps its default). A missing required key, a
+  `[ConfigurationNoDefaults]` key in a `"Defaults"` and the errors of a model's `Validate` (a value out of its range) are
+  errors in every environment. "PartyClient" reads its section itself (its keys are the clients).
+- **The compile time keys are checked by the build** (an unknown key of a compile time model is a build error), not
+  projected in the host's `appsettings.json` (the feature is written `true` when all its keys are compile time keys), and
+  accepted and ignored at run time (`PartyComponentInfo.CompileKeys`).
+- **"Hosting" has a run time model only** (`HostingConfiguration`: `UseDist`) and its options; a client served by its
+  party has `"Hosting"`, a client that only builds (`"NgApp"` alone) is supported.
+- **An option can require a feature of its client** (`[Requires<HostingClientFeature>]` on an option of "NgApp"): it is
+  enabled only with it; the options of a client's features are created once all its features are created.
+- **The values that fell back to a default with a warning** (Transport's `NegotiationTimeout`, KeyManagement's
+  `AutoTrustKey` and `MaxClockOffset`, the key lifetimes) follow the reading: an unreadable value is a warning in `#Dev`
+  (the default: 15 seconds, `Never`, 5 minutes), an error elsewhere; a value out of its range (`NegotiationTimeout` out
+  of 1..600, `MaxClockOffset` out of 1..20 minutes) is an error. The key lifetimes out of their range are still clamped
+  with a warning.
+- **"CrisHttpSender" is optional** (CK.Cris.HttpSender): its model `CrisHttpSenderConfiguration` (`Timeout`,
+  `DisableServerCertificateValidation`), its option "Retry" (`true` or its section, `CrisHttpSenderRetryConfiguration`);
+  a remote that declares it is configured as before.
+- **The configurator** describes the compile time model of a type ("build time" keys) and the editor shows its form.
+
+**Check:** the builders run; the parties start without "Unknown key" warnings in `#Dev`; no driver reads its section by
+hand. CK-Sample-AspNetAuth, CK-Configurator (the `#Production` desktop deployment), the samples of CK-Ng-Admin,
+CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib and CK-Observable-Domain, and the tests of CK-AppIdentity-Transport,
+CK-Metrics and CK-Cris-TypeScript are migrated this way.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
-   applications declared with their features `"NgApp"` and `"Hosting"`, the `"Aspects"`), its `CKSetup.xml` has no `<BinPaths>` (or is gone), and
+   applications declared with their features `"NgApp"` (with their compile time keys) and `"Hosting"`, the `"Aspects"`), its `CKSetup.xml` has no `<BinPaths>` (or is gone), and
    the hosts' `appsettings.json` start with the "Generated" line, committed (U1).
 2. Every `Local:HttpEndpoint` has its `Urls` (or `Kestrel`) directly, `AddHttpEndpoint` is replaced by
    `ConfigureHttpEndpoint` and `Endpoints` by `Endpoint` (U2).
@@ -1985,4 +2097,8 @@ publishes a `WinExe` that opens its window.
 26. A "Passkey" section has
     no `"RpName"` without `"RpId"` nor any unknown key (U29).
 27. Every host's `Program.cs` is `return CK.Core.CKomposableAppHost.Run( args );`, every host project is `Microsoft.NET.Sdk`
-    with `<OutputType>Exe</OutputType>`; a World that clones the stack clones CK-AppHost-Desktop (U31).
+    with `<OutputType>Exe</OutputType>`; a World that clones the stack clones CK-AppHost-Desktop; a desktop deployment
+    enables the "DesktopNgApp" option of its client's "NgApp" (U31).
+28. No `"Hosting"` has a `"RequestPath"` or a `"DevServerPort"` (they are `"NgApp"`'s), no `"Types"` entry is an object,
+    every `"ListeningAddress"` is keyed by transport type, no `"MetricsCsv"`/`"MetricsInfluxDb"` is left, no KeyManagement
+    local key is in a `"Defaults"`, no driver reads its section by hand (U32).
