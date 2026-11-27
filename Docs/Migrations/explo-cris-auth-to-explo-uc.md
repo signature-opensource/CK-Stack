@@ -43,6 +43,7 @@ the **Behavior** and a **Check**.
 | [U29](#u29-a-section-can-be-a-configuration-model) | A section can be a configuration model: a `[ConfigurationModel]` class (CK.AppBuilder.Abstractions, read by CK.ConfigurationModel), named by `[Configuration<TModel>]` on an aspect, an option, a feature driver (`GetModel<TModel>( party )`) or a client feature (`ClientFeatureDriver<T, TModel>`), read key by key along the `"Defaults"` and validated, described as a JSON Schema; "Globalization", "HttpEndpoint" (and "InProcess", "ForwardedHeaders"), "DesktopNgApp" (U31), "AuthCenter" (and "Oidc", "Passkey", "PasswordLost", "UserInvitation"), "MailSender" (and "MailKit"), the "SqlServer" AppContext aspect have one; a secret read before the handles are resolved is a `ConfigurationSecretValue` | **Yes:** the Oidc schemes move to `"Oidc": { "Schemes": { ... } }`, the MailKit senders to `"MailKit": { "Senders": { ... } }`, MailKit's `"UseSsl"` is gone; behavior (the unknown keys are the reader's errors, the AuthCenter's settings are read with its `"Defaults"`, every model is validated: nested, items, entries) |
 | [U31](#u31-a-host-runs-with-ckomposableapphostrun-a-package-of-the-app-can-run-it) | A host runs with `CKomposableAppHost.Run` (synchronous, the exit code), its project is `Microsoft.NET.Sdk`/`Exe`; a package of the App can run it (`IAppHostRunner`, CK.AppHost); a deployment can package an App as a desktop application (CK.Ng.AppHost.DesktopNgApp of the new repository CK-AppHost-Desktop, the "DesktopNgApp" option of a client's "NgApp") | **Yes:** `RunAsync` is gone; behavior (a host project is a plain executable) |
 | [U32](#u32-a-section-is-read-only-through-its-owners-model) | A section is read only through its owner's model: the compile time model of a component (`[CompileConfiguration<TModel>]`: NgApp's `RequestPath` and `DevServerPort`, read by the build); a component without model has no configuration of its own; the reading follows `StrictConfigurationMode` (a warning in `#Dev`); a client's `"Types"` are type names; Transport's `ListeningAddress` is keyed by transport type; KeyManagement reads its local keys on the party only (`[ConfigurationNoDefaults]`); "Metrics" (its consumers are its options) and "CrisHttpSender" are optional with a model | **Yes:** configuration (`"Hosting"`, `"Types"`, `"ListeningAddress"`, the Metrics consumers), a driver that reads its section by hand; behavior (an unknown key is an error outside `#Dev`) |
+| [U33](#u33-the-architecturemd-of-a-host) | The builder writes an `architecture.md` next to each host's `appsettings.json`: the App described from its content (its projects, its type set, its configurable types by package, its aspects, its party and clients with their features, options and compile time choices); `appsettings.json` has the run time keys only (`"ProjectCompileKeys"` is gone) | **Yes:** a `"ProjectCompileKeys"` root key, a compile time key in a run time configuration; commit the generated files |
 
 ## U1. The builder's configuration: `ckonf.json` (the hosts' `appsettings.json` are projections)
 
@@ -100,8 +101,7 @@ guide) is gone: migrate.
    }
    ```
 
-   The root of `ckonf.json` has `"App"` (or `"Apps"`), `"Aspects"` (see step 3) and `"ProjectCompileKeys"` (see the
-   Behavior); any other key is an error. A solution of several builders can describe them in one central
+   The root of `ckonf.json` has `"App"` (or `"Apps"`) and `"Aspects"` (see step 3); any other key is an error. A solution of several builders can describe them in one central
    configuration instead (U16).
 
 2. **Move the client applications into their declaration.** A client is a bag of client features. A
@@ -165,8 +165,8 @@ guide) is gone: migrate.
   keys, its `Name`; a feature whose keys are all compile time is written `true`). **The keys of the party are in its
   `"CK-AppIdentity"` section** (first), the other keys of the App follow as they are: the run time configuration is the
   one of the cris-auth guide (the user-secrets and the environment variables keep their `CK-AppIdentity:...` keys). Edit
-  the `ckonf.json`, never the projection. `"ProjectCompileKeys": true` (at the root) keeps the compile time keys of the
-  clients in the projection (the run time accepts them).
+  the `ckonf.json`, never the projection. The compile time choices are described next to it, in the host's
+  `architecture.md` (U33).
 - **The configuration is checked at build time:** the party of each App is validated when the builder runs (an
   invalid configuration fails the build), the keys and the App names are case insensitive (`Back1` and `back1` is a
   duplicate: an error),
@@ -2051,6 +2051,46 @@ hand. CK-Sample-AspNetAuth, CK-Configurator (the `#Production` desktop deploymen
 CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib and CK-Observable-Domain, and the tests of CK-AppIdentity-Transport,
 CK-Metrics and CK-Cris-TypeScript are migrated this way.
 
+## U33. The architecture.md of a host
+
+The host's `appsettings.json` is its run time configuration only: the compile time keys never pollute it. The choices
+made at build time are described in a document generated next to it: `architecture.md`, the App described from its
+content.
+
+**Detect:**
+- A `"ProjectCompileKeys"` at the root of a `ckonf.json` (a Builder's or an AppContext of the central one).
+- A run time configuration (a test, a hand-written `appsettings.json`) with a compile time key of a component: NgApp's
+  `RequestPath`, `DevServerPort`, `Types`... (`"Local:PartyClient:App:NgApp:DevServerPort"`).
+- In code: `PartyComponentInfo.CompileKeys`, `PartyComponentInfo.IsCompileKey`.
+
+**Do:**
+1. Remove `"ProjectCompileKeys"` (it is an unknown key now).
+2. Remove the compile time keys of a run time configuration: they are the build's (`ckonf.json`).
+3. Run the builders and **commit the generated `architecture.md`** of each host (next to its `appsettings.json`), like
+   the projection: `ckli build --build-impacts commit` does it.
+4. **A contributor of your own** (`IAppBuilderContributor`) describes what it handles:
+   `AppConfiguration.AddArchitecture( title, markdown )` adds a section (a level 2 heading, its content at level 3 or
+   below). `ConfigurationModelMarkdown.AppendTable( builder, description, model, writtenKeys )` (CK.ConfigurationModel)
+   writes a model as a table, `*(default)*` on the keys that the configuration doesn't write. Never a secret value.
+
+**Behavior:**
+- **`appsettings.json` has the run time keys only:** the compile time keys are always removed (a feature whose keys are
+  all compile time keys is written `true`). A compile time key in a run time configuration is an unknown key: a warning
+  in `#Dev`, an error elsewhere (U32).
+- **`architecture.md`** starts with `<!-- Generated from {Builder}/ckonf.json: do not edit. -->`, then: the projects
+  (the App, the Builder), the type set of the App, its configurable types by package, the aspects (their package,
+  their options, their model), the party (its full name, its remotes, its tenant domains, its configured features:
+  their package, their options, their compile time model), each client (its type set, its features). It is written
+  only when it changes. A secret shows its `$SECRET` name only (a written secret value or a nested model holding a secret
+  is never written).
+- A deployment's generated Builder writes the `architecture.md` of the deployed host (in `Deployment/.build`); it is
+  not published with the application.
+- The `CKSetup.xml` path (a builder without `ckonf.json`) is unchanged: no projection, no `architecture.md`.
+
+**Check:** each host project has an `architecture.md` next to its `appsettings.json`, committed; no `appsettings.json`
+has a `"RequestPath"` or a `"DevServerPort"`. CK-Sample-AspNetAuth, CK-Configurator, the samples of CK-Ng-Admin,
+CK-Ng-User-UserProfile, CK-Ng-Zorro-Contrib and CK-Observable-Domain have them.
+
 ## The final checklist
 
 1. Every builder has a `ckonf.json` (its `"App"` or `"Apps"` with the keys of their party directly in them, the client
@@ -2102,3 +2142,4 @@ CK-Metrics and CK-Cris-TypeScript are migrated this way.
 28. No `"Hosting"` has a `"RequestPath"` or a `"DevServerPort"` (they are `"NgApp"`'s), no `"Types"` entry is an object,
     every `"ListeningAddress"` is keyed by transport type, no `"MetricsCsv"`/`"MetricsInfluxDb"` is left, no KeyManagement
     local key is in a `"Defaults"`, no driver reads its section by hand (U32).
+29. No `"ProjectCompileKeys"` is left; each host has its generated `architecture.md`, committed (U33).
