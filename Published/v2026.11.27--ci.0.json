@@ -1,7 +1,7 @@
 {
-  "StackUrl": "https://github.com/signature-opensource/ck-stack",
+  "StackUrl": "https://github.com/signature-opensource/CK-Stack",
   "World": "CK",
-  "Version": "2026.11.26--ci.0",
+  "Version": "2026.11.27--ci.0",
   "IsDeprecated": false,
   "Repositories": [
     {
@@ -596,17 +596,18 @@
       "Url": "https://github.com/signature-opensource/CK-Observable-Domain",
       "Id": "pgaWA85SAcM",
       "Packages": [
-        "CK.IO.ObservableDevice@21.0.0--ci.13",
-        "CK.Ng.ObservableDomain.SignalR@21.0.0--ci.13",
-        "CK.Ng.ObservableDomain.WebSocket@21.0.0--ci.13",
-        "CK.Observable.Cris@21.0.0--ci.13",
-        "CK.Observable.Device@21.0.0--ci.13",
-        "CK.Observable.Domain@21.0.0--ci.13",
-        "CK.Observable.League@21.0.0--ci.13",
-        "CK.Observable.SignalRWatcher@21.0.0--ci.13",
-        "CK.Observable.WebSocketWatcher@21.0.0--ci.13",
-        "CK.TS.ObservableDomain@21.0.0--ci.13",
-        "CK.TS.ObservableDomain.DualCasing@21.0.0--ci.13"
+        "CK.IO.ObservableDevice@21.0.0--ci.16",
+        "CK.Ng.ObservableDomain.SignalR@21.0.0--ci.16",
+        "CK.Ng.ObservableDomain.WebSocket@21.0.0--ci.16",
+        "CK.Observable.Cris@21.0.0--ci.16",
+        "CK.Observable.Device@21.0.0--ci.16",
+        "CK.Observable.Domain@21.0.0--ci.16",
+        "CK.Observable.League@21.0.0--ci.16",
+        "CK.Observable.PersistentDomainDriver@21.0.0--ci.16",
+        "CK.Observable.SignalRWatcher@21.0.0--ci.16",
+        "CK.Observable.WebSocketWatcher@21.0.0--ci.16",
+        "CK.TS.ObservableDomain@21.0.0--ci.16",
+        "CK.TS.ObservableDomain.DualCasing@21.0.0--ci.16"
       ]
     },
     {
@@ -815,6 +816,7 @@
     "Swashbuckle.AspNetCore@10.2.3",
     "System.Collections.Immutable@10.0.12",
     "System.Configuration.ConfigurationManager@10.0.12",
+    "System.IO.Hashing@10.0.12",
     "System.IO.Pipelines@10.0.12",
     "System.IO.Ports@10.0.12",
     "System.Text.RegularExpressions@4.3.1",
